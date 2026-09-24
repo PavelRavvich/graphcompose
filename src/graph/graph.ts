@@ -5,7 +5,7 @@ import { FINISH_DESCRIPTION } from "../prompts/routing.js";
 import type { RouteOption, Router } from "../routers/index.js";
 import type { GuardSet } from "../guards/index.js";
 import type { AnyTool } from "../tools/index.js";
-import { makeAgentNode, type AgentDefinition } from "./nodes/agent.js";
+import { makeAgentNode, type AgentDefinition, type AgentReview } from "./nodes/agent.js";
 import { finalize } from "./nodes/finalize.js";
 import { makeGuardNode } from "./nodes/guards.js";
 import { makeRouterNode } from "./nodes/router.js";
@@ -29,10 +29,23 @@ export interface GraphDeps<TName extends string> {
   /** Resolves a tool name from an agent's config to the tool. */
   readonly tools: (name: string) => AnyTool;
   readonly guards: GuardSet;
+  /** Review routers by agent name (agents with `review`). */
+  readonly reviewers: ReadonlyMap<string, Router>;
 }
 
 export class MissingAgentPromptError extends Error {
   override name = "MissingAgentPromptError";
+}
+
+function reviewOf<TName extends string>(
+  name: string,
+  agent: AgentSettingsOf<string> | undefined,
+  deps: GraphDeps<TName>,
+): AgentReview | undefined {
+  const router = deps.reviewers.get(name);
+  const retry = deps.registry.retries.get(name);
+  if (agent?.review === undefined || router === undefined || retry === undefined) return undefined;
+  return { router, retry, threshold: agent.review.threshold, maxPasses: agent.review.maxPasses };
 }
 
 const settingsByName = (
@@ -55,6 +68,7 @@ function agentDefinitions<TName extends string>(
       tools: (agent?.tools ?? []).map(deps.tools),
       maxToolCalls: agent?.maxToolCalls ?? deps.config.defaults.tools.maxToolCalls,
       historyLimit: agent?.historyLimit ?? deps.config.defaults.history.limit,
+      review: reviewOf(name, agent, deps),
     });
   }
   return definitions;

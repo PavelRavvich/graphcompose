@@ -12,7 +12,7 @@ import { createModelRegistry, type ModelFactory } from "./llm/registry.js";
 import { buildGuards, type GuardSet } from "./guards/index.js";
 import { agentSystemPrompts } from "./prompts/agents.js";
 import { guardPrompts } from "./prompts/guards.js";
-import { createRouter, type RouterFactories } from "./routers/index.js";
+import { createRouter, type Router, type RouterFactories } from "./routers/index.js";
 import {
   connectMcpServers,
   mcpFacades,
@@ -23,6 +23,29 @@ import {
 
 const mcpServersOf = (config: AgentsConfigOf<string>): AgentsConfigOf<string>["mcpServers"] =>
   config.mcpServers;
+/** One review router per agent with `review` (Jev unless the review sets a model). */
+const reviewersFor = (
+  config: AgentsConfigOf<string>,
+  factories: RouterFactories,
+): ReadonlyMap<string, Router> =>
+  new Map(
+    Object.entries(config.agents).flatMap(([name, agent]) =>
+      agent.review === undefined
+        ? []
+        : [
+            [
+              name,
+              createRouter(
+                `review:${name}`,
+                agent.review.model ?? config.defaults.router,
+                config.defaults.chat,
+                factories,
+              ),
+            ] as const,
+          ],
+    ),
+  );
+
 /** Guards from config + their texts; each guard is a router (Jev unless it sets a model). */
 const guardsFor = (config: AgentsConfigOf<string>, factories: RouterFactories): GuardSet =>
   buildGuards(config.guards, guardPrompts, (name, model) =>
@@ -74,6 +97,7 @@ export async function createAppDeps(
     router,
     prompts: agentSystemPrompts,
     guards: guardsFor(config, factories),
+    reviewers: reviewersFor(config, factories),
     tools: (name) => toolRegistry.get(name as never),
     ledger,
     terns,

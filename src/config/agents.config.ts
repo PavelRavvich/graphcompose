@@ -50,6 +50,7 @@ export const agentsConfig = {
       description: "Writes, reviews and explains code",
       temperature: 0.2,
       thinking: "low",
+      review: { threshold: 0.6, maxPasses: 1, thinkingOnRetry: "medium" },
       price: KIMI_PRICE,
     },
   },

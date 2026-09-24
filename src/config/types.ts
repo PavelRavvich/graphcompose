@@ -41,6 +41,16 @@ export const ModelSettingsSchema = z.object({
   price: PriceSchema,
 });
 
+/** Optional second pass: a router (Jev by default) decides if the answer needs another pass. */
+export const ReviewSettingsSchema = z.object({
+  /** Another pass when P(revise) ≥ threshold. */
+  threshold: z.number().min(0).max(1),
+  maxPasses: z.number().int().nonnegative(),
+  /** Thinking of the agent's model on retries. */
+  thinkingOnRetry: ThinkingSchema,
+  model: z.lazy(() => RouterModelSchema).optional(),
+});
+
 export const AgentSettingsSchema = ModelSettingsSchema.extend({
   description: z.string().min(1),
   /** Tool names from the registry (src/tools/catalog.ts). */
@@ -49,6 +59,7 @@ export const AgentSettingsSchema = ModelSettingsSchema.extend({
   historyLimit: z.number().int().nonnegative().optional(),
   /** Crossing it fails the run (fail fast). Default: defaults.tools.maxToolCalls. */
   maxToolCalls: z.number().int().nonnegative().optional(),
+  review: ReviewSettingsSchema.optional(),
 });
 
 /** Jev (TypeSafe) via OpenRouter Decisions API: probabilities over options, exact cost. */
@@ -140,6 +151,7 @@ export type RouterModel = z.infer<typeof RouterModelSchema>;
 export type RouterSettings = z.infer<typeof RouterSettingsSchema>;
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 export type GuardSettings = z.infer<typeof GuardSettingsSchema>;
+export type ReviewSettings = z.infer<typeof ReviewSettingsSchema>;
 export type AgentsConfig = z.infer<typeof AgentsConfigSchema>;
 
 /** An agent whose tool names are a literal union — a typo does not compile. */
