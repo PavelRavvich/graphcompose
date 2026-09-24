@@ -7,6 +7,7 @@ import type { JevClient } from "../src/llm/jev-client.js";
 import { createModelRegistry, type ModelFactory } from "../src/llm/registry.js";
 import type { RunDeps } from "../src/index.js";
 import { createRouter } from "../src/routers/index.js";
+import { createSqliteTernStore } from "../src/terns/index.js";
 import { toolRegistry } from "../src/tools/index.js";
 
 export type TestAgent = "alpha" | "beta";
@@ -19,7 +20,7 @@ export const testConfig: AgentsConfigOf<TestAgent> = {
     router: { kind: "jev", model: "typesafe/jev-test" },
     tools: { maxToolCalls: 3 },
   },
-  budget: { runBudgetCap: 1, dailyBudgetCap: 10 },
+  budget: { runBudgetCap: 1, dailyBudgetCap: 10, evalBudgetCap: 5 },
   routers: {
     main: {
       maxHops: 3,
@@ -81,6 +82,7 @@ export function fakeDeps(
     prompts: { alpha: "You are alpha.", beta: "You are beta." },
     tools: (name) => toolRegistry.get(name as never),
     ledger,
+    terns: createSqliteTernStore(":memory:"),
   };
 }
 

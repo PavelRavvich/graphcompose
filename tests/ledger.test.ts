@@ -12,7 +12,7 @@ import { makeRouterNode } from "../src/graph/nodes/router.js";
 import { runAgent } from "../src/index.js";
 import { baseState, decide, fakeDeps, memoryLedger, usageRecord } from "./helpers.js";
 
-const budget = { runBudgetCap: 0.05, dailyBudgetCap: 2 };
+const budget = { runBudgetCap: 0.05, dailyBudgetCap: 2, evalBudgetCap: 1 };
 const tempDir = (): Promise<string> => mkdtemp(join(tmpdir(), "ledger-"));
 const at = (iso: string) => () => new Date(iso);
 

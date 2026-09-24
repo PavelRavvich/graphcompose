@@ -16,7 +16,7 @@ export const agentsConfig = {
     router: { kind: "jev", model: "typesafe/jev-1.13" },
     tools: { maxToolCalls: 8 },
   },
-  budget: { runBudgetCap: 0.05, dailyBudgetCap: 2 },
+  budget: { runBudgetCap: 0.05, dailyBudgetCap: 2, evalBudgetCap: 1 },
   routers: {
     main: { maxHops: 3 },
     // Override example — LLM router instead of Jev:

@@ -18,6 +18,8 @@ export interface RouteRequest {
 export interface RouterDecision {
   readonly next: string;
   readonly reason: string;
+  /** Probability of `next` when the strategy reports one (Jev); absent for LLM routers. */
+  readonly confidence?: number;
 }
 
 /** `usage` is absent only when no model was called (single or no option). */

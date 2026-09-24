@@ -54,8 +54,24 @@ export default tseslint.config(
     },
   },
   {
+    files: ["src/terns/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^\\.\\./",
+              message: "Terns are isolated: they depend on nothing else in src.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["src/**/*.ts"],
-    ignores: ["src/routers/**", "src/tools/**"],
+    ignores: ["src/routers/**", "src/tools/**", "src/terns/**"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -68,6 +84,10 @@ export default tseslint.config(
             {
               regex: "/tools/(?!index\\.js$)",
               message: "Import tools only through src/tools/index.ts.",
+            },
+            {
+              regex: "/terns/(?!index\\.js$)",
+              message: "Import terns only through src/terns/index.ts.",
             },
           ],
         },
