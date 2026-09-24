@@ -26,8 +26,23 @@ function threadMethods(
   };
 }
 
-function ternWrites(db: DatabaseSync, now: Clock): Pick<TernStore, "append"> {
+function ternWrites(db: DatabaseSync, now: Clock): Pick<TernStore, "append" | "complete"> {
   return {
+    complete: (id, o) => {
+      db.prepare(
+        `UPDATE terns SET answer = ?, status = ?, stop_reason = ?, route = ?, steps = ?, cost_usd = ?
+         WHERE id = ?`,
+      ).run(
+        o.answer,
+        o.status,
+        o.stopReason,
+        JSON.stringify(o.route),
+        JSON.stringify(o.steps),
+        o.costUsd,
+        id,
+      );
+      return Promise.resolve();
+    },
     append: (tern) => {
       const t: Tern = { ...tern, id: randomUUID(), createdAt: now().toISOString() };
       db.prepare("INSERT INTO terns VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(

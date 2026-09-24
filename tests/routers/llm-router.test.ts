@@ -21,6 +21,20 @@ describe("LLM router", () => {
     });
   });
 
+  it("puts a specific question before the input", async () => {
+    const model = new FakeListChatModel({ responses: [decide("finish")] });
+    const invoke = vi.spyOn(model, "invoke");
+
+    await createLlmRouter({ name: "guard", model, settings }).route({
+      ...request,
+      instructions: "Is this unsafe?",
+    });
+
+    expect(JSON.stringify(invoke.mock.calls[0]?.[0])).toContain(
+      "Is this unsafe?\\n\\nImplement a parser",
+    );
+  });
+
   it("parses JSON wrapped in a code fence", async () => {
     const fenced = "```json\n" + decide("finish", "done") + "\n```";
 

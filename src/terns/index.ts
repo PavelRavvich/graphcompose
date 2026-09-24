@@ -9,6 +9,7 @@ export {
   type Tern,
   type TernStatus,
   type TernStep,
+  type TernOutcome,
   type TernStore,
   type VersionScore,
 } from "./types.js";

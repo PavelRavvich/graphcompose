@@ -4,17 +4,21 @@ import type { ModelRegistry } from "../llm/registry.js";
 import { FINISH_DESCRIPTION } from "../prompts/routing.js";
 import type { RouteOption, Router } from "../routers/index.js";
 import type { GuardSet } from "../guards/index.js";
+import type { PauseSeam } from "../pause/index.js";
 import type { AnyTool } from "../tools/index.js";
 import { makeAgentNode, type AgentDefinition, type AgentReview } from "./nodes/agent.js";
 import { finalize } from "./nodes/finalize.js";
+import { makeApprovalNode } from "./nodes/approval.js";
 import { makeGuardNode } from "./nodes/guards.js";
 import { makeRouterNode } from "./nodes/router.js";
 import {
   AGENT_NODE,
+  APPROVAL_NODE,
   FINALIZE_NODE,
   INPUT_GUARDS_NODE,
   OUTPUT_GUARDS_NODE,
   ROUTER_NODE,
+  routeAfterAgent,
   routeAfterInputGuards,
   routeAfterRouter,
 } from "./routing.js";
@@ -31,6 +35,8 @@ export interface GraphDeps<TName extends string> {
   readonly guards: GuardSet;
   /** Review routers by agent name (agents with `review`). */
   readonly reviewers: ReadonlyMap<string, Router>;
+  /** Optional pause seam (human approval). Off by default. */
+  readonly pause?: PauseSeam | undefined;
 }
 
 export class MissingAgentPromptError extends Error {
@@ -102,18 +108,21 @@ const createGraph = <TName extends string>(deps: GraphDeps<TName>) =>
         agents: agentDefinitions(deps),
         bundle: deps.config.name,
         runBudgetCap: deps.config.budget.runBudgetCap,
+        needsApproval: deps.pause?.needsApproval,
       }),
     )
+    .addNode(APPROVAL_NODE, makeApprovalNode({ tools: deps.tools, bundle: deps.config.name }))
     .addNode(FINALIZE_NODE, finalize)
     .addNode(INPUT_GUARDS_NODE, makeGuardNode(deps.guards.input, "input"))
     .addNode(OUTPUT_GUARDS_NODE, makeGuardNode(deps.guards.output, "output"))
     .addEdge(START, INPUT_GUARDS_NODE)
     .addConditionalEdges(INPUT_GUARDS_NODE, routeAfterInputGuards, [ROUTER_NODE, END])
     .addConditionalEdges(ROUTER_NODE, routeAfterRouter, [AGENT_NODE, FINALIZE_NODE])
-    .addEdge(AGENT_NODE, ROUTER_NODE)
+    .addConditionalEdges(AGENT_NODE, routeAfterAgent, [ROUTER_NODE, APPROVAL_NODE])
+    .addEdge(APPROVAL_NODE, AGENT_NODE)
     .addEdge(FINALIZE_NODE, OUTPUT_GUARDS_NODE)
     .addEdge(OUTPUT_GUARDS_NODE, END)
-    .compile();
+    .compile(deps.pause === undefined ? {} : { checkpointer: deps.pause.checkpointer });
 
 export type AgentGraph = ReturnType<typeof createGraph>;
 
