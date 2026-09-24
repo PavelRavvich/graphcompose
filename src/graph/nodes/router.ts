@@ -21,6 +21,12 @@ function stopReason(state: AgentStateType, deps: RouterNodeDeps): string | undef
   return undefined;
 }
 
+/** Nobody has answered yet: `finish` is not an option, the first hop always goes to an agent. */
+function optionsFor(state: AgentStateType, deps: RouterNodeDeps): RouterNodeDeps["options"] {
+  if (state.contributions.length > 0) return deps.options;
+  return deps.options.filter((option) => option.name !== FINISH);
+}
+
 /** Graph adapter around a Router: renders state, applies guards, maps the outcome to state. */
 export function makeRouterNode(deps: RouterNodeDeps): AsyncNode<AgentStateType, AgentStateUpdate> {
   return async (state) => {
@@ -32,7 +38,7 @@ export function makeRouterNode(deps: RouterNodeDeps): AsyncNode<AgentStateType, 
         state.contributions,
         formatHistory(state.history, deps.historyLimit),
       ),
-      options: deps.options,
+      options: optionsFor(state, deps),
     });
     const usage = outcome.usage === undefined ? [] : [outcome.usage];
     switch (outcome.kind) {
