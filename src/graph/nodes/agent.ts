@@ -1,8 +1,13 @@
-import { recordUsage } from "../../finops/usage.js";
-import { withCacheBreakpoint } from "../../llm/cache.js";
+import { HumanMessage } from "@langchain/core/messages";
+import { createAgent, toolCallLimitMiddleware } from "langchain";
+import { totalCost, type UsageRecord } from "../../finops/usage.js";
+import { systemMessageFor } from "../../llm/cache.js";
 import type { ModelBinding } from "../../llm/registry.js";
-import { agentPrompt } from "../../prompts/agents.js";
+import { renderAgentInput } from "../../prompts/agents.js";
+import { toLangChainTool, type AnyTool, type ToolContext } from "../../tools/index.js";
 import { formatContributions } from "../contributions.js";
+import { AgentFailedError } from "../errors.js";
+import { accountingMiddleware } from "../middleware.js";
 import type { AgentStateType, AgentStateUpdate } from "../state.js";
 import type { AsyncNode } from "../types.js";
 
@@ -10,6 +15,14 @@ import type { AsyncNode } from "../types.js";
 export interface AgentDefinition {
   readonly binding: ModelBinding;
   readonly systemPrompt: string;
+  readonly tools: readonly AnyTool[];
+  readonly maxToolCalls: number;
+}
+
+export interface AgentNodeDeps {
+  readonly agents: ReadonlyMap<string, AgentDefinition>;
+  readonly bundle: string;
+  readonly runBudgetCap: number;
 }
 
 export class UnknownAgentError extends Error {
@@ -19,25 +32,49 @@ export class UnknownAgentError extends Error {
   }
 }
 
-/** Runs the agent chosen by the router with its own model, prompt, thinking and cache settings. */
-export function makeAgentNode(
-  agents: ReadonlyMap<string, AgentDefinition>,
-): AsyncNode<AgentStateType, AgentStateUpdate> {
+function toolContext(state: AgentStateType, bundle: string): ToolContext {
+  return {
+    runId: state.runId,
+    bundle,
+    agent: state.next,
+    signal: new AbortController().signal,
+    reportCost: () => undefined,
+  };
+}
+
+/**
+ * Runs the agent the router picked: a model ↔ tool loop (createAgent) with its own model,
+ * prompt, thinking and cache settings. Crossing maxToolCalls fails fast; the loop's spend
+ * travels with the failure so the ledger still records it.
+ */
+export function makeAgentNode(deps: AgentNodeDeps): AsyncNode<AgentStateType, AgentStateUpdate> {
   return async (state) => {
-    const agent = agents.get(state.next);
+    const agent = deps.agents.get(state.next);
     if (agent === undefined) throw new UnknownAgentError(state.next);
-    const prompt = await agentPrompt.formatMessages({
-      system: agent.systemPrompt,
-      task: state.task,
-      contributions: formatContributions(state.contributions),
+    const records: UsageRecord[] = [];
+    const ctx = toolContext(state, deps.bundle);
+    const loop = createAgent({
+      model: agent.binding.model,
+      tools: agent.tools.map((tool) => toLangChainTool(tool, ctx)),
+      systemPrompt: systemMessageFor(agent.systemPrompt, agent.binding.settings),
+      middleware: [
+        accountingMiddleware({
+          agent: state.next,
+          settings: agent.binding.settings,
+          records,
+          spentBeforeUsd: totalCost(state.usage),
+          budgetUsd: Math.min(deps.runBudgetCap, state.budgetUsd),
+        }),
+        toolCallLimitMiddleware({ runLimit: agent.maxToolCalls, exitBehavior: "error" }),
+      ],
     });
-    const response = await agent.binding.model.invoke(
-      withCacheBreakpoint(prompt, agent.binding.settings),
-    );
-    return {
-      hops: 1,
-      contributions: [{ agent: state.next, content: response.text.trim() }],
-      usage: [recordUsage(state.next, agent.binding.settings, response)],
-    };
+    try {
+      const input = renderAgentInput(state.task, formatContributions(state.contributions));
+      const result = await loop.invoke({ messages: [new HumanMessage(input)] });
+      const content = result.messages.at(-1)?.text.trim() ?? "";
+      return { hops: 1, contributions: [{ agent: state.next, content }], usage: records };
+    } catch (error) {
+      throw new AgentFailedError(state.next, records, error);
+    }
   };
 }

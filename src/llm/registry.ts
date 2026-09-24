@@ -1,6 +1,6 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type {
-  AgentsConfig,
+  AgentsConfigOf,
   ChatDefaults,
   ModelSettings,
   ResolvedModelSettings,
@@ -34,7 +34,10 @@ export function resolveSettings(
 }
 
 /** Builds one binding per agent; identical settings share one client. */
-export function createModelRegistry(config: AgentsConfig, factory: ModelFactory): ModelRegistry {
+export function createModelRegistry(
+  config: AgentsConfigOf<string>,
+  factory: ModelFactory,
+): ModelRegistry {
   const cache = new Map<string, BaseChatModel>();
   const bind = (settings: ModelSettings): ModelBinding => {
     const resolved = resolveSettings(settings, config.defaults.chat);

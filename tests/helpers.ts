@@ -7,6 +7,7 @@ import type { JevClient } from "../src/llm/jev-client.js";
 import { createModelRegistry, type ModelFactory } from "../src/llm/registry.js";
 import type { RunDeps } from "../src/index.js";
 import { createRouter } from "../src/routers/index.js";
+import { toolRegistry } from "../src/tools/index.js";
 
 export type TestAgent = "alpha" | "beta";
 
@@ -16,6 +17,7 @@ export const testConfig: AgentsConfigOf<TestAgent> = {
   defaults: {
     chat: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-test" },
+    tools: { maxToolCalls: 3 },
   },
   budget: { runBudgetCap: 1, dailyBudgetCap: 10 },
   routers: {
@@ -77,6 +79,7 @@ export function fakeDeps(
       { chatModel, jevClient: unusedJevClient },
     ),
     prompts: { alpha: "You are alpha.", beta: "You are beta." },
+    tools: (name) => toolRegistry.get(name as never),
     ledger,
   };
 }
@@ -97,6 +100,7 @@ export const usageRecord = (caller: string, costUsd: number): UsageRecord => ({
 export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateType {
   return {
     task: "Do the thing",
+    runId: "run-test",
     next: "",
     routeReason: "",
     hops: 0,

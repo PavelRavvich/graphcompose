@@ -43,6 +43,10 @@ export const ModelSettingsSchema = z.object({
 
 export const AgentSettingsSchema = ModelSettingsSchema.extend({
   description: z.string().min(1),
+  /** Tool names from the registry (src/tools/catalog.ts). */
+  tools: z.array(z.string()).optional(),
+  /** Crossing it fails the run (fail fast). Default: defaults.tools.maxToolCalls. */
+  maxToolCalls: z.number().int().nonnegative().optional(),
 });
 
 /** Jev (TypeSafe) via OpenRouter Decisions API: probabilities over options, exact cost. */
@@ -85,7 +89,11 @@ export const McpServerConfigSchema = z.discriminatedUnion("transport", [
 export const AgentsConfigSchema = z.object({
   /** Agent bundle id: key of the daily spend ledger. */
   name: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "lowercase letters, digits and dashes"),
-  defaults: z.object({ chat: ChatDefaultsSchema, router: RouterModelSchema }),
+  defaults: z.object({
+    chat: ChatDefaultsSchema,
+    router: RouterModelSchema,
+    tools: z.object({ maxToolCalls: z.number().int().nonnegative() }),
+  }),
   budget: z.object({
     /** USD one run may spend. */
     runBudgetCap: z.number().positive(),
@@ -110,10 +118,22 @@ export type RouterSettings = z.infer<typeof RouterSettingsSchema>;
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 export type AgentsConfig = z.infer<typeof AgentsConfigSchema>;
 
-/** Config whose agent names are a literal union — lets the compiler check prompts and routing. */
-export type AgentsConfigOf<TName extends string> = Omit<AgentsConfig, "agents"> & {
-  readonly agents: Readonly<Record<TName, AgentSettings>>;
+/** An agent whose tool names are a literal union — a typo does not compile. */
+export type AgentSettingsOf<TTool extends string> = Omit<AgentSettings, "tools"> & {
+  readonly tools?: readonly TTool[];
 };
+
+/** Config with literal agent and tool names — the compiler checks prompts, routing and tools. */
+export type AgentsConfigOf<TName extends string, TTool extends string = string> = Omit<
+  AgentsConfig,
+  "agents"
+> & {
+  readonly agents: Readonly<Record<TName, AgentSettingsOf<TTool>>>;
+};
+
+export class UnknownAgentToolError extends Error {
+  override name = "UnknownAgentToolError";
+}
 
 /** One system prompt per configured agent; a missing prompt is a compile error. */
 export type AgentPrompts<TName extends string> = Readonly<Record<TName, string>>;
@@ -136,8 +156,17 @@ export function resolveRouterModel(
   return router.model ?? defaults.router;
 }
 
-/** Validates at startup and keeps the literal type of the config. */
-export function validateAgentsConfig<TConfig extends AgentsConfig>(config: TConfig): TConfig {
+/** Validates at startup and keeps the literal type of the config; checks tool names if given. */
+export function validateAgentsConfig<TConfig extends AgentsConfigOf<string>>(
+  config: TConfig,
+  knownTools?: readonly string[],
+): TConfig {
   AgentsConfigSchema.parse(config);
+  const unknown = Object.entries(config.agents).flatMap(([agent, settings]) =>
+    (settings.tools ?? [])
+      .filter((tool) => knownTools !== undefined && !knownTools.includes(tool))
+      .map((tool) => `${agent} → ${tool}`),
+  );
+  if (unknown.length > 0) throw new UnknownAgentToolError(`Unknown tools: ${unknown.join(", ")}`);
   return config;
 }

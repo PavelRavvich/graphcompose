@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { agentsConfig } from "../src/config/agents.config.js";
-import { MODEL_MAX, validateAgentsConfig, type AgentsConfig } from "../src/config/types.js";
+import {
+  MODEL_MAX,
+  UnknownAgentToolError,
+  validateAgentsConfig,
+  type AgentsConfig,
+  type AgentsConfigOf,
+} from "../src/config/types.js";
 import { testConfig } from "./helpers.js";
 
 describe("validateAgentsConfig", () => {
@@ -22,7 +28,7 @@ describe("validateAgentsConfig", () => {
   });
 
   it("rejects a negative price", () => {
-    const config: AgentsConfig = {
+    const config: AgentsConfigOf<string> = {
       ...testConfig,
       agents: {
         alpha: { ...testConfig.agents.alpha, price: { inputPerMTok: -1, outputPerMTok: 0 } },
@@ -30,5 +36,27 @@ describe("validateAgentsConfig", () => {
     };
 
     expect(() => validateAgentsConfig(config)).toThrow();
+  });
+
+  it("rejects an agent tool the registry does not know", () => {
+    const config: AgentsConfigOf<string> = {
+      ...testConfig,
+      agents: { alpha: { ...testConfig.agents.alpha, tools: ["current_time", "ghost"] } },
+    };
+
+    expect(() => validateAgentsConfig(config, ["current_time"])).toThrow(UnknownAgentToolError);
+    expect(() => validateAgentsConfig(config, ["current_time"])).toThrow("alpha → ghost");
+  });
+
+  it("does not compile a tool name outside the union", () => {
+    const agent: AgentsConfigOf<"a", "current_time">["agents"]["a"] = {
+      model: "m",
+      description: "d",
+      price: { inputPerMTok: 0, outputPerMTok: 0 },
+      // @ts-expect-error — "ghost" is not a registered tool
+      tools: ["ghost"],
+    };
+
+    expect(agent.tools).toEqual(["ghost"]);
   });
 });

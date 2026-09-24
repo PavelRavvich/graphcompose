@@ -59,7 +59,13 @@ describe("agent node", () => {
     const { registry, prompts } = fakeDeps({ "test/alpha": ["  alpha result  "] });
     const binding = registry.agents.get("alpha");
     if (binding === undefined) throw new Error("alpha binding missing");
-    return new Map([["alpha", { binding, systemPrompt: prompts.alpha }]]);
+    return {
+      agents: new Map([
+        ["alpha", { binding, systemPrompt: prompts.alpha, tools: [], maxToolCalls: 3 }],
+      ]),
+      bundle: "test-bundle",
+      runBudgetCap: 1,
+    };
   };
 
   it("adds a trimmed contribution, one hop and a usage record", async () => {
