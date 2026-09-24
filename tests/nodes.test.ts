@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { makeAgentNode, UnknownAgentError } from "../src/graph/nodes/agent.js";
 import { makeRouterNode, type RouterNodeDeps } from "../src/graph/nodes/router.js";
 import { FINISH } from "../src/graph/state.js";
-import type { RouteOutcome } from "../src/routers/index.js";
+import type { RouteOutcome, RouteRequest } from "../src/routers/index.js";
 import { baseState, fakeDeps, usageRecord } from "./helpers.js";
 
 const routerDeps = (outcome: RouteOutcome): RouterNodeDeps => ({
@@ -84,5 +84,28 @@ describe("agent node", () => {
     await expect(makeAgentNode(agents())(baseState({ next: "ghost" }))).rejects.toBeInstanceOf(
       UnknownAgentError,
     );
+  });
+});
+
+describe("first hop", () => {
+  it("does not offer finish until an agent has answered", async () => {
+    const route = vi.fn<(request: RouteRequest) => Promise<RouteOutcome>>(() =>
+      Promise.resolve({ kind: "decided", decision: { next: "alpha", reason: "r" } }),
+    );
+    const node = makeRouterNode({
+      ...routerDeps({ kind: "failed", reason: "unused" }),
+      router: { name: "main", route },
+      options: [
+        { name: "alpha", description: "a" },
+        { name: FINISH, description: "done" },
+      ],
+    });
+
+    await node(baseState());
+    await node(baseState({ contributions: [{ agent: "alpha", content: "a" }] }));
+
+    const offered = route.mock.calls.map(([request]) => request.options.map((o) => o.name));
+    expect(offered[0]).toEqual(["alpha"]);
+    expect(offered[1]).toEqual(["alpha", FINISH]);
   });
 });
