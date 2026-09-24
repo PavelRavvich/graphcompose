@@ -29,6 +29,12 @@ export interface Tern {
 
 export type NewTern = Omit<Tern, "id" | "createdAt">;
 
+/** What changes when a paused Tern finishes. */
+export type TernOutcome = Pick<
+  Tern,
+  "answer" | "status" | "stopReason" | "route" | "steps" | "costUsd"
+>;
+
 /** Mean judge score and total cost of the Terns of one prompt version. */
 export interface VersionScore {
   readonly promptVersion: string;
@@ -43,6 +49,8 @@ export interface TernStore {
   readonly createThread: (bundle: string) => Promise<string>;
   readonly hasThread: (bundle: string, threadId: string) => Promise<boolean>;
   readonly append: (tern: NewTern) => Promise<Tern>;
+  /** Completes a paused Tern (same id) with its final outcome. */
+  readonly complete: (ternId: string, outcome: TernOutcome) => Promise<void>;
   /** The last `limit` Terns of a thread, oldest first. */
   readonly lastTerns: (threadId: string, limit: number) => Promise<Tern[]>;
   readonly byIds: (ids: readonly string[]) => Promise<Tern[]>;

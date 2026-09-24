@@ -16,9 +16,10 @@ export interface HasUsage {
 export async function drainRecordingUsage<TState extends HasUsage>(
   states: AsyncIterable<TState>,
   record: (records: readonly UsageRecord[]) => Promise<void>,
+  alreadyRecorded = 0,
 ): Promise<TState> {
   let last: TState | undefined;
-  let recorded = 0;
+  let recorded = alreadyRecorded;
   for await (const state of states) {
     await record(state.usage.slice(recorded));
     recorded = state.usage.length;

@@ -28,5 +28,13 @@ export const reviewPromptTexts: readonly string[] = [
   REVISE_INSTRUCTION,
 ];
 
+/** Tool result shown to the model while a human decides; the loop then stops. */
+export const PENDING_APPROVAL_MESSAGE = "Waiting for human approval of this tool call.";
+export const PAUSED_MESSAGE = "paused: waiting for human approval";
+
+/** What the model reads when a human rejected a call. */
+export const rejectionMessage = (note: string | undefined): string =>
+  `Tool error: rejected by human${note === undefined ? "" : `: ${note}`}`;
+
 /** Final message of an agent whose loop was stopped by the run budget. */
 export const BUDGET_STOP_MESSAGE = "stopped: run budget exhausted";

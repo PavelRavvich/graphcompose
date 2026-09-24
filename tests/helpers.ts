@@ -116,6 +116,8 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     budgetUsd: Number.POSITIVE_INFINITY,
     answer: "",
     guarded: "",
+    pending: null,
+    approvals: [],
     ...overrides,
   };
 }
