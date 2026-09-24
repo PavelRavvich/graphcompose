@@ -29,15 +29,17 @@ case "${1:-}" in
     ;;
   publish)
     MESSAGE="${2:?commit message required, e.g. 'docs(#12): update Routers'}"
-    PUSH_ARGS=(origin master)
     if [[ ! -d "${DIR}/.git" ]]; then
       git -C "${DIR}" init -q -b master
       git -C "${DIR}" remote add origin "${URL}"
-      PUSH_ARGS=(--force origin master) # first publish replaces the placeholder page
     fi
     git -C "${DIR}" add -A
     git -C "${DIR}" diff --cached --quiet || git -C "${DIR}" commit -q -m "${MESSAGE}"
+    # Never synced with the remote yet → our history replaces the placeholder page from the UI.
+    PUSH_ARGS=(origin HEAD:master)
+    git -C "${DIR}" rev-parse -q --verify refs/remotes/origin/master >/dev/null || PUSH_ARGS=(--force "${PUSH_ARGS[@]}")
     git -C "${DIR}" push -q "${PUSH_ARGS[@]}" || first_page_hint
+    git -C "${DIR}" fetch -q origin master
     echo "Wiki published: https://github.com/${REPO}/wiki"
     ;;
   seed)
