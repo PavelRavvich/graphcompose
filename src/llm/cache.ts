@@ -29,3 +29,14 @@ export function withCacheBreakpoint(
   });
   return [cached, ...rest];
 }
+
+/** The system prompt as a message, with a cache breakpoint when the model needs one. */
+export function systemMessageFor(
+  text: string,
+  settings: Pick<ResolvedModelSettings, "model" | "cache">,
+): SystemMessage {
+  if (!needsCacheBreakpoint(settings)) return new SystemMessage(text);
+  return new SystemMessage({
+    content: [{ type: "text", text, cache_control: { type: "ephemeral" } }],
+  });
+}

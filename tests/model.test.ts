@@ -74,6 +74,7 @@ describe("createAppDeps", () => {
 
     expect([...deps.registry.agents.keys()].sort()).toEqual(Object.keys(deps.prompts).sort());
     expect(deps.router.name).toBe("main");
+    expect(deps.tools("current_time").name).toBe("current_time");
     await deps.close();
   });
 });

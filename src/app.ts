@@ -1,5 +1,5 @@
 import { agentsConfig, type AgentName } from "./config/agents.config.js";
-import { resolveRouterModel, validateAgentsConfig, type AgentsConfig } from "./config/types.js";
+import { resolveRouterModel, validateAgentsConfig, type AgentsConfigOf } from "./config/types.js";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { createFileLedger } from "./finops/ledger.js";
@@ -13,8 +13,12 @@ import {
   connectMcpServers,
   mcpFacades,
   mcpServerHandles,
+  toolRegistry,
   type TransportFactory,
 } from "./tools/index.js";
+
+const mcpServersOf = (config: AgentsConfigOf<string>): AgentsConfigOf<string>["mcpServers"] =>
+  config.mcpServers;
 
 /** Daily spend ledgers live outside the repo. */
 export const DEFAULT_LEDGER_DIR = join(homedir(), ".langgraph-agents", "spend");
@@ -32,10 +36,9 @@ export async function createAppDeps(
   env: NodeJS.ProcessEnv = process.env,
   makeTransport?: TransportFactory,
 ): Promise<AppDeps> {
-  const config = validateAgentsConfig(agentsConfig);
-  const general: AgentsConfig = config;
+  const config = validateAgentsConfig(agentsConfig, toolRegistry.names);
   const mcp = await connectMcpServers(
-    general.mcpServers,
+    mcpServersOf(config),
     mcpServerHandles,
     mcpFacades(),
     env,
@@ -54,6 +57,7 @@ export async function createAppDeps(
     registry: createModelRegistry(config, chatModel),
     router,
     prompts: agentSystemPrompts,
+    tools: (name) => toolRegistry.get(name as never),
     ledger: createFileLedger(env.SPEND_LEDGER_DIR ?? DEFAULT_LEDGER_DIR),
     close: mcp.close,
   };

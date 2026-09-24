@@ -1,4 +1,5 @@
-import { MODEL_MAX, type AgentsConfig } from "./types.js";
+import type { ToolName } from "../tools/index.js";
+import { MODEL_MAX, type AgentsConfigOf } from "./types.js";
 
 const KIMI_PRICE = { inputPerMTok: 0.4972, outputPerMTok: 2.97, cacheReadPerMTok: 0.1284 };
 
@@ -13,6 +14,7 @@ export const agentsConfig = {
   defaults: {
     chat: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-1.13" },
+    tools: { maxToolCalls: 8 },
   },
   budget: { runBudgetCap: 0.05, dailyBudgetCap: 2 },
   routers: {
@@ -31,6 +33,7 @@ export const agentsConfig = {
     researcher: {
       model: "moonshotai/kimi-k2.6",
       description: "Finds, explains and summarizes facts",
+      tools: ["current_time"],
       price: KIMI_PRICE,
     },
     coder: {
@@ -41,6 +44,6 @@ export const agentsConfig = {
       price: KIMI_PRICE,
     },
   },
-} as const satisfies AgentsConfig;
+} as const satisfies AgentsConfigOf<string, ToolName>;
 
 export type AgentName = keyof typeof agentsConfig.agents;

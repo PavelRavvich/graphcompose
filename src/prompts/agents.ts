@@ -1,4 +1,3 @@
-import { ChatPromptTemplate } from "@langchain/core/prompts";
 import type { AgentName } from "../config/agents.config.js";
 import type { AgentPrompts } from "../config/types.js";
 
@@ -10,7 +9,9 @@ export const agentSystemPrompts: AgentPrompts<AgentName> = {
     "You are a senior TypeScript engineer. Give working, typed code with a one-line explanation.",
 };
 
-export const agentPrompt = ChatPromptTemplate.fromMessages([
-  ["system", "{system}"],
-  ["human", "Task:\n{task}\n\nPrevious contributions:\n{contributions}"],
-]);
+/** The agent's user message: the task and what other agents already contributed. */
+export const renderAgentInput = (task: string, contributions: string): string =>
+  `Task:\n${task}\n\nPrevious contributions:\n${contributions}`;
+
+/** Final message of an agent whose loop was stopped by the run budget. */
+export const BUDGET_STOP_MESSAGE = "stopped: run budget exhausted";

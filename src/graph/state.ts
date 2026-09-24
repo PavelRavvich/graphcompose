@@ -10,6 +10,8 @@ const append = <TItem>(left: TItem[], right: TItem[]): TItem[] => left.concat(ri
 /** Single source of truth for the graph state. Nodes return only the keys they own. */
 export const AgentState = Annotation.Root({
   task: Annotation<string>(),
+  /** Id of this run (tools and logs). */
+  runId: Annotation<string>({ reducer: (_previous, next) => next, default: () => "" }),
   /** Agent chosen by the router, or FINISH. */
   next: Annotation<string>(),
   routeReason: Annotation<string>(),

@@ -1,6 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { BudgetExceededError, runBudgetUsd, type SpendLedger } from "./finops/ledger.js";
 import { drainRecordingUsage } from "./finops/record-stream.js";
-import { buildCostReport, type CostReport } from "./finops/usage.js";
+import { buildCostReport, type CostReport, type UsageRecord } from "./finops/usage.js";
+import { AgentFailedError } from "./graph/errors.js";
 import { buildGraph, type GraphDeps } from "./graph/graph.js";
 import { RunInputSchema } from "./input.js";
 
@@ -34,10 +36,16 @@ export async function runAgent<TName extends string>(
   if (budgetUsd <= 0) {
     throw new BudgetExceededError(`Daily budget of "${deps.config.name}" is spent — no calls made`);
   }
-  const states = await buildGraph(deps).stream({ task, budgetUsd }, { streamMode: "values" });
-  const state = await drainRecordingUsage(states, (records) =>
-    deps.ledger.record(deps.config.name, records),
+  const record = (records: readonly UsageRecord[]): Promise<void> =>
+    deps.ledger.record(deps.config.name, records);
+  const states = await buildGraph(deps).stream(
+    { task, budgetUsd, runId: randomUUID() },
+    { streamMode: "values" },
   );
+  const state = await drainRecordingUsage(states, record).catch(async (error: unknown) => {
+    if (error instanceof AgentFailedError) await record(error.usage); // failures are paid for too
+    throw error;
+  });
   return {
     answer: state.answer,
     route: state.contributions.map((item) => item.agent),
