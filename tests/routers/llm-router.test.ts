@@ -1,0 +1,55 @@
+import { FakeListChatModel } from "@langchain/core/utils/testing";
+import { describe, expect, it, vi } from "vitest";
+import { resolveSettings } from "../../src/llm/registry.js";
+import { createLlmRouter } from "../../src/routers/index.js";
+import { decide, testConfig } from "../helpers.js";
+import { request } from "./fixtures.js";
+
+const settings = resolveSettings(
+  { model: "test/router", price: { inputPerMTok: 1, outputPerMTok: 1 } },
+  testConfig.defaults.chat,
+);
+const llm = (responses: string[]) =>
+  createLlmRouter({ name: "main", model: new FakeListChatModel({ responses }), settings });
+
+describe("LLM router", () => {
+  it("decides from valid JSON and prices usage from the table", async () => {
+    expect(await llm([decide("alpha", "facts needed")]).route(request)).toMatchObject({
+      kind: "decided",
+      decision: { next: "alpha", reason: "facts needed" },
+      usage: { caller: "router:main", costSource: "price-table" },
+    });
+  });
+
+  it("parses JSON wrapped in a code fence", async () => {
+    const fenced = "```json\n" + decide("finish", "done") + "\n```";
+
+    expect(await llm([fenced]).route(request)).toMatchObject({ decision: { next: "finish" } });
+  });
+
+  it("defaults a missing reason to an empty string", async () => {
+    expect(await llm(['{"next":"alpha"}']).route(request)).toMatchObject({
+      decision: { next: "alpha", reason: "" },
+    });
+  });
+
+  it("fails on an unknown option", async () => {
+    expect(await llm([decide("ghost")]).route(request)).toMatchObject({
+      kind: "failed",
+      reason: "invalid router output",
+    });
+  });
+
+  it("fails on text that is not JSON", async () => {
+    expect(await llm(["I think alpha"]).route(request)).toMatchObject({ kind: "failed" });
+  });
+
+  it("fails safely when the model throws a non-Error", async () => {
+    const model = new FakeListChatModel({ responses: [] });
+    vi.spyOn(model, "invoke").mockRejectedValue("timeout");
+
+    const outcome = await createLlmRouter({ name: "main", model, settings }).route(request);
+
+    expect(outcome).toMatchObject({ kind: "failed", reason: "router error: timeout" });
+  });
+});

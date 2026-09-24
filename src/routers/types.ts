@@ -1,0 +1,35 @@
+import type { UsageRecord } from "../finops/usage.js";
+
+/** A target the router may pick. */
+export interface RouteOption {
+  readonly name: string;
+  readonly description: string;
+}
+
+/**
+ * Everything a router sees: rendered input text and the options.
+ * Routers know nothing about graph state, agents or contributions.
+ */
+export interface RouteRequest {
+  readonly input: string;
+  readonly options: readonly RouteOption[];
+}
+
+export interface RouterDecision {
+  readonly next: string;
+  readonly reason: string;
+}
+
+/** Every routing attempt may cost money, so usage is present in both variants. */
+export type RouteOutcome =
+  | { readonly kind: "decided"; readonly decision: RouterDecision; readonly usage: UsageRecord }
+  | { readonly kind: "failed"; readonly reason: string; readonly usage: UsageRecord };
+
+/** A routing strategy (Jev, LLM, …). Pure input → outcome; testable on its own. */
+export interface Router {
+  readonly name: string;
+  readonly route: (request: RouteRequest) => Promise<RouteOutcome>;
+}
+
+/** Usage caller id for a router, e.g. "router:main". */
+export const routerCaller = (name: string): string => `router:${name}`;

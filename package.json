@@ -1,0 +1,43 @@
+{
+  "name": "langgraph-ts-template",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
+    "smoke": "vitest run --config vitest.smoke.config.ts",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run coverage",
+    "studio": "langgraphjs dev",
+    "test:routers": "vitest run tests/routers"
+  },
+  "dependencies": {
+    "@langchain/core": "^1.2.12",
+    "@langchain/langgraph": "^1.4.17",
+    "@langchain/openai": "^1.5.13",
+    "dotenv": "^18.0.3",
+    "langchain": "^1.5.12",
+    "langsmith": "^0.10.5",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@langchain/langgraph-cli": "^1.0.0",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  }
+}
