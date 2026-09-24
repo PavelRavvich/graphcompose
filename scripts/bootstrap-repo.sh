@@ -20,6 +20,7 @@ git push -u origin dev staging production
 gh repo edit --default-branch dev --template --enable-wiki --enable-issues
 
 "$(dirname "$0")/bootstrap-labels.sh"
+"$(dirname "$0")/ticket.sh" setup
 
 # Docs → GitHub Wiki (from ../<name>.wiki if present)
 if [[ -d "../${NAME}.wiki" ]]; then

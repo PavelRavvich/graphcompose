@@ -1,7 +1,7 @@
 ---
 name: Chore
 about: Tooling, config, refactoring — no behaviour change
-labels: ["type:chore", "status:triaged"]
+labels: ["type:chore"]
 ---
 
 ## Goal

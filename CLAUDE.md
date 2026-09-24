@@ -44,13 +44,17 @@ A ticket is not done until `make check` is green.
 - `finalize` — answer = latest contribution.
 - Add an agent: entry in `agents.config.ts` + prompt in `src/prompts/agents.ts`. Nothing else.
 
-## Pipeline
+## Conveyor
 
-| Phase     | Skill            | Output                                       |
-| --------- | ---------------- | -------------------------------------------- |
-| Triage    | `triage-lite`    | GitHub issues + a session plan issue         |
-| Spec      | `spec-lite`      | full spec written into every issue           |
-| Implement | `implement-lite` | one branch + one PR per issue, merged to dev |
+Board `Status`: **Triage → Backlog → In progress → Test → Done** (Done: human only).
+
+| Stage              | Skill          | Output                                                                                                    |
+| ------------------ | -------------- | --------------------------------------------------------------------------------------------------------- |
+| Triage             | `triage`       | business side (why / does / does not / constraints / success) in the issue; parent + sub-issues if needed |
+| Backlog            | `spec-session` | spec, plan, automated + manual acceptance criteria, test cases in the issue                               |
+| In progress → Test | `implement`    | parallel waves; branch + PR (`Refs #N`) per issue, merged to `dev`; manual-test handoff                   |
+
+Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status>`.
 
 ## Hard rules
 

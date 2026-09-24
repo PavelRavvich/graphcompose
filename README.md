@@ -6,17 +6,18 @@
 Template for building LangGraph agents in TypeScript with an LLM-driven delivery pipeline:
 **triage → spec → implement**, every step visible in GitHub Issues and PRs.
 
-## The pipeline
+## The conveyor
 
-| Phase     | Time      | Skill            | Result                                             |
-| --------- | --------- | ---------------- | -------------------------------------------------- |
-| 0. Setup  | ~5 min    | —                | repo from template, stack confirmed                |
-| 1. Triage | 15–20 min | `triage-lite`    | clarified requirements, 4–7 issues, `Session plan` |
-| 2. Spec   | 20–25 min | `spec-lite`      | spec, plan, acceptance criteria, tests in issues   |
-| 3. Build  | 60–70 min | `implement-lite` | branch + PR per issue, merged to `dev`             |
-| 4. Wrap   | ~10 min   | —                | demo, summary on `Session plan`                    |
+Tickets move across the GitHub Project board of the repo:
 
-Rules: [`WORKFLOW.md`](WORKFLOW.md) (tracker, branches, PRs) ·
+| Stage              | Skill          | Result                                                                                                |
+| ------------------ | -------------- | ----------------------------------------------------------------------------------------------------- |
+| Triage             | `triage`       | business side clarified through quizzes; issue(s) created or updated, split into sub-issues if needed |
+| Backlog            | `spec-session` | spec, implementation plan, automated + manual acceptance criteria — in the issue                      |
+| In progress → Test | `implement`    | independent issues in parallel; branch + PR per issue, merged to `dev`; manual-test handoff           |
+| Done               | a human        | after manual acceptance                                                                               |
+
+Rules: [`WORKFLOW.md`](WORKFLOW.md) (conveyor, board, branches, PRs) ·
 [`QUALITY.md`](QUALITY.md) (code, tests) · [`CLAUDE.md`](CLAUDE.md) (agent instructions).
 
 ## Start a new project from this template
@@ -26,6 +27,7 @@ gh repo create <name> --public --template <owner>/langgraph-ts-template --includ
 cd <name>
 make setup
 scripts/bootstrap-labels.sh
+scripts/ticket.sh setup   # the board: Triage → Backlog → In progress → Test → Done
 gh repo edit --enable-wiki --enable-issues
 # GitHub creates the wiki repo only after the first page is saved once in the UI:
 #   open https://github.com/<owner>/<name>/wiki/_new, save any page, then:
