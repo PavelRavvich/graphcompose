@@ -1,7 +1,9 @@
 {
   "node_version": "22",
   "graphs": {
-    "agents": "./src/studio.ts:graph"
+    "agents": "./src/studio.ts:graph",
+    "demo-assistant": "./src/demo/studio.ts:assistant",
+    "demo-approval": "./src/demo/studio.ts:approval"
   },
   "env": ".env"
 }

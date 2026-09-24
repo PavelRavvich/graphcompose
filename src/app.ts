@@ -1,4 +1,5 @@
-import { agentsConfig, type AgentName } from "./config/agents.config.js";
+import { MemorySaver } from "@langchain/langgraph";
+import { defaultBundle, type AgentBundle } from "./bundle.js";
 import { resolveRouterModel, validateAgentsConfig, type AgentsConfigOf } from "./config/types.js";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -10,19 +11,30 @@ import { createJevClient } from "./llm/jev-client.js";
 import { createChatModel, readOpenRouterEnv } from "./llm/model.js";
 import { createModelRegistry, type ModelFactory } from "./llm/registry.js";
 import { buildGuards, type GuardSet } from "./guards/index.js";
-import { agentSystemPrompts } from "./prompts/agents.js";
 import { guardPrompts } from "./prompts/guards.js";
 import { createRouter, type Router, type RouterFactories } from "./routers/index.js";
 import {
   connectMcpServers,
-  mcpFacades,
-  mcpServerHandles,
-  toolRegistry,
+  isMcpFacade,
+  UnknownToolError,
+  type AnyTool,
   type TransportFactory,
 } from "./tools/index.js";
 
-const mcpServersOf = (config: AgentsConfigOf<string>): AgentsConfigOf<string>["mcpServers"] =>
-  config.mcpServers;
+/** Tool lookup for the graph; an unknown name is a wiring bug. */
+const toolLookup = (tools: readonly AnyTool[]): ((name: string) => AnyTool) => {
+  const byName = new Map(tools.map((tool) => [tool.name, tool] as const));
+  return (name) => {
+    const tool = byName.get(name);
+    if (tool === undefined) throw new UnknownToolError(`Unknown tool "${name}"`);
+    return tool;
+  };
+};
+
+const pauseFor = (bundle: AgentBundle): AppDeps["pause"] =>
+  bundle.needsApproval === undefined
+    ? undefined
+    : { checkpointer: new MemorySaver(), needsApproval: bundle.needsApproval };
 /** One review router per agent with `review` (Jev unless the review sets a model). */
 const reviewersFor = (
   config: AgentsConfigOf<string>,
@@ -59,24 +71,28 @@ export const DEFAULT_LEDGER_DIR = join(homedir(), ".langgraph-agents", "spend");
 export const DEFAULT_TERN_DB = join(homedir(), ".langgraph-agents", "terns.sqlite");
 
 /** Run dependencies, eval dependencies, and resources to release after the run. */
-export interface AppDeps extends RunDeps<AgentName> {
+export interface AppDeps extends RunDeps<string> {
   readonly evaluation: EvalDeps;
   readonly close: () => Promise<void>;
 }
 
 /**
- * Production wiring: real config, OpenRouter (chat + Jev), MCP servers, file spend ledger, prompts.
- * Fails fast when an MCP server is unavailable or its contract drifted.
+ * Production wiring of a bundle (default: the project's agents): OpenRouter (chat + Jev), MCP
+ * servers, file spend ledger, Tern store. Fails fast when an MCP server is unavailable or drifted.
  */
 export async function createAppDeps(
   env: NodeJS.ProcessEnv = process.env,
   makeTransport?: TransportFactory,
+  bundle: AgentBundle = defaultBundle,
 ): Promise<AppDeps> {
-  const config = validateAgentsConfig(agentsConfig, toolRegistry.names);
+  const config = validateAgentsConfig(
+    bundle.config,
+    bundle.tools.map((tool) => tool.name),
+  );
   const mcp = await connectMcpServers(
-    mcpServersOf(config),
-    mcpServerHandles,
-    mcpFacades(),
+    config.mcpServers,
+    bundle.mcpServers,
+    bundle.tools.filter(isMcpFacade),
     env,
     makeTransport,
   );
@@ -95,10 +111,11 @@ export async function createAppDeps(
     config,
     registry: createModelRegistry(config, chatModel),
     router,
-    prompts: agentSystemPrompts,
+    prompts: bundle.prompts,
     guards: guardsFor(config, factories),
     reviewers: reviewersFor(config, factories),
-    tools: (name) => toolRegistry.get(name as never),
+    tools: toolLookup(bundle.tools),
+    pause: pauseFor(bundle),
     ledger,
     terns,
     evaluation: {
