@@ -20,7 +20,8 @@
     "test:routers": "vitest run tests/routers",
     "test:tools": "vitest run tests/tools",
     "eval": "tsx src/eval/cli.ts eval",
-    "replay": "tsx src/eval/cli.ts replay"
+    "replay": "tsx src/eval/cli.ts replay",
+    "chat": "tsx src/chat.ts"
   },
   "dependencies": {
     "@langchain/core": "^1.2.12",

@@ -2,6 +2,7 @@ import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { MemorySaver } from "@langchain/langgraph";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { summaryLine, untilDone } from "../src/cli/approve.js";
 import { NotPausedError, resumeAgent, runAgent, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
 import { writeToolsNeedApproval } from "../src/pause/index.js";
@@ -136,5 +137,43 @@ describe("pause seam", () => {
     await expect(resumeAgent(paused, { approve: true }, deps)).rejects.toThrow();
 
     expect((await deps.terns.byIds([paused.ternId]))[0]).toMatchObject({ status: "failed" });
+  });
+});
+
+describe("terminal approval (CLI and chat)", () => {
+  it("asks about the pending call and continues with the answer", async () => {
+    const { deps, sent } = setup([callSend, "Sent."]);
+    const ask = vi.fn(() => Promise.resolve("y"));
+
+    const done = await untilDone(await runAgent({ task: "Email the boss" }, deps), deps, ask);
+
+    expect(ask).toHaveBeenCalledWith(
+      expect.stringContaining('alpha wants to call send_email {"to":"boss@example.com"}'),
+    );
+    expect(done.status).toBe("answered");
+    expect(sent).toEqual(["boss@example.com"]);
+  });
+
+  it("treats anything but yes — or ended input — as a rejection", async () => {
+    for (const reply of ["n", undefined]) {
+      const { deps, sent } = setup([callSend, "Ok, not sent."]);
+
+      const done = await untilDone(await runAgent({ task: "Email the boss" }, deps), deps, () =>
+        Promise.resolve(reply),
+      );
+
+      expect(done.answer).toBe("Ok, not sent.");
+      expect(sent).toEqual([]);
+    }
+  });
+
+  it("summarises a result in one line", async () => {
+    const { deps } = setup([callSend, "Sent."]);
+    const done = await untilDone(await runAgent({ task: "Email the boss" }, deps), deps, () =>
+      Promise.resolve("y"),
+    );
+
+    expect(summaryLine(done)).toMatch(/^alpha · done · \$\d+\.\d{6} in \d+ calls$/);
+    expect(summaryLine({ ...done, route: [] })).toMatch(/^\(none\) · /);
   });
 });
