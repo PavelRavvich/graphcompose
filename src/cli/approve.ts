@@ -25,8 +25,8 @@ export async function untilDone(
   return result;
 }
 
-/** One line under an answer: route, stop reason, cost. */
+/** One line under an answer: route and why the run stopped. */
 export function summaryLine(result: AgentRunResult): string {
   const route = result.route.length > 0 ? result.route.join(" → ") : "(none)";
-  return `${route} · ${result.stopReason} · $${result.cost.totalUsd.toFixed(6)} in ${String(result.cost.calls)} calls`;
+  return `${route} · stop: ${result.stopReason}`;
 }

@@ -5,6 +5,7 @@ import { parseArgs, styleText } from "node:util";
 import { createAppDeps } from "./app.js";
 import { bundleNamed } from "./bundles.js";
 import { summaryLine, untilDone } from "./cli/approve.js";
+import { costSummary, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
 import { runAgent } from "./index.js";
 
@@ -40,6 +41,10 @@ try {
       threadId = result.threadId;
       say(`${styleText("cyan", "agent ›")} ${result.answer}`);
       say(styleText("dim", `  ${summaryLine(result)}`));
+      say(styleText("dim", `  ${costSummary(result.cost)}`));
+      costTrace(result.cost).forEach((line) => {
+        say(styleText("dim", `    ${line}`));
+      });
     } catch (error) {
       say(styleText("red", `error › ${error instanceof Error ? error.message : String(error)}`));
     }

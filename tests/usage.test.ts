@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCostReport,
+  costCategoryOf,
   costOf,
   extractTokenUsage,
   recordUsage,
   ZERO_USAGE,
+  type UsageRecord,
 } from "../src/finops/usage.js";
 import { usageRecord as record } from "./helpers.js";
 
@@ -78,6 +80,57 @@ describe("finops usage", () => {
       calls: 0,
       cacheReadTokens: 0,
       byCaller: {},
+      byCategory: { agents: 0, routing: 0, guards: 0, review: 0, tools: 0 },
+      byModel: {},
+      trace: [],
     });
+  });
+});
+
+describe("turn financials", () => {
+  const record = (caller: string, model: string, costUsd: number): UsageRecord => ({
+    caller,
+    model,
+    costUsd,
+    costSource: caller.startsWith("tool:") ? "tool" : "price-table",
+    inputTokens: 10,
+    outputTokens: 2,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+  });
+
+  it("categorises callers", () => {
+    expect(costCategoryOf("tool:exchange_rate")).toBe("tools");
+    expect(costCategoryOf("router:guard:pii")).toBe("guards");
+    expect(costCategoryOf("router:review:coder")).toBe("review");
+    expect(costCategoryOf("router:main")).toBe("routing");
+    expect(costCategoryOf("researcher")).toBe("agents");
+  });
+
+  it("reports categories, models and the call trace in order", () => {
+    const report = buildCostReport([
+      record("router:guard:prompt_injection", "jev", 0.00001),
+      record("router:main", "jev", 0.00002),
+      record("researcher", "kimi", 0.003),
+      record("tool:exchange_rate", "exchange_rate", 0.001),
+    ]);
+
+    expect(report.byCategory).toEqual({
+      agents: 0.003,
+      routing: 0.00002,
+      guards: 0.00001,
+      review: 0,
+      tools: 0.001,
+    });
+    expect(report.byModel.jev).toBeCloseTo(0.00003);
+    expect(report.trace.map((line) => [line.caller, line.category])).toEqual([
+      ["router:guard:prompt_injection", "guards"],
+      ["router:main", "routing"],
+      ["researcher", "agents"],
+      ["tool:exchange_rate", "tools"],
+    ]);
+    expect(Object.values(report.byCategory).reduce((a, b) => a + b, 0)).toBeCloseTo(
+      report.totalUsd,
+    );
   });
 });
