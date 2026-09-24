@@ -17,7 +17,8 @@
     "smoke": "vitest run --config vitest.smoke.config.ts",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run coverage",
     "studio": "langgraphjs dev",
-    "test:routers": "vitest run tests/routers"
+    "test:routers": "vitest run tests/routers",
+    "test:tools": "vitest run tests/tools"
   },
   "dependencies": {
     "@langchain/core": "^1.2.12",
