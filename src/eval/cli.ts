@@ -1,16 +1,21 @@
 import "dotenv/config";
 import { parseArgs } from "node:util";
 import { createAppDeps } from "../app.js";
+import { bundleNamed } from "../bundles.js";
 import { evaluate } from "./eval.js";
 import { replay } from "./replay.js";
 
-// npm run eval   -- [--version <v>] [--limit N]
-// npm run replay -- --version <v> [--limit N]
+// npm run eval   -- [--config <name>] [--version <v>] [--limit N]
+// npm run replay -- [--config <name>] --version <v> [--limit N]
 const { positionals, values } = parseArgs({
   allowPositionals: true,
-  options: { version: { type: "string" }, limit: { type: "string", default: "100" } },
+  options: {
+    version: { type: "string" },
+    limit: { type: "string", default: "100" },
+    config: { type: "string", default: "default" },
+  },
 });
-const deps = await createAppDeps();
+const deps = await createAppDeps(process.env, undefined, bundleNamed(values.config));
 const limit = Number(values.limit);
 try {
   if (positionals[0] === "replay") {

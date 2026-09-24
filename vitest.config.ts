@@ -8,7 +8,7 @@ export default defineConfig({
       provider: "v8",
       include: ["src/**/*.ts"],
       // thin entry points, exercised by `make smoke` / `npm run studio`
-      exclude: ["src/cli.ts", "src/studio.ts", "src/eval/cli.ts"],
+      exclude: ["src/cli.ts", "src/studio.ts", "src/eval/cli.ts", "src/demo/studio.ts"],
       reporter: ["text", "html", "json-summary"],
       thresholds: {
         lines: 80,
