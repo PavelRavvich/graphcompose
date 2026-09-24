@@ -17,6 +17,8 @@ export type ModelFactory = (settings: ResolvedModelSettings) => BaseChatModel;
 /** Chat models of the agents. The router is built separately (see src/routing). */
 export interface ModelRegistry {
   readonly agents: ReadonlyMap<string, ModelBinding>;
+  /** For agents with `review`: the same model with `thinkingOnRetry`. */
+  readonly retries: ReadonlyMap<string, ModelBinding>;
 }
 
 export function resolveSettings(
@@ -55,5 +57,12 @@ export function createModelRegistry(
   const agents = new Map(
     Object.entries(config.agents).map(([name, settings]) => [name, bind(settings)] as const),
   );
-  return { agents };
+  const retries = new Map(
+    Object.entries(config.agents).flatMap(([name, settings]) =>
+      settings.review === undefined
+        ? []
+        : [[name, bind({ ...settings, thinking: settings.review.thinkingOnRetry })] as const],
+    ),
+  );
+  return { agents, retries };
 }

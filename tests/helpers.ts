@@ -86,6 +86,7 @@ export function fakeDeps(
     ledger,
     terns: createSqliteTernStore(":memory:"),
     guards: NO_GUARDS,
+    reviewers: new Map(),
   };
 }
 

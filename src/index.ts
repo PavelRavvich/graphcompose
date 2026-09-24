@@ -7,6 +7,7 @@ import { buildGraph, type GraphDeps } from "./graph/graph.js";
 import type { HistoryTurn } from "./graph/contributions.js";
 import type { AgentStateType } from "./graph/state.js";
 import { RunInputSchema } from "./input.js";
+import { reviewPromptTexts } from "./prompts/agents.js";
 import { routerPromptTexts } from "./routers/index.js";
 import { versionOf, type NewTern, type TernStore } from "./terns/index.js";
 
@@ -49,6 +50,7 @@ export function runVersions<TName extends string>(
     promptVersion: versionOf({
       agents: deps.prompts,
       routers: routerPromptTexts,
+      review: reviewPromptTexts,
       guards: [...deps.guards.input, ...deps.guards.output].map(
         ({ name, question, flag, pass }) => ({
           name,
