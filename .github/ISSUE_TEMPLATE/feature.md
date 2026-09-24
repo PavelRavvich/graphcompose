@@ -1,31 +1,25 @@
 ---
 name: Feature
 about: New behaviour
-labels: ["type:feature", "status:triaged"]
+labels: ["type:feature"]
 ---
 
-## Goal
+## Why
 
-## Spec
+## What it does
 
-## Implementation plan
+-
 
-## Acceptance criteria
+## What it does NOT do
 
-- [ ]
+-
 
-## Test cases
+## Constraints
 
-**Main:**
-**Edge:**
-**Regression:**
+-
 
-## Not auto-verifiable
+## Success looks like
 
-## Wiki to update
+-
 
-None
-
-## Dependencies
-
-none
+<!-- The technical part (spec, plan, acceptance criteria) is added by the spec-session skill. -->

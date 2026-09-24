@@ -1,7 +1,7 @@
 ---
 name: Bugfix
 about: Wrong behaviour
-labels: ["type:bugfix", "status:triaged"]
+labels: ["type:bugfix"]
 ---
 
 ## Observed
