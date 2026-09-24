@@ -62,6 +62,7 @@ Add an agent: one entry in `src/config/agents.config.ts` + one prompt in
 ## Try the demo
 
 ```bash
+npm run chat -- --config assistant          # chat in the terminal
 npm start -- --config assistant "What does the onboarding doc say about the first week?"
 npm start -- --config approval "Save a note: call Misha on Thursday"
 npm run studio   # LangGraph Studio: graphs agents, demo-assistant, demo-approval
