@@ -1,5 +1,8 @@
 # langgraph-ts-template
 
+[![CI](https://github.com/PavelRavvich/langgraph-ts-template/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/PavelRavvich/langgraph-ts-template/actions/workflows/ci.yml)
+[![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/PavelRavvich/langgraph-ts-template/badges/coverage.json)](https://github.com/PavelRavvich/langgraph-ts-template/actions/workflows/ci.yml)
+
 Template for building LangGraph agents in TypeScript with an LLM-driven delivery pipeline:
 **triage → spec → implement**, every step visible in GitHub Issues and PRs.
 

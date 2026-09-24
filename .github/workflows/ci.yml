@@ -6,6 +6,9 @@ on:
   push:
     branches: [dev, staging, production]
 
+permissions:
+  contents: write
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -17,3 +20,16 @@ jobs:
           cache: npm
       - run: npm ci
       - run: make check
+      - name: Publish coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/coverage-badge.cjs coverage/coverage-summary.json > /tmp/coverage.json
+          cd "$(mktemp -d)"
+          git init -q -b badges
+          cp /tmp/coverage.json .
+          git add coverage.json
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "coverage badge for ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" badges

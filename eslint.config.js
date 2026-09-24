@@ -59,7 +59,15 @@ export default tseslint.config(
     rules: { "max-lines-per-function": "off" },
   },
   {
-    files: ["**/*.js"],
+    files: ["**/*.js", "**/*.cjs"],
     ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    files: ["**/*.cjs"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: { require: "readonly", process: "readonly" },
+    },
+    rules: { "@typescript-eslint/no-require-imports": "off" },
   },
 );
