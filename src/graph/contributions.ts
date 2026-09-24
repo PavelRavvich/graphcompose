@@ -1,3 +1,4 @@
+import type { ApprovalRecord } from "../pause/index.js";
 /** What one agent added to the shared work. */
 export interface Contribution {
   readonly agent: string;
@@ -27,11 +28,22 @@ export function formatHistory(history: readonly HistoryTurn[], limit: number): s
   return `Previous turns:\n${lines.join("\n\n")}\n\n`;
 }
 
+/** Human decisions on tool calls in this run; empty when there were none. */
+export function formatHumanDecisions(approvals: readonly ApprovalRecord[]): string {
+  if (approvals.length === 0) return "";
+  const lines = approvals.map((record) => {
+    const call = `${record.agent} → ${record.tool} ${JSON.stringify(record.args)}`;
+    return record.approved ? `- ${call}: approved` : `- ${call}: ${record.result}`;
+  });
+  return `\n\nHuman decisions:\n${lines.join("\n")}`;
+}
+
 /** Adapter: graph state → the plain text a router sees. */
 export function renderRouteInput(
   task: string,
   contributions: readonly Contribution[],
   history = "",
+  decisions = "",
 ): string {
-  return `${history}Task:\n${task}\n\nContributions so far:\n${formatContributions(contributions)}`;
+  return `${history}Task:\n${task}\n\nContributions so far:\n${formatContributions(contributions)}${decisions}`;
 }

@@ -1,6 +1,6 @@
 import { totalCost } from "../../finops/usage.js";
 import type { RouteOption, Router } from "../../routers/index.js";
-import { formatHistory, renderRouteInput } from "../contributions.js";
+import { formatHistory, formatHumanDecisions, renderRouteInput } from "../contributions.js";
 import { FINISH, type AgentStateType, type AgentStateUpdate } from "../state.js";
 import type { AsyncNode } from "../types.js";
 
@@ -37,6 +37,7 @@ export function makeRouterNode(deps: RouterNodeDeps): AsyncNode<AgentStateType, 
         state.task,
         state.contributions,
         formatHistory(state.history, deps.historyLimit),
+        formatHumanDecisions(state.approvals),
       ),
       options: optionsFor(state, deps),
     });
