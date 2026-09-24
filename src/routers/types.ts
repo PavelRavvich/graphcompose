@@ -20,10 +20,10 @@ export interface RouterDecision {
   readonly reason: string;
 }
 
-/** Every routing attempt may cost money, so usage is present in both variants. */
+/** `usage` is absent only when no model was called (single or no option). */
 export type RouteOutcome =
-  | { readonly kind: "decided"; readonly decision: RouterDecision; readonly usage: UsageRecord }
-  | { readonly kind: "failed"; readonly reason: string; readonly usage: UsageRecord };
+  | { readonly kind: "decided"; readonly decision: RouterDecision; readonly usage?: UsageRecord }
+  | { readonly kind: "failed"; readonly reason: string; readonly usage?: UsageRecord };
 
 /** A routing strategy (Jev, LLM, …). Pure input → outcome; testable on its own. */
 export interface Router {

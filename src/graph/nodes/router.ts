@@ -29,7 +29,7 @@ export function makeRouterNode(deps: RouterNodeDeps): AsyncNode<AgentStateType, 
       input: renderRouteInput(state.task, state.contributions),
       options: deps.options,
     });
-    const usage = [outcome.usage];
+    const usage = outcome.usage === undefined ? [] : [outcome.usage];
     switch (outcome.kind) {
       case "decided":
         return { next: outcome.decision.next, routeReason: outcome.decision.reason, usage };
