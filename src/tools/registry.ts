@@ -11,6 +11,7 @@ export class UnknownToolError extends Error {
 /** All tools of the project; names form a literal union the compiler checks. */
 export interface ToolRegistry<TName extends string> {
   readonly names: readonly TName[];
+  readonly tools: readonly AnyTool[];
   readonly has: (name: string) => name is TName;
   readonly get: (name: TName) => AnyTool;
 }
@@ -28,6 +29,7 @@ export function createToolRegistry<const TTools extends readonly AnyTool[]>(
   const has = (name: string): name is TTools[number]["name"] => byName.has(name);
   return {
     names: tools.map((tool): TTools[number]["name"] => tool.name),
+    tools: [...tools],
     has,
     get: (name) => {
       const tool = byName.get(name);

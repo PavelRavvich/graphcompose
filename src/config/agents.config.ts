@@ -23,6 +23,10 @@ export const agentsConfig = {
     //   model: { kind: "llm", model: "moonshotai/kimi-k2.6", maxTokens: 200, price: KIMI_PRICE },
     // },
   },
+  // MCP servers used by facades in src/tools/catalog.ts. Only env variable NAMES, never secrets:
+  // mcpServers: {
+  //   github: { transport: "stdio", command: "github-mcp-server", args: ["stdio"], env: ["GITHUB_PERSONAL_ACCESS_TOKEN"] },
+  // },
   agents: {
     researcher: {
       model: "moonshotai/kimi-k2.6",
