@@ -7,7 +7,8 @@ import { runAgent, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
 import { BUDGET_STOP_MESSAGE } from "../src/prompts/agents.js";
 import { createRouter } from "../src/routers/index.js";
-import { toolRegistry } from "../src/tools/index.js";
+import { defineTool, toolRegistry } from "../src/tools/index.js";
+import { z } from "zod";
 import { ScriptedChatModel, type Reply } from "./fakes/scripted-model.js";
 import { decide, memoryLedger, testConfig, unusedJevClient, type TestAgent } from "./helpers.js";
 
@@ -16,9 +17,23 @@ interface Setup {
   readonly alpha: readonly Reply[];
   readonly maxToolCalls?: number;
   readonly runBudgetCap?: number;
+  readonly toolCostUsd?: number;
 }
 
-function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1 }: Setup) {
+/** A paid tool: reports `costUsd` on every call. */
+const paidSearch = (costUsd: number) =>
+  defineTool({
+    name: "paid_search",
+    description: "Paid search",
+    input: z.object({}),
+    output: z.string(),
+    run: (_input, ctx) => {
+      ctx.reportCost(costUsd);
+      return Promise.resolve("3 results");
+    },
+  });
+
+function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd = 0.01 }: Setup) {
   const model = new ScriptedChatModel(alpha);
   const ledger = memoryLedger();
   const config: AgentsConfigOf<TestAgent> = {
@@ -26,7 +41,7 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1 }: Setup) {
     budget: { runBudgetCap, dailyBudgetCap: 10 },
     agents: {
       ...testConfig.agents,
-      alpha: { ...testConfig.agents.alpha, tools: ["current_time"], maxToolCalls },
+      alpha: { ...testConfig.agents.alpha, tools: ["current_time", "paid_search"], maxToolCalls },
     },
   };
   const router = new FakeListChatModel({ responses: routes });
@@ -45,7 +60,8 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1 }: Setup) {
       },
     ),
     prompts: { alpha: "You are alpha.", beta: "You are beta." },
-    tools: (name) => toolRegistry.get(name as never),
+    tools: (name) =>
+      name === "paid_search" ? paidSearch(toolCostUsd) : toolRegistry.get(name as never),
     ledger,
   };
   return { deps, model, ledger };
@@ -129,5 +145,56 @@ describe("agents with tools", () => {
     expect(result.route).toEqual(["alpha"]);
     expect(result.answer).toBe(BUDGET_STOP_MESSAGE);
     expect(result.stopReason).toBe("budget exhausted");
+  });
+});
+
+const search: Reply = [{ tool: "paid_search", args: {} }];
+
+describe("tool costs in FinOps", () => {
+  it("reports tool costs separately", async () => {
+    const { deps } = setup({ routes: answered, alpha: [search, "Found it."] });
+
+    const result = await runAgent({ task: "Search" }, deps);
+
+    expect(result.cost.byCaller["tool:paid_search"]).toBeCloseTo(0.01);
+  });
+
+  it("stops after a paid tool spends the run budget", async () => {
+    const { deps, model } = setup({
+      routes: answered,
+      alpha: [search, "never sent"],
+      runBudgetCap: 0.005,
+    });
+
+    const result = await runAgent({ task: "Search" }, deps);
+
+    expect(model.sent).toHaveLength(1);
+    expect(result.stopReason).toBe("budget exhausted");
+  });
+
+  it("records tool spend of a failed agent", async () => {
+    const { deps, ledger } = setup({
+      routes: answered,
+      alpha: [search, search, "never"],
+      maxToolCalls: 1,
+    });
+
+    await expect(runAgent({ task: "Loop" }, deps)).rejects.toBeInstanceOf(AgentFailedError);
+    expect(ledger.recorded.some((record) => record.caller === "tool:paid_search")).toBe(true);
+  });
+
+  it("turns an invalid reported cost into a tool error the model sees", async () => {
+    const { deps, model } = setup({
+      routes: answered,
+      alpha: [search, "Handled."],
+      toolCostUsd: -1,
+    });
+
+    const result = await runAgent({ task: "Search" }, deps);
+
+    expect(model.sent[1]?.at(-1)?.text).toContain(
+      'Tool error: Tool "paid_search" reported an invalid cost: -1',
+    );
+    expect(result.cost.byCaller["tool:paid_search"]).toBeUndefined();
   });
 });

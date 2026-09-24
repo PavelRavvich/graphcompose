@@ -1,6 +1,6 @@
 import { HumanMessage } from "@langchain/core/messages";
 import { createAgent, toolCallLimitMiddleware } from "langchain";
-import { totalCost, type UsageRecord } from "../../finops/usage.js";
+import { recordToolCost, totalCost, type UsageRecord } from "../../finops/usage.js";
 import { systemMessageFor } from "../../llm/cache.js";
 import type { ModelBinding } from "../../llm/registry.js";
 import { renderAgentInput } from "../../prompts/agents.js";
@@ -32,13 +32,21 @@ export class UnknownAgentError extends Error {
   }
 }
 
-function toolContext(state: AgentStateType, bundle: string): ToolContext {
+/** Per tool: its reported cost lands in the loop's records, next to the model calls. */
+function toolContext(
+  state: AgentStateType,
+  bundle: string,
+  tool: AnyTool,
+  records: UsageRecord[],
+): ToolContext {
   return {
     runId: state.runId,
     bundle,
     agent: state.next,
     signal: new AbortController().signal,
-    reportCost: () => undefined,
+    reportCost: (usd) => {
+      records.push(recordToolCost(tool.name, usd));
+    },
   };
 }
 
@@ -52,10 +60,11 @@ export function makeAgentNode(deps: AgentNodeDeps): AsyncNode<AgentStateType, Ag
     const agent = deps.agents.get(state.next);
     if (agent === undefined) throw new UnknownAgentError(state.next);
     const records: UsageRecord[] = [];
-    const ctx = toolContext(state, deps.bundle);
     const loop = createAgent({
       model: agent.binding.model,
-      tools: agent.tools.map((tool) => toLangChainTool(tool, ctx)),
+      tools: agent.tools.map((tool) =>
+        toLangChainTool(tool, toolContext(state, deps.bundle, tool, records)),
+      ),
       systemPrompt: systemMessageFor(agent.systemPrompt, agent.binding.settings),
       middleware: [
         accountingMiddleware({
