@@ -7,6 +7,7 @@ import { runAgent, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
 import { BUDGET_STOP_MESSAGE } from "../src/prompts/agents.js";
 import { createRouter } from "../src/routers/index.js";
+import { NO_GUARDS } from "../src/guards/index.js";
 import { createSqliteTernStore } from "../src/terns/index.js";
 import { defineTool, toolRegistry } from "../src/tools/index.js";
 import { z } from "zod";
@@ -62,6 +63,7 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd 
     ),
     prompts: { alpha: "You are alpha.", beta: "You are beta." },
     terns: createSqliteTernStore(":memory:"),
+    guards: NO_GUARDS,
     tools: (name) =>
       name === "paid_search" ? paidSearch(toolCostUsd) : toolRegistry.get(name as never),
     ledger,

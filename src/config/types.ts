@@ -86,6 +86,15 @@ export const McpServerConfigSchema = z.discriminatedUnion("transport", [
   }),
 ]);
 
+/** A guard: a two-option decision (flag / pass) with a threshold on P(flag). Texts: src/prompts/guards.ts. */
+export const GuardSettingsSchema = z.object({
+  threshold: z.number().min(0).max(1),
+  /** Returned as the answer when the guard trips. */
+  refusal: z.string().min(1),
+  /** Omit to use defaults.router (Jev). */
+  model: RouterModelSchema.optional(),
+});
+
 export const AgentsConfigSchema = z.object({
   /** Agent bundle id: key of the daily spend ledger. */
   name: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "lowercase letters, digits and dashes"),
@@ -104,6 +113,13 @@ export const AgentsConfigSchema = z.object({
   }),
   routers: z.object({ main: RouterSettingsSchema }).catchall(RouterSettingsSchema),
   mcpServers: z.record(z.string(), McpServerConfigSchema).optional(),
+  /** Run in order; the first guard that trips stops the run. */
+  guards: z
+    .object({
+      input: z.record(z.string(), GuardSettingsSchema).optional(),
+      output: z.record(z.string(), GuardSettingsSchema).optional(),
+    })
+    .optional(),
   agents: z
     .record(z.string(), AgentSettingsSchema)
     .refine((agents) => Object.keys(agents).length > 0, "at least one agent is required"),
@@ -118,6 +134,7 @@ export type AgentSettings = z.infer<typeof AgentSettingsSchema>;
 export type RouterModel = z.infer<typeof RouterModelSchema>;
 export type RouterSettings = z.infer<typeof RouterSettingsSchema>;
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
+export type GuardSettings = z.infer<typeof GuardSettingsSchema>;
 export type AgentsConfig = z.infer<typeof AgentsConfigSchema>;
 
 /** An agent whose tool names are a literal union — a typo does not compile. */

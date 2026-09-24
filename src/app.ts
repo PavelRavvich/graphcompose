@@ -9,8 +9,10 @@ import { createSqliteTernStore } from "./terns/index.js";
 import { createJevClient } from "./llm/jev-client.js";
 import { createChatModel, readOpenRouterEnv } from "./llm/model.js";
 import { createModelRegistry, type ModelFactory } from "./llm/registry.js";
+import { buildGuards, type GuardSet } from "./guards/index.js";
 import { agentSystemPrompts } from "./prompts/agents.js";
-import { createRouter } from "./routers/index.js";
+import { guardPrompts } from "./prompts/guards.js";
+import { createRouter, type RouterFactories } from "./routers/index.js";
 import {
   connectMcpServers,
   mcpFacades,
@@ -21,6 +23,11 @@ import {
 
 const mcpServersOf = (config: AgentsConfigOf<string>): AgentsConfigOf<string>["mcpServers"] =>
   config.mcpServers;
+/** Guards from config + their texts; each guard is a router (Jev unless it sets a model). */
+const guardsFor = (config: AgentsConfigOf<string>, factories: RouterFactories): GuardSet =>
+  buildGuards(config.guards, guardPrompts, (name, model) =>
+    createRouter(`guard:${name}`, model ?? config.defaults.router, config.defaults.chat, factories),
+  );
 
 /** Daily spend ledgers live outside the repo. */
 export const DEFAULT_LEDGER_DIR = join(homedir(), ".langgraph-agents", "spend");
@@ -66,6 +73,7 @@ export async function createAppDeps(
     registry: createModelRegistry(config, chatModel),
     router,
     prompts: agentSystemPrompts,
+    guards: guardsFor(config, factories),
     tools: (name) => toolRegistry.get(name as never),
     ledger,
     terns,

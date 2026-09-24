@@ -7,6 +7,7 @@ import type { JevClient } from "../src/llm/jev-client.js";
 import { createModelRegistry, type ModelFactory } from "../src/llm/registry.js";
 import type { RunDeps } from "../src/index.js";
 import { createRouter } from "../src/routers/index.js";
+import { NO_GUARDS } from "../src/guards/index.js";
 import { createSqliteTernStore } from "../src/terns/index.js";
 import { toolRegistry } from "../src/tools/index.js";
 
@@ -83,6 +84,7 @@ export function fakeDeps(
     tools: (name) => toolRegistry.get(name as never),
     ledger,
     terns: createSqliteTernStore(":memory:"),
+    guards: NO_GUARDS,
   };
 }
 
@@ -110,6 +112,7 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     usage: [],
     budgetUsd: Number.POSITIVE_INFINITY,
     answer: "",
+    guarded: "",
     ...overrides,
   };
 }

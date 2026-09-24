@@ -26,6 +26,8 @@ export const AgentState = Annotation.Root({
   /** FinOps: every LLM call appends one record. */
   usage: Annotation<UsageRecord[]>({ reducer: append, default: () => [] }),
   answer: Annotation<string>(),
+  /** Name of the guard that stopped the run, "" if none. */
+  guarded: Annotation<string>({ reducer: (_previous, next) => next, default: () => "" }),
 });
 
 export type AgentStateType = typeof AgentState.State;
