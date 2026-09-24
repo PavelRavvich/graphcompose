@@ -3,11 +3,21 @@ import type { AgentPrompts, AgentSettingsOf, AgentsConfigOf } from "../config/ty
 import type { ModelRegistry } from "../llm/registry.js";
 import { FINISH_DESCRIPTION } from "../prompts/routing.js";
 import type { RouteOption, Router } from "../routers/index.js";
+import type { GuardSet } from "../guards/index.js";
 import type { AnyTool } from "../tools/index.js";
 import { makeAgentNode, type AgentDefinition } from "./nodes/agent.js";
 import { finalize } from "./nodes/finalize.js";
+import { makeGuardNode } from "./nodes/guards.js";
 import { makeRouterNode } from "./nodes/router.js";
-import { AGENT_NODE, FINALIZE_NODE, ROUTER_NODE, routeAfterRouter } from "./routing.js";
+import {
+  AGENT_NODE,
+  FINALIZE_NODE,
+  INPUT_GUARDS_NODE,
+  OUTPUT_GUARDS_NODE,
+  ROUTER_NODE,
+  routeAfterInputGuards,
+  routeAfterRouter,
+} from "./routing.js";
 import { AgentState, FINISH } from "./state.js";
 
 export interface GraphDeps<TName extends string> {
@@ -18,6 +28,7 @@ export interface GraphDeps<TName extends string> {
   readonly prompts: AgentPrompts<TName>;
   /** Resolves a tool name from an agent's config to the tool. */
   readonly tools: (name: string) => AnyTool;
+  readonly guards: GuardSet;
 }
 
 export class MissingAgentPromptError extends Error {
@@ -78,15 +89,19 @@ const createGraph = <TName extends string>(deps: GraphDeps<TName>) =>
       }),
     )
     .addNode(FINALIZE_NODE, finalize)
-    .addEdge(START, ROUTER_NODE)
+    .addNode(INPUT_GUARDS_NODE, makeGuardNode(deps.guards.input, "input"))
+    .addNode(OUTPUT_GUARDS_NODE, makeGuardNode(deps.guards.output, "output"))
+    .addEdge(START, INPUT_GUARDS_NODE)
+    .addConditionalEdges(INPUT_GUARDS_NODE, routeAfterInputGuards, [ROUTER_NODE, END])
     .addConditionalEdges(ROUTER_NODE, routeAfterRouter, [AGENT_NODE, FINALIZE_NODE])
     .addEdge(AGENT_NODE, ROUTER_NODE)
-    .addEdge(FINALIZE_NODE, END)
+    .addEdge(FINALIZE_NODE, OUTPUT_GUARDS_NODE)
+    .addEdge(OUTPUT_GUARDS_NODE, END)
     .compile();
 
 export type AgentGraph = ReturnType<typeof createGraph>;
 
-/** START → router ⇄ agent → finalize → END. Router strategy, agents and models come from config. */
+/** START → input guards → router ⇄ agent → finalize → output guards → END. All from config. */
 export function buildGraph<TName extends string>(deps: GraphDeps<TName>): AgentGraph {
   return createGraph(deps);
 }

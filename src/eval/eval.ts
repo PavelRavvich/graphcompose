@@ -2,7 +2,7 @@ import type { SpendLedger } from "../finops/ledger.js";
 import type { SpendAccount } from "../index.js";
 import type { RouteOutcome, RouteRequest, Router } from "../routers/index.js";
 import type { Tern, TernStore } from "../terns/index.js";
-import { ADEQUATE, INADEQUATE } from "./prompts.js";
+import { ADEQUATE, INADEQUATE, JUDGE_INSTRUCTIONS } from "./prompts.js";
 
 export interface EvalDeps {
   readonly terns: TernStore;
@@ -20,6 +20,7 @@ export interface ScoringReport {
 }
 
 export const judgeRequest = (tern: Tern): RouteRequest => ({
+  instructions: JUDGE_INSTRUCTIONS,
   input: `Task:\n${tern.task}\n\nAnswer:\n${tern.answer}`,
   options: [
     { name: "adequate", description: ADEQUATE },

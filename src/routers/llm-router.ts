@@ -25,7 +25,10 @@ export function createLlmRouter(deps: LlmRouterDeps): Router {
       try {
         const prompt = await llmRouterPrompt.formatMessages({
           options: describeOptions(request.options),
-          input: request.input,
+          input:
+            request.instructions === undefined
+              ? request.input
+              : `${request.instructions}\n\n${request.input}`,
         });
         const response = await deps.model.invoke(withCacheBreakpoint(prompt, deps.settings));
         const usage = recordUsage(caller, deps.settings, response);

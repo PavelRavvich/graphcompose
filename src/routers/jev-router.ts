@@ -68,7 +68,13 @@ export function createJevRouter(deps: JevRouterDeps): Router {
         const raw = await deps.client({
           model: deps.model,
           state: request.input,
-          questions: { route: { type: "choice", instructions: jevRouteInstructions, criteria } },
+          questions: {
+            route: {
+              type: "choice",
+              instructions: request.instructions ?? jevRouteInstructions,
+              criteria,
+            },
+          },
         });
         return toOutcome(raw, request, usageOf);
       } catch (error) {

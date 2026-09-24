@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { BudgetExceededError, runBudgetUsd, type SpendLedger } from "./finops/ledger.js";
 import { drainRecordingUsage } from "./finops/record-stream.js";
 import { buildCostReport, totalCost, type CostReport, type UsageRecord } from "./finops/usage.js";
-import { AgentFailedError } from "./graph/errors.js";
+import { PaidStepError } from "./graph/errors.js";
 import { buildGraph, type GraphDeps } from "./graph/graph.js";
 import type { AgentStateType } from "./graph/state.js";
 import { RunInputSchema } from "./input.js";
@@ -45,7 +45,18 @@ export function runVersions<TName extends string>(
   deps: RunDeps<TName>,
 ): { readonly promptVersion: string; readonly modelVersion: string } {
   return {
-    promptVersion: versionOf({ agents: deps.prompts, routers: routerPromptTexts }),
+    promptVersion: versionOf({
+      agents: deps.prompts,
+      routers: routerPromptTexts,
+      guards: [...deps.guards.input, ...deps.guards.output].map(
+        ({ name, question, flag, pass }) => ({
+          name,
+          question,
+          flag,
+          pass,
+        }),
+      ),
+    }),
     modelVersion: versionOf({
       defaults: deps.config.defaults,
       routers: deps.config.routers,
@@ -67,7 +78,7 @@ async function streamRun<TName extends string>(
     { streamMode: "values" },
   );
   return drainRecordingUsage(states, record).catch(async (error: unknown) => {
-    if (error instanceof AgentFailedError) await record(error.usage); // failures are paid for too
+    if (error instanceof PaidStepError) await record(error.usage); // failures are paid for too
     throw error;
   });
 }
@@ -80,7 +91,7 @@ type TernBase = Pick<
 const answeredTern = (base: TernBase, state: AgentStateType): NewTern => ({
   ...base,
   answer: state.answer,
-  status: "answered",
+  status: state.guarded === "" ? "answered" : "guarded",
   stopReason: state.routeReason,
   route: state.contributions.map((item) => item.agent),
   steps: state.contributions,
