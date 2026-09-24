@@ -29,7 +29,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              regex: "/(graph|agents|prompts)/",
+              regex: "/(graph|agents|prompts|tools)/",
               message: "Routers are isolated: depend only on config, finops and llm.",
             },
           ],
@@ -38,8 +38,24 @@ export default tseslint.config(
     },
   },
   {
+    files: ["src/tools/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "/(graph|agents|prompts|routers)/",
+              message: "Tools are isolated: depend only on config, finops and llm.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["src/**/*.ts"],
-    ignores: ["src/routers/**"],
+    ignores: ["src/routers/**", "src/tools/**"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -48,6 +64,10 @@ export default tseslint.config(
             {
               regex: "/routers/(?!index\\.js$)",
               message: "Import routers only through src/routers/index.ts.",
+            },
+            {
+              regex: "/tools/(?!index\\.js$)",
+              message: "Import tools only through src/tools/index.ts.",
             },
           ],
         },
