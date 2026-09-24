@@ -5,7 +5,7 @@ import { systemMessageFor } from "../../llm/cache.js";
 import type { ModelBinding } from "../../llm/registry.js";
 import { renderAgentInput } from "../../prompts/agents.js";
 import { toLangChainTool, type AnyTool, type ToolContext } from "../../tools/index.js";
-import { formatContributions } from "../contributions.js";
+import { formatContributions, formatHistory } from "../contributions.js";
 import { AgentFailedError } from "../errors.js";
 import { accountingMiddleware } from "../middleware.js";
 import type { AgentStateType, AgentStateUpdate } from "../state.js";
@@ -17,6 +17,7 @@ export interface AgentDefinition {
   readonly systemPrompt: string;
   readonly tools: readonly AnyTool[];
   readonly maxToolCalls: number;
+  readonly historyLimit: number;
 }
 
 export interface AgentNodeDeps {
@@ -78,7 +79,11 @@ export function makeAgentNode(deps: AgentNodeDeps): AsyncNode<AgentStateType, Ag
       ],
     });
     try {
-      const input = renderAgentInput(state.task, formatContributions(state.contributions));
+      const input = renderAgentInput(
+        state.task,
+        formatContributions(state.contributions),
+        formatHistory(state.history, agent.historyLimit),
+      );
       const result = await loop.invoke({ messages: [new HumanMessage(input)] });
       const content = result.messages.at(-1)?.text.trim() ?? "";
       return { hops: 1, contributions: [{ agent: state.next, content }], usage: records };

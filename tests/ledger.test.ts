@@ -113,6 +113,7 @@ describe("daily cap in a run", () => {
       options: [],
       maxHops: 10,
       maxCostUsd: 1,
+      historyLimit: 0,
     });
 
     const update = await node(baseState({ budgetUsd: 0.01, usage: [usageRecord("alpha", 0.02)] }));

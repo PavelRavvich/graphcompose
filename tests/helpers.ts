@@ -20,6 +20,7 @@ export const testConfig: AgentsConfigOf<TestAgent> = {
     chat: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-test" },
     tools: { maxToolCalls: 3 },
+    history: { limit: 2 },
   },
   budget: { runBudgetCap: 1, dailyBudgetCap: 10, evalBudgetCap: 5 },
   routers: {
@@ -104,6 +105,7 @@ export const usageRecord = (caller: string, costUsd: number): UsageRecord => ({
 export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateType {
   return {
     task: "Do the thing",
+    history: [],
     runId: "run-test",
     next: "",
     routeReason: "",

@@ -4,6 +4,7 @@ import { drainRecordingUsage } from "./finops/record-stream.js";
 import { buildCostReport, totalCost, type CostReport, type UsageRecord } from "./finops/usage.js";
 import { PaidStepError } from "./graph/errors.js";
 import { buildGraph, type GraphDeps } from "./graph/graph.js";
+import type { HistoryTurn } from "./graph/contributions.js";
 import type { AgentStateType } from "./graph/state.js";
 import { RunInputSchema } from "./input.js";
 import { routerPromptTexts } from "./routers/index.js";
@@ -65,12 +66,46 @@ export function runVersions<TName extends string>(
   };
 }
 
+export class UnknownThreadError extends Error {
+  override name = "UnknownThreadError";
+}
+
+/** Deepest history any router or agent of the config may need. */
+function historyDepth<TName extends string>(deps: RunDeps<TName>): number {
+  const agentLimits = Object.values<{ readonly historyLimit?: number }>(deps.config.agents).map(
+    (agent) => agent.historyLimit ?? 0,
+  );
+  return Math.max(
+    deps.config.defaults.history.limit,
+    deps.config.routers.main.historyLimit ?? 0,
+    ...agentLimits,
+  );
+}
+
+/** First contact → a new thread; a given id must exist for this bundle (validation, no calls). */
+async function openThread<TName extends string>(
+  deps: RunDeps<TName>,
+  requested: string | undefined,
+): Promise<{ readonly threadId: string; readonly history: HistoryTurn[] }> {
+  const bundle = deps.config.name;
+  if (requested === undefined)
+    return { threadId: await deps.terns.createThread(bundle), history: [] };
+  if (!(await deps.terns.hasThread(bundle, requested))) {
+    throw new UnknownThreadError(`Unknown thread "${requested}" for "${bundle}"`);
+  }
+  const terns = await deps.terns.lastTerns(requested, historyDepth(deps));
+  return {
+    threadId: requested,
+    history: terns.map(({ task, answer, status }) => ({ task, answer, status })),
+  };
+}
+
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
 async function streamRun<TName extends string>(
   deps: RunDeps<TName>,
-  input: { readonly task: string; readonly budgetUsd: number },
+  input: { readonly task: string; readonly budgetUsd: number; readonly history: HistoryTurn[] },
   record: (records: readonly UsageRecord[]) => Promise<void>,
 ): Promise<AgentStateType> {
   const states = await buildGraph(deps).stream(
@@ -118,10 +153,10 @@ export async function runAgent<TName extends string>(
   deps: RunDeps<TName>,
   options: RunOptions = {},
 ): Promise<AgentRunResult> {
-  const { task } = RunInputSchema.parse(input);
+  const { task, threadId: requested } = RunInputSchema.parse(input);
   const bundle = deps.config.name;
   const account = options.account ?? { key: bundle, dailyCap: deps.config.budget.dailyBudgetCap };
-  const threadId = await deps.terns.createThread(bundle);
+  const { threadId, history } = await openThread(deps, requested);
   const spent: UsageRecord[] = [];
   const record = async (records: readonly UsageRecord[]): Promise<void> => {
     spent.push(...records);
@@ -140,7 +175,7 @@ export async function runAgent<TName extends string>(
     if (budgetUsd <= 0) {
       throw new BudgetExceededError(`Daily budget of "${account.key}" is spent — no calls made`);
     }
-    const state = await streamRun(deps, { task, budgetUsd }, record);
+    const state = await streamRun(deps, { task, budgetUsd, history }, record);
     const tern = await deps.terns.append(answeredTern(base, state));
     return {
       answer: state.answer,

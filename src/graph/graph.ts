@@ -54,6 +54,7 @@ function agentDefinitions<TName extends string>(
       systemPrompt,
       tools: (agent?.tools ?? []).map(deps.tools),
       maxToolCalls: agent?.maxToolCalls ?? deps.config.defaults.tools.maxToolCalls,
+      historyLimit: agent?.historyLimit ?? deps.config.defaults.history.limit,
     });
   }
   return definitions;
@@ -77,6 +78,7 @@ const createGraph = <TName extends string>(deps: GraphDeps<TName>) =>
         router: deps.router,
         options: routeOptions(deps.config.agents),
         maxHops: deps.config.routers.main.maxHops,
+        historyLimit: deps.config.routers.main.historyLimit ?? deps.config.defaults.history.limit,
         maxCostUsd: deps.config.budget.runBudgetCap,
       }),
     )

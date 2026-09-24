@@ -1,6 +1,6 @@
 import { totalCost } from "../../finops/usage.js";
 import type { RouteOption, Router } from "../../routers/index.js";
-import { renderRouteInput } from "../contributions.js";
+import { formatHistory, renderRouteInput } from "../contributions.js";
 import { FINISH, type AgentStateType, type AgentStateUpdate } from "../state.js";
 import type { AsyncNode } from "../types.js";
 
@@ -9,6 +9,7 @@ export interface RouterNodeDeps {
   readonly options: readonly RouteOption[];
   readonly maxHops: number;
   readonly maxCostUsd: number;
+  readonly historyLimit: number;
 }
 
 /** Guards checked before spending money on a routing call. */
@@ -26,7 +27,11 @@ export function makeRouterNode(deps: RouterNodeDeps): AsyncNode<AgentStateType, 
     const stop = stopReason(state, deps);
     if (stop !== undefined) return { next: FINISH, routeReason: stop };
     const outcome = await deps.router.route({
-      input: renderRouteInput(state.task, state.contributions),
+      input: renderRouteInput(
+        state.task,
+        state.contributions,
+        formatHistory(state.history, deps.historyLimit),
+      ),
       options: deps.options,
     });
     const usage = outcome.usage === undefined ? [] : [outcome.usage];

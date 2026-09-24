@@ -10,6 +10,7 @@ const routerDeps = (outcome: RouteOutcome): RouterNodeDeps => ({
   options: [{ name: "alpha", description: "a" }],
   maxHops: 2,
   maxCostUsd: 0.01,
+  historyLimit: 0,
 });
 
 const paid = usageRecord("router:main", 0.001);
@@ -61,7 +62,10 @@ describe("agent node", () => {
     if (binding === undefined) throw new Error("alpha binding missing");
     return {
       agents: new Map([
-        ["alpha", { binding, systemPrompt: prompts.alpha, tools: [], maxToolCalls: 3 }],
+        [
+          "alpha",
+          { binding, systemPrompt: prompts.alpha, tools: [], maxToolCalls: 3, historyLimit: 0 },
+        ],
       ]),
       bundle: "test-bundle",
       runBudgetCap: 1,
