@@ -28,8 +28,10 @@ type JevRoute = JevResponse["answers"]["route"];
 
 const reportedCost = (usage: JevResponse["usage"]): number => usage?.cost ?? usage?.total_cost ?? 0;
 
-function reasonFor(route: JevRoute): string {
-  const score = route.probabilities?.[route.choice] ?? route.confidence;
+const scoreOf = (route: JevRoute): number | undefined =>
+  route.probabilities?.[route.choice] ?? route.confidence;
+
+function reasonFor(score: number | undefined): string {
   return score === undefined ? "jev" : `jev confidence ${score.toFixed(2)}`;
 }
 
@@ -42,7 +44,9 @@ function toOutcome(raw: unknown, request: RouteRequest, usageOf: UsageFactory): 
   if (!request.options.some((option) => option.name === route.choice)) {
     return failed(`unknown route: ${route.choice}`, record);
   }
-  return decided({ next: route.choice, reason: reasonFor(route) }, record);
+  const score = scoreOf(route);
+  const decision = { next: route.choice, reason: reasonFor(score) };
+  return decided(score === undefined ? decision : { ...decision, confidence: score }, record);
 }
 
 type UsageFactory = (reportedModel: string | undefined, costUsd: number) => UsageRecord;

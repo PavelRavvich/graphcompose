@@ -7,6 +7,7 @@ import { runAgent, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
 import { BUDGET_STOP_MESSAGE } from "../src/prompts/agents.js";
 import { createRouter } from "../src/routers/index.js";
+import { createSqliteTernStore } from "../src/terns/index.js";
 import { defineTool, toolRegistry } from "../src/tools/index.js";
 import { z } from "zod";
 import { ScriptedChatModel, type Reply } from "./fakes/scripted-model.js";
@@ -38,7 +39,7 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd 
   const ledger = memoryLedger();
   const config: AgentsConfigOf<TestAgent> = {
     ...testConfig,
-    budget: { runBudgetCap, dailyBudgetCap: 10 },
+    budget: { runBudgetCap, dailyBudgetCap: 10, evalBudgetCap: 5 },
     agents: {
       ...testConfig.agents,
       alpha: { ...testConfig.agents.alpha, tools: ["current_time", "paid_search"], maxToolCalls },
@@ -60,6 +61,7 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd 
       },
     ),
     prompts: { alpha: "You are alpha.", beta: "You are beta." },
+    terns: createSqliteTernStore(":memory:"),
     tools: (name) =>
       name === "paid_search" ? paidSearch(toolCostUsd) : toolRegistry.get(name as never),
     ledger,

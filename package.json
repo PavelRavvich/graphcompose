@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13"
   },
   "scripts": {
     "start": "tsx src/cli.ts",
@@ -18,7 +18,9 @@
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run coverage",
     "studio": "langgraphjs dev",
     "test:routers": "vitest run tests/routers",
-    "test:tools": "vitest run tests/tools"
+    "test:tools": "vitest run tests/tools",
+    "eval": "tsx src/eval/cli.ts eval",
+    "replay": "tsx src/eval/cli.ts replay"
   },
   "dependencies": {
     "@langchain/core": "^1.2.12",

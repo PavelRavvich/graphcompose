@@ -99,6 +99,8 @@ export const AgentsConfigSchema = z.object({
     runBudgetCap: z.number().positive(),
     /** USD this agent bundle may spend per UTC day; resets at 00:00 UTC. */
     dailyBudgetCap: z.number().positive(),
+    /** USD per UTC day for eval and replay, kept apart from production spend. */
+    evalBudgetCap: z.number().positive(),
   }),
   routers: z.object({ main: RouterSettingsSchema }).catchall(RouterSettingsSchema),
   mcpServers: z.record(z.string(), McpServerConfigSchema).optional(),

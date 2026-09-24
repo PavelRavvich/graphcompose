@@ -70,7 +70,7 @@ describe("createChatModel", () => {
 
 describe("createAppDeps", () => {
   it("wires every configured agent with a prompt and the Jev main router", async () => {
-    const deps = await createAppDeps({ OPENROUTER_API_KEY: "k" });
+    const deps = await createAppDeps({ OPENROUTER_API_KEY: "k", TERN_DB: ":memory:" });
 
     expect([...deps.registry.agents.keys()].sort()).toEqual(Object.keys(deps.prompts).sort());
     expect(deps.router.name).toBe("main");
