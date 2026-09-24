@@ -173,7 +173,7 @@ describe("terminal approval (CLI and chat)", () => {
       Promise.resolve("y"),
     );
 
-    expect(summaryLine(done)).toMatch(/^alpha · done · \$\d+\.\d{6} in \d+ calls$/);
+    expect(summaryLine(done)).toBe("alpha · stop: done");
     expect(summaryLine({ ...done, route: [] })).toMatch(/^\(none\) · /);
   });
 });

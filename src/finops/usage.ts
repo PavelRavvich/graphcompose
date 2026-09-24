@@ -34,11 +34,42 @@ export interface UsageRecord extends TokenUsage {
   readonly costSource: CostSource;
 }
 
+/** What a call was for — the cost categories of a turn. */
+export const COST_CATEGORIES = ["agents", "routing", "guards", "review", "tools"] as const;
+export type CostCategory = (typeof COST_CATEGORIES)[number];
+
+/** Category from the caller name: tool:*, router:guard:*, router:review:*, other router:*, agent. */
+export function costCategoryOf(caller: string): CostCategory {
+  if (caller.startsWith("tool:")) return "tools";
+  if (caller.startsWith("router:guard:")) return "guards";
+  if (caller.startsWith("router:review:")) return "review";
+  if (caller.startsWith("router:")) return "routing";
+  return "agents";
+}
+
+/** One call of the turn, in order. */
+export interface CostLine extends TokenUsage {
+  readonly caller: string;
+  readonly category: CostCategory;
+  readonly model: string;
+  readonly costUsd: number;
+  readonly costSource: CostSource;
+}
+
+/**
+ * Financial result of a turn — part of every run result. Clients decide what to show; the core
+ * always reports all of it.
+ */
 export interface CostReport {
   readonly totalUsd: number;
   readonly calls: number;
   readonly cacheReadTokens: number;
   readonly byCaller: Readonly<Record<string, number>>;
+  /** Every category is present (0 when unused). */
+  readonly byCategory: Readonly<Record<CostCategory, number>>;
+  readonly byModel: Readonly<Record<string, number>>;
+  /** Every call in the order it happened. */
+  readonly trace: readonly CostLine[];
 }
 
 export const ZERO_USAGE: TokenUsage = {
@@ -106,11 +137,35 @@ export function totalCost(records: readonly UsageRecord[]): number {
   return records.reduce((sum, record) => sum + record.costUsd, 0);
 }
 
+function sumBy(
+  lines: readonly CostLine[],
+  key: (line: CostLine) => string,
+): Record<string, number> {
+  const sums: Record<string, number> = {};
+  for (const line of lines) sums[key(line)] = (sums[key(line)] ?? 0) + line.costUsd;
+  return sums;
+}
+
 export function buildCostReport(records: readonly UsageRecord[]): CostReport {
-  const byCaller: Record<string, number> = {};
-  for (const record of records) {
-    byCaller[record.caller] = (byCaller[record.caller] ?? 0) + record.costUsd;
-  }
-  const cacheReadTokens = records.reduce((sum, record) => sum + record.cacheReadTokens, 0);
-  return { totalUsd: totalCost(records), calls: records.length, cacheReadTokens, byCaller };
+  const trace = records.map((record): CostLine => ({
+    ...record,
+    category: costCategoryOf(record.caller),
+  }));
+  const byCategory: Record<CostCategory, number> = {
+    agents: 0,
+    routing: 0,
+    guards: 0,
+    review: 0,
+    tools: 0,
+  };
+  for (const line of trace) byCategory[line.category] += line.costUsd;
+  return {
+    totalUsd: totalCost(records),
+    calls: records.length,
+    cacheReadTokens: records.reduce((sum, record) => sum + record.cacheReadTokens, 0),
+    byCaller: sumBy(trace, (line) => line.caller),
+    byCategory,
+    byModel: sumBy(trace, (line) => line.model),
+    trace,
+  };
 }

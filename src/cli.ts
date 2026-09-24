@@ -5,6 +5,7 @@ import { parseArgs } from "node:util";
 import { createAppDeps } from "./app.js";
 import { bundleNamed } from "./bundles.js";
 import { summaryLine, untilDone } from "./cli/approve.js";
+import { costSummary, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
 import { runAgent } from "./index.js";
 
@@ -36,5 +37,6 @@ const result = await runAgent(
 
 process.stdout.write(`${result.answer}\n`);
 process.stderr.write(`config: ${values.config} | ${summaryLine(result)}\n`);
-process.stderr.write(`cost by caller: ${JSON.stringify(result.cost.byCaller)}\n`);
+process.stderr.write(`cost: ${costSummary(result.cost)}\n`);
+costTrace(result.cost).forEach((line) => process.stderr.write(`  ${line}\n`));
 process.stderr.write(`thread: ${result.threadId}  (continue with --thread ${result.threadId})\n`);
