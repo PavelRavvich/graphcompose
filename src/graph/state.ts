@@ -1,6 +1,6 @@
 import { Annotation } from "@langchain/langgraph";
 import type { UsageRecord } from "../finops/usage.js";
-import type { Contribution } from "./contributions.js";
+import type { Contribution, HistoryTurn } from "./contributions.js";
 
 /** Router decision meaning "stop and produce the answer". */
 export const FINISH = "finish";
@@ -10,6 +10,8 @@ const append = <TItem>(left: TItem[], right: TItem[]): TItem[] => left.concat(ri
 /** Single source of truth for the graph state. Nodes return only the keys they own. */
 export const AgentState = Annotation.Root({
   task: Annotation<string>(),
+  /** Previous Terns of the thread, oldest first (loaded once per run). */
+  history: Annotation<HistoryTurn[]>({ reducer: (_previous, next) => next, default: () => [] }),
   /** Id of this run (tools and logs). */
   runId: Annotation<string>({ reducer: (_previous, next) => next, default: () => "" }),
   /** Agent chosen by the router, or FINISH. */

@@ -45,6 +45,8 @@ export const AgentSettingsSchema = ModelSettingsSchema.extend({
   description: z.string().min(1),
   /** Tool names from the registry (src/tools/catalog.ts). */
   tools: z.array(z.string()).optional(),
+  /** How many previous Terns of the thread the agent sees. Default: defaults.history.limit. */
+  historyLimit: z.number().int().nonnegative().optional(),
   /** Crossing it fails the run (fail fast). Default: defaults.tools.maxToolCalls. */
   maxToolCalls: z.number().int().nonnegative().optional(),
 });
@@ -65,6 +67,8 @@ export const RouterModelSchema = z.discriminatedUnion("kind", [
 
 export const RouterSettingsSchema = z.object({
   maxHops: z.number().int().positive(),
+  /** How many previous Terns of the thread the router sees. Default: defaults.history.limit. */
+  historyLimit: z.number().int().nonnegative().optional(),
   /** Omit to use defaults.router (Jev). */
   model: RouterModelSchema.optional(),
 });
@@ -102,6 +106,7 @@ export const AgentsConfigSchema = z.object({
     chat: ChatDefaultsSchema,
     router: RouterModelSchema,
     tools: z.object({ maxToolCalls: z.number().int().nonnegative() }),
+    history: z.object({ limit: z.number().int().nonnegative() }),
   }),
   budget: z.object({
     /** USD one run may spend. */

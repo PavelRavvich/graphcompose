@@ -15,6 +15,7 @@ export const agentsConfig = {
     chat: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-1.13" },
     tools: { maxToolCalls: 8 },
+    history: { limit: 5 },
   },
   budget: { runBudgetCap: 0.05, dailyBudgetCap: 2, evalBudgetCap: 1 },
   routers: {
