@@ -20,8 +20,11 @@ export interface TokenUsage {
   readonly cacheWriteTokens: number;
 }
 
-/** "api" = cost reported by the provider (exact); "price-table" = tokens × configured price. */
-export type CostSource = "api" | "price-table";
+/**
+ * "api" = cost reported by the provider (exact); "price-table" = tokens × configured price;
+ * "tool" = cost reported by a paid tool itself.
+ */
+export type CostSource = "api" | "price-table" | "tool";
 
 /** One model call: who made it, on which model, what it cost. */
 export interface UsageRecord extends TokenUsage {
@@ -85,6 +88,18 @@ export function recordUsage(
     costUsd: costOf(usage, settings.price),
     costSource: "price-table",
   };
+}
+
+export class InvalidToolCostError extends Error {
+  override name = "InvalidToolCostError";
+}
+
+/** A paid tool's own cost, recorded like a model call: caller `tool:<name>`. */
+export function recordToolCost(tool: string, costUsd: number): UsageRecord {
+  if (!Number.isFinite(costUsd) || costUsd < 0) {
+    throw new InvalidToolCostError(`Tool "${tool}" reported an invalid cost: ${String(costUsd)}`);
+  }
+  return { caller: `tool:${tool}`, model: tool, ...ZERO_USAGE, costUsd, costSource: "tool" };
 }
 
 export function totalCost(records: readonly UsageRecord[]): number {
