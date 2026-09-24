@@ -109,3 +109,40 @@ describe("first hop", () => {
     expect(offered[1]).toEqual(["alpha", FINISH]);
   });
 });
+
+describe("human decisions in router input", () => {
+  it("shows decisions of the run, and nothing when there are none", async () => {
+    const route = vi.fn<(request: RouteRequest) => Promise<RouteOutcome>>(() =>
+      Promise.resolve({ kind: "decided", decision: { next: FINISH, reason: "r" } }),
+    );
+    const node = makeRouterNode({
+      ...routerDeps({ kind: "failed", reason: "unused" }),
+      router: { name: "main", route },
+    });
+    const contributions = [{ agent: "alpha", content: "not saved" }];
+
+    await node(baseState({ contributions }));
+    await node(
+      baseState({
+        contributions,
+        approvals: [
+          {
+            agent: "alpha",
+            tool: "note_save",
+            args: { text: "x" },
+            approved: false,
+            result: "Tool error: rejected by human",
+          },
+          { agent: "alpha", tool: "note_save", args: { text: "y" }, approved: true, result: "{}" },
+        ],
+      }),
+    );
+
+    const inputs = route.mock.calls.map(([request]) => request.input);
+    expect(inputs[0]).not.toContain("Human decisions");
+    expect(inputs[1]).toContain(
+      'Human decisions:\n- alpha → note_save {"text":"x"}: Tool error: rejected by human',
+    );
+    expect(inputs[1]).toContain('- alpha → note_save {"text":"y"}: approved');
+  });
+});
