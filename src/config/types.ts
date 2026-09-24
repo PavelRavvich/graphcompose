@@ -65,6 +65,23 @@ export const RouterSettingsSchema = z.object({
   model: RouterModelSchema.optional(),
 });
 
+/** MCP server connection. Secrets are never here: only names of env variables. */
+export const McpServerConfigSchema = z.discriminatedUnion("transport", [
+  z.object({
+    transport: z.literal("stdio"),
+    command: z.string().min(1),
+    args: z.array(z.string()).optional(),
+    /** Names of env variables passed to the server process. */
+    env: z.array(z.string()).optional(),
+  }),
+  z.object({
+    transport: z.literal("http"),
+    url: z.url(),
+    /** Header name → name of the env variable holding its value. */
+    headers: z.record(z.string(), z.string()).optional(),
+  }),
+]);
+
 export const AgentsConfigSchema = z.object({
   /** Agent bundle id: key of the daily spend ledger. */
   name: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "lowercase letters, digits and dashes"),
@@ -76,6 +93,7 @@ export const AgentsConfigSchema = z.object({
     dailyBudgetCap: z.number().positive(),
   }),
   routers: z.object({ main: RouterSettingsSchema }).catchall(RouterSettingsSchema),
+  mcpServers: z.record(z.string(), McpServerConfigSchema).optional(),
   agents: z
     .record(z.string(), AgentSettingsSchema)
     .refine((agents) => Object.keys(agents).length > 0, "at least one agent is required"),
@@ -89,6 +107,7 @@ export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
 export type AgentSettings = z.infer<typeof AgentSettingsSchema>;
 export type RouterModel = z.infer<typeof RouterModelSchema>;
 export type RouterSettings = z.infer<typeof RouterSettingsSchema>;
+export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 export type AgentsConfig = z.infer<typeof AgentsConfigSchema>;
 
 /** Config whose agent names are a literal union — lets the compiler check prompts and routing. */

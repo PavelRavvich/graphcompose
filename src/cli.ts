@@ -4,7 +4,8 @@ import { runAgent } from "./index.js";
 
 // Usage: npm start -- "your task"
 const task = process.argv.slice(2).join(" ");
-const result = await runAgent({ task }, createAppDeps());
+const deps = await createAppDeps();
+const result = await runAgent({ task }, deps).finally(() => deps.close());
 const route = result.route.length > 0 ? result.route.join(" → ") : "(none)";
 
 process.stdout.write(`${result.answer}\n`);
