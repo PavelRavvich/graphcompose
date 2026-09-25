@@ -38,6 +38,8 @@ export interface AgentRunResult {
   readonly cost: CostReport;
   readonly threadId: string;
   readonly ternId: string;
+  /** The conversation in the tracing UI (session = thread), when tracing is on. */
+  readonly traceUrl?: string;
   /** Checkpoint id of this run — used to resume a paused run. */
   readonly runId: string;
   /** Present only when `status` is "paused": the tool call waiting for a human. */

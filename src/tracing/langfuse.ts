@@ -6,13 +6,14 @@ import type { RunTracing } from "./types.js";
 
 /**
  * Tracing into a (self-hosted) Langfuse when LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY and
- * LANGFUSE_BASE_URL are set; undefined otherwise. Uses an isolated tracer provider — the core does
+ * LANGFUSE_BASE_URL are set; undefined otherwise. LANGFUSE_PROJECT_ID (optional) enables links. Uses an isolated tracer provider — the core does
  * not register global OpenTelemetry. Session = conversation thread, tags = bundle.
  */
 export function langfuseTracing(env: NodeJS.ProcessEnv): RunTracing | undefined {
   const publicKey = env.LANGFUSE_PUBLIC_KEY;
   const secretKey = env.LANGFUSE_SECRET_KEY;
   const baseUrl = env.LANGFUSE_BASE_URL;
+  const projectId = env.LANGFUSE_PROJECT_ID === "" ? undefined : env.LANGFUSE_PROJECT_ID;
   if (!publicKey || !secretKey || !baseUrl) return undefined;
   const processor = new LangfuseSpanProcessor({ publicKey, secretKey, baseUrl });
   const provider = new BasicTracerProvider({ spanProcessors: [processor] });
@@ -25,6 +26,10 @@ export function langfuseTracing(env: NodeJS.ProcessEnv): RunTracing | undefined 
         traceMetadata: { bundle, runId },
       }),
     ],
+    sessionUrl: (threadId) =>
+      projectId === undefined
+        ? undefined
+        : `${baseUrl.replace(/\/+$/, "")}/project/${encodeURIComponent(projectId)}/sessions/${encodeURIComponent(threadId)}`,
     shutdown: async () => {
       await provider.shutdown();
       setLangfuseTracerProvider(null);

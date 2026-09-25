@@ -68,7 +68,7 @@ write_project_keys() {
   local pk sk
   pk=$(grep '^LANGFUSE_INIT_PROJECT_PUBLIC_KEY=' "$DIR/.env" | cut -d= -f2-)
   sk=$(grep '^LANGFUSE_INIT_PROJECT_SECRET_KEY=' "$DIR/.env" | cut -d= -f2-)
-  printf '\n# Local Langfuse tracing (scripts/langfuse.sh)\nLANGFUSE_PUBLIC_KEY=%s\nLANGFUSE_SECRET_KEY=%s\nLANGFUSE_BASE_URL=http://localhost:3000\n' "$pk" "$sk" >> "$PROJECT_ENV"
+  printf '\n# Local Langfuse tracing (scripts/langfuse.sh)\nLANGFUSE_PUBLIC_KEY=%s\nLANGFUSE_SECRET_KEY=%s\nLANGFUSE_BASE_URL=http://localhost:3000\nLANGFUSE_PROJECT_ID=%s\n' "$pk" "$sk" "$PROJECT" >> "$PROJECT_ENV"
   echo "Keys written to $PROJECT_ENV"
 }
 

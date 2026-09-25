@@ -114,6 +114,14 @@ function outcomeOf(state: AgentStateType, paused: boolean): TernOutcome & { stat
   };
 }
 
+const traceUrlOf = <TName extends string>(
+  deps: RunDeps<TName>,
+  threadId: string,
+): { traceUrl?: string } => {
+  const traceUrl = deps.tracing?.sessionUrl(threadId);
+  return traceUrl === undefined ? {} : { traceUrl };
+};
+
 /** Pause is detected from the checkpoint: a run with next nodes left is waiting for a human. */
 async function isPaused<TName extends string>(ctx: RunContext<TName>): Promise<boolean> {
   if (ctx.deps.pause === undefined) return false;
@@ -142,5 +150,6 @@ export async function finishRun<TName extends string>(
     ternId,
     runId: ctx.runId,
     ...(paused && state.pending !== null ? { pending: state.pending } : {}),
+    ...traceUrlOf(ctx.deps, ctx.base.threadId),
   };
 }

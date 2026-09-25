@@ -4,7 +4,7 @@ import { createInterface } from "node:readline";
 import { parseArgs, styleText } from "node:util";
 import { createAppDeps } from "./app.js";
 import { bundleNamed } from "./bundles.js";
-import { summaryLine, untilDone } from "./cli/approve.js";
+import { summaryLine, threadLine, untilDone } from "./cli/approve.js";
 import { costSummary, costTotal, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
 import { withSpinner } from "./cli/spinner.js";
@@ -40,6 +40,7 @@ try {
       const result = await untilDone(first, deps, ask, busy);
       threadId = result.threadId;
       say(`${styleText("cyan", "agent ›")} ${result.answer}`);
+      say(styleText("dim", `  ${threadLine(result)}`));
       say(styleText("dim", `  ${summaryLine(result)}`));
       say(styleText("dim", `  ${costSummary(result.cost)}`));
       costTrace(result.cost).forEach((line) => {

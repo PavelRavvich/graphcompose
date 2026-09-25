@@ -13,6 +13,8 @@ export interface TraceContext {
  */
 export interface RunTracing {
   readonly callbacks: (context: TraceContext) => BaseCallbackHandler[];
+  /** Link to the conversation in the tracing UI, when the backend knows how to build one. */
+  readonly sessionUrl: (threadId: string) => string | undefined;
   /** Sends what is buffered and releases the exporter. */
   readonly shutdown: () => Promise<void>;
 }
