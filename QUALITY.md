@@ -1,5 +1,7 @@
 # QUALITY
 
+> Paths below are in `packages/graphinject/` (the framework).
+
 Rules the code must satisfy. `make check` enforces what a machine can; the rest is checked in
 self-review before every PR.
 
@@ -52,7 +54,7 @@ holds from its type**, not guess it from the name.
 ## Agents (LangGraph)
 
 - **Config-driven.** Agents, routers, models, thinking, caching, hop limit and budget live in
-  `src/config/agents.config.ts` (`as const satisfies AgentsConfig`, zod-validated at startup).
+  the workflow's components (`@Agent`, `@Workflow`), assembled into the config and zod-validated at startup.
   Every chat model inherits `defaults.chat`; every router inherits `defaults.router` (Jev). Model
   choice is config, never code. Reference: Wiki → Configuration.
 - **`MODEL_MAX` is the only way to say "no output cap"** — never a magic large number.
@@ -84,15 +86,15 @@ holds from its type**, not guess it from the name.
 - **Prefer reported cost over estimates**: Jev returns the exact cost per call
   (`costSource: "api"`); chat models are priced from the table (`costSource: "price-table"`,
   USD per 1M tokens in `agents.config.ts`, verified on openrouter.ai/models).
-- **Budget per agent bundle** (`config.name`, `budget` in config):
-  - `dailyBudgetCap` — USD the bundle may spend per UTC day; the counter resets at 00:00 UTC.
+- **Budget per workflow** (`config.name`, `budget` in config):
+  - `dailyBudgetCap` — USD the workflow may spend per UTC day; the counter resets at 00:00 UTC.
     Spend is kept in a ledger outside the repo (`SPEND_LEDGER_DIR`, default
-    `~/.langgraph-agents/spend/<bundle>/<YYYY-MM-DD>.jsonl`) and written call by call while the
+    `~/.langgraph-agents/spend/<workflow>/<YYYY-MM-DD>.jsonl`) and written call by call while the
     run streams, so a crashed run's spend still counts.
   - `runBudgetCap` — USD one run may spend. A run gets `min(runBudgetCap, dailyBudgetCap − spent
 today)`; nothing left → `BudgetExceededError` before any call.
   - The router node checks the run budget before every paid routing call. Both caps are soft by
-    one call (a call in flight cannot be stopped); parallel runs of one bundle can overshoot the
+    one call (a call in flight cannot be stopped); parallel runs of one workflow can overshoot the
     daily cap by their in-flight calls. With `MODEL_MAX` one call is bounded only by the model.
   - Only `runAgent` enforces the daily cap; `npm run studio` runs the graph without it.
 - **Caching is accounted**: cached input is priced at `cacheReadPerMTok` / `cacheWritePerMTok`

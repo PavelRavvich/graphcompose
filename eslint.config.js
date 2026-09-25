@@ -2,7 +2,7 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "coverage", "node_modules", ".artifacts"] },
+  { ignores: ["**/dist", "**/coverage", "**/node_modules", ".artifacts", "packages/*/bin"] },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,
@@ -24,12 +24,16 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/routers/**/*.ts"],
+    files: ["packages/graphinject/src/routers/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
+            {
+              regex: "(^|/)examples/",
+              message: "The framework never imports example code (#91).",
+            },
             {
               regex: "/(graph|agents|prompts|tools)/",
               message: "Routers are isolated: depend only on config, finops and llm.",
@@ -40,12 +44,16 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/tools/**/*.ts"],
+    files: ["packages/graphinject/src/tools/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
+            {
+              regex: "(^|/)examples/",
+              message: "The framework never imports example code (#91).",
+            },
             {
               regex: "/(graph|agents|prompts|routers)/",
               message: "Tools are isolated: depend only on config, finops and llm.",
@@ -56,12 +64,16 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/terns/**/*.ts"],
+    files: ["packages/graphinject/src/terns/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
+            {
+              regex: "(^|/)examples/",
+              message: "The framework never imports example code (#91).",
+            },
             {
               regex: "^\\.\\./",
               message: "Terns are isolated: they depend on nothing else in src.",
@@ -72,13 +84,23 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/**/*.ts"],
-    ignores: ["src/routers/**", "src/tools/**", "src/terns/**", "src/bundles/**", "src/demos/**"],
+    files: ["packages/graphinject/src/**/*.ts"],
+    ignores: [
+      "packages/graphinject/src/routers/**",
+      "packages/graphinject/src/tools/**",
+      "packages/graphinject/src/terns/**",
+      "packages/graphinject/src/bundles/**",
+      "packages/graphinject/src/demos/**",
+    ],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
+            {
+              regex: "(^|/)examples/",
+              message: "The framework never imports example code (#91).",
+            },
             {
               regex: "/routers/(?!index\\.js$)",
               message: "Import routers only through src/routers/index.ts.",
@@ -97,24 +119,20 @@ export default tseslint.config(
     },
   },
   {
-    // Bundles have their own tools/ folders: the core modules are two or more levels up.
-    files: ["src/bundles/**/*.ts", "src/demos/**/*.ts"],
+    // An example uses graphInject like any outside project: only its public API.
+    files: ["examples/*/src/**/*.ts", "examples/*/tests/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
             {
-              regex: "^(\\.\\./){2,}routers/(?!index\\.js$)",
-              message: "Import routers only through src/routers/index.ts.",
+              regex: "^(\\.\\./){2,}(packages|graphinject)/",
+              message: 'Examples import only from "graphinject" (its public API).',
             },
             {
-              regex: "^(\\.\\./){2,}tools/(?!index\\.js$)",
-              message: "Import the core tools only through src/tools/index.ts.",
-            },
-            {
-              regex: "^(\\.\\./){2,}terns/(?!index\\.js$)",
-              message: "Import terns only through src/terns/index.ts.",
+              regex: "^graphinject/",
+              message: 'No deep imports: use "graphinject" (its public API).',
             },
           ],
         },
@@ -122,7 +140,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["tests/**/*.ts"],
+    files: ["packages/graphinject/tests/**/*.ts", "examples/*/tests/**/*.ts"],
     rules: { "max-lines-per-function": "off" },
   },
   {

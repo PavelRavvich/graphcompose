@@ -13,35 +13,30 @@ Multi-agent project on LangGraph + LangChain (TypeScript). Built with a three-ph
     cost); any router can override its model in config (e.g. `kind: "llm"`).
   - Agents: cheap chat models (default `moonshotai/kimi-k2.6`) via `@langchain/openai`, each with
     `maxTokens` (`MODEL_MAX` = model's maximum), `thinking`, `cache`.
-  - Everything is set in the bundle's components (`@Agent`, `@Bundle`) — reference: Wiki →
+  - Everything is set in the workflow's components (`@Agent`, `@Workflow`) — reference: Wiki →
     Components, Configuration.
 - Observability: `langsmith` tracing via env (`LANGSMITH_TRACING=true`). FinOps: built-in cost
-  accounting, `runBudgetCap` per run and `dailyBudgetCap` per agent bundle (resets 00:00 UTC) (`QUALITY.md` → FinOps).
+  accounting, `runBudgetCap` per run and `dailyBudgetCap` per workflow (resets 00:00 UTC) (`QUALITY.md` → FinOps).
 - Vitest (+ v8 coverage), ESLint (`typescript-eslint` strict), Prettier,
   `@langchain/langgraph-cli` for LangGraph Studio
 
 ## Commands
 
-| Command                                           | What it does                                                      |
-| ------------------------------------------------- | ----------------------------------------------------------------- |
-| `make setup`                                      | install dependencies                                              |
-| `make check`                                      | **the gate**: typecheck + lint + format + coverage                |
-| `make test`                                       | unit tests only (fake models, $0)                                 |
-| `npm run test:routers`                            | router tests only — routers are isolated                          |
-| `make smoke`                                      | real-model smoke tests (needs `.env`), never in CI                |
-| `make fmt`                                        | auto-format                                                       |
-| `npm run chat -- [--config <bundle>]`             | interactive chat: thread, cost trace, Esc interrupts, `\` newline |
-| `npm start -- [--config <bundle>] "task"`         | one turn; `--thread <id>` continues a conversation                |
-| `npm run studio`                                  | LangGraph Studio (graphs from `langgraph.json`)                   |
-| `npm run eval` / `npm run replay`                 | score Terns with Jev / re-run a prompt version (`--config`)       |
-| `scripts/langfuse.sh up\|down\|status`            | local Langfuse for tracing; writes keys to `.env`                 |
-| `npm run job-scout:probe -- --place <p> <token…>` | which Greenhouse boards have jobs in a place (demo)               |
+| Command (repo root)                    | What it does                                                              |
+| -------------------------------------- | ------------------------------------------------------------------------- |
+| `make setup`                           | install dependencies (npm workspaces)                                     |
+| `make check`                           | **the gate**: build + format + lint + typecheck + coverage, both packages |
+| `npm run dev`                          | rebuild the framework on change (watch)                                   |
+| `make smoke`                           | real-model smoke tests of the framework (needs `.env`), never in CI       |
+| `make fmt`                             | auto-format                                                               |
+| `npm run studio`                       | LangGraph Studio (graphs from `langgraph.json`)                           |
+| `scripts/langfuse.sh up\|down\|status` | local Langfuse for tracing; writes keys to `.env`                         |
 
-Any run command takes `--profile <name>` (`profiles/<bundle>/<name>.yaml`).
-Bundles: `default` (the project's agents) and the demos `company-assistant`,
-`company-assistant-approval`, `job-scout` (Wiki → Demos).
-
-A ticket is not done until `make check` is green.
+In `examples/job-scout/` (each is `graphinject <command> --workflow src/job-scout.workflow.ts`):
+`npm run chat` · `npm run run -- "task"` · `npm run describe` · `npm run eval` / `replay` ·
+`npm run golden -- add --name <n>` · `npm run compare -- --profiles base,<p> --golden <n>` ·
+`npm run rag:index` · `npm run probe -- --place <p> <token…>` (Greenhouse boards). Any run command
+takes `--profile <name>` (`profiles/<workflow>/<name>.yaml`) and `--thread <id>`.
 
 ## Architecture
 
@@ -56,13 +51,15 @@ A ticket is not done until `make check` is green.
 - Every turn: spend to the daily ledger, a Tern to SQLite, financials in the result, optional
   tracing (Langfuse) and conversation compaction (summaries queue).
 - Components, Angular style (Wiki → Components): annotated classes, one per file, folders by kind
-  (`agents/`, `tools/`, `mcp/`); a `@Bundle` module lists them by class reference; dependencies
+  (`agents/`, `tools/`, `mcp/`, `rag/`); a `@Workflow` module lists them by class reference; dependencies
   through the constructor, declared in `deps` (compiler-checked); prompts in `*.prompt.md`.
 - Knowledge bases: a `@Rag` class implementing `RagConnector` in `rag/`, bound by agents with
   `rag: [{ use, mode: "tool" | "context" }]` (Wiki → Knowledge bases).
 - Add a tool: a `@Tool` class in `tools/`, referenced from an agent. Add an agent: `agents/<name>.ts`
-  - `<name>.prompt.md`, listed in `@Bundle`. Another set of agents: a folder with a `*.bundle.ts`,
-    registered in `src/bundles.ts`. Test tools with `toolOf(new Tool(fakes))` — no container.
+  - `<name>.prompt.md`, listed in `@Workflow`. A workflow = related agents under one directory with a
+    `*.workflow.ts`; commands find it by path (`--workflow`). Test tools with `toolOf(new Tool(fakes))`.
+- **Framework and examples apart** (ESLint-enforced both ways): `packages/graphinject` never imports
+  `examples/`; an example imports only `graphinject` (its public `src/index.ts`), like an outside project.
 
 ## Conveyor
 
@@ -97,31 +94,23 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 ## Layout
 
 ```
-src/
-  config/       typed config schema, profiles (YAML overlays), defaults resolution
-  components/   @Tool @Agent @McpServer @McpTool @Rag @Injectable @Bundle, DI container, assembly (bundleOf)
-  rag/          knowledge-base contract (RagConnector) + reference SQLite FTS5 connector
-  bundles/      the project's agents (research-coder/: agents/, *.prompt.md, *.bundle.ts), shared.ts
-  graph/        state, routing, assembly, middleware, errors; nodes/ (guards, router, agent, approval, finalize)
-  llm/          OpenRouter chat factory (thinking), Jev client, cache breakpoints, registry
-  routers/      isolated routing strategies (Jev, LLM); public API = routers/index.ts
-  tools/        tool contract, library tools (CurrentTime), MCP facades, LangChain adapter; public API = tools/index.ts
-  guards/       input / output guards on routers
-  terns/        run records, threads, scores in SQLite (isolated)
-  run/          runAgent / resumeAgent: threads, budget, Terns, financials, tracing, pause
-  pause/        the pause seam (approval before write tools)
-  finops/       usage records, cost report, daily ledger
-  eval/         Jev judge, eval and replay CLIs
-  tracing/      optional run tracing (self-hosted Langfuse)
-  prompts/      agent, routing, guard and reasoning texts
-  cli/          terminal helpers: approval, keys, multi-line input, spinner, cost output
-  demos/        demo bundles (company-assistant, job-scout) — removable
-  types/        shared type utilities (Brand)
-  bundle.ts, bundles.ts   the assembled bundle type and the --config registry of @Bundle classes
-  app.ts        production wiring of a bundle (OpenRouter, MCP, ledger, Terns, tracing)
-  index.ts      public API: runAgent, resumeAgent, types
-  cli.ts, chat.ts, studio.ts   entry points
-tests/          unit tests (helpers.ts = fakes); tests/routers/ = routers alone; tests/smoke/ = real
+packages/graphinject/        the framework (npm package `graphinject`; builds to dist/, bin `graphinject`)
+  src/
+    index.ts        public API (components, runAgent / resumeAgent, createAppDeps, RAG, tools, types)
+    components/     @Tool @Agent @McpServer @McpTool @Rag @Injectable @Workflow, DI container, workflowOf
+    workflow.ts     the assembled workflow type; app.ts — production wiring (OpenRouter, MCP, ledger, Terns, tracing)
+    cli/            main.ts (graphinject <command>), load-workflow.ts, usage, terminal helpers
+    config/         typed config schema, profiles (YAML overlays), defaults resolution
+    rag/            knowledge-base contract (RagConnector) + reference SQLite FTS5 connector
+    graph/          state, routing, assembly, middleware, errors; nodes/ (guards, router, agent, approval, knowledge, finalize)
+    llm/  routers/  tools/  guards/  terns/  run/  pause/  finops/  eval/  tracing/  prompts/  types/
+    chat.ts, cli.ts, describe.ts, rag-index.ts, studio.ts   command entry points
+  tests/            unit tests (helpers.ts = fakes; fixtures/ = test workflows); routers/ alone; smoke/ = real
+  schema/           profile.schema.json (YAML autocomplete)
+  bin/              graphinject launcher
+examples/job-scout/          the example (package job-scout-example; depends on graphinject)
+  src/              job-scout.workflow.ts, agents/ (+ *.prompt.md), tools/, fit, boards, search config, studio.ts
+  tests/  profiles/  golden/
 scripts/        bootstrap-repo, bootstrap-labels, ticket, wiki, langfuse, coverage-badge
 ../<repo>.wiki  GitHub Wiki working copy (separate git repo, never inside this repo)
 ```
