@@ -3,7 +3,7 @@ import { loadWorkflow } from "./cli/load-workflow.js";
 import { describeWorkflow } from "./cli/describe.js";
 import { withProfile } from "./profile-workflow.js";
 
-// graphinject describe --workflow <path> [--profile <p>] — no API key or network needed.
+// graphcompose describe --workflow <path> [--profile <p>] — no API key or network needed.
 const { values } = parseArgs({
   options: {
     workflow: { type: "string", default: "./src/workflow.ts" },

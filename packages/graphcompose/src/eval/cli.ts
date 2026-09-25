@@ -9,10 +9,10 @@ import { evaluate } from "./eval.js";
 import { goldenFile, goldenFromRecent, loadGolden, saveGolden } from "./golden.js";
 import { replay } from "./replay.js";
 
-// graphinject eval    --workflow <path> [--profile <p>] [--version <v>] [--limit N]
-// graphinject replay  --workflow <path> [--profile <p>] --version <v> [--limit N]
-// graphinject compare --workflow <path> --profiles base,<p>… [--golden <name> | --last N]
-// graphinject golden  add --workflow <path> --name <name> [--from-last N]
+// graphcompose eval    --workflow <path> [--profile <p>] [--version <v>] [--limit N]
+// graphcompose replay  --workflow <path> [--profile <p>] --version <v> [--limit N]
+// graphcompose compare --workflow <path> --profiles base,<p>… [--golden <name> | --last N]
+// graphcompose golden  add --workflow <path> --name <name> [--from-last N]
 const { positionals, values } = parseArgs({
   allowPositionals: true,
   options: {
@@ -68,7 +68,7 @@ async function evalOrReplay(command: string | undefined): Promise<void> {
 async function golden(): Promise<void> {
   if (positionals[1] !== "add" || values.name === undefined)
     throw new Error(
-      "usage: graphinject golden add --workflow <path> --name <name> [--from-last N]",
+      "usage: graphcompose golden add --workflow <path> --name <name> [--from-last N]",
     );
   const deps = await depsFor(undefined);
   try {

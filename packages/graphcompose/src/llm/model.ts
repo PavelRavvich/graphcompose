@@ -76,7 +76,7 @@ export function createChatModel(
     maxRetries: settings.maxRetries,
     configuration: {
       baseURL: connection.baseUrl,
-      defaultHeaders: { "X-Title": "langgraph-ts-template" },
+      defaultHeaders: { "X-Title": "GraphCompose" },
     },
   });
 }

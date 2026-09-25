@@ -1,5 +1,5 @@
 /**
- * graphInject — typed agent workflows on LangGraph. Public API: components (decorators, DI),
+ * GraphCompose — typed agent workflows on LangGraph. Public API: components (decorators, DI),
  * running and resuming, knowledge bases, tools, configuration types. Wiki → Components.
  */
 export * from "./components/index.js";

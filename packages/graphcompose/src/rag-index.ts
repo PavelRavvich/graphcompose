@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util";
 import { loadWorkflow } from "./cli/load-workflow.js";
 
-// graphinject rag:index --workflow <path> [--kb <name>] — builds or updates the workflow's knowledge-base indexes.
+// graphcompose rag:index --workflow <path> [--kb <name>] — builds or updates the workflow's knowledge-base indexes.
 const { values } = parseArgs({
   options: { workflow: { type: "string", default: "./src/workflow.ts" }, kb: { type: "string" } },
 });

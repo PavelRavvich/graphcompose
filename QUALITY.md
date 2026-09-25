@@ -1,6 +1,6 @@
 # QUALITY
 
-> Paths below are in `packages/graphinject/` (the framework).
+> Paths below are in `packages/graphcompose/` (the framework).
 
 Rules the code must satisfy. `make check` enforces what a machine can; the rest is checked in
 self-review before every PR.

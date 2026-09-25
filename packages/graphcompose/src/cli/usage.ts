@@ -1,7 +1,7 @@
-/** `graphinject --help`. */
-export const USAGE = `graphInject — typed agent workflows on LangGraph
+/** `graphcompose --help`. */
+export const USAGE = `GraphCompose — typed agent workflows on LangGraph
 
-Usage: graphinject <command> --workflow <path> [options]
+Usage: graphcompose <command> --workflow <path> [options]      (short: gc)
 
   chat        interactive chat with the workflow            [--thread <id>] [--profile <p>]
   run         one task, answer to stdout ("…" as argument)   [--thread <id>] [--profile <p>]

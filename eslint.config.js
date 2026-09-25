@@ -24,7 +24,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["packages/graphinject/src/routers/**/*.ts"],
+    files: ["packages/graphcompose/src/routers/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -44,7 +44,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["packages/graphinject/src/tools/**/*.ts"],
+    files: ["packages/graphcompose/src/tools/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -64,7 +64,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["packages/graphinject/src/terns/**/*.ts"],
+    files: ["packages/graphcompose/src/terns/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -84,13 +84,13 @@ export default tseslint.config(
     },
   },
   {
-    files: ["packages/graphinject/src/**/*.ts"],
+    files: ["packages/graphcompose/src/**/*.ts"],
     ignores: [
-      "packages/graphinject/src/routers/**",
-      "packages/graphinject/src/tools/**",
-      "packages/graphinject/src/terns/**",
-      "packages/graphinject/src/bundles/**",
-      "packages/graphinject/src/demos/**",
+      "packages/graphcompose/src/routers/**",
+      "packages/graphcompose/src/tools/**",
+      "packages/graphcompose/src/terns/**",
+      "packages/graphcompose/src/bundles/**",
+      "packages/graphcompose/src/demos/**",
     ],
     rules: {
       "no-restricted-imports": [
@@ -119,7 +119,7 @@ export default tseslint.config(
     },
   },
   {
-    // An example uses graphInject like any outside project: only its public API.
+    // An example uses GraphCompose like any outside project: only its public API.
     files: ["examples/*/src/**/*.ts", "examples/*/tests/**/*.ts"],
     rules: {
       "no-restricted-imports": [
@@ -127,12 +127,12 @@ export default tseslint.config(
         {
           patterns: [
             {
-              regex: "^(\\.\\./){2,}(packages|graphinject)/",
-              message: 'Examples import only from "graphinject" (its public API).',
+              regex: "^(\\.\\./){2,}(packages|graphcompose)/",
+              message: 'Examples import only from "graphcompose" (its public API).',
             },
             {
-              regex: "^graphinject/",
-              message: 'No deep imports: use "graphinject" (its public API).',
+              regex: "^graphcompose/",
+              message: 'No deep imports: use "graphcompose" (its public API).',
             },
           ],
         },
@@ -140,7 +140,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["packages/graphinject/tests/**/*.ts", "examples/*/tests/**/*.ts"],
+    files: ["packages/graphcompose/tests/**/*.ts", "examples/*/tests/**/*.ts"],
     rules: { "max-lines-per-function": "off" },
   },
   {

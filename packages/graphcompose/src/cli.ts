@@ -11,7 +11,7 @@ import { askWith } from "./cli/ask.js";
 import { withSpinner } from "./cli/spinner.js";
 import { runAgent } from "./index.js";
 
-// graphinject run --workflow <path> [--thread <id>] "your task"   (interactive: graphinject chat)
+// graphcompose run --workflow <path> [--thread <id>] "your task"   (interactive: graphcompose chat)
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
