@@ -9,6 +9,8 @@ export {
   type Tern,
   type TernStatus,
   type TernStep,
+  type ConfigSnapshot,
+  type ConfigStore,
   type MemoryStore,
   type NewSummary,
   type Summary,

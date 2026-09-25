@@ -76,3 +76,11 @@ scripts/langfuse.sh up   # self-hosted Langfuse in Docker, keys written to .env
 ```
 
 Then every run is traced at http://localhost:3000. Details: [Wiki → Tracing](https://github.com/PavelRavvich/langgraph-ts-template/wiki/Tracing).
+
+## Compare configurations
+
+```bash
+npm run compare -- --config job-scout --profiles base,scout-low-thinking --golden core
+```
+
+Profiles (`profiles/<bundle>/*.yaml`) change only what differs; details: [Wiki → Profiles and comparisons](https://github.com/PavelRavvich/langgraph-ts-template/wiki/Profiles-and-comparisons).

@@ -4,6 +4,7 @@ import { createInterface } from "node:readline";
 import { parseArgs, styleText } from "node:util";
 import { createAppDeps } from "./app.js";
 import { bundleNamed } from "./bundles.js";
+import { withProfile } from "./profile-bundle.js";
 import { attemptsLines, memoryLine, summaryLine, threadLine, untilDone } from "./cli/approve.js";
 import { costSummary, costTotal, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
@@ -14,9 +15,20 @@ import { runAgent } from "./index.js";
 
 // Usage: npm run chat -- [--config <name>] [--thread <id>]
 const { values } = parseArgs({
-  options: { config: { type: "string", default: "default" }, thread: { type: "string" } },
+  options: {
+    config: { type: "string", default: "default" },
+    profile: { type: "string" },
+    thread: { type: "string" },
+  },
 });
-const deps = await createAppDeps(process.env, undefined, bundleNamed(values.config));
+const deps = await createAppDeps(
+  process.env,
+  undefined,
+  await withProfile(bundleNamed(values.config), values.profile),
+);
+deps.warnings.forEach((warning) => {
+  stdout.write(`warning: ${warning}\n`);
+});
 const rl = createInterface({ input: stdin, terminal: false });
 const ask = askWith(rl, (text) => stdout.write(text));
 const say = (text: string): void => {
@@ -41,7 +53,7 @@ const busy = async <T>(work: (signal: AbortSignal | undefined) => Promise<T>): P
 say(
   styleText(
     "dim",
-    `Chat with "${values.config}". /new — new conversation, /exit — quit, \\ + Enter — new line, Esc — interrupt.`,
+    `Chat with "${values.config}"${values.profile === undefined ? "" : ` (profile ${values.profile})`} ${deps.config.version}. /new — new conversation, /exit — quit, \\ + Enter — new line, Esc — interrupt.`,
   ),
 );
 try {

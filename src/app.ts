@@ -6,7 +6,8 @@ import { join } from "node:path";
 import { createFileLedger } from "./finops/ledger.js";
 import type { EvalDeps } from "./eval/eval.js";
 import type { RunDeps } from "./index.js";
-import { createSqliteTernStore } from "./terns/index.js";
+import { configSnapshot, runVersions } from "./run/versions.js";
+import { createSqliteTernStore, stableJson } from "./terns/index.js";
 import { langfuseTracing } from "./tracing/index.js";
 import { createJevClient } from "./llm/jev-client.js";
 import { createChatModel, readOpenRouterEnv } from "./llm/model.js";
@@ -92,7 +93,33 @@ export const DEFAULT_TERN_DB = join(homedir(), ".langgraph-agents", "terns.sqlit
 /** Run dependencies, eval dependencies, and resources to release after the run. */
 export interface AppDeps extends RunDeps<string> {
   readonly evaluation: EvalDeps;
+  /** Startup warnings, e.g. a config changed without a version bump. */
+  readonly warnings: readonly string[];
   readonly close: () => Promise<void>;
+}
+
+const mainRouter = (config: AgentsConfigOf<string>, factories: RouterFactories): Router =>
+  createRouter(
+    "main",
+    resolveRouterModel(config.routers.main, config.defaults),
+    config.defaults.chat,
+    factories,
+  );
+
+/** Stores the config snapshot of this version; warns when the version already had other content. */
+async function versionWarnings(deps: RunDeps<string>): Promise<string[]> {
+  const { configVersion, configHash } = runVersions(deps);
+  const { drift } = await deps.terns.rememberConfig(
+    deps.config.name,
+    configVersion,
+    configHash,
+    stableJson(configSnapshot(deps)),
+  );
+  return drift
+    ? [
+        `config "${deps.config.name}" ${configVersion} changed without a version bump (hash ${configHash})`,
+      ]
+    : [];
 }
 
 /**
@@ -119,16 +146,11 @@ export async function createAppDeps(
     env,
     makeTransport,
   );
-  const router = createRouter(
-    "main",
-    resolveRouterModel(config.routers.main, config.defaults),
-    config.defaults.chat,
-    factories,
-  );
+  const router = mainRouter(config, factories);
   const terns = createSqliteTernStore(env.TERN_DB ?? DEFAULT_TERN_DB);
   const tracing = langfuseTracing(env);
   const ledger = createFileLedger(env.SPEND_LEDGER_DIR ?? DEFAULT_LEDGER_DIR);
-  return {
+  const deps = {
     config,
     registry: createModelRegistry(config, chatModel),
     router,
@@ -148,4 +170,5 @@ export async function createAppDeps(
       terns.close();
     },
   };
+  return { ...deps, warnings: await versionWarnings(deps) };
 }

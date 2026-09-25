@@ -8,6 +8,7 @@ const { price } = agentsConfig.agents.researcher;
 /** company-assistant: a new joiner's helper at Nimbus Labs — three agents, a bit of everything. */
 export const assistantConfig = {
   name: "company-assistant",
+  version: "1.0.0",
   defaults: agentsConfig.defaults,
   budget: agentsConfig.budget,
   routers: agentsConfig.routers,

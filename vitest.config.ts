@@ -17,6 +17,7 @@ export default defineConfig({
         "src/demos/studio.ts",
         "src/graph/studio-graph.ts",
         "src/demos/job-scout/probe-boards.ts",
+        "src/config/write-profile-schema.ts",
       ],
       reporter: ["text", "html", "json-summary"],
       thresholds: {

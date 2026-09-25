@@ -11,6 +11,7 @@ const KIMI_PRICE = { inputPerMTok: 0.4972, outputPerMTok: 2.97, cacheReadPerMTok
  */
 export const agentsConfig = {
   name: "research-coder",
+  version: "1.0.0",
   defaults: {
     chat: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-1.13" },

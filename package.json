@@ -22,7 +22,10 @@
     "eval": "tsx src/eval/cli.ts eval",
     "replay": "tsx src/eval/cli.ts replay",
     "chat": "tsx src/chat.ts",
-    "job-scout:probe": "tsx src/demos/job-scout/probe-boards.ts"
+    "job-scout:probe": "tsx src/demos/job-scout/probe-boards.ts",
+    "compare": "tsx src/eval/cli.ts compare",
+    "golden": "tsx src/eval/cli.ts golden",
+    "schema": "tsx src/config/write-profile-schema.ts"
   },
   "dependencies": {
     "@langchain/core": "^1.2.12",
@@ -40,6 +43,7 @@
     "langchain": "^1.5.12",
     "langsmith": "^0.10.5",
     "unpdf": "^1.8.1",
+    "yaml": "^2.9.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {

@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=../../schema/profile.schema.json
+# Does the scout rank and present jobs better with a little thinking? Compare:
+#   npm run compare -- --config job-scout --profiles base,scout-low-thinking --golden core
+profile: scout-low-thinking
+version: 1.0.0-low-thinking
+agents:
+  scout:
+    thinking: low

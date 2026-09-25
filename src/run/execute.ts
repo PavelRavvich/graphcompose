@@ -11,7 +11,14 @@ import type { AgentRunResult, RunDeps, RunStatus, SpendAccount } from "./types.j
 
 export type TernBase = Pick<
   NewTern,
-  "threadId" | "bundle" | "task" | "replayOf" | "promptVersion" | "modelVersion"
+  | "threadId"
+  | "bundle"
+  | "task"
+  | "replayOf"
+  | "promptVersion"
+  | "modelVersion"
+  | "configVersion"
+  | "configHash"
 >;
 
 export interface RunContext<TName extends string> {

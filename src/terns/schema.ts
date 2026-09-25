@@ -24,6 +24,11 @@ const MIGRATIONS: readonly string[] = [
      from_tern TEXT NOT NULL, to_tern TEXT NOT NULL, from_seq INTEGER NOT NULL, to_seq INTEGER NOT NULL,
      turns INTEGER NOT NULL, text TEXT NOT NULL, cost_usd REAL NOT NULL, created_at TEXT NOT NULL);
    CREATE INDEX summaries_thread ON summaries(thread_id, to_seq);`,
+  // 4 — readable config versions and their snapshots (#78)
+  `ALTER TABLE terns ADD COLUMN config_version TEXT;
+   ALTER TABLE terns ADD COLUMN config_hash TEXT;
+   CREATE TABLE config_versions (bundle TEXT NOT NULL, version TEXT NOT NULL, hash TEXT NOT NULL,
+     snapshot TEXT NOT NULL, first_seen TEXT NOT NULL, PRIMARY KEY (bundle, version, hash));`,
 ];
 
 const TernRow = z.object({
@@ -42,6 +47,8 @@ const TernRow = z.object({
   model_version: z.string(),
   replay_of: z.string().nullable(),
   attempts: z.string(),
+  config_version: z.string().nullable(),
+  config_hash: z.string().nullable(),
 });
 
 const Route = z.array(z.string());
@@ -84,6 +91,8 @@ export function toTern(row: unknown): Tern {
     modelVersion: r.model_version,
     replayOf: r.replay_of,
     attempts: Attempts.parse(JSON.parse(r.attempts)),
+    configVersion: r.config_version,
+    configHash: r.config_hash,
   };
 }
 

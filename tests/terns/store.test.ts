@@ -18,6 +18,8 @@ const tern = (overrides: Partial<NewTern> = {}): NewTern => ({
   modelVersion: "m1",
   replayOf: null,
   attempts: [],
+  configVersion: null,
+  configHash: null,
   ...overrides,
 });
 
