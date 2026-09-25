@@ -35,4 +35,30 @@ describe("framework and examples apart (#91)", () => {
     expect(USAGE).not.toMatch(/bundle/i);
     expect(USAGE).toContain("--workflow");
   });
+  it("AC1 (#101): the package is graphcompose; the command is graphcompose, short gc", () => {
+    const pkg = JSON.parse(
+      readFileSync(join(root, "packages/graphcompose/package.json"), "utf8"),
+    ) as {
+      name: string;
+      bin: Record<string, string>;
+    };
+
+    expect(pkg.name).toBe("graphcompose");
+    expect(pkg.bin).toEqual({ graphcompose: "./bin/graphcompose.js", gc: "./bin/graphcompose.js" });
+    expect(USAGE).toContain("GraphCompose");
+  });
+
+  it("AC4 (#101): no graphInject / graphinject left in the repository's code, commands or docs", () => {
+    const skip =
+      /(^|\/)(node_modules|\.git|dist|coverage|\.langgraph_api|\.idea)(\/|$)|(^|\/)(\.env|package-lock\.json)$/;
+    const files = readdirSync(root, { recursive: true, encoding: "utf8" }).filter(
+      (file) => !skip.test(file) && /\.(ts|js|cjs|mjs|json|md|ya?ml|sh)$|Makefile$/.test(file),
+    );
+    const self = "packages/graphcompose/tests/boundary.test.ts"; // names the old name on purpose
+    const left = files.filter(
+      (file) => file !== self && /graphinject/i.test(readFileSync(join(root, file), "utf8")),
+    );
+
+    expect(left).toEqual([]);
+  });
 });

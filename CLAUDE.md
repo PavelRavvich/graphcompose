@@ -32,7 +32,7 @@ Multi-agent project on LangGraph + LangChain (TypeScript). Built with a three-ph
 | `npm run studio`                       | LangGraph Studio (graphs from `langgraph.json`)                           |
 | `scripts/langfuse.sh up\|down\|status` | local Langfuse for tracing; writes keys to `.env`                         |
 
-In `examples/job-scout/` (each is `graphinject <command> --workflow src/job-scout.workflow.ts`):
+In `examples/job-scout/` (each is `graphcompose <command> --workflow src/job-scout.workflow.ts`):
 `npm run chat` · `npm run run -- "task"` · `npm run describe` · `npm run eval` / `replay` ·
 `npm run golden -- add --name <n>` · `npm run compare -- --profiles base,<p> --golden <n>` ·
 `npm run rag:index` · `npm run probe -- --place <p> <token…>` (Greenhouse boards). Any run command
@@ -58,8 +58,8 @@ takes `--profile <name>` (`profiles/<workflow>/<name>.yaml`) and `--thread <id>`
 - Add a tool: a `@Tool` class in `tools/`, referenced from an agent. Add an agent: `agents/<name>.ts`
   - `<name>.prompt.md`, listed in `@Workflow`. A workflow = related agents under one directory with a
     `*.workflow.ts`; commands find it by path (`--workflow`). Test tools with `toolOf(new Tool(fakes))`.
-- **Framework and examples apart** (ESLint-enforced both ways): `packages/graphinject` never imports
-  `examples/`; an example imports only `graphinject` (its public `src/index.ts`), like an outside project.
+- **Framework and examples apart** (ESLint-enforced both ways): `packages/graphcompose` never imports
+  `examples/`; an example imports only `graphcompose` (its public `src/index.ts`), like an outside project.
 
 ## Conveyor
 
@@ -94,12 +94,12 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 ## Layout
 
 ```
-packages/graphinject/        the framework (npm package `graphinject`; builds to dist/, bin `graphinject`)
+packages/graphcompose/        the framework (npm package `graphcompose`; builds to dist/, bin `graphcompose`)
   src/
     index.ts        public API (components, runAgent / resumeAgent, createAppDeps, RAG, tools, types)
     components/     @Tool @Agent @McpServer @McpTool @Rag @Injectable @Workflow, DI container, workflowOf
     workflow.ts     the assembled workflow type; app.ts — production wiring (OpenRouter, MCP, ledger, Terns, tracing)
-    cli/            main.ts (graphinject <command>), load-workflow.ts, usage, terminal helpers
+    cli/            main.ts (graphcompose <command>), load-workflow.ts, usage, terminal helpers
     config/         typed config schema, profiles (YAML overlays), defaults resolution
     rag/            knowledge-base contract (RagConnector) + reference SQLite FTS5 connector
     graph/          state, routing, assembly, middleware, errors; nodes/ (guards, router, agent, approval, knowledge, finalize)
@@ -107,8 +107,8 @@ packages/graphinject/        the framework (npm package `graphinject`; builds to
     chat.ts, cli.ts, describe.ts, rag-index.ts, studio.ts   command entry points
   tests/            unit tests (helpers.ts = fakes; fixtures/ = test workflows); routers/ alone; smoke/ = real
   schema/           profile.schema.json (YAML autocomplete)
-  bin/              graphinject launcher
-examples/job-scout/          the example (package job-scout-example; depends on graphinject)
+  bin/              graphcompose launcher
+examples/job-scout/          the example (package job-scout-example; depends on graphcompose)
   src/              job-scout.workflow.ts, agents/ (+ *.prompt.md), tools/, fit, boards, search config, studio.ts
   tests/  profiles/  golden/
 scripts/        bootstrap-repo, bootstrap-labels, ticket, wiki, langfuse, coverage-badge

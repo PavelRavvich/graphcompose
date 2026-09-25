@@ -6,7 +6,7 @@ const fixture = (name: string): string => new URL(`../fixtures/${name}`, import.
 // vitest already transpiles TypeScript; the CLI registers tsx itself
 const options = { typescript: false } as const;
 
-describe("workflow loader (graphinject <command> --workflow <path>)", () => {
+describe("workflow loader (graphcompose <command> --workflow <path>)", () => {
   it("AC3: loads the one exported @Workflow class of a module file", async () => {
     expect(await loadWorkflowClass(fixture("test-workflow/test.workflow.ts"), options)).toBe(
       TestWorkflow,

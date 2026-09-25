@@ -1,5 +1,5 @@
 {
-  "name": "graphinject-monorepo",
+  "name": "graphcompose-monorepo",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,15 +11,15 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "npm run build -w graphinject",
-    "dev": "npm run dev -w graphinject",
+    "build": "npm run build -w graphcompose",
+    "dev": "npm run dev -w graphcompose",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "npm run typecheck --workspaces",
     "coverage": "npm run coverage --workspaces",
     "check": "npm run build && npm run format:check && npm run lint && npm run typecheck && npm run coverage",
-    "smoke": "npm run smoke -w graphinject",
+    "smoke": "npm run smoke -w graphcompose",
     "studio": "npm run build && langgraphjs dev"
   },
   "devDependencies": {

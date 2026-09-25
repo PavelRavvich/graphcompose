@@ -13,7 +13,7 @@ import { askMessage } from "./cli/multiline.js";
 import { withSpinner } from "./cli/spinner.js";
 import { runAgent } from "./index.js";
 
-// graphinject chat --workflow <path> [--thread <id>] [--profile <p>]
+// graphcompose chat --workflow <path> [--thread <id>] [--profile <p>]
 const { values } = parseArgs({
   options: {
     workflow: { type: "string", default: "./src/workflow.ts" },

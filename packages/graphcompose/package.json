@@ -1,5 +1,5 @@
 {
-  "name": "graphinject",
+  "name": "graphcompose",
   "version": "0.1.0",
   "description": "Typed agent workflows on LangGraph \u2014 Angular-style components, Jev routing, FinOps, evaluation",
   "type": "module",
@@ -16,7 +16,8 @@
     }
   },
   "bin": {
-    "graphinject": "./bin/graphinject.js"
+    "graphcompose": "./bin/graphcompose.js",
+    "gc": "./bin/graphcompose.js"
   },
   "files": [
     "bin",

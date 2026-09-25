@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 const main = new URL("../dist/cli/main.js", import.meta.url);
 if (!existsSync(main)) {
   process.stderr.write(
-    "graphinject is not built yet: run `npm run build` at the repository root.\n",
+    "graphcompose is not built yet: run `npm run build` at the repository root.\n",
   );
   process.exit(1);
 }
