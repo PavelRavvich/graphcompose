@@ -119,6 +119,7 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     pending: null,
     approvals: [],
     attempts: [],
+    summaries: [],
     ...overrides,
   };
 }

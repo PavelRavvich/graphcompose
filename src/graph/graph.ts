@@ -45,6 +45,20 @@ export class MissingAgentPromptError extends Error {
   override name = "MissingAgentPromptError";
 }
 
+/** Summaries a reader sees by default: defaults.history.summaries, else compaction.keep, else none. */
+const defaultSummaries = <TName extends string>(deps: GraphDeps<TName>): number =>
+  deps.config.defaults.history.summaries ?? deps.config.compaction?.keep ?? 0;
+
+/** An agent's limits with defaults applied. */
+const limitsOf = <TName extends string>(
+  agent: AgentSettingsOf<string> | undefined,
+  deps: GraphDeps<TName>,
+): { maxToolCalls: number; historyLimit: number; summariesLimit: number } => ({
+  maxToolCalls: agent?.maxToolCalls ?? deps.config.defaults.tools.maxToolCalls,
+  historyLimit: agent?.historyLimit ?? deps.config.defaults.history.limit,
+  summariesLimit: agent?.historySummaries ?? defaultSummaries(deps),
+});
+
 function reasoningOf<TName extends string>(
   name: string,
   agent: AgentSettingsOf<string> | undefined,
@@ -81,8 +95,7 @@ function agentDefinitions<TName extends string>(
       binding,
       systemPrompt,
       tools: (agent?.tools ?? []).map(deps.tools),
-      maxToolCalls: agent?.maxToolCalls ?? deps.config.defaults.tools.maxToolCalls,
-      historyLimit: agent?.historyLimit ?? deps.config.defaults.history.limit,
+      ...limitsOf(agent, deps),
       reasoning: reasoningOf(name, agent, deps),
     });
   }
@@ -108,6 +121,7 @@ const createGraph = <TName extends string>(deps: GraphDeps<TName>) =>
         options: routeOptions(deps.config.agents),
         maxHops: deps.config.routers.main.maxHops,
         historyLimit: deps.config.routers.main.historyLimit ?? deps.config.defaults.history.limit,
+        summariesLimit: deps.config.routers.main.historySummaries ?? defaultSummaries(deps),
         maxCostUsd: deps.config.budget.runBudgetCap,
       }),
     )

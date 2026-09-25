@@ -31,7 +31,7 @@ export async function runAgent<TName extends string>(
     key: deps.config.name,
     dailyCap: deps.config.budget.dailyBudgetCap,
   };
-  const { threadId, history } = await openThread(deps, requested);
+  const { threadId, history, summaries } = await openThread(deps, requested);
   const spent: UsageRecord[] = [];
   const base: TernBase = {
     threadId,
@@ -44,12 +44,12 @@ export async function runAgent<TName extends string>(
     const budgetUsd = await allowedBudget(deps, account);
     const runId = randomUUID();
     const graph = buildGraph(deps);
-    const states = await graph.stream(
-      { task, budgetUsd, history, runId },
-      streamConfig(deps, { threadId, runId }, options.signal),
-    );
-    const state = await drainRun(states, recorder(deps, account, spent));
-    return await finishRun({ deps, graph, base, runId, budgetUsd }, state);
+    const config = streamConfig(deps, { threadId, runId }, options.signal);
+    const record = recorder(deps, account, spent);
+    const states = await graph.stream({ task, budgetUsd, history, summaries, runId }, config);
+    const state = await drainRun(states, record);
+    const context = { deps, graph, base, runId, budgetUsd, record, callbacks: config.callbacks };
+    return await finishRun(context, state);
   } catch (error) {
     const cause = outcomeError(error, options.signal);
     await deps.terns.append({ ...base, ...failedOutcome(cause, spent) });

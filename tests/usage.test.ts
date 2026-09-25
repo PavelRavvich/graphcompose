@@ -80,7 +80,7 @@ describe("finops usage", () => {
       calls: 0,
       cacheReadTokens: 0,
       byCaller: {},
-      byCategory: { agents: 0, routing: 0, guards: 0, review: 0, tools: 0 },
+      byCategory: { agents: 0, routing: 0, guards: 0, review: 0, tools: 0, compaction: 0 },
       byModel: {},
       trace: [],
     });
@@ -103,6 +103,7 @@ describe("turn financials", () => {
     expect(costCategoryOf("tool:exchange_rate")).toBe("tools");
     expect(costCategoryOf("router:guard:pii")).toBe("guards");
     expect(costCategoryOf("router:quality:coder")).toBe("review");
+    expect(costCategoryOf("compaction")).toBe("compaction");
     expect(costCategoryOf("router:main")).toBe("routing");
     expect(costCategoryOf("researcher")).toBe("agents");
   });
@@ -121,6 +122,7 @@ describe("turn financials", () => {
       guards: 0.00001,
       review: 0,
       tools: 0.001,
+      compaction: 0,
     });
     expect(report.byModel.jev).toBeCloseTo(0.00003);
     expect(report.trace.map((line) => [line.caller, line.category])).toEqual([

@@ -27,6 +27,8 @@ export interface AgentBundle<TName extends string = string> {
   readonly prompts: AgentPrompts<TName>;
   readonly tools: BundleTools;
   readonly mcpServers: readonly McpServerHandle<string>[];
+  /** Compaction prompt override (bundles with `compaction`). */
+  readonly compactionPrompt?: string;
   /** Set to turn the pause seam on; the app supplies an in-process checkpointer. */
   readonly needsApproval?: (tool: AnyTool) => boolean;
 }

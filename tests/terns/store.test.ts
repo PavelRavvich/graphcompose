@@ -91,7 +91,7 @@ describe("SQLite Tern store", () => {
     second.close();
   });
 
-  it("AC5: migration 2 upgrades an old database — existing Terns get no attempts, new ones keep theirs", async () => {
+  it("AC5 (#79), AC6 (#77): migrations 2 and 3 upgrade an old database — existing Terns get no attempts, new ones keep theirs", async () => {
     const path = join(await mkdtemp(join(tmpdir(), "terns-")), "old.sqlite");
     const { DatabaseSync } = await import("node:sqlite");
     const old = new DatabaseSync(path);
@@ -124,6 +124,7 @@ describe("SQLite Tern store", () => {
     );
 
     expect((await store.byIds(["old"]))[0]?.attempts).toEqual([]);
+    expect(await store.summaryCount("t")).toBe(0);
     expect((await store.byIds([fresh.id]))[0]?.attempts).toHaveLength(1);
     store.close();
   });

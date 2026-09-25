@@ -28,6 +28,20 @@ export function formatHistory(history: readonly HistoryTurn[], limit: number): s
   return `Previous turns:\n${lines.join("\n\n")}\n\n`;
 }
 
+/** The latest `limit` memory notes (compaction), oldest first; empty when none or limit 0. */
+export function formatSummaries(summaries: readonly string[], limit: number): string {
+  const notes = limit > 0 ? summaries.slice(-limit) : [];
+  if (notes.length === 0) return "";
+  return `Earlier in this conversation:\n${notes.map((note, i) => `[${String(i + 1)}] ${note}`).join("\n\n")}\n\n`;
+}
+
+/** What a reader remembers of the thread: its summaries, then its raw previous turns. */
+export const formatMemory = (
+  state: { readonly summaries: readonly string[]; readonly history: readonly HistoryTurn[] },
+  limits: { readonly summaries: number; readonly turns: number },
+): string =>
+  formatSummaries(state.summaries, limits.summaries) + formatHistory(state.history, limits.turns);
+
 /** Human decisions on tool calls in this run; empty when there were none. */
 export function formatHumanDecisions(approvals: readonly ApprovalRecord[]): string {
   if (approvals.length === 0) return "";

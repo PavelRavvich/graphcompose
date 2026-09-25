@@ -55,6 +55,13 @@ export function attemptsLines(result: AgentRunResult): string[] {
     });
 }
 
+/** `memory: turns 1–5 → summary 1/10` when this turn compacted the conversation. */
+export function memoryLine(result: AgentRunResult): string | undefined {
+  const c = result.compacted;
+  if (c === undefined) return undefined;
+  return `memory: turns ${String(c.fromTurn)}–${String(c.toTurn)} → summary ${String(c.summaries)}/${String(c.keep)}`;
+}
+
 /** One line under an answer: route and why the run stopped. */
 export function summaryLine(result: AgentRunResult): string {
   const route = result.route.length > 0 ? result.route.join(" → ") : "(none)";

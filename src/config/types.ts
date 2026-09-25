@@ -41,6 +41,16 @@ export const ModelSettingsSchema = z.object({
   price: PriceSchema,
 });
 
+/**
+ * Conversation memory: every `every` turns are compacted into one summary; readers see the latest
+ * `keep` summaries plus the raw turns since. Summaries are never re-compacted (FIFO).
+ */
+export const CompactionSettingsSchema = z.object({
+  every: z.number().int().min(2),
+  keep: z.number().int().positive(),
+  model: ModelSettingsSchema,
+});
+
 /** What to return when attempts run out below the threshold. */
 export const ON_EXHAUSTED = ["best", "last", "fail"] as const;
 
@@ -68,6 +78,8 @@ export const AgentSettingsSchema = ModelSettingsSchema.extend({
   tools: z.array(z.string()).optional(),
   /** How many previous Terns of the thread the agent sees. Default: defaults.history.limit. */
   historyLimit: z.number().int().nonnegative().optional(),
+  /** How many latest summaries the agent sees (compaction). Default: defaults.history.summaries. */
+  historySummaries: z.number().int().nonnegative().optional(),
   /** Crossing it fails the run (fail fast). Default: defaults.tools.maxToolCalls. */
   maxToolCalls: z.number().int().nonnegative().optional(),
   reasoning: ReasoningSettingsSchema.optional(),
@@ -89,6 +101,8 @@ export const RouterModelSchema = z.discriminatedUnion("kind", [
 
 export const RouterSettingsSchema = z.object({
   maxHops: z.number().int().positive(),
+  /** How many latest summaries the router sees (compaction). Default: defaults.history.summaries. */
+  historySummaries: z.number().int().nonnegative().optional(),
   /** How many previous Terns of the thread the router sees. Default: defaults.history.limit. */
   historyLimit: z.number().int().nonnegative().optional(),
   /** Omit to use defaults.router (Jev). */
@@ -128,7 +142,11 @@ export const AgentsConfigSchema = z.object({
     chat: ChatDefaultsSchema,
     router: RouterModelSchema,
     tools: z.object({ maxToolCalls: z.number().int().nonnegative() }),
-    history: z.object({ limit: z.number().int().nonnegative() }),
+    history: z.object({
+      limit: z.number().int().nonnegative(),
+      /** How many latest summaries readers see (compaction). Default: compaction.keep. */
+      summaries: z.number().int().nonnegative().optional(),
+    }),
   }),
   budget: z.object({
     /** USD one run may spend. */
@@ -140,6 +158,8 @@ export const AgentsConfigSchema = z.object({
   }),
   routers: z.object({ main: RouterSettingsSchema }).catchall(RouterSettingsSchema),
   mcpServers: z.record(z.string(), McpServerConfigSchema).optional(),
+  /** Conversation memory (off when absent). */
+  compaction: CompactionSettingsSchema.optional(),
   /** Run in order; the first guard that trips stops the run. */
   guards: z
     .object({
@@ -163,6 +183,7 @@ export type RouterSettings = z.infer<typeof RouterSettingsSchema>;
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 export type GuardSettings = z.infer<typeof GuardSettingsSchema>;
 export type ReasoningSettings = z.input<typeof ReasoningSettingsSchema>;
+export type CompactionSettings = z.infer<typeof CompactionSettingsSchema>;
 export type OnExhausted = (typeof ON_EXHAUSTED)[number];
 export type AgentsConfig = z.infer<typeof AgentsConfigSchema>;
 

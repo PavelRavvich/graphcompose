@@ -137,6 +137,7 @@ export async function createAppDeps(
     judges: judgesFor(config, factories),
     tools: toolLookup(tools),
     pause: pauseFor(bundle),
+    compactionPrompt: bundle.compactionPrompt,
     ledger,
     terns,
     evaluation: evaluationFor(config, { terns, ledger }, factories),

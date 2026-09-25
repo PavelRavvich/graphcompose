@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attemptsLines } from "../src/cli/approve.js";
+import { attemptsLines, memoryLine } from "../src/cli/approve.js";
 import { costSummary, costTotal, costTrace } from "../src/cli/finops.js";
 import { buildCostReport, recordToolCost } from "../src/finops/usage.js";
 import { usageRecord } from "./helpers.js";
@@ -63,5 +63,11 @@ describe("CLI cost output", () => {
     expect(attemptsLines(result as never)).toEqual([
       "coder attempts: 0.62 → ? → 0.79 · returned #3 (best)",
     ]);
+  });
+  it("AC2 (#77): says when a turn compacted the conversation", () => {
+    expect(
+      memoryLine({ compacted: { fromTurn: 1, toTurn: 5, summaries: 1, keep: 10 } } as never),
+    ).toBe("memory: turns 1–5 → summary 1/10");
+    expect(memoryLine({} as never)).toBeUndefined();
   });
 });

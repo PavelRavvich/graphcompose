@@ -35,6 +35,8 @@ export const AgentState = Annotation.Root({
     reducer: (_previous, next) => next,
     default: () => null,
   }),
+  /** Conversation memory notes (compaction), oldest first; loaded once per run. */
+  summaries: Annotation<string[]>({ reducer: (_previous, next) => next, default: () => [] }),
   /** Quality-gated attempts of agents with `reasoning`. */
   attempts: Annotation<AttemptRecord[]>({ reducer: append, default: () => [] }),
   /** Human decisions on tool calls in this run. */
