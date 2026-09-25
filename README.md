@@ -68,3 +68,11 @@ npm run studio                               # LangGraph Studio
 ```
 
 Details: [Wiki → Demos](https://github.com/PavelRavvich/langgraph-ts-template/wiki/Demos).
+
+## Tracing (local, optional)
+
+```bash
+scripts/langfuse.sh up   # self-hosted Langfuse in Docker, keys written to .env
+```
+
+Then every run is traced at http://localhost:3000. Details: [Wiki → Tracing](https://github.com/PavelRavvich/langgraph-ts-template/wiki/Tracing).

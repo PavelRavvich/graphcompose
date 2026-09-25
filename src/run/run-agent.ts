@@ -8,7 +8,7 @@ import {
   failedOutcome,
   finishRun,
   recorder,
-  runConfig,
+  streamConfig,
   type TernBase,
 } from "./execute.js";
 import { openThread } from "./thread.js";
@@ -45,7 +45,7 @@ export async function runAgent<TName extends string>(
     const graph = buildGraph(deps);
     const states = await graph.stream(
       { task, budgetUsd, history, runId },
-      { ...runConfig(runId), streamMode: "values" },
+      streamConfig(deps, { threadId, runId }),
     );
     const state = await drainRun(states, recorder(deps, account, spent));
     return await finishRun({ deps, graph, base, runId, budgetUsd }, state);

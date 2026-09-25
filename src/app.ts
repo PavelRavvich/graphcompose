@@ -7,6 +7,7 @@ import { createFileLedger } from "./finops/ledger.js";
 import type { EvalDeps } from "./eval/eval.js";
 import type { RunDeps } from "./index.js";
 import { createSqliteTernStore } from "./terns/index.js";
+import { langfuseTracing } from "./tracing/index.js";
 import { createJevClient } from "./llm/jev-client.js";
 import { createChatModel, readOpenRouterEnv } from "./llm/model.js";
 import { createModelRegistry, type ModelFactory } from "./llm/registry.js";
@@ -125,6 +126,7 @@ export async function createAppDeps(
     factories,
   );
   const terns = createSqliteTernStore(env.TERN_DB ?? DEFAULT_TERN_DB);
+  const tracing = langfuseTracing(env);
   const ledger = createFileLedger(env.SPEND_LEDGER_DIR ?? DEFAULT_LEDGER_DIR);
   return {
     config,
@@ -138,8 +140,10 @@ export async function createAppDeps(
     ledger,
     terns,
     evaluation: evaluationFor(config, { terns, ledger }, factories),
+    tracing,
     close: async () => {
       await mcp.close();
+      await tracing?.shutdown();
       terns.close();
     },
   };

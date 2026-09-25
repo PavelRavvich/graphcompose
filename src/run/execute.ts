@@ -1,3 +1,4 @@
+import type { BaseCallbackHandler } from "@langchain/core/callbacks/base";
 import { BudgetExceededError, runBudgetUsd } from "../finops/ledger.js";
 import { drainRecordingUsage } from "../finops/record-stream.js";
 import { buildCostReport, totalCost, type UsageRecord } from "../finops/usage.js";
@@ -18,6 +19,24 @@ export interface RunContext<TName extends string> {
   readonly base: TernBase;
   readonly runId: string;
   readonly budgetUsd: number;
+}
+
+/** Stream config: checkpoint thread = run id; tracing callbacks when tracing is on. */
+export function streamConfig<TName extends string>(
+  deps: RunDeps<TName>,
+  context: { readonly threadId: string; readonly runId: string },
+): ReturnType<typeof runConfig> & {
+  streamMode: "values";
+  runName: string;
+  callbacks: BaseCallbackHandler[];
+} {
+  const callbacks = deps.tracing?.callbacks({ bundle: deps.config.name, ...context }) ?? [];
+  return {
+    ...runConfig(context.runId),
+    streamMode: "values",
+    runName: deps.config.name,
+    callbacks,
+  };
 }
 
 /** LangGraph checkpoint thread = the run id (not the conversation thread). */

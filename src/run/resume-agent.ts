@@ -3,7 +3,14 @@ import type { UsageRecord } from "../finops/usage.js";
 import { buildGraph } from "../graph/graph.js";
 import type { AgentStateType } from "../graph/state.js";
 import type { ApprovalDecision } from "../pause/index.js";
-import { drainRun, failedOutcome, finishRun, recorder, runConfig } from "./execute.js";
+import {
+  drainRun,
+  failedOutcome,
+  finishRun,
+  recorder,
+  runConfig,
+  streamConfig,
+} from "./execute.js";
 import type { AgentRunResult, RunDeps } from "./types.js";
 import { runVersions } from "./versions.js";
 
@@ -45,10 +52,10 @@ export async function resumeAgent<TName extends string>(
     ...runVersions(deps),
   };
   try {
-    const states = await graph.stream(new Command({ resume: decision }), {
-      ...config,
-      streamMode: "values",
-    });
+    const states = await graph.stream(
+      new Command({ resume: decision }),
+      streamConfig(deps, { threadId: paused.threadId, runId: paused.runId }),
+    );
     const state = await drainRun(states, record, before.usage.length);
     return await finishRun(
       { deps, graph, base, runId: paused.runId, budgetUsd: paused.budgetUsd },
