@@ -1,5 +1,5 @@
-import type { AgentPrompts } from "../config/types.js";
-import { agentSystemPrompts } from "../prompts/agents.js";
+import type { AgentPrompts } from "../../config/types.js";
+import { agentSystemPrompts } from "../../prompts/agents.js";
 import type { DemoAgentName } from "./config.js";
 import { DOCS_DIR } from "./paths.js";
 

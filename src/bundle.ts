@@ -7,6 +7,16 @@ import {
   type AnyTool,
   type McpServerHandle,
 } from "./tools/index.js";
+import type { Router } from "./routers/index.js";
+
+/** What the core offers the tools of a bundle. */
+export interface BundleServices {
+  /** A router on the bundle's default router model (Jev) — cheap decisions inside tools. */
+  readonly router: (name: string) => Router;
+}
+
+/** Tools as a list, or a factory when they need core services. */
+export type BundleTools = readonly AnyTool[] | ((services: BundleServices) => readonly AnyTool[]);
 
 /**
  * Everything one set of agents needs: config, prompts, the tools it may use, the MCP servers behind
@@ -15,7 +25,7 @@ import {
 export interface AgentBundle<TName extends string = string> {
   readonly config: AgentsConfigOf<TName>;
   readonly prompts: AgentPrompts<TName>;
-  readonly tools: readonly AnyTool[];
+  readonly tools: BundleTools;
   readonly mcpServers: readonly McpServerHandle<string>[];
   /** Set to turn the pause seam on; the app supplies an in-process checkpointer. */
   readonly needsApproval?: (tool: AnyTool) => boolean;
@@ -33,3 +43,6 @@ export const defaultBundle = defineBundle({
   tools: toolRegistry.tools,
   mcpServers: mcpServerHandles,
 });
+
+export const resolveTools = (bundle: AgentBundle, services: BundleServices): readonly AnyTool[] =>
+  typeof bundle.tools === "function" ? bundle.tools(services) : bundle.tools;

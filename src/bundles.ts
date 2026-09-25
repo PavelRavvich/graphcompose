@@ -1,5 +1,5 @@
 import { defaultBundle, type AgentBundle } from "./bundle.js";
-import { demoBundles } from "./demo/index.js"; // demo: delete this line and src/demo/ to remove it
+import { demoBundles } from "./demos/index.js"; // demos: delete this line and src/demos/ to remove them
 
 export class UnknownBundleError extends Error {
   override name = "UnknownBundleError";

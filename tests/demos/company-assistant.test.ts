@@ -2,16 +2,20 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createAppDeps } from "../src/app.js";
-import { bundleNamed, bundles, UnknownBundleError } from "../src/bundles.js";
-import { validateAgentsConfig } from "../src/config/types.js";
-import { demoBundles } from "../src/demo/index.js";
+import { createAppDeps } from "../../src/app.js";
+import { resolveTools, type BundleServices } from "../../src/bundle.js";
+import { bundleNamed, bundles, UnknownBundleError } from "../../src/bundles.js";
+import { validateAgentsConfig } from "../../src/config/types.js";
+import {
+  companyAssistant,
+  companyAssistantApproval,
+} from "../../src/demos/company-assistant/index.js";
 import {
   createExchangeRateTool,
   createNoteTools,
   EXCHANGE_RATE_COST_USD,
-} from "../src/demo/tools.js";
-import type { ToolContext } from "../src/tools/index.js";
+} from "../../src/demos/company-assistant/tools.js";
+import type { ToolContext } from "../../src/tools/index.js";
 
 const ctx = (costs: number[] = []): ToolContext => ({
   runId: "r",
@@ -23,13 +27,17 @@ const ctx = (costs: number[] = []): ToolContext => ({
   },
 });
 
+const services: BundleServices = {
+  router: (name) => ({ name, route: () => Promise.resolve({ kind: "failed", reason: "unused" }) }),
+};
+
 describe("bundles", () => {
   it("every bundle is valid: tools exist, every agent has a prompt", () => {
     for (const bundle of Object.values(bundles)) {
       expect(() =>
         validateAgentsConfig(
           bundle.config,
-          bundle.tools.map((tool) => tool.name),
+          resolveTools(bundle, services).map((tool) => tool.name),
         ),
       ).not.toThrow();
       expect(Object.keys(bundle.prompts).sort()).toEqual(Object.keys(bundle.config.agents).sort());
@@ -37,30 +45,43 @@ describe("bundles", () => {
   });
 
   it("finds bundles by name and rejects unknown ones", () => {
-    expect(bundleNamed("approval")).toBe(demoBundles.approval);
+    expect(bundleNamed("company-assistant-approval")).toBe(companyAssistantApproval);
+    expect(Object.keys(bundles)).toEqual([
+      "default",
+      "company-assistant",
+      "company-assistant-approval",
+      "job-scout",
+    ]);
     expect(() => bundleNamed("nope")).toThrow(UnknownBundleError);
   });
 
   it("only the approval demo turns the pause seam on, for write tools", () => {
-    const save = demoBundles.approval.tools.find((tool) => tool.name === "note_save");
-    const search = demoBundles.approval.tools.find((tool) => tool.name === "note_search");
+    const save = resolveTools(companyAssistantApproval, services).find(
+      (tool) => tool.name === "note_save",
+    );
+    const search = resolveTools(companyAssistantApproval, services).find(
+      (tool) => tool.name === "note_search",
+    );
 
-    expect(demoBundles.assistant.needsApproval).toBeUndefined();
-    expect(save && demoBundles.approval.needsApproval?.(save)).toBe(true);
-    expect(search && demoBundles.approval.needsApproval?.(search)).toBe(false);
+    expect(companyAssistant.needsApproval).toBeUndefined();
+    expect(save && companyAssistantApproval.needsApproval?.(save)).toBe(true);
+    expect(search && companyAssistantApproval.needsApproval?.(search)).toBe(false);
   });
 
   it("wires a demo bundle against the real filesystem MCP server (contract checked at startup)", async () => {
     const deps = await createAppDeps(
       { OPENROUTER_API_KEY: "k", TERN_DB: ":memory:" },
       undefined,
-      demoBundles.approval,
+      companyAssistantApproval,
     );
     try {
       expect(deps.pause).toBeDefined();
-      const listed = await deps
-        .tools("docs__list_directory")
-        .invoke({ path: join(import.meta.dirname, "..", "src", "demo", "docs") }, ctx());
+      const listed = await deps.tools("docs__list_directory").invoke(
+        {
+          path: join(import.meta.dirname, "..", "..", "src", "demos", "company-assistant", "docs"),
+        },
+        ctx(),
+      );
       expect(JSON.stringify(listed)).toContain("onboarding.md");
       expect(() => deps.tools("ghost")).toThrow(/Unknown tool/);
     } finally {

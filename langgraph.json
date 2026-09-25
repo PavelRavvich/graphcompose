@@ -2,8 +2,9 @@
   "node_version": "22",
   "graphs": {
     "agents": "./src/studio.ts:graph",
-    "demo-assistant": "./src/demo/studio.ts:assistant",
-    "demo-approval": "./src/demo/studio.ts:approval"
+    "company-assistant": "./src/demos/studio.ts:companyAssistantGraph",
+    "company-assistant-approval": "./src/demos/studio.ts:companyAssistantApprovalGraph",
+    "job-scout": "./src/demos/studio.ts:jobScoutGraph"
   },
   "env": ".env"
 }

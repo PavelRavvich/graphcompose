@@ -14,7 +14,7 @@ export default defineConfig({
         "src/cli/ask.ts",
         "src/studio.ts",
         "src/eval/cli.ts",
-        "src/demo/studio.ts",
+        "src/demos/studio.ts",
       ],
       reporter: ["text", "html", "json-summary"],
       thresholds: {

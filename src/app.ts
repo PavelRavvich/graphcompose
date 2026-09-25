@@ -1,5 +1,5 @@
 import { MemorySaver } from "@langchain/langgraph";
-import { defaultBundle, type AgentBundle } from "./bundle.js";
+import { defaultBundle, resolveTools, type AgentBundle } from "./bundle.js";
 import { resolveRouterModel, validateAgentsConfig, type AgentsConfigOf } from "./config/types.js";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -30,6 +30,24 @@ const toolLookup = (tools: readonly AnyTool[]): ((name: string) => AnyTool) => {
     return tool;
   };
 };
+
+/** Eval / replay: a Jev judge, spend on `<bundle>:eval` within evalBudgetCap. */
+const evaluationFor = (
+  config: AgentsConfigOf<string>,
+  stores: Pick<EvalDeps, "terns" | "ledger">,
+  factories: RouterFactories,
+): EvalDeps => ({
+  ...stores,
+  judge: createRouter("judge", config.defaults.router, config.defaults.chat, factories),
+  account: { key: `${config.name}:eval`, dailyCap: config.budget.evalBudgetCap },
+});
+
+/** Bundle tools; factories get a router on the bundle's default router model (Jev). */
+const toolsFor = (bundle: AgentBundle, factories: RouterFactories): readonly AnyTool[] =>
+  resolveTools(bundle, {
+    router: (name) =>
+      createRouter(name, bundle.config.defaults.router, bundle.config.defaults.chat, factories),
+  });
 
 const pauseFor = (bundle: AgentBundle): AppDeps["pause"] =>
   bundle.needsApproval === undefined
@@ -85,20 +103,21 @@ export async function createAppDeps(
   makeTransport?: TransportFactory,
   bundle: AgentBundle = defaultBundle,
 ): Promise<AppDeps> {
+  const connection = readOpenRouterEnv(env);
+  const chatModel: ModelFactory = (settings) => createChatModel(settings, connection);
+  const factories = { chatModel, jevClient: createJevClient(connection) };
+  const tools = toolsFor(bundle, factories);
   const config = validateAgentsConfig(
     bundle.config,
-    bundle.tools.map((tool) => tool.name),
+    tools.map((tool) => tool.name),
   );
   const mcp = await connectMcpServers(
     config.mcpServers,
     bundle.mcpServers,
-    bundle.tools.filter(isMcpFacade),
+    tools.filter(isMcpFacade),
     env,
     makeTransport,
   );
-  const connection = readOpenRouterEnv(env);
-  const chatModel: ModelFactory = (settings) => createChatModel(settings, connection);
-  const factories = { chatModel, jevClient: createJevClient(connection) };
   const router = createRouter(
     "main",
     resolveRouterModel(config.routers.main, config.defaults),
@@ -114,16 +133,11 @@ export async function createAppDeps(
     prompts: bundle.prompts,
     guards: guardsFor(config, factories),
     reviewers: reviewersFor(config, factories),
-    tools: toolLookup(bundle.tools),
+    tools: toolLookup(tools),
     pause: pauseFor(bundle),
     ledger,
     terns,
-    evaluation: {
-      terns,
-      ledger,
-      judge: createRouter("judge", config.defaults.router, config.defaults.chat, factories),
-      account: { key: `${config.name}:eval`, dailyCap: config.budget.evalBudgetCap },
-    },
+    evaluation: evaluationFor(config, { terns, ledger }, factories),
     close: async () => {
       await mcp.close();
       terns.close();
