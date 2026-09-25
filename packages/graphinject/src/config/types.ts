@@ -28,11 +28,27 @@ export const ThinkingSchema = z.union([
 export const DEFAULT_TIMEOUT_MS = 120_000;
 export const DEFAULT_MAX_RETRIES = 2;
 const TimeoutMsSchema = z.number().int().positive();
+
+/** Output ceiling when a workflow sets none — a model stuck in a loop stops here. `MODEL_MAX` = no ceiling. */
+export const DEFAULT_MAX_TOKENS = 8192;
+
+/**
+ * OpenRouter's provider routing (its own `provider` field): prefer, sort or exclude the providers
+ * that serve a model — e.g. `{ ignore: ["Inceptron"] }` or `{ sort: "latency" }`.
+ */
+export const ProviderPreferencesSchema = z.strictObject({
+  order: z.array(z.string().min(1)).optional(),
+  only: z.array(z.string().min(1)).optional(),
+  ignore: z.array(z.string().min(1)).optional(),
+  sort: z.enum(["price", "throughput", "latency"]).optional(),
+  allowFallbacks: z.boolean().optional(),
+});
 const MaxRetriesSchema = z.number().int().nonnegative();
 
 export const ChatDefaultsSchema = z.object({
   temperature: z.number().min(0).max(2),
-  maxTokens: MaxTokensSchema,
+  /** Default 8 192 (`DEFAULT_MAX_TOKENS`); `MODEL_MAX` for no ceiling. */
+  maxTokens: MaxTokensSchema.optional(),
   thinking: ThinkingSchema,
   /** Prompt caching where the model supports it. */
   cache: z.boolean(),
@@ -40,6 +56,7 @@ export const ChatDefaultsSchema = z.object({
   timeoutMs: TimeoutMsSchema.optional(),
   /** Automatic retries of a failed request (with backoff); default 2. */
   maxRetries: MaxRetriesSchema.optional(),
+  provider: ProviderPreferencesSchema.optional(),
 });
 
 export const ModelSettingsSchema = z.object({
@@ -50,6 +67,7 @@ export const ModelSettingsSchema = z.object({
   cache: z.boolean().optional(),
   timeoutMs: TimeoutMsSchema.optional(),
   maxRetries: MaxRetriesSchema.optional(),
+  provider: ProviderPreferencesSchema.optional(),
   price: PriceSchema,
 });
 
@@ -200,6 +218,7 @@ export type Price = z.infer<typeof PriceSchema>;
 export type MaxTokens = z.infer<typeof MaxTokensSchema>;
 export type Thinking = z.infer<typeof ThinkingSchema>;
 export type ChatDefaults = z.infer<typeof ChatDefaultsSchema>;
+export type ProviderPreferences = z.infer<typeof ProviderPreferencesSchema>;
 export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
 export type AgentSettings = z.infer<typeof AgentSettingsSchema>;
 export type RouterModel = z.infer<typeof RouterModelSchema>;
@@ -240,6 +259,7 @@ export interface ResolvedModelSettings {
   readonly cache: boolean;
   readonly timeoutMs: number;
   readonly maxRetries: number;
+  readonly provider?: ProviderPreferences | undefined;
   readonly price: Price;
 }
 

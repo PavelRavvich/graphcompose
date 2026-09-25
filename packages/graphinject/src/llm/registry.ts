@@ -1,5 +1,5 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT_MS } from "../config/types.js";
+import { DEFAULT_MAX_RETRIES, DEFAULT_MAX_TOKENS, DEFAULT_TIMEOUT_MS } from "../config/types.js";
 import type {
   AgentsConfigOf,
   ChatDefaults,
@@ -24,18 +24,30 @@ export interface ModelRegistry {
   readonly compaction?: ModelBinding | undefined;
 }
 
+/** The workflow's chat defaults with the framework's own filled in. */
+const completeDefaults = (defaults: ChatDefaults) => ({
+  ...defaults,
+  maxTokens: defaults.maxTokens ?? DEFAULT_MAX_TOKENS,
+  timeoutMs: defaults.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+  maxRetries: defaults.maxRetries ?? DEFAULT_MAX_RETRIES,
+});
+
+/** An agent's (or LLM router's) model settings over the chat defaults. */
 export function resolveSettings(
   settings: ModelSettings,
   defaults: ChatDefaults,
 ): ResolvedModelSettings {
+  const d = completeDefaults(defaults);
+  const provider = settings.provider ?? d.provider;
   return {
     model: settings.model,
-    temperature: settings.temperature ?? defaults.temperature,
-    maxTokens: settings.maxTokens ?? defaults.maxTokens,
-    thinking: settings.thinking ?? defaults.thinking,
-    cache: settings.cache ?? defaults.cache,
-    timeoutMs: settings.timeoutMs ?? defaults.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    maxRetries: settings.maxRetries ?? defaults.maxRetries ?? DEFAULT_MAX_RETRIES,
+    temperature: settings.temperature ?? d.temperature,
+    maxTokens: settings.maxTokens ?? d.maxTokens,
+    thinking: settings.thinking ?? d.thinking,
+    cache: settings.cache ?? d.cache,
+    timeoutMs: settings.timeoutMs ?? d.timeoutMs,
+    maxRetries: settings.maxRetries ?? d.maxRetries,
+    ...(provider === undefined ? {} : { provider }),
     price: settings.price,
   };
 }

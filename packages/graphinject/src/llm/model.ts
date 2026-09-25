@@ -1,6 +1,11 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { ChatOpenAI } from "@langchain/openai";
-import { MODEL_MAX, type ResolvedModelSettings, type Thinking } from "../config/types.js";
+import {
+  MODEL_MAX,
+  type ProviderPreferences,
+  type ResolvedModelSettings,
+  type Thinking,
+} from "../config/types.js";
 
 export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
@@ -33,6 +38,26 @@ export function reasoningParams(thinking: Thinking): ReasoningParams | undefined
 }
 
 /** OpenRouter is OpenAI-compatible: ChatOpenAI + custom base URL, model slug from config. */
+/** OpenRouter request fields LangChain passes through: reasoning and provider routing (snake_case on the wire). */
+function openRouterKwargs(
+  reasoning: ReturnType<typeof reasoningParams>,
+  provider: ProviderPreferences | undefined,
+): Record<string, unknown> {
+  const routing =
+    provider === undefined
+      ? undefined
+      : {
+          ...(provider.order === undefined ? {} : { order: provider.order }),
+          ...(provider.only === undefined ? {} : { only: provider.only }),
+          ...(provider.ignore === undefined ? {} : { ignore: provider.ignore }),
+          ...(provider.sort === undefined ? {} : { sort: provider.sort }),
+          ...(provider.allowFallbacks === undefined
+            ? {}
+            : { allow_fallbacks: provider.allowFallbacks }),
+        };
+  return { ...(reasoning ? { reasoning } : {}), ...(routing ? { provider: routing } : {}) };
+}
+
 export function createChatModel(
   settings: ResolvedModelSettings,
   connection: OpenRouterConnection,
@@ -43,7 +68,9 @@ export function createChatModel(
     model: settings.model,
     temperature: settings.temperature,
     ...(settings.maxTokens === MODEL_MAX ? {} : { maxTokens: settings.maxTokens }),
-    ...(reasoning ? { modelKwargs: { reasoning } } : {}),
+    ...(reasoning || settings.provider
+      ? { modelKwargs: openRouterKwargs(reasoning, settings.provider) }
+      : {}),
     // LangChain's own request timeout and retries (with backoff) — a stalled request fails, not hangs
     timeout: settings.timeoutMs,
     maxRetries: settings.maxRetries,
