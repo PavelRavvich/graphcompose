@@ -2,8 +2,9 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { htmlToText, matchScore } from "../../src/demos/job-scout/greenhouse.js";
-import { createReadResumeTool, MAX_RESUME_CHARS } from "../../src/demos/job-scout/resume.js";
+import { htmlToText, matchScore } from "../../src/demos/job-scout/tools/greenhouse-jobs.js";
+import { toolOf } from "../../src/components/index.js";
+import { MAX_RESUME_CHARS, ReadResume } from "../../src/demos/job-scout/tools/read-resume.js";
 import type { ToolContext } from "../../src/tools/index.js";
 
 const ctx: ToolContext = {
@@ -22,7 +23,7 @@ async function fileWith(name: string, content: string | Uint8Array): Promise<str
 
 describe("read_resume", () => {
   it("reads Markdown and text", async () => {
-    const tool = createReadResumeTool();
+    const tool = toolOf(new ReadResume());
 
     const result = await tool.invoke(
       { path: await fileWith("cv.md", "# Me\nTypeScript,   Kafka") },
@@ -36,7 +37,7 @@ describe("read_resume", () => {
   });
 
   it("reads PDF through the extractor and truncates long text", async () => {
-    const tool = createReadResumeTool(() => Promise.resolve("x".repeat(MAX_RESUME_CHARS + 5)));
+    const tool = toolOf(new ReadResume(() => Promise.resolve("x".repeat(MAX_RESUME_CHARS + 5))));
 
     const result = await tool.invoke(
       { path: await fileWith("cv.pdf", new Uint8Array([1, 2])) },
@@ -48,7 +49,7 @@ describe("read_resume", () => {
   });
 
   it("reports unsupported formats and missing files to the model", async () => {
-    const tool = createReadResumeTool();
+    const tool = toolOf(new ReadResume());
 
     const docx = await tool.invoke({ path: await fileWith("cv.docx", "x") }, ctx);
     expect(docx.kind === "error" && docx.message).toContain("Unsupported");
@@ -82,7 +83,7 @@ describe("read_resume near-miss paths", () => {
     const real = await fileWith("Pavel__Ravvich_CV.md", "# CV\nJava");
     const mangled = real.replace("Pavel__Ravvich_CV.md", "pavel__ravvich__cv.md");
 
-    const result = await createReadResumeTool().invoke({ path: mangled }, ctx);
+    const result = await toolOf(new ReadResume()).invoke({ path: mangled }, ctx);
 
     expect(result).toMatchObject({
       kind: "ok",
@@ -92,7 +93,7 @@ describe("read_resume near-miss paths", () => {
 
   it("reports the folder's resume files when nothing matches, and a plain error for a missing folder", async () => {
     const real = await fileWith("cv.md", "x");
-    const tool = createReadResumeTool();
+    const tool = toolOf(new ReadResume());
 
     const other = await tool.invoke({ path: real.replace("cv.md", "resume.pdf") }, ctx);
     const nowhere = await tool.invoke({ path: "/nope/nope/cv.pdf" }, ctx);
@@ -102,7 +103,7 @@ describe("read_resume near-miss paths", () => {
   });
 
   it("does not report a requested path when the exact file exists", async () => {
-    const result = await createReadResumeTool().invoke(
+    const result = await toolOf(new ReadResume()).invoke(
       { path: await fileWith("cv.txt", "x") },
       ctx,
     );

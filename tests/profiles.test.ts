@@ -2,7 +2,8 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { defaultBundle } from "../src/bundle.js";
+import { ResearchCoder } from "../src/bundles/research-coder/research-coder.bundle.js";
+import { bundleOf } from "../src/components/index.js";
 import {
   deepMerge,
   loadProfile,
@@ -12,7 +13,7 @@ import {
 } from "../src/config/profiles.js";
 import { applyProfile, withProfile } from "../src/profile-bundle.js";
 
-const base = defaultBundle;
+const base = await bundleOf(ResearchCoder);
 /** Raw (possibly invalid) profile content, as a YAML file would give it. */
 const profile = (overrides: Record<string, unknown> = {}): Profile =>
   ({ profile: "variant", version: "1.0.0-variant", ...overrides }) as Profile;
@@ -51,7 +52,7 @@ describe("profiles — merge rules", () => {
 
     expect(applied.config.version).toBe("1.0.0-variant");
     expect(applied.config.agents.coder?.thinking).toBe("high");
-    expect(applied.config.agents.coder?.model).toBe(base.config.agents.coder.model);
+    expect(applied.config.agents.coder?.model).toBe(base.config.agents.coder?.model);
     expect(applied.config.defaults.history.limit).toBe(2);
     expect(applied.prompts.coder).toBe("You are a terse coder.");
     expect(applied.prompts.researcher).toBe(base.prompts.researcher);

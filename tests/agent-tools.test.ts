@@ -9,10 +9,17 @@ import { BUDGET_STOP_MESSAGE } from "../src/prompts/agents.js";
 import { createRouter } from "../src/routers/index.js";
 import { NO_GUARDS } from "../src/guards/index.js";
 import { createSqliteTernStore } from "../src/terns/index.js";
-import { defineTool, toolRegistry } from "../src/tools/index.js";
+import { defineTool } from "../src/tools/index.js";
 import { z } from "zod";
 import { ScriptedChatModel, type Reply } from "./fakes/scripted-model.js";
-import { decide, memoryLedger, testConfig, unusedJevClient, type TestAgent } from "./helpers.js";
+import {
+  decide,
+  memoryLedger,
+  testConfig,
+  unusedJevClient,
+  type TestAgent,
+  libraryTool,
+} from "./helpers.js";
 
 interface Setup {
   readonly routes: string[];
@@ -65,8 +72,7 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd 
     terns: createSqliteTernStore(":memory:"),
     guards: NO_GUARDS,
     judges: new Map(),
-    tools: (name) =>
-      name === "paid_search" ? paidSearch(toolCostUsd) : toolRegistry.get(name as never),
+    tools: (name) => (name === "paid_search" ? paidSearch(toolCostUsd) : libraryTool(name)),
     ledger,
   };
   return { deps, model, ledger };

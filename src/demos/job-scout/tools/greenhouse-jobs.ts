@@ -1,9 +1,10 @@
-export { htmlToText } from "./boards.js";
+export { htmlToText } from "../boards.js";
 import { z } from "zod";
-import { boardReader, defaultFetchJson, type Candidate } from "./boards.js";
-import type { JobSearch } from "./search.config.js";
-import { defineTool, type Tool } from "../../tools/index.js";
-import { mapLimited, type FitJudge } from "./fit.js";
+import { boardReader, defaultFetchJson, type Candidate } from "../boards.js";
+import { JOB_SEARCH, type JobSearch } from "../search.config.js";
+import { Tool, type ToolHandler } from "../../../components/index.js";
+import type { ToolContext } from "../../../tools/index.js";
+import { JobFitJudge, mapLimited, type FitJudge, type FitRater } from "../fit.js";
 
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const mentions = (text: string, term: string): boolean =>
@@ -91,11 +92,6 @@ const Output = z.object({
   jobs: z.array(Job),
 });
 
-export type GreenhouseTool = Tool<
-  "greenhouse_jobs",
-  z.output<typeof Input>,
-  z.output<typeof Output>
->;
 type Search = z.output<typeof Input>;
 
 function passesFilters(job: Candidate, search: Search, places: JobSearch["places"]): boolean {
@@ -107,13 +103,6 @@ function passesFilters(job: Candidate, search: Search, places: JobSearch["places
       search.titleMustInclude.some((word) => title.includes(word.trim().toLowerCase()))) &&
     !search.excludeTitleWords.some((word) => title.includes(word.trim().toLowerCase()))
   );
-}
-
-export interface GreenhouseDeps {
-  readonly judge: FitJudge;
-  /** Boards and places (search.config.ts). */
-  readonly search: JobSearch;
-  readonly fetchJson?: (url: string) => Promise<unknown>;
 }
 
 /** Judges each job once per profile (cached); returns fits and the cost of new decisions. */
@@ -144,51 +133,62 @@ function fitScorer(
 /**
  * Public Greenhouse boards (no key): hard filters (location, excluded titles), then a cheap judge
  * (Jev) rates every remaining job against what the user wants; the best `count` come back with
- * links. Board responses and judgements are cached for the session; judge spend is reported.
+ * links. Board responses and judgements are cached per instance; judge spend is reported.
  */
-export function createGreenhouseTool(deps: GreenhouseDeps): GreenhouseTool {
-  const readBoards = boardReader(deps.fetchJson ?? defaultFetchJson, deps.search.boards);
-  const score = fitScorer(deps.judge);
-  return defineTool({
-    name: "greenhouse_jobs",
-    description:
-      "Find jobs on Greenhouse boards that fit what the user wants; returns the best with links.",
-    input: Input,
-    output: Output,
-    timeoutMs: 240_000,
-    run: async (search, ctx) => {
-      const requested = search.boards.length > 0 ? search.boards : Object.keys(deps.search.boards);
-      const boards = [...new Set(requested.map((board) => board.trim().toLowerCase()))];
-      const { failedBoards, candidates } = await readBoards(boards);
-      const filtered = candidates.filter((job) => passesFilters(job, search, deps.search.places));
-      const judgedJobs = filtered.slice(0, MAX_JUDGED);
-      const { fits, costUsd } = await score(search.profile, judgedJobs);
-      ctx.reportCost(costUsd);
-      const passed = judgedJobs
-        .map((job, i) => ({ job, fit: fits[i] }))
-        .filter(
-          (item): item is { job: Candidate; fit: number } =>
-            item.fit !== undefined && item.fit >= search.minFit,
-        )
-        .sort((a, b) => b.fit - a.fit || b.job.updated.localeCompare(a.job.updated));
-      return {
-        searched: boards,
-        failedBoards,
-        afterFilters: filtered.length,
-        judged: judgedJobs.length,
-        judgeFailures: fits.filter((fit) => fit === undefined).length,
-        passed: passed.length,
-        jobs: passed.slice(0, search.count).map(({ job, fit }) => ({
-          company: job.company,
-          title: job.title,
-          location: job.location,
-          department: job.department,
-          url: job.url,
-          updated: job.updated,
-          fit: Math.round(fit * 100),
-          matchedSkills: matchScore(search.skills, `${job.title} ${job.text}`).matched,
-        })),
-      };
-    },
-  });
+@Tool({
+  name: "greenhouse_jobs",
+  description:
+    "Find jobs on Greenhouse boards that fit what the user wants; returns the best with links.",
+  input: Input,
+  output: Output,
+  timeoutMs: 240_000,
+  deps: [JobFitJudge, JOB_SEARCH],
+})
+export class GreenhouseJobs implements ToolHandler<typeof Input, typeof Output> {
+  private readonly readBoards: ReturnType<typeof boardReader>;
+  private readonly score: ReturnType<typeof fitScorer>;
+
+  constructor(
+    judge: FitRater,
+    private readonly search: JobSearch,
+    fetchJson: (url: string) => Promise<unknown> = defaultFetchJson,
+  ) {
+    this.readBoards = boardReader(fetchJson, search.boards);
+    this.score = fitScorer((profile, job) => judge.rate(profile, job));
+  }
+
+  async run(input: Search, ctx: ToolContext): Promise<z.output<typeof Output>> {
+    const requested = input.boards.length > 0 ? input.boards : Object.keys(this.search.boards);
+    const boards = [...new Set(requested.map((board) => board.trim().toLowerCase()))];
+    const { failedBoards, candidates } = await this.readBoards(boards);
+    const filtered = candidates.filter((job) => passesFilters(job, input, this.search.places));
+    const judgedJobs = filtered.slice(0, MAX_JUDGED);
+    const { fits, costUsd } = await this.score(input.profile, judgedJobs);
+    ctx.reportCost(costUsd);
+    const passed = judgedJobs
+      .map((job, i) => ({ job, fit: fits[i] }))
+      .filter(
+        (item): item is { job: Candidate; fit: number } =>
+          item.fit !== undefined && item.fit >= input.minFit,
+      )
+      .sort((a, b) => b.fit - a.fit || b.job.updated.localeCompare(a.job.updated));
+    return {
+      searched: boards,
+      failedBoards,
+      afterFilters: filtered.length,
+      judged: judgedJobs.length,
+      judgeFailures: fits.filter((fit) => fit === undefined).length,
+      passed: passed.length,
+      jobs: passed.slice(0, input.count).map(({ job, fit }) => ({
+        company: job.company,
+        title: job.title,
+        location: job.location,
+        department: job.department,
+        url: job.url,
+        updated: job.updated,
+        fit: Math.round(fit * 100),
+        matchedSkills: matchScore(input.skills, `${job.title} ${job.text}`).matched,
+      })),
+    };
+  }
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { createCurrentTimeTool, renderToolResult, toLangChainTool } from "../../src/tools/index.js";
+import { toolOf } from "../../src/components/index.js";
+import { CurrentTime, renderToolResult, toLangChainTool } from "../../src/tools/index.js";
 
 const ctx = {
   runId: "r",
@@ -17,7 +18,7 @@ describe("LangChain adapter", () => {
   });
 
   it("exposes name, description and input JSON Schema, and runs through invoke", async () => {
-    const tool = createCurrentTimeTool(() => new Date("2026-09-24T10:00:00Z"));
+    const tool = toolOf(new CurrentTime(() => new Date("2026-09-24T10:00:00Z")));
     const exposed = toLangChainTool(tool, ctx);
 
     expect(exposed.name).toBe("current_time");

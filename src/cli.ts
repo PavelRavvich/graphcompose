@@ -23,7 +23,7 @@ const { values, positionals } = parseArgs({
 const deps = await createAppDeps(
   process.env,
   undefined,
-  await withProfile(bundleNamed(values.config), values.profile),
+  await withProfile(await bundleNamed(values.config), values.profile),
 );
 deps.warnings.forEach((warning) => {
   stderr.write(`warning: ${warning}\n`);

@@ -1,3 +1,4 @@
+import { Injectable, ROUTER_FACTORY } from "../../components/index.js";
 import type { Router } from "../../routers/index.js";
 
 /** What the judge sees of a job. */
@@ -23,6 +24,21 @@ const NO_FIT = "Not a match: different role or stack, wrong seniority, or a deal
 
 /** The model gets this much of a job description. */
 export const JOB_TEXT_CHARS = 2500;
+
+/** Rates how well a job fits what the candidate wants. */
+export interface FitRater {
+  rate: FitJudge;
+}
+
+/** Jev as the fit judge, from the core's router factory. */
+@Injectable({ deps: [ROUTER_FACTORY] })
+export class JobFitJudge implements FitRater {
+  readonly rate: FitJudge;
+
+  constructor(routers: (name: string) => Router) {
+    this.rate = routerFitJudge(routers("job-fit"));
+  }
+}
 
 /** A cheap per-job decision on the bundle's router model (Jev). */
 export function routerFitJudge(router: Router): FitJudge {

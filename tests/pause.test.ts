@@ -6,9 +6,16 @@ import { summaryLine, untilDone } from "../src/cli/approve.js";
 import { NotPausedError, resumeAgent, runAgent, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
 import { writeToolsNeedApproval } from "../src/pause/index.js";
-import { defineTool, toolRegistry } from "../src/tools/index.js";
+import { defineTool } from "../src/tools/index.js";
 import { ScriptedChatModel, type Reply } from "./fakes/scripted-model.js";
-import { decide, fakeDeps, memoryLedger, testConfig, type TestAgent } from "./helpers.js";
+import {
+  decide,
+  fakeDeps,
+  memoryLedger,
+  testConfig,
+  type TestAgent,
+  libraryTool,
+} from "./helpers.js";
 
 const sendEmail = (sent: string[]) =>
   defineTool({
@@ -40,7 +47,7 @@ function setup(alphaReplies: readonly Reply[], withSeam = true) {
     registry: createModelRegistry(config, (settings) =>
       settings.model === "test/alpha" ? alpha : new FakeListChatModel({ responses: ["x"] }),
     ),
-    tools: (name) => (name === "send_email" ? sendEmail(sent) : toolRegistry.get(name as never)),
+    tools: (name) => (name === "send_email" ? sendEmail(sent) : libraryTool(name)),
     ...(withSeam
       ? { pause: { checkpointer: new MemorySaver(), needsApproval: writeToolsNeedApproval } }
       : {}),
