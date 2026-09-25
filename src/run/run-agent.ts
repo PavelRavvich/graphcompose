@@ -6,6 +6,7 @@ import {
   allowedBudget,
   drainRun,
   failedOutcome,
+  outcomeError,
   finishRun,
   recorder,
   streamConfig,
@@ -45,12 +46,13 @@ export async function runAgent<TName extends string>(
     const graph = buildGraph(deps);
     const states = await graph.stream(
       { task, budgetUsd, history, runId },
-      streamConfig(deps, { threadId, runId }),
+      streamConfig(deps, { threadId, runId }, options.signal),
     );
     const state = await drainRun(states, recorder(deps, account, spent));
     return await finishRun({ deps, graph, base, runId, budgetUsd }, state);
   } catch (error) {
-    await deps.terns.append({ ...base, ...failedOutcome(error, spent) });
-    throw error;
+    const cause = outcomeError(error, options.signal);
+    await deps.terns.append({ ...base, ...failedOutcome(cause, spent) });
+    throw cause;
   }
 }

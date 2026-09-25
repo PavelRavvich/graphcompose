@@ -6,6 +6,7 @@ import type { ApprovalDecision } from "../pause/index.js";
 import {
   drainRun,
   failedOutcome,
+  outcomeError,
   finishRun,
   recorder,
   runConfig,
@@ -26,6 +27,7 @@ export async function resumeAgent<TName extends string>(
   paused: AgentRunResult,
   decision: ApprovalDecision,
   deps: RunDeps<TName>,
+  options: { readonly signal?: AbortSignal | undefined } = {},
 ): Promise<AgentRunResult> {
   if (paused.status !== "paused" || deps.pause === undefined) {
     throw new NotPausedError(`Run ${paused.runId} was not paused or the pause seam is off`);
@@ -54,7 +56,7 @@ export async function resumeAgent<TName extends string>(
   try {
     const states = await graph.stream(
       new Command({ resume: decision }),
-      streamConfig(deps, { threadId: paused.threadId, runId: paused.runId }),
+      streamConfig(deps, { threadId: paused.threadId, runId: paused.runId }, options.signal),
     );
     const state = await drainRun(states, record, before.usage.length);
     return await finishRun(
@@ -63,7 +65,8 @@ export async function resumeAgent<TName extends string>(
       paused.ternId,
     );
   } catch (error) {
-    await deps.terns.complete(paused.ternId, failedOutcome(error, [...before.usage, ...spent]));
-    throw error;
+    const cause = outcomeError(error, options.signal);
+    await deps.terns.complete(paused.ternId, failedOutcome(cause, [...before.usage, ...spent]));
+    throw cause;
   }
 }
