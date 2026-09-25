@@ -1,16 +1,115 @@
-/** `graphcompose --help`. */
-export const USAGE = `GraphCompose — typed agent workflows on LangGraph
+/** One description of every command: `gc help` and `gc help <command>` are built from it. */
+interface CommandHelp {
+  readonly summary: string;
+  readonly usage: string;
+  readonly options: readonly (readonly [string, string])[];
+}
 
-Usage: graphcompose <command> --workflow <path> [options]      (short: gc)
+const WORKFLOW: readonly [string, string] = [
+  "--workflow <path>",
+  "a module exporting one @Workflow class (default ./src/workflow.ts)",
+];
+const PROFILE: readonly [string, string] = [
+  "--profile <name>",
+  "apply profiles/<workflow>/<name>.yaml",
+];
+const THREAD: readonly [string, string] = ["--thread <id>", "continue a conversation"];
 
-  chat        interactive chat with the workflow            [--thread <id>] [--profile <p>]
-  run         one task, answer to stdout ("…" as argument)   [--thread <id>] [--profile <p>]
-  describe    agents, their tools, knowledge bases, settings (no API key needed)
-  eval        score recent runs with Jev                     [--version <v>] [--limit N]
-  replay      re-run a prompt version on recent tasks        --version <v> [--limit N]
-  golden      save recent real tasks as a golden set         add --name <n> [--from-last N]
-  compare     profiles side by side on the same tasks        --profiles base,<p> [--golden <n> | --last N]
-  rag:index   build / update the workflow's knowledge bases  [--kb <name>]
+export const COMMANDS: Readonly<Record<string, CommandHelp>> = {
+  chat: {
+    summary: "interactive chat with the workflow",
+    usage: "gc chat --workflow <path> [--thread <id>] [--profile <name>]",
+    options: [WORKFLOW, THREAD, PROFILE],
+  },
+  run: {
+    summary: "one task, the answer to stdout",
+    usage: 'gc run --workflow <path> [--thread <id>] [--profile <name>] "<task>"',
+    options: [WORKFLOW, THREAD, PROFILE],
+  },
+  describe: {
+    summary: "agents, their tools, knowledge bases and settings (no API key needed)",
+    usage: "gc describe --workflow <path> [--profile <name>]",
+    options: [WORKFLOW, PROFILE],
+  },
+  eval: {
+    summary: "score recent runs with Jev",
+    usage: "gc eval --workflow <path> [--version <v>] [--limit N] [--profile <name>]",
+    options: [
+      WORKFLOW,
+      ["--version <v>", "only runs of this prompt version"],
+      ["--limit N", "how many runs (default 100)"],
+      PROFILE,
+    ],
+  },
+  replay: {
+    summary: "re-run a prompt version on recent tasks",
+    usage: "gc replay --workflow <path> --version <v> [--limit N] [--profile <name>]",
+    options: [
+      WORKFLOW,
+      ["--version <v>", "the prompt version to replay (required)"],
+      ["--limit N", "how many tasks (default 100)"],
+      PROFILE,
+    ],
+  },
+  golden: {
+    summary: "save recent real tasks as a golden set",
+    usage: "gc golden add --workflow <path> --name <name> [--from-last N]",
+    options: [
+      WORKFLOW,
+      ["--name <name>", "the set: golden/<workflow>/<name>.yaml (required)"],
+      ["--from-last N", "how many recent tasks (default 20)"],
+    ],
+  },
+  compare: {
+    summary: "profiles side by side on the same tasks",
+    usage: "gc compare --workflow <path> --profiles base,<p>… [--golden <name> | --last N]",
+    options: [
+      WORKFLOW,
+      ["--profiles <list>", "comma-separated; the first is the baseline (base = no profile)"],
+      ["--golden <name>", "the tasks of a golden set"],
+      ["--last N", "or the last N real tasks (default 20)"],
+    ],
+  },
+  "rag:index": {
+    summary: "build / update the workflow's knowledge bases",
+    usage: "gc rag:index --workflow <path> [--kb <name>]",
+    options: [WORKFLOW, ["--kb <name>", "only this knowledge base"]],
+  },
+  help: {
+    summary: "this list, or one command's options",
+    usage: "gc help [<command>]",
+    options: [],
+  },
+};
 
---workflow  a module exporting one @Workflow class, e.g. ./src/job-scout.workflow.ts
+const pad = (text: string, width: number): string => text.padEnd(width);
+
+/** `gc help`: every operation. */
+export function usage(): string {
+  const lines = Object.entries(COMMANDS).map(
+    ([name, command]) => `  ${pad(name, 11)} ${command.summary}`,
+  );
+  return `GraphCompose — typed agent workflows on LangGraph
+
+Usage: graphcompose <command> [options]      (short: gc)
+
+${lines.join("\n")}
+
+Every command takes --workflow <path>: a module exporting one @Workflow class.
+gc help <command> — its options.
 `;
+}
+
+/** `gc help <command>`; undefined for an unknown command. */
+export function helpFor(name: string): string | undefined {
+  const command = COMMANDS[name];
+  if (command === undefined) return undefined;
+  const width = Math.max(0, ...command.options.map(([flag]) => flag.length));
+  const options = command.options
+    .map(([flag, text]) => `  ${pad(flag, width)}  ${text}`)
+    .join("\n");
+  return `gc ${name} — ${command.summary}\n\nUsage: ${command.usage}\n${options === "" ? "" : `\nOptions:\n${options}\n`}`;
+}
+
+/** Kept for `--help` and older imports. */
+export const USAGE = usage();
