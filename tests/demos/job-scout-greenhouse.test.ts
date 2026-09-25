@@ -6,6 +6,7 @@ import {
   type FitJudge,
 } from "../../src/demos/job-scout/fit.js";
 import { createGreenhouseTool } from "../../src/demos/job-scout/greenhouse.js";
+import type { JobSearch } from "../../src/demos/job-scout/search.config.js";
 import type { Router } from "../../src/routers/index.js";
 import type { ToolContext } from "../../src/tools/index.js";
 import { usageRecord } from "../helpers.js";
@@ -16,6 +17,12 @@ const ctx: ToolContext = {
   agent: "a",
   signal: new AbortController().signal,
   reportCost: () => undefined,
+};
+
+/** A test config: its own boards and places — nothing from the shipped example. */
+const testSearch: JobSearch = {
+  boards: { fireblocks: "Fireblocks", similarweb: "Similarweb", jfrog: "JFrog", ghost: "Ghost" },
+  places: { israel: ["Israel", "Tel Aviv", "Herzliya", "Or Yehuda"] },
 };
 
 const board = (jobs: object[]) => ({ jobs });
@@ -67,7 +74,7 @@ const search = {
 describe("greenhouse_jobs", () => {
   it("filters hard, lets the judge rank the rest and returns the best with links", async () => {
     const costs: number[] = [];
-    const tool = createGreenhouseTool({ judge, fetchJson });
+    const tool = createGreenhouseTool({ judge, fetchJson, search: testSearch });
 
     const result = await tool.invoke(
       { ...search, minFit: 0.5 },
@@ -87,7 +94,7 @@ describe("greenhouse_jobs", () => {
   });
 
   it("ranks everything by default (no floor)", async () => {
-    const tool = createGreenhouseTool({ judge, fetchJson });
+    const tool = createGreenhouseTool({ judge, fetchJson, search: testSearch });
 
     const result = await tool.invoke(search, ctx);
 
@@ -97,7 +104,7 @@ describe("greenhouse_jobs", () => {
   it("caches boards and judgements for the same profile", async () => {
     fetchJson.mockClear();
     judge.mockClear();
-    const tool = createGreenhouseTool({ judge, fetchJson });
+    const tool = createGreenhouseTool({ judge, fetchJson, search: testSearch });
 
     await tool.invoke({ ...search, boards: ["similarweb"] }, ctx);
     await tool.invoke({ ...search, boards: ["similarweb"], count: 5 }, ctx);
@@ -106,13 +113,18 @@ describe("greenhouse_jobs", () => {
     expect(judge).toHaveBeenCalledTimes(1);
   });
 
-  it("uses all known boards by default and counts judge failures", async () => {
+  it("uses all configured boards by default and counts judge failures", async () => {
     const failing: FitJudge = () => Promise.resolve({ fit: undefined, costUsd: 0 });
-    const tool = createGreenhouseTool({ judge: failing, fetchJson });
+    const tool = createGreenhouseTool({ judge: failing, fetchJson, search: testSearch });
 
     const result = await tool.invoke({ profile: search.profile, locations: ["Israel"] }, ctx);
 
-    expect(result.kind === "ok" && result.value.searched.length).toBeGreaterThan(10);
+    expect(result.kind === "ok" && result.value.searched).toEqual([
+      "fireblocks",
+      "similarweb",
+      "jfrog",
+      "ghost",
+    ]);
     expect(result.kind === "ok" && result.value.judgeFailures).toBe(4);
   });
 });
@@ -159,7 +171,7 @@ describe("routerFitJudge", () => {
 describe("hard filters", () => {
   it("keeps only titles with a required word and drops excluded ones, before the judge", async () => {
     judge.mockClear();
-    const tool = createGreenhouseTool({ judge, fetchJson });
+    const tool = createGreenhouseTool({ judge, fetchJson, search: testSearch });
 
     const result = await tool.invoke(
       { ...search, titleMustInclude: ["Senior"], excludeTitleWords: ["Lead"] },
@@ -175,6 +187,7 @@ describe("hard filters", () => {
   it("matches Israeli cities for Israel", async () => {
     const tool = createGreenhouseTool({
       judge,
+      search: testSearch,
       fetchJson: () =>
         Promise.resolve(
           board([job("Backend", "Or Yehuda", "Java"), job("Backend", "Berlin", "Java")]),

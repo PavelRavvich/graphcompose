@@ -1,52 +1,6 @@
 import { z } from "zod";
 import type { JobText } from "./fit.js";
 
-/**
- * Greenhouse job boards with live Israeli jobs (probed 2026-09: ~140 Israeli tech and global
- * companies with Israeli R&D; ordered by Israeli openings). Greenhouse has no global search —
- * every company has its own board.
- */
-export const JOB_BOARDS: Readonly<Record<string, string>> = {
-  catonetworks: "Cato Networks",
-  similarweb: "Similarweb",
-  taboola: "Taboola",
-  payoneer: "Payoneer",
-  nice: "NICE",
-  jfrog: "JFrog",
-  transmitsecurity: "Transmit Security",
-  appsflyer: "AppsFlyer",
-  via: "Via",
-  fireblocks: "Fireblocks",
-  gitlab: "GitLab",
-  axonius: "Axonius",
-  melio: "Melio",
-  riskified: "Riskified",
-  mongodb: "MongoDB",
-  torq: "Torq",
-  forter: "Forter",
-  saltsecurity: "Salt Security",
-  yotpo: "Yotpo",
-  apiiro: "Apiiro",
-  datarails: "Datarails",
-  elastic: "Elastic",
-  safebreach: "SafeBreach",
-  zscaler: "Zscaler",
-  cymulate: "Cymulate",
-  rubrik: "Rubrik",
-  stripe: "Stripe",
-  datadog: "Datadog",
-  grafanalabs: "Grafana Labs",
-  obligo: "Obligo",
-  orcasecurity: "Orca Security",
-  bigid: "BigID",
-  databricks: "Databricks",
-  innovid: "Innovid",
-  jamf: "Jamf",
-  lightricks: "Lightricks",
-  okta: "Okta",
-  island: "Island",
-};
-
 const BoardResponse = z.object({
   jobs: z.array(
     z.object({
@@ -81,9 +35,13 @@ export const htmlToText = (encoded: string): string =>
 /** A job as the search sees it. */
 export type Candidate = JobText & { readonly url: string; readonly updated: string };
 
-export function candidateOf(board: string, job: BoardJob): Candidate {
+export function candidateOf(
+  board: string,
+  job: BoardJob,
+  companies: Readonly<Record<string, string>>,
+): Candidate {
   return {
-    company: JOB_BOARDS[board] ?? board,
+    company: companies[board] ?? board,
     title: job.title,
     location: job.location?.name ?? "",
     department: job.departments.map((d) => d.name).join(", "),
@@ -102,6 +60,7 @@ export async function defaultFetchJson(url: string): Promise<unknown> {
 /** Fetches (and caches) board jobs; failed boards are reported, not thrown. */
 export function boardReader(
   fetchJson: (url: string) => Promise<unknown>,
+  companies: Readonly<Record<string, string>>,
 ): (
   boards: readonly string[],
 ) => Promise<{ failedBoards: { board: string; error: string }[]; candidates: Candidate[] }> {
@@ -122,8 +81,48 @@ export function boardReader(
         r.status === "rejected" ? [{ board: boards[i] ?? "", error: String(r.reason) }] : [],
       ),
       candidates: settled.flatMap((r, i) =>
-        r.status === "fulfilled" ? r.value.map((job) => candidateOf(boards[i] ?? "", job)) : [],
+        r.status === "fulfilled"
+          ? r.value.map((job) => candidateOf(boards[i] ?? "", job, companies))
+          : [],
       ),
     };
   };
+}
+
+const ProbeResponse = z.object({
+  jobs: z.array(
+    z.object({
+      location: z.object({ name: z.string() }).nullable().optional(),
+      company_name: z.string().optional(),
+    }),
+  ),
+});
+
+export type BoardProbe =
+  | {
+      readonly board: string;
+      readonly company: string;
+      readonly jobs: number;
+      readonly inPlace: number;
+    }
+  | { readonly board: string; readonly error: string };
+
+/** How many live jobs a board has, and how many of them are in a place (any of its words). */
+export async function probeBoard(
+  board: string,
+  placeWords: readonly string[],
+  fetchJson: (url: string) => Promise<unknown> = defaultFetchJson,
+): Promise<BoardProbe> {
+  try {
+    const url = `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(board)}/jobs`;
+    const { jobs } = ProbeResponse.parse(await fetchJson(url));
+    const words = placeWords.map((word) => word.toLowerCase());
+    const inPlace = jobs.filter((job) => {
+      const location = (job.location?.name ?? "").toLowerCase();
+      return words.some((word) => location.includes(word));
+    }).length;
+    return { board, company: jobs[0]?.company_name ?? board, jobs: jobs.length, inPlace };
+  } catch (error) {
+    return { board, error: error instanceof Error ? error.message : String(error) };
+  }
 }

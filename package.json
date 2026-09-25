@@ -21,7 +21,8 @@
     "test:tools": "vitest run tests/tools",
     "eval": "tsx src/eval/cli.ts eval",
     "replay": "tsx src/eval/cli.ts replay",
-    "chat": "tsx src/chat.ts"
+    "chat": "tsx src/chat.ts",
+    "job-scout:probe": "tsx src/demos/job-scout/probe-boards.ts"
   },
   "dependencies": {
     "@langchain/core": "^1.2.12",
