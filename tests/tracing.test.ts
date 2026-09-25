@@ -1,6 +1,7 @@
 import { BaseCallbackHandler } from "@langchain/core/callbacks/base";
 import { CallbackHandler } from "@langfuse/langchain";
 import { describe, expect, it } from "vitest";
+import { threadLine } from "../src/cli/approve.js";
 import { runAgent } from "../src/index.js";
 import { langfuseTracing, type RunTracing, type TraceContext } from "../src/tracing/index.js";
 import { decide, fakeDeps } from "./helpers.js";
@@ -36,6 +37,7 @@ describe("tracing", () => {
 
     expect(handler).toBeInstanceOf(CallbackHandler);
     expect(handler).toMatchObject({ sessionId: "t-1", tags: ["job-scout"] });
+    expect(tracing?.sessionUrl("t-1")).toBeUndefined();
     await tracing?.shutdown();
   });
 
@@ -47,6 +49,7 @@ describe("tracing", () => {
         seen.push(context);
         return [recorder];
       },
+      sessionUrl: (threadId) => `http://traces/sessions/${threadId}`,
       shutdown: () => Promise.resolve(),
     };
     const deps = {
@@ -60,5 +63,29 @@ describe("tracing", () => {
       { bundle: "test-bundle", threadId: result.threadId, runId: result.runId },
     ]);
     expect(recorder.started).toEqual(expect.arrayContaining(["router", "agent", "finalize"]));
+    expect(result.traceUrl).toBe(`http://traces/sessions/${result.threadId}`);
+    expect(threadLine(result)).toBe(
+      `thread ${result.threadId} · http://traces/sessions/${result.threadId}`,
+    );
+  });
+
+  it("links the conversation when the project id is known, and prints the thread without tracing", async () => {
+    const tracing = langfuseTracing({
+      LANGFUSE_PUBLIC_KEY: "pk",
+      LANGFUSE_SECRET_KEY: "sk",
+      LANGFUSE_BASE_URL: "http://localhost:3000/",
+      LANGFUSE_PROJECT_ID: "my project",
+    });
+
+    expect(tracing?.sessionUrl("t 1")).toBe(
+      "http://localhost:3000/project/my%20project/sessions/t%201",
+    );
+    await tracing?.shutdown();
+    const plain = await runAgent(
+      { task: "Hi" },
+      fakeDeps({ "test/router": [decide("alpha"), decide("finish")], "test/alpha": ["ok"] }),
+    );
+    expect(plain.traceUrl).toBeUndefined();
+    expect(threadLine(plain)).toBe(`thread ${plain.threadId}`);
   });
 });

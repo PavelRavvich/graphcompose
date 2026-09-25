@@ -29,6 +29,13 @@ export async function untilDone(
   return result;
 }
 
+/** First line under an answer: which conversation, and its trace when tracing is on. */
+export function threadLine(result: AgentRunResult): string {
+  return result.traceUrl === undefined
+    ? `thread ${result.threadId}`
+    : `thread ${result.threadId} · ${result.traceUrl}`;
+}
+
 /** One line under an answer: route and why the run stopped. */
 export function summaryLine(result: AgentRunResult): string {
   const route = result.route.length > 0 ? result.route.join(" → ") : "(none)";
