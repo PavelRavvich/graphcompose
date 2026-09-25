@@ -1,0 +1,23 @@
+import { dirname, join } from "node:path";
+import { createRequire } from "node:module";
+import { McpServer, McpTool } from "graphcompose";
+import { z } from "zod";
+
+/** The official filesystem MCP server (a dependency of this project), limited to one folder. */
+const FILESYSTEM_SERVER = join(
+  dirname(createRequire(import.meta.url).resolve("@modelcontextprotocol/server-filesystem/package.json")),
+  "dist",
+  "index.js",
+);
+
+@McpServer({ name: "{{snake}}", transport: "stdio", command: process.execPath, args: [FILESYSTEM_SERVER, "{{dir}}"] })
+export class {{pascal}}Server {}
+
+@McpTool({
+  server: {{pascal}}Server,
+  tool: "read_text_file",
+  description: "Read a text file in {{dir}} (absolute path).",
+  input: z.object({ path: z.string() }),
+  output: z.object({ content: z.string() }),
+})
+export class Read{{pascal}}File {}

@@ -1,0 +1,14 @@
+import { Tool, type ToolHandler } from "graphcompose";
+import { z } from "zod";
+
+const Input = z.object({ query: z.string().describe("what to look up") });
+const Output = z.object({ result: z.string() });
+
+/** {{title}}. TODO: implement — it returns a placeholder so the workflow runs end to end. */
+@Tool({ name: "{{snake}}", description: "{{title}} (TODO: say what it does)", input: Input, output: Output })
+export class {{pascal}}Tool implements ToolHandler<typeof Input, typeof Output> {
+  run({ query }: z.output<typeof Input>): Promise<z.output<typeof Output>> {
+    // TODO: replace the placeholder with the real work (dependencies go in the constructor, see `deps`)
+    return Promise.resolve({ result: `TODO: {{snake}} is not implemented yet (query: ${query})` });
+  }
+}

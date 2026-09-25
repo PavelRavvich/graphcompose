@@ -1,0 +1,16 @@
+import { McpServer, McpTool } from "graphcompose";
+import { z } from "zod";
+
+/** An MCP server started with `{{command}}` (env: list variable NAMES in `env`, never secrets). */
+@McpServer({ name: "{{snake}}", transport: "stdio", command: "{{command}}" })
+export class {{pascal}}Server {}
+
+/** TODO: the input and output of the server's `{{tool}}` tool — checked against the server at startup. */
+@McpTool({
+  server: {{pascal}}Server,
+  tool: "{{tool}}",
+  description: "{{title}}: {{tool}} (TODO: say what it does)",
+  input: z.object({}),
+  output: z.string(),
+})
+export class {{toolPascal}}{{pascal}} {}

@@ -11,6 +11,9 @@ export default defineConfig({
       exclude: [
         "src/cli.ts",
         "src/cli/main.ts",
+        "src/cli/create.ts",
+        "src/cli/generate.ts",
+        "src/scaffold/questions.ts",
         "src/studio.ts",
         "src/describe.ts",
         "src/rag-index.ts",

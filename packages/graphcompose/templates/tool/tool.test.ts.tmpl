@@ -1,0 +1,19 @@
+import { toolOf, type ToolContext } from "graphcompose";
+import { describe, expect, it } from "vitest";
+import { {{pascal}}Tool } from "./{{kebab}}.js";
+
+const ctx: ToolContext = {
+  runId: "test",
+  workflow: "test",
+  agent: "test",
+  signal: new AbortController().signal,
+  reportCost: () => undefined,
+};
+
+describe("{{snake}}", () => {
+  it("answers a query", async () => {
+    const result = await toolOf(new {{pascal}}Tool()).invoke({ query: "example" }, ctx);
+
+    expect(result.kind).toBe("ok");
+  });
+});

@@ -11,9 +11,16 @@ const ENTRIES: Readonly<Record<string, { readonly module: string; readonly keepN
   replay: { module: "../eval/cli.js", keepName: true },
   golden: { module: "../eval/cli.js", keepName: true },
   compare: { module: "../eval/cli.js", keepName: true },
+  create: { module: "./create.js", keepName: false },
+  generate: { module: "./generate.js", keepName: false },
 };
 
-const [name, topic] = process.argv.slice(2);
+/** Short names, Angular-style: `gc c <name>`, `gc g tool <name>`. */
+const ALIASES: Readonly<Record<string, string>> = { c: "create", g: "generate" };
+
+const [given, rawTopic] = process.argv.slice(2);
+const name = given === undefined ? undefined : (ALIASES[given] ?? given);
+const topic = rawTopic === undefined ? undefined : (ALIASES[rawTopic] ?? rawTopic);
 const entry = name === undefined ? undefined : ENTRIES[name];
 if (name === undefined || name === "help" || name === "--help" || name === "-h") {
   const text = topic === undefined ? usage() : helpFor(topic);
