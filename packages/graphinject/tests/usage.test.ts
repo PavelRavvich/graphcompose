@@ -17,6 +17,8 @@ const settings = {
   maxTokens: 100,
   thinking: "default" as const,
   cache: true,
+  timeoutMs: 1000,
+  maxRetries: 0,
   price,
 };
 

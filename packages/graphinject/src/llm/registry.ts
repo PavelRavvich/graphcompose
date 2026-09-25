@@ -1,4 +1,5 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import { DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT_MS } from "../config/types.js";
 import type {
   AgentsConfigOf,
   ChatDefaults,
@@ -33,6 +34,8 @@ export function resolveSettings(
     maxTokens: settings.maxTokens ?? defaults.maxTokens,
     thinking: settings.thinking ?? defaults.thinking,
     cache: settings.cache ?? defaults.cache,
+    timeoutMs: settings.timeoutMs ?? defaults.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    maxRetries: settings.maxRetries ?? defaults.maxRetries ?? DEFAULT_MAX_RETRIES,
     price: settings.price,
   };
 }

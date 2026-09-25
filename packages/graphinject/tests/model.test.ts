@@ -18,6 +18,8 @@ const settings: ResolvedModelSettings = {
   maxTokens: 10,
   thinking: "default",
   cache: true,
+  timeoutMs: 1000,
+  maxRetries: 0,
   price: { inputPerMTok: 0, outputPerMTok: 0 },
 };
 

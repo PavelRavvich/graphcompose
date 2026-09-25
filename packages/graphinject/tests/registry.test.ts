@@ -4,7 +4,7 @@ import { createModelRegistry, resolveSettings } from "../src/llm/registry.js";
 import { testConfig } from "./helpers.js";
 
 describe("resolveSettings", () => {
-  it("fills missing temperature, maxTokens, thinking and cache from defaults", () => {
+  it("fills missing temperature, maxTokens, thinking, cache, timeout and retries from defaults", () => {
     const resolved = resolveSettings(testConfig.agents.alpha, testConfig.defaults.chat);
 
     expect(resolved).toEqual({
@@ -13,6 +13,8 @@ describe("resolveSettings", () => {
       maxTokens: "max",
       thinking: "default",
       cache: true,
+      timeoutMs: 120_000,
+      maxRetries: 2,
       price: testConfig.agents.alpha.price,
     });
   });
