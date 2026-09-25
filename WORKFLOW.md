@@ -19,13 +19,13 @@ How work moves from a requirement to accepted code.
 
 ## The conveyor
 
-| Stage (board `Status`) | Set by                          | Means                                                                              |
-| ---------------------- | ------------------------------- | ---------------------------------------------------------------------------------- |
-| **Triage**             | `triage` skill                  | business side clarified: why, what it does, what it does not, constraints, success |
-| **Backlog**            | `spec-session` skill            | spec, implementation plan, automated + manual acceptance criteria, test cases      |
-| **In progress**        | `implement` skill (start)       | branch exists, work under way                                                      |
-| **Test**               | `implement` skill (after merge) | merged to `dev`, manual acceptance instructions posted on the issue                |
-| **Done**               | **a human only**                | accepted; the human also closes the issue                                          |
+| Stage (board `Status`) | Set by                          | Means                                                                                               |
+| ---------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Triage**             | `triage` skill                  | business side clarified: why, what it does, what it does not, constraints, acceptance criteria AC1… |
+| **Backlog**            | `spec-session` skill            | spec, implementation plan, tests and manual checks mapped to every business AC                      |
+| **In progress**        | `implement` skill (start)       | branch exists, work under way                                                                       |
+| **Test**               | `implement` skill (after merge) | merged to `dev`, manual acceptance instructions posted on the issue                                 |
+| **Done**               | **a human only**                | accepted; the human also closes the issue                                                           |
 
 - Every skill moves the ticket to its own stage when it finishes.
 - Triage and spec are **quiz-driven** (`.claude/skills/QUIZ.md`) and run in parallel sessions:
@@ -76,6 +76,7 @@ Conventional commits with the issue number: `feat(#12): …`, `fix(#13): …`, `
 
 ## Definition of Done (for the agent: ready for Test)
 
+- [ ] Every business acceptance criterion (AC) is proven by a passing test or a manual check
 - [ ] All automated acceptance criteria are tests, and they pass
 - [ ] `make check` green (types, lint, format, coverage ≥ 80%)
 - [ ] Self-review against `QUALITY.md` done

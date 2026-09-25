@@ -1,13 +1,13 @@
 ---
 name: triage
-description: Conveyor stage 1 → board status Triage. Takes a requirement (or an existing issue), clarifies its business side through quizzes — why, what it does, what it does NOT do, constraints, what success looks like — and creates or updates GitHub issues, splitting into a parent with sub-issues when useful. Use whenever the user brings a new requirement, idea, request, bug report or an issue number/URL and wants it clarified, triaged, "заведи тикет", "разбери задачу" — before any technical spec or code.
+description: Conveyor stage 1 → board status Triage. Takes a requirement (or an existing issue), clarifies its business side through quizzes — why, what it does, what it does NOT do, constraints, business acceptance criteria (AC1…) — and creates or updates GitHub issues, splitting into a parent with sub-issues when useful. Use whenever the user brings a new requirement, idea, request, bug report or an issue number/URL and wants it clarified, triaged, "заведи тикет", "разбери задачу" — before any technical spec or code.
 ---
 
 # triage
 
 Conveyor: **Triage** → Backlog → In progress → Test → Done.
 This stage: the **business** side only. No architecture, no code, no implementation plan.
-Output: issue(s) whose body answers why / what / what not / constraints / success, in status
+Output: issue(s) whose body answers why / what / what not / constraints / acceptance criteria (AC1…), in status
 **Triage**.
 
 Questions follow `.claude/skills/QUIZ.md` — read it before the first question.
@@ -28,7 +28,9 @@ Questions follow `.claude/skills/QUIZ.md` — read it before the first question.
    - **What it does** — the main scenarios as concrete examples (who does what, what they get).
    - **What it does NOT do** — explicit exclusions; nearby things people will assume are included.
    - **Constraints** — deadline, cost / budget, providers, data, compliance, compatibility.
-   - **Success** — how a person will see that it works, in business terms.
+   - **Acceptance criteria** — numbered `AC1`, `AC2`, …: each an observable outcome in business
+     terms (who does what, what they see or get), testable, with no implementation terms.
+     Together they define "done"; the spec later proves each one with a test or a manual check.
 3. **Shape.** One issue, or a parent issue with sub-issues when parts deliver value on their own,
    touch different areas, or together exceed about a day of work. Propose the tree as a quiz
    (split / keep whole / other split, each with its price).
@@ -60,9 +62,13 @@ Questions follow `.claude/skills/QUIZ.md` — read it before the first question.
 
 - <deadline / cost / provider / data / compliance>
 
-## Success looks like
+## Acceptance criteria
 
-- <observable, in business terms>
+Business terms only — what a person does and what they see. Each is testable; together they
+define "done".
+
+- **AC1** — <who> <does what> → <what they see / get>
+- **AC2** — …
 
 ## Assumptions
 

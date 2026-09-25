@@ -37,7 +37,8 @@ comment what is missing, and continue with the rest.
 
 1. `scripts/ticket.sh status <N> "In progress"`.
 2. Read `gh issue view <N> --comments` and the code it touches.
-3. **Tests first**: every automated acceptance criterion and test case → a failing test.
+3. **Tests first**: every automated acceptance criterion and test case → a failing test; each test
+   name or describe block carries its AC id (`AC2: …`) so coverage stays traceable.
 4. Implement until green; follow the plan, note deviations for the PR.
 5. **Gate**: `make check`. Never lower thresholds, disable rules or add ignores. The same failure
    twice after a real fix attempt → label `blocked`, comment, stop this issue.
@@ -52,8 +53,8 @@ comment what is missing, and continue with the rest.
    `scripts/wiki.sh publish "docs(#<N>): <what changed>"`.
 10. `scripts/ticket.sh status <N> Test`, then a handoff comment on the issue:
     - what was done, PR link, deviations;
-    - **Manual acceptance** — the manual criteria from the spec, as a checklist the human can
-      follow as-is;
+    - **Acceptance by AC** — for every business AC: the automated tests that prove it (passed)
+      and the manual checks (`M1 (AC1)` …) as a checklist the human can follow as-is;
     - "Move to Done and close the issue when accepted."
 
 ## 4. Finish

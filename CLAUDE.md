@@ -60,11 +60,11 @@ A ticket is not done until `make check` is green.
 
 Board `Status`: **Triage → Backlog → In progress → Test → Done** (Done: human only).
 
-| Stage              | Skill          | Output                                                                                                    |
-| ------------------ | -------------- | --------------------------------------------------------------------------------------------------------- |
-| Triage             | `triage`       | business side (why / does / does not / constraints / success) in the issue; parent + sub-issues if needed |
-| Backlog            | `spec-session` | spec, plan, automated + manual acceptance criteria, test cases in the issue                               |
-| In progress → Test | `implement`    | parallel waves; branch + PR (`Refs #N`) per issue, merged to `dev`; manual-test handoff                   |
+| Stage              | Skill          | Output                                                                                                                     |
+| ------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Triage             | `triage`       | business side (why / does / does not / constraints / acceptance criteria AC1…) in the issue; parent + sub-issues if needed |
+| Backlog            | `spec-session` | spec, plan, tests + manual checks mapped to every AC, test cases in the issue                                              |
+| In progress → Test | `implement`    | parallel waves; branch + PR (`Refs #N`) per issue, merged to `dev`; manual-test handoff                                    |
 
 Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status>`.
 
