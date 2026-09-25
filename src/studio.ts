@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { createAppDeps } from "./app.js";
-import { buildGraph } from "./graph/graph.js";
+import { studioGraph } from "./graph/studio-graph.js";
 
 /** Entry for `npm run studio` (LangGraph Studio). */
-export const graph = buildGraph(await createAppDeps());
+export const graph = studioGraph(await createAppDeps());
