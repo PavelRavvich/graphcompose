@@ -25,6 +25,8 @@ describe("job-scout search config", () => {
     );
     expect(prompts.profiler).toContain("acme (Acme)");
     expect(prompts.profiler).toContain("Proposed search brief:");
+    expect(prompts.scout).toContain("Never add a filter of your own.");
+    expect(prompts.scout).not.toMatch(/e\.g\. (Lead|Senior)/);
     expect(prompts.profiler).toContain("Boards: all 1");
     expect(prompts.profiler).not.toMatch(/^\d\. /m);
     expect(jobScoutPrompts({ boards: { acme: "Acme" }, places: {} }).scout).toContain(
