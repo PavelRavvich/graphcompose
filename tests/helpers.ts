@@ -86,7 +86,7 @@ export function fakeDeps(
     ledger,
     terns: createSqliteTernStore(":memory:"),
     guards: NO_GUARDS,
-    reviewers: new Map(),
+    judges: new Map(),
   };
 }
 
@@ -118,6 +118,7 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     guarded: "",
     pending: null,
     approvals: [],
+    attempts: [],
     ...overrides,
   };
 }

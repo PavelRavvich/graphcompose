@@ -41,13 +41,24 @@ export const ModelSettingsSchema = z.object({
   price: PriceSchema,
 });
 
-/** Optional second pass: a router (Jev by default) decides if the answer needs another pass. */
-export const ReviewSettingsSchema = z.object({
-  /** Another pass when P(revise) ≥ threshold. */
+/** What to return when attempts run out below the threshold. */
+export const ON_EXHAUSTED = ["best", "last", "fail"] as const;
+
+/**
+ * Quality-gated attempts: a judge (Jev by default) scores each answer; at or above the threshold it
+ * is returned at once, otherwise the agent tries again (seeing its answer and failed criteria).
+ */
+export const ReasoningSettingsSchema = z.object({
+  /** Return an attempt as soon as the judge's P(good) reaches this. */
   threshold: z.number().min(0).max(1),
-  maxPasses: z.number().int().nonnegative(),
-  /** Thinking of the agent's model on retries. */
-  thinkingOnRetry: ThinkingSchema,
+  /** Attempts including the first. */
+  maxAttempts: z.number().int().positive(),
+  /** Thinking per attempt; shorter than maxAttempts → the last level repeats. */
+  thinking: z.array(ThinkingSchema).min(1),
+  /** Exhausted below the threshold: best-scored (default when omitted), last, or fail the run. */
+  onExhausted: z.enum(ON_EXHAUSTED).optional(),
+  /** Feedback criteria for the next attempt; default: src/prompts/agents.ts. */
+  criteria: z.array(z.string().min(1)).min(1).optional(),
   model: z.lazy(() => RouterModelSchema).optional(),
 });
 
@@ -59,7 +70,7 @@ export const AgentSettingsSchema = ModelSettingsSchema.extend({
   historyLimit: z.number().int().nonnegative().optional(),
   /** Crossing it fails the run (fail fast). Default: defaults.tools.maxToolCalls. */
   maxToolCalls: z.number().int().nonnegative().optional(),
-  review: ReviewSettingsSchema.optional(),
+  reasoning: ReasoningSettingsSchema.optional(),
 });
 
 /** Jev (TypeSafe) via OpenRouter Decisions API: probabilities over options, exact cost. */
@@ -151,7 +162,8 @@ export type RouterModel = z.infer<typeof RouterModelSchema>;
 export type RouterSettings = z.infer<typeof RouterSettingsSchema>;
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 export type GuardSettings = z.infer<typeof GuardSettingsSchema>;
-export type ReviewSettings = z.infer<typeof ReviewSettingsSchema>;
+export type ReasoningSettings = z.input<typeof ReasoningSettingsSchema>;
+export type OnExhausted = (typeof ON_EXHAUSTED)[number];
 export type AgentsConfig = z.infer<typeof AgentsConfigSchema>;
 
 /** An agent whose tool names are a literal union — a typo does not compile. */

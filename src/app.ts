@@ -54,21 +54,21 @@ const pauseFor = (bundle: AgentBundle): AppDeps["pause"] =>
   bundle.needsApproval === undefined
     ? undefined
     : { checkpointer: new MemorySaver(), needsApproval: bundle.needsApproval };
-/** One review router per agent with `review` (Jev unless the review sets a model). */
-const reviewersFor = (
+/** One quality judge per agent with `reasoning` (Jev unless reasoning sets a model). */
+const judgesFor = (
   config: AgentsConfigOf<string>,
   factories: RouterFactories,
 ): ReadonlyMap<string, Router> =>
   new Map(
     Object.entries(config.agents).flatMap(([name, agent]) =>
-      agent.review === undefined
+      agent.reasoning === undefined
         ? []
         : [
             [
               name,
               createRouter(
-                `review:${name}`,
-                agent.review.model ?? config.defaults.router,
+                `quality:${name}`,
+                agent.reasoning.model ?? config.defaults.router,
                 config.defaults.chat,
                 factories,
               ),
@@ -134,7 +134,7 @@ export async function createAppDeps(
     router,
     prompts: bundle.prompts,
     guards: guardsFor(config, factories),
-    reviewers: reviewersFor(config, factories),
+    judges: judgesFor(config, factories),
     tools: toolLookup(tools),
     pause: pauseFor(bundle),
     ledger,

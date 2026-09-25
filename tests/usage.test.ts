@@ -102,7 +102,7 @@ describe("turn financials", () => {
   it("categorises callers", () => {
     expect(costCategoryOf("tool:exchange_rate")).toBe("tools");
     expect(costCategoryOf("router:guard:pii")).toBe("guards");
-    expect(costCategoryOf("router:review:coder")).toBe("review");
+    expect(costCategoryOf("router:quality:coder")).toBe("review");
     expect(costCategoryOf("router:main")).toBe("routing");
     expect(costCategoryOf("researcher")).toBe("agents");
   });

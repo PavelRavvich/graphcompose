@@ -25,6 +25,18 @@ export interface Tern {
   readonly modelVersion: string;
   /** Id of the Tern this one replays, if any. */
   readonly replayOf: string | null;
+  /** Quality-gated attempts of agents with reasoning; empty otherwise. */
+  readonly attempts: readonly TernAttempt[];
+}
+
+/** One reasoning attempt: which agent, which try, its judge score and whether it was returned. */
+export interface TernAttempt {
+  readonly agent: string;
+  readonly attempt: number;
+  readonly thinking: string;
+  readonly score: number | null;
+  readonly returned: boolean;
+  readonly reason?: "threshold" | "best" | "last";
 }
 
 export type NewTern = Omit<Tern, "id" | "createdAt">;
@@ -32,7 +44,7 @@ export type NewTern = Omit<Tern, "id" | "createdAt">;
 /** What changes when a paused Tern finishes. */
 export type TernOutcome = Pick<
   Tern,
-  "answer" | "status" | "stopReason" | "route" | "steps" | "costUsd"
+  "answer" | "status" | "stopReason" | "route" | "steps" | "costUsd" | "attempts"
 >;
 
 /** Mean judge score and total cost of the Terns of one prompt version. */

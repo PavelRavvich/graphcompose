@@ -3,29 +3,15 @@ import { createAgent, toolCallLimitMiddleware, type AgentMiddleware } from "lang
 import { recordToolCost, totalCost, type UsageRecord } from "../../finops/usage.js";
 import { systemMessageFor } from "../../llm/cache.js";
 import type { ModelBinding } from "../../llm/registry.js";
-import {
-  ACCEPT_OPTION,
-  renderAgentInput,
-  REVIEW_QUESTION,
-  REVISE_INSTRUCTION,
-  REVISE_OPTION,
-} from "../../prompts/agents.js";
-import type { Router } from "../../routers/index.js";
+import { renderAgentInput } from "../../prompts/agents.js";
 import { toLangChainTool, type AnyTool, type ToolContext } from "../../tools/index.js";
-import { formatContributions, formatHistory, type Contribution } from "../contributions.js";
-import { AgentFailedError } from "../errors.js";
+import { formatContributions, formatHistory } from "../contributions.js";
+import { AgentFailedError, QualityNotReachedError } from "../errors.js";
 import type { PendingApproval } from "../../pause/index.js";
 import { accountingMiddleware, approvalMiddleware } from "../middleware.js";
 import type { AgentStateType, AgentStateUpdate } from "../state.js";
+import { runAttempts, type AgentReasoning, type AttemptRecord } from "./attempts.js";
 import type { AsyncNode } from "../types.js";
-
-/** Second pass on demand: the review router decides, the retry model thinks harder. */
-export interface AgentReview {
-  readonly router: Router;
-  readonly threshold: number;
-  readonly maxPasses: number;
-  readonly retry: ModelBinding;
-}
 
 /** Everything needed to run one configured agent. */
 export interface AgentDefinition {
@@ -34,7 +20,8 @@ export interface AgentDefinition {
   readonly tools: readonly AnyTool[];
   readonly maxToolCalls: number;
   readonly historyLimit: number;
-  readonly review?: AgentReview | undefined;
+  /** Quality-gated attempts (config `reasoning`). */
+  readonly reasoning?: AgentReasoning | undefined;
 }
 
 export interface AgentNodeDeps {
@@ -119,37 +106,28 @@ async function runLoop(pass: Pass, binding: ModelBinding, input: string): Promis
   return result.messages.at(-1)?.text.trim() ?? "";
 }
 
-/** Asks the review router; P(revise) ≥ threshold → another pass. A review failure keeps the answer. */
-async function needsAnotherPass(pass: Pass, review: AgentReview, answer: string): Promise<boolean> {
-  const outcome = await review.router.route({
-    instructions: REVIEW_QUESTION,
-    input: `Task:\n${pass.state.task}\n\nAnswer:\n${answer}`,
-    options: [
-      { name: "revise", description: REVISE_OPTION },
-      { name: "accept", description: ACCEPT_OPTION },
-    ],
-  });
-  if (outcome.usage !== undefined) pass.records.push(outcome.usage);
-  if (outcome.kind === "failed") return false;
-  const confidence = outcome.decision.confidence ?? 1;
-  const revise = outcome.decision.next === "revise" ? confidence : 1 - confidence;
-  return revise >= review.threshold;
-}
-
-/** First pass, then review-driven passes while the reviewer asks for one and budget remains. */
-async function runPasses(pass: Pass, input: string): Promise<Contribution[]> {
-  let content = await runLoop(pass, pass.agent.binding, input);
-  if (pass.pending.value !== undefined) return [];
-  const contributions: Contribution[] = [{ agent: pass.state.next, content }];
-  const review = pass.agent.review;
-  for (let n = 2; review !== undefined && n <= review.maxPasses + 1; n += 1) {
-    if (!hasBudget(pass) || !(await needsAnotherPass(pass, review, content))) break;
-    if (!hasBudget(pass)) break; // the review itself may have spent the rest
-    const retryInput = `${input}\n\nYour previous answer:\n${content}\n\n${REVISE_INSTRUCTION}`;
-    content = await runLoop(pass, review.retry, retryInput);
-    contributions.push({ agent: `${pass.state.next} (pass ${String(n)})`, content });
+/** One answer, or quality-gated attempts when the agent has `reasoning`. */
+async function answer(
+  pass: Pass,
+  input: string,
+): Promise<{ content: string; attempts: AttemptRecord[] }> {
+  const reasoning = pass.agent.reasoning;
+  if (reasoning === undefined) {
+    return { content: await runLoop(pass, pass.agent.binding, input), attempts: [] };
   }
-  return contributions;
+  const result = await runAttempts(
+    {
+      agent: pass.state.next,
+      task: pass.state.task,
+      records: pass.records,
+      run: (model, text) => runLoop(pass, model, text),
+      paused: () => pass.pending.value !== undefined,
+      hasBudget: () => hasBudget(pass),
+    },
+    reasoning,
+    input,
+  );
+  return result ?? { content: "", attempts: [] };
 }
 
 /**
@@ -167,11 +145,17 @@ export function makeAgentNode(deps: AgentNodeDeps): AsyncNode<AgentStateType, Ag
       formatHistory(state.history, agent.historyLimit),
     );
     try {
-      const contributions = await runPasses(pass, input);
+      const { content, attempts } = await answer(pass, input);
       const pending = pass.pending.value;
       if (pending !== undefined) return { usage: pass.records, pending };
-      return { hops: 1, contributions, usage: pass.records };
+      return {
+        hops: 1,
+        contributions: [{ agent: state.next, content }],
+        usage: pass.records,
+        attempts,
+      };
     } catch (error) {
+      if (error instanceof QualityNotReachedError) throw error;
       throw new AgentFailedError(state.next, pass.records, error);
     }
   };

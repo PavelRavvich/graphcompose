@@ -6,7 +6,9 @@ import type { RouteOption, Router } from "../routers/index.js";
 import type { GuardSet } from "../guards/index.js";
 import type { PauseSeam } from "../pause/index.js";
 import type { AnyTool } from "../tools/index.js";
-import { makeAgentNode, type AgentDefinition, type AgentReview } from "./nodes/agent.js";
+import { makeAgentNode, type AgentDefinition } from "./nodes/agent.js";
+import type { AgentReasoning } from "./nodes/attempts.js";
+import { DEFAULT_CRITERIA } from "../prompts/agents.js";
 import { finalize } from "./nodes/finalize.js";
 import { makeApprovalNode } from "./nodes/approval.js";
 import { makeGuardNode } from "./nodes/guards.js";
@@ -33,8 +35,8 @@ export interface GraphDeps<TName extends string> {
   /** Resolves a tool name from an agent's config to the tool. */
   readonly tools: (name: string) => AnyTool;
   readonly guards: GuardSet;
-  /** Review routers by agent name (agents with `review`). */
-  readonly reviewers: ReadonlyMap<string, Router>;
+  /** Quality judges by agent name (agents with `reasoning`). */
+  readonly judges: ReadonlyMap<string, Router>;
   /** Optional pause seam (human approval). Off by default. */
   readonly pause?: PauseSeam | undefined;
 }
@@ -43,15 +45,22 @@ export class MissingAgentPromptError extends Error {
   override name = "MissingAgentPromptError";
 }
 
-function reviewOf<TName extends string>(
+function reasoningOf<TName extends string>(
   name: string,
   agent: AgentSettingsOf<string> | undefined,
   deps: GraphDeps<TName>,
-): AgentReview | undefined {
-  const router = deps.reviewers.get(name);
-  const retry = deps.registry.retries.get(name);
-  if (agent?.review === undefined || router === undefined || retry === undefined) return undefined;
-  return { router, retry, threshold: agent.review.threshold, maxPasses: agent.review.maxPasses };
+): AgentReasoning | undefined {
+  const judge = deps.judges.get(name);
+  const models = deps.registry.attempts.get(name);
+  const reasoning = agent?.reasoning;
+  if (reasoning === undefined || judge === undefined || models === undefined) return undefined;
+  return {
+    judge,
+    models,
+    threshold: reasoning.threshold,
+    onExhausted: reasoning.onExhausted ?? "best",
+    criteria: reasoning.criteria ?? DEFAULT_CRITERIA,
+  };
 }
 
 const settingsByName = (
@@ -74,7 +83,7 @@ function agentDefinitions<TName extends string>(
       tools: (agent?.tools ?? []).map(deps.tools),
       maxToolCalls: agent?.maxToolCalls ?? deps.config.defaults.tools.maxToolCalls,
       historyLimit: agent?.historyLimit ?? deps.config.defaults.history.limit,
-      review: reviewOf(name, agent, deps),
+      reasoning: reasoningOf(name, agent, deps),
     });
   }
   return definitions;

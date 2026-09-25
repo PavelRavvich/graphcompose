@@ -38,11 +38,11 @@ export interface UsageRecord extends TokenUsage {
 export const COST_CATEGORIES = ["agents", "routing", "guards", "review", "tools"] as const;
 export type CostCategory = (typeof COST_CATEGORIES)[number];
 
-/** Category from the caller name: tool:*, router:guard:*, router:review:*, other router:*, agent. */
+/** Category from the caller name: tool:*, router:guard:*, router:quality:*, other router:*, agent. */
 export function costCategoryOf(caller: string): CostCategory {
   if (caller.startsWith("tool:")) return "tools";
   if (caller.startsWith("router:guard:")) return "guards";
-  if (caller.startsWith("router:review:")) return "review";
+  if (caller.startsWith("router:quality:")) return "review";
   if (caller.startsWith("router:")) return "routing";
   return "agents";
 }

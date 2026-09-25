@@ -30,8 +30,8 @@ function ternWrites(db: DatabaseSync, now: Clock): Pick<TernStore, "append" | "c
   return {
     complete: (id, o) => {
       db.prepare(
-        `UPDATE terns SET answer = ?, status = ?, stop_reason = ?, route = ?, steps = ?, cost_usd = ?
-         WHERE id = ?`,
+        `UPDATE terns SET answer = ?, status = ?, stop_reason = ?, route = ?, steps = ?, cost_usd = ?,
+         attempts = ? WHERE id = ?`,
       ).run(
         o.answer,
         o.status,
@@ -39,13 +39,14 @@ function ternWrites(db: DatabaseSync, now: Clock): Pick<TernStore, "append" | "c
         JSON.stringify(o.route),
         JSON.stringify(o.steps),
         o.costUsd,
+        JSON.stringify(o.attempts),
         id,
       );
       return Promise.resolve();
     },
     append: (tern) => {
       const t: Tern = { ...tern, id: randomUUID(), createdAt: now().toISOString() };
-      db.prepare("INSERT INTO terns VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(
+      db.prepare("INSERT INTO terns VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(
         t.id,
         t.threadId,
         t.bundle,
@@ -60,6 +61,7 @@ function ternWrites(db: DatabaseSync, now: Clock): Pick<TernStore, "append" | "c
         t.promptVersion,
         t.modelVersion,
         t.replayOf,
+        JSON.stringify(t.attempts),
       );
       return Promise.resolve(t);
     },

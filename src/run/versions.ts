@@ -1,4 +1,4 @@
-import { reviewPromptTexts } from "../prompts/agents.js";
+import { reasoningPromptTexts } from "../prompts/agents.js";
 import { routerPromptTexts } from "../routers/index.js";
 import { versionOf } from "../terns/index.js";
 import type { RunDeps } from "./types.js";
@@ -19,7 +19,7 @@ export function runVersions<TName extends string>(
     promptVersion: versionOf({
       agents: deps.prompts,
       routers: routerPromptTexts,
-      review: reviewPromptTexts,
+      reasoning: reasoningPromptTexts,
       guards,
     }),
     modelVersion: versionOf({

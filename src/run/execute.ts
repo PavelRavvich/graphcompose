@@ -61,6 +61,7 @@ export const failedOutcome = (error: unknown, spent: readonly UsageRecord[]): Te
   route: [],
   steps: [],
   costUsd: totalCost(spent),
+  attempts: [],
 });
 
 /** Writes spend to the account's ledger as it happens and remembers it for the Tern. */
@@ -118,6 +119,7 @@ function outcomeOf(state: AgentStateType, paused: boolean): TernOutcome & { stat
     route: state.contributions.map((item) => item.agent),
     steps: state.contributions,
     costUsd: totalCost(state.usage),
+    attempts: state.attempts,
   };
 }
 
@@ -158,5 +160,6 @@ export async function finishRun<TName extends string>(
     runId: ctx.runId,
     ...(paused && state.pending !== null ? { pending: state.pending } : {}),
     ...traceUrlOf(ctx.deps, ctx.base.threadId),
+    ...(state.attempts.length === 0 ? {} : { attempts: state.attempts }),
   };
 }
