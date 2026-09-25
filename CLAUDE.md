@@ -52,7 +52,7 @@ A ticket is not done until `make check` is green.
 - `input_guards` / `output_guards` — Jev yes/no checks; a trip returns the guard's refusal.
 - `approval` — only with a pause seam: a write tool waits for a human (`resumeAgent`).
 - Every turn: spend to the daily ledger, a Tern to SQLite, financials in the result, optional
-  tracing (Langfuse).
+  tracing (Langfuse) and conversation compaction (summaries queue).
 - Add an agent: entry in `agents.config.ts` + prompt in `src/prompts/agents.ts`. Nothing else.
 - Another set of agents: a bundle (`src/bundle.ts`) registered in `src/bundles.ts`.
 

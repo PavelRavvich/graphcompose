@@ -18,6 +18,12 @@ const MIGRATIONS: readonly string[] = [
      score REAL NOT NULL, created_at TEXT NOT NULL);`,
   // 2 — reasoning attempts (#79)
   `ALTER TABLE terns ADD COLUMN attempts TEXT NOT NULL DEFAULT '[]';`,
+  // 3 — conversation memory: summaries of compacted turns (#77)
+  `CREATE TABLE summaries (
+     id TEXT PRIMARY KEY, thread_id TEXT NOT NULL REFERENCES threads(id), bundle TEXT NOT NULL,
+     from_tern TEXT NOT NULL, to_tern TEXT NOT NULL, from_seq INTEGER NOT NULL, to_seq INTEGER NOT NULL,
+     turns INTEGER NOT NULL, text TEXT NOT NULL, cost_usd REAL NOT NULL, created_at TEXT NOT NULL);
+   CREATE INDEX summaries_thread ON summaries(thread_id, to_seq);`,
 ];
 
 const TernRow = z.object({

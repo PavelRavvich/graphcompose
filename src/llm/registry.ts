@@ -19,6 +19,8 @@ export interface ModelRegistry {
   readonly agents: ReadonlyMap<string, ModelBinding>;
   /** For agents with `reasoning`: the model per attempt (thinking from the attempt's level). */
   readonly attempts: ReadonlyMap<string, readonly ModelBinding[]>;
+  /** The conversation-compaction model, when the bundle compacts. */
+  readonly compaction?: ModelBinding | undefined;
 }
 
 export function resolveSettings(
@@ -73,5 +75,6 @@ export function createModelRegistry(
       return [[name, levels.map((level) => byLevel.get(level) ?? bind(settings))] as const];
     }),
   );
-  return { agents, attempts };
+  const compaction = config.compaction === undefined ? undefined : bind(config.compaction.model);
+  return { agents, attempts, compaction };
 }

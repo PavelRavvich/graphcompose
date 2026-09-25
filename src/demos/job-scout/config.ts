@@ -10,6 +10,11 @@ export const jobScoutConfig = {
   budget: { ...agentsConfig.budget, runBudgetCap: 0.1 },
   routers: agentsConfig.routers,
   guards: agentsConfig.guards,
+  compaction: {
+    every: 5,
+    keep: 10,
+    model: { model: "moonshotai/kimi-k2.6", thinking: "none", price },
+  },
   agents: {
     profiler: {
       model: "moonshotai/kimi-k2.6",

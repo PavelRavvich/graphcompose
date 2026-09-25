@@ -2,6 +2,7 @@ import type { SpendLedger } from "../finops/ledger.js";
 import type { CostReport } from "../finops/usage.js";
 import type { GraphDeps } from "../graph/graph.js";
 import type { AttemptRecord } from "../graph/nodes/attempts.js";
+import type { Compacted } from "./compaction.js";
 import type { PendingApproval } from "../pause/index.js";
 import type { TernStore } from "../terns/index.js";
 import type { RunTracing } from "../tracing/index.js";
@@ -10,6 +11,8 @@ import type { RunTracing } from "../tracing/index.js";
 export interface RunDeps<TName extends string> extends GraphDeps<TName> {
   readonly ledger: SpendLedger;
   readonly terns: TernStore;
+  /** Compaction prompt (bundle override); default in src/prompts/compaction.ts. */
+  readonly compactionPrompt?: string | undefined;
   /** Optional tracing (e.g. local Langfuse); runs are identical without it. */
   readonly tracing?: RunTracing | undefined;
 }
@@ -43,6 +46,8 @@ export interface AgentRunResult {
   readonly ternId: string;
   /** Quality-gated attempts (agents with `reasoning`), when any were made. */
   readonly attempts?: readonly AttemptRecord[];
+  /** Conversation memory: what this turn compacted, when it did. */
+  readonly compacted?: Compacted;
   /** The conversation in the tracing UI (session = thread), when tracing is on. */
   readonly traceUrl?: string;
   /** Checkpoint id of this run — used to resume a paused run. */

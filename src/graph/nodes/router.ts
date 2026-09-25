@@ -1,6 +1,6 @@
 import { totalCost } from "../../finops/usage.js";
 import type { RouteOption, Router } from "../../routers/index.js";
-import { formatHistory, formatHumanDecisions, renderRouteInput } from "../contributions.js";
+import { formatHumanDecisions, formatMemory, renderRouteInput } from "../contributions.js";
 import { FINISH, type AgentStateType, type AgentStateUpdate } from "../state.js";
 import type { AsyncNode } from "../types.js";
 
@@ -10,6 +10,7 @@ export interface RouterNodeDeps {
   readonly maxHops: number;
   readonly maxCostUsd: number;
   readonly historyLimit: number;
+  readonly summariesLimit: number;
 }
 
 /** Guards checked before spending money on a routing call. */
@@ -36,7 +37,7 @@ export function makeRouterNode(deps: RouterNodeDeps): AsyncNode<AgentStateType, 
       input: renderRouteInput(
         state.task,
         state.contributions,
-        formatHistory(state.history, deps.historyLimit),
+        formatMemory(state, { summaries: deps.summariesLimit, turns: deps.historyLimit }),
         formatHumanDecisions(state.approvals),
       ),
       options: optionsFor(state, deps),

@@ -5,7 +5,7 @@ import { systemMessageFor } from "../../llm/cache.js";
 import type { ModelBinding } from "../../llm/registry.js";
 import { renderAgentInput } from "../../prompts/agents.js";
 import { toLangChainTool, type AnyTool, type ToolContext } from "../../tools/index.js";
-import { formatContributions, formatHistory } from "../contributions.js";
+import { formatContributions, formatMemory } from "../contributions.js";
 import { AgentFailedError, QualityNotReachedError } from "../errors.js";
 import type { PendingApproval } from "../../pause/index.js";
 import { accountingMiddleware, approvalMiddleware } from "../middleware.js";
@@ -20,6 +20,7 @@ export interface AgentDefinition {
   readonly tools: readonly AnyTool[];
   readonly maxToolCalls: number;
   readonly historyLimit: number;
+  readonly summariesLimit: number;
   /** Quality-gated attempts (config `reasoning`). */
   readonly reasoning?: AgentReasoning | undefined;
 }
@@ -142,7 +143,7 @@ export function makeAgentNode(deps: AgentNodeDeps): AsyncNode<AgentStateType, Ag
     const input = renderAgentInput(
       state.task,
       formatContributions(state.contributions),
-      formatHistory(state.history, agent.historyLimit),
+      formatMemory(state, { summaries: agent.summariesLimit, turns: agent.historyLimit }),
     );
     try {
       const { content, attempts } = await answer(pass, input);

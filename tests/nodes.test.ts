@@ -11,6 +11,7 @@ const routerDeps = (outcome: RouteOutcome): RouterNodeDeps => ({
   maxHops: 2,
   maxCostUsd: 0.01,
   historyLimit: 0,
+  summariesLimit: 0,
 });
 
 const paid = usageRecord("router:main", 0.001);
@@ -64,7 +65,14 @@ describe("agent node", () => {
       agents: new Map([
         [
           "alpha",
-          { binding, systemPrompt: prompts.alpha, tools: [], maxToolCalls: 3, historyLimit: 0 },
+          {
+            binding,
+            systemPrompt: prompts.alpha,
+            tools: [],
+            maxToolCalls: 3,
+            historyLimit: 0,
+            summariesLimit: 0,
+          },
         ],
       ]),
       bundle: "test-bundle",

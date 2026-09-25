@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import { z } from "zod";
 import { openTernDatabase, placeholders, toTern, toVersionScore } from "./schema.js";
+import { memoryMethods } from "./summaries.js";
 import type { Tern, TernStore } from "./types.js";
 
 type Clock = () => Date;
@@ -153,6 +154,7 @@ export function createSqliteTernStore(path: string, now: Clock = () => new Date(
     ...ternWrites(db, now),
     ...ternReads(rows),
     ...scoreMethods(db, now),
+    ...memoryMethods(db, now),
     close: () => {
       db.close();
     },

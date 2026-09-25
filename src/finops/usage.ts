@@ -35,12 +35,20 @@ export interface UsageRecord extends TokenUsage {
 }
 
 /** What a call was for — the cost categories of a turn. */
-export const COST_CATEGORIES = ["agents", "routing", "guards", "review", "tools"] as const;
+export const COST_CATEGORIES = [
+  "agents",
+  "routing",
+  "guards",
+  "review",
+  "tools",
+  "compaction",
+] as const;
 export type CostCategory = (typeof COST_CATEGORIES)[number];
 
 /** Category from the caller name: tool:*, router:guard:*, router:quality:*, other router:*, agent. */
 export function costCategoryOf(caller: string): CostCategory {
   if (caller.startsWith("tool:")) return "tools";
+  if (caller === "compaction") return "compaction";
   if (caller.startsWith("router:guard:")) return "guards";
   if (caller.startsWith("router:quality:")) return "review";
   if (caller.startsWith("router:")) return "routing";
@@ -157,6 +165,7 @@ export function buildCostReport(records: readonly UsageRecord[]): CostReport {
     guards: 0,
     review: 0,
     tools: 0,
+    compaction: 0,
   };
   for (const line of trace) byCategory[line.category] += line.costUsd;
   return {

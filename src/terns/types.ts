@@ -41,6 +41,35 @@ export interface TernAttempt {
 
 export type NewTern = Omit<Tern, "id" | "createdAt">;
 
+/** A memory note of consecutive turns of a thread (compaction). Never re-compacted. */
+export interface Summary {
+  readonly id: string;
+  readonly threadId: string;
+  readonly bundle: string;
+  readonly fromTernId: string;
+  readonly toTernId: string;
+  readonly turns: number;
+  readonly text: string;
+  readonly costUsd: number;
+  readonly createdAt: string;
+}
+
+export type NewSummary = Omit<Summary, "id" | "createdAt">;
+
+/** Conversation memory: which turns are not yet summarised, and the summaries. */
+export interface MemoryStore {
+  /** Turns of the thread after the last summary, oldest first. */
+  readonly uncovered: (threadId: string) => Promise<Tern[]>;
+  /** Up to `limit` turns right before `ternId`, oldest first. */
+  readonly before: (threadId: string, ternId: string, limit: number) => Promise<Tern[]>;
+  /** 1-based position of a turn in its thread. */
+  readonly turnNumber: (threadId: string, ternId: string) => Promise<number>;
+  readonly addSummary: (summary: NewSummary) => Promise<Summary>;
+  /** The latest `limit` summaries of the thread, oldest first. */
+  readonly latestSummaries: (threadId: string, limit: number) => Promise<Summary[]>;
+  readonly summaryCount: (threadId: string) => Promise<number>;
+}
+
 /** What changes when a paused Tern finishes. */
 export type TernOutcome = Pick<
   Tern,
@@ -56,8 +85,8 @@ export interface VersionScore {
   readonly costUsd: number;
 }
 
-/** Durable memory of runs: threads, Terns and their quality scores. */
-export interface TernStore {
+/** Durable memory of runs: threads, Terns, their quality scores and conversation summaries. */
+export interface TernStore extends MemoryStore {
   readonly createThread: (bundle: string) => Promise<string>;
   readonly hasThread: (bundle: string, threadId: string) => Promise<boolean>;
   readonly append: (tern: NewTern) => Promise<Tern>;

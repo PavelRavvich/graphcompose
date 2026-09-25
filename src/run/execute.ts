@@ -4,6 +4,7 @@ import { drainRecordingUsage } from "../finops/record-stream.js";
 import { buildCostReport, totalCost, type UsageRecord } from "../finops/usage.js";
 import { PaidStepError } from "../graph/errors.js";
 import type { AgentGraph } from "../graph/graph.js";
+import { compactIfDue } from "./compaction.js";
 import type { AgentStateType } from "../graph/state.js";
 import type { NewTern, TernOutcome } from "../terns/index.js";
 import type { AgentRunResult, RunDeps, RunStatus, SpendAccount } from "./types.js";
@@ -19,6 +20,9 @@ export interface RunContext<TName extends string> {
   readonly base: TernBase;
   readonly runId: string;
   readonly budgetUsd: number;
+  /** Where spend after the graph (compaction) goes: the run's ledger account. */
+  readonly record: (records: readonly UsageRecord[]) => Promise<void>;
+  readonly callbacks: BaseCallbackHandler[];
 }
 
 /** Stream config: checkpoint thread = run id; tracing callbacks when tracing is on. */
@@ -137,6 +141,20 @@ async function isPaused<TName extends string>(ctx: RunContext<TName>): Promise<b
   return (await ctx.graph.getState(runConfig(ctx.runId))).next.length > 0;
 }
 
+/** Conversation memory after a finished turn; its spend is recorded to the run's account. */
+async function compactAfter<TName extends string>(
+  ctx: RunContext<TName>,
+  state: AgentStateType,
+): Promise<Awaited<ReturnType<typeof compactIfDue>>> {
+  const memory = await compactIfDue(ctx.deps, {
+    threadId: ctx.base.threadId,
+    budgetLeftUsd: ctx.budgetUsd - totalCost(state.usage),
+    callbacks: ctx.callbacks,
+  });
+  if (memory.usage.length > 0) await ctx.record(memory.usage);
+  return memory;
+}
+
 /** Writes (or completes) the Tern and shapes the result: answered, guarded or paused. */
 export async function finishRun<TName extends string>(
   ctx: RunContext<TName>,
@@ -148,18 +166,20 @@ export async function finishRun<TName extends string>(
   let ternId = existingTernId;
   if (ternId === undefined) ternId = (await ctx.deps.terns.append({ ...ctx.base, ...outcome })).id;
   else await ctx.deps.terns.complete(ternId, outcome);
+  const memory = paused ? { usage: [] } : await compactAfter(ctx, state);
   return {
     status: outcome.status,
     answer: outcome.answer,
     route: outcome.route,
     stopReason: outcome.stopReason,
     budgetUsd: ctx.budgetUsd,
-    cost: buildCostReport(state.usage),
+    cost: buildCostReport([...state.usage, ...memory.usage]),
     threadId: ctx.base.threadId,
     ternId,
     runId: ctx.runId,
     ...(paused && state.pending !== null ? { pending: state.pending } : {}),
     ...traceUrlOf(ctx.deps, ctx.base.threadId),
     ...(state.attempts.length === 0 ? {} : { attempts: state.attempts }),
+    ...(memory.compacted === undefined ? {} : { compacted: memory.compacted }),
   };
 }

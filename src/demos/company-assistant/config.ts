@@ -12,6 +12,11 @@ export const assistantConfig = {
   budget: agentsConfig.budget,
   routers: agentsConfig.routers,
   guards: agentsConfig.guards,
+  compaction: {
+    every: 5,
+    keep: 10,
+    model: { model: "moonshotai/kimi-k2.6", thinking: "none", price },
+  },
   mcpServers: {
     docs: { transport: "stdio", command: FILESYSTEM_SERVER, args: [DOCS_DIR] },
   },
