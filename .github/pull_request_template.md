@@ -7,6 +7,8 @@ Refs #
 ## How it was tested
 
 - `make check` green
+- By acceptance criterion:
+  - AC1 — <tests / manual check>
 - Test cases from the spec: all covered / exceptions:
 
 ## Wiki to update after merge

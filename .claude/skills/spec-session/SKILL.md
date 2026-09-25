@@ -24,15 +24,19 @@ Issue numbers, or "everything in Triage": `scripts/ticket.sh list Triage`. Issue
 2. **Shared contracts first.** When several issues are specced together, settle what they share
    (types, state fields, config keys, public functions) and write it into the first issue that
    introduces it; others reference it.
-3. **Quiz rounds** for every decision with more than one reasonable option. Choices with one
+3. **Acceptance criteria are the contract.** Read the business `AC1…ACn` from the triage part (`## Acceptance criteria`); the spec proves them in `## Acceptance checks`.
+   Every AC gets at least one automated test or manual check; every check names its AC(s). A
+   decision that changes an AC → update the triage AC with the user (quiz), never leave an AC
+   uncovered or a check without an AC. No ACs in the issue → ask for them first (triage quiz).
+4. **Quiz rounds** for every decision with more than one reasonable option. Choices with one
    sensible answer are made silently and recorded in the log.
-4. **Write the technical part** under the triage part (template below):
+5. **Write the technical part** under the triage part (template below):
    `gh issue edit <N> --body-file -`. If the body would exceed 65 536 characters, the plan goes to
    numbered comments `Implementation plan (1/2)` via `gh issue comment <N> --body-file -`.
-5. **Parallelism.** In the plan, list the files touched and mark `Parallel: yes` when the issue
+6. **Parallelism.** In the plan, list the files touched and mark `Parallel: yes` when the issue
    shares no files and no unmerged dependency with other Backlog issues — `implement` uses this.
-6. **Status.** `scripts/ticket.sh status <N> Backlog`.
-7. **Report**: issues ready, what can run in parallel, what is blocked and why. Next: `implement`.
+7. **Status.** `scripts/ticket.sh status <N> Backlog`.
+8. **Report**: issues ready, what can run in parallel, what is blocked and why. Next: `implement`.
 
 ## Issue body — technical part (appended below the triage part)
 
@@ -47,15 +51,24 @@ Behaviour, inputs/outputs, types, config keys, errors — concrete and testable.
 2. ...
    Files touched: `src/...`, `tests/...` · Parallel: yes | no (<reason>) · Depends on: #N | none
 
-## Acceptance criteria
+## Acceptance checks
+
+Coverage — every business AC from the triage part is proven:
+
+| AC  | Automated                         | Manual |
+| --- | --------------------------------- | ------ |
+| AC1 | `tests/<file>.test.ts` › "<test>" | M1     |
+| AC2 | —                                 | M2     |
 
 ### Automated
 
-- [ ] <criterion> — `tests/<file>.test.ts` › "<test name>"
+- [ ] **AC1** — <criterion> — `tests/<file>.test.ts` › "<test name>"
 
 ### Manual
 
-For a human, in plain language. Each check:
+For a human, in plain language. Each check names the AC(s) it proves:
+
+**M1 (AC1)**
 
 1. **Where**: <command to run / page to open / file to look at>
 2. **Do**: <exact steps, copy-pasteable commands>
