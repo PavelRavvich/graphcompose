@@ -3,11 +3,17 @@ import { resumeAgent, type AgentRunResult, type RunDeps } from "../index.js";
 /** Asks the human a question; undefined when input ended (Ctrl+D). */
 export type Ask = (question: string) => Promise<string | undefined>;
 
+/** Wraps a turn's work, e.g. to show a loader; identity by default. */
+export type Busy = <T>(work: () => Promise<T>) => Promise<T>;
+
+const idle: Busy = (work) => work();
+
 /** A paused run asks the human in the terminal, then continues in the same process. */
 export async function untilDone(
   first: AgentRunResult,
   deps: RunDeps<string>,
   ask: Ask,
+  busy: Busy = idle,
 ): Promise<AgentRunResult> {
   let result = first;
   while (result.status === "paused" && result.pending !== undefined) {
@@ -16,11 +22,9 @@ export async function untilDone(
       `${agent} wants to call ${tool} ${JSON.stringify(args)} — approve? [y/N] `,
     );
     const approve = /^y(es)?$/i.test((reply ?? "").trim());
-    result = await resumeAgent(
-      result,
-      approve ? { approve } : { approve, note: "declined by the user" },
-      deps,
-    );
+    const paused = result;
+    const decision = approve ? { approve } : { approve, note: "declined by the user" };
+    result = await busy(() => resumeAgent(paused, decision, deps));
   }
   return result;
 }

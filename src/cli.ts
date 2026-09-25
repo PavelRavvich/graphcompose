@@ -7,6 +7,7 @@ import { bundleNamed } from "./bundles.js";
 import { summaryLine, untilDone } from "./cli/approve.js";
 import { costSummary, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
+import { withSpinner } from "./cli/spinner.js";
 import { runAgent } from "./index.js";
 
 // Usage: npm start -- [--config <name>] [--thread <id>] "your task"   (interactive: npm run chat)
@@ -16,18 +17,18 @@ const { values, positionals } = parseArgs({
 });
 const deps = await createAppDeps(process.env, undefined, bundleNamed(values.config));
 const rl = createInterface({ input: stdin, terminal: false });
-const result = await runAgent(
-  {
-    task: positionals.join(" "),
-    ...(values.thread === undefined ? {} : { threadId: values.thread }),
-  },
-  deps,
-)
+const busy = <T>(work: () => Promise<T>): Promise<T> => withSpinner(stderr, "thinking", work);
+const input = {
+  task: positionals.join(" "),
+  ...(values.thread === undefined ? {} : { threadId: values.thread }),
+};
+const result = await busy(() => runAgent(input, deps))
   .then((first) =>
     untilDone(
       first,
       deps,
       askWith(rl, (text) => stderr.write(text)),
+      busy,
     ),
   )
   .finally(async () => {
