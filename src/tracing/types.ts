@@ -1,0 +1,18 @@
+import type { BaseCallbackHandler } from "@langchain/core/callbacks/base";
+
+/** What a trace is about: the bundle, the conversation thread and the run. */
+export interface TraceContext {
+  readonly bundle: string;
+  readonly threadId: string;
+  readonly runId: string;
+}
+
+/**
+ * Optional tracing of runs (LangChain callbacks). Off unless configured — the core runs the same
+ * either way; spend and Terns never depend on it.
+ */
+export interface RunTracing {
+  readonly callbacks: (context: TraceContext) => BaseCallbackHandler[];
+  /** Sends what is buffered and releases the exporter. */
+  readonly shutdown: () => Promise<void>;
+}

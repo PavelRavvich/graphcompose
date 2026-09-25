@@ -3,11 +3,14 @@ import type { CostReport } from "../finops/usage.js";
 import type { GraphDeps } from "../graph/graph.js";
 import type { PendingApproval } from "../pause/index.js";
 import type { TernStore } from "../terns/index.js";
+import type { RunTracing } from "../tracing/index.js";
 
 /** Graph dependencies plus the daily spend ledger and the Tern store. */
 export interface RunDeps<TName extends string> extends GraphDeps<TName> {
   readonly ledger: SpendLedger;
   readonly terns: TernStore;
+  /** Optional tracing (e.g. local Langfuse); runs are identical without it. */
+  readonly tracing?: RunTracing | undefined;
 }
 
 /** Which ledger account pays for a run and its daily cap. Default: the bundle itself. */
