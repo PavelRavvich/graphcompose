@@ -21,28 +21,40 @@ Multi-agent project on LangGraph + LangChain (TypeScript). Built with a three-ph
 
 ## Commands
 
-| Command                | What it does                                       |
-| ---------------------- | -------------------------------------------------- |
-| `make setup`           | install dependencies                               |
-| `make check`           | **the gate**: typecheck + lint + format + coverage |
-| `make test`            | unit tests only (fake models, $0)                  |
-| `npm run test:routers` | router tests only — routers are isolated           |
-| `make smoke`           | real-model smoke tests (needs `.env`), never in CI |
-| `make fmt`             | auto-format                                        |
-| `npm start -- "task"`  | run the graph; prints answer, route and cost       |
-| `npm run studio`       | LangGraph Studio with the graph (needs `.env`)     |
+| Command                                           | What it does                                                      |
+| ------------------------------------------------- | ----------------------------------------------------------------- |
+| `make setup`                                      | install dependencies                                              |
+| `make check`                                      | **the gate**: typecheck + lint + format + coverage                |
+| `make test`                                       | unit tests only (fake models, $0)                                 |
+| `npm run test:routers`                            | router tests only — routers are isolated                          |
+| `make smoke`                                      | real-model smoke tests (needs `.env`), never in CI                |
+| `make fmt`                                        | auto-format                                                       |
+| `npm run chat -- [--config <bundle>]`             | interactive chat: thread, cost trace, Esc interrupts, `\` newline |
+| `npm start -- [--config <bundle>] "task"`         | one turn; `--thread <id>` continues a conversation                |
+| `npm run studio`                                  | LangGraph Studio (graphs from `langgraph.json`)                   |
+| `npm run eval` / `npm run replay`                 | score Terns with Jev / re-run a prompt version (`--config`)       |
+| `scripts/langfuse.sh up\|down\|status`            | local Langfuse for tracing; writes keys to `.env`                 |
+| `npm run job-scout:probe -- --place <p> <token…>` | which Greenhouse boards have jobs in a place (demo)               |
+
+Bundles: `default` (the project's agents) and the demos `company-assistant`,
+`company-assistant-approval`, `job-scout` (Wiki → Demos).
 
 A ticket is not done until `make check` is green.
 
 ## Architecture
 
-`START → router ⇄ agent → finalize → END`
+`START → input_guards → router ⇄ agent (→ approval, pause seam) → finalize → output_guards → END`
 
 - `router` — graph adapter around an isolated `Router` (Jev by default) that picks the next agent
-  or `finish`; stops on `maxHops` or budget before spending. A failed decision ends the run.
-- `agent` — runs the chosen agent with its own model and prompt; appends a contribution.
-- `finalize` — answer = latest contribution.
+  or `finish` (answered, waiting for the user, or impossible); stops on `maxHops` or budget before
+  spending. The first hop always goes to an agent.
+- `agent` — the chosen agent's loop (`createAgent`): own model, prompt, tools, optional `review`.
+- `input_guards` / `output_guards` — Jev yes/no checks; a trip returns the guard's refusal.
+- `approval` — only with a pause seam: a write tool waits for a human (`resumeAgent`).
+- Every turn: spend to the daily ledger, a Tern to SQLite, financials in the result, optional
+  tracing (Langfuse).
 - Add an agent: entry in `agents.config.ts` + prompt in `src/prompts/agents.ts`. Nothing else.
+- Another set of agents: a bundle (`src/bundle.ts`) registered in `src/bundles.ts`.
 
 ## Conveyor
 
@@ -78,17 +90,27 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 
 ```
 src/
-  config/       agents.config.ts (agents, models, prices, budget) + typed schema
-  graph/        state, routing, graph assembly, node types; nodes/ (router, agent, finalize)
+  config/       agents.config.ts (agents, models, prices, budget, guards) + typed schema
+  graph/        state, routing, assembly, middleware, errors; nodes/ (guards, router, agent, approval, finalize)
   llm/          OpenRouter chat factory (thinking), Jev client, cache breakpoints, registry
   routers/      isolated routing strategies (Jev, LLM); public API = routers/index.ts
-  finops/       usage records, cost, reports
-  prompts/      router + per-agent prompt templates
+  tools/        typed tools, registry, MCP facades, LangChain adapter; public API = tools/index.ts
+  guards/       input / output guards on routers
+  terns/        run records, threads, scores in SQLite (isolated)
+  run/          runAgent / resumeAgent: threads, budget, Terns, financials, tracing, pause
+  pause/        the pause seam (approval before write tools)
+  finops/       usage records, cost report, daily ledger
+  eval/         Jev judge, eval and replay CLIs
+  tracing/      optional run tracing (self-hosted Langfuse)
+  prompts/      agent, routing, guard and review texts
+  cli/          terminal helpers: approval, keys, multi-line input, spinner, cost output
+  demos/        demo bundles (company-assistant, job-scout) — removable
   types/        shared type utilities (Brand)
-  app.ts        production wiring (config + OpenRouter + prompts)
-  index.ts      runAgent(): answer, route, stop reason, cost
-  cli.ts, studio.ts   entry points
+  bundle.ts, bundles.ts   agent bundles and the --config registry
+  app.ts        production wiring of a bundle (OpenRouter, MCP, ledger, Terns, tracing)
+  index.ts      public API: runAgent, resumeAgent, types
+  cli.ts, chat.ts, studio.ts   entry points
 tests/          unit tests (helpers.ts = fakes); tests/routers/ = routers alone; tests/smoke/ = real
-scripts/        bootstrap-repo, bootstrap-labels, wiki (pull / publish / seed)
+scripts/        bootstrap-repo, bootstrap-labels, ticket, wiki, langfuse, coverage-badge
 ../<repo>.wiki  GitHub Wiki working copy (separate git repo, never inside this repo)
 ```
