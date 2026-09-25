@@ -180,7 +180,7 @@ describe("terminal approval (CLI and chat)", () => {
       Promise.resolve("y"),
     );
 
-    expect(summaryLine(done)).toBe("alpha · stop: done");
+    expect(summaryLine(done)).toBe("alpha · stop: the agent answered after the human decision");
     expect(summaryLine({ ...done, route: [] })).toMatch(/^\(none\) · /);
   });
 });

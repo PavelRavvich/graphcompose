@@ -42,16 +42,6 @@ export const formatMemory = (
 ): string =>
   formatSummaries(state.summaries, limits.summaries) + formatHistory(state.history, limits.turns);
 
-/** Human decisions on tool calls in this run; empty when there were none. */
-export function formatHumanDecisions(approvals: readonly ApprovalRecord[]): string {
-  if (approvals.length === 0) return "";
-  const lines = approvals.map((record) => {
-    const call = `${record.agent} → ${record.tool} ${JSON.stringify(record.args)}`;
-    return record.approved ? `- ${call}: approved` : `- ${call}: ${record.result}`;
-  });
-  return `\n\nHuman decisions:\n${lines.join("\n")}`;
-}
-
 const clip = (text: string, max: number): string =>
   text.length <= max ? text : `${text.slice(0, max)}…`;
 
@@ -79,7 +69,6 @@ export function renderRouteInput(
   task: string,
   contributions: readonly Contribution[],
   history = "",
-  decisions = "",
 ): string {
-  return `${history}Task:\n${task}\n\nContributions so far:\n${formatContributions(contributions)}${decisions}`;
+  return `${history}Task:\n${task}\n\nContributions so far:\n${formatContributions(contributions)}`;
 }

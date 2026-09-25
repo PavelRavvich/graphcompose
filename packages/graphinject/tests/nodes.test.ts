@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { makeAgentNode, UnknownAgentError } from "../src/graph/nodes/agent.js";
-import { makeRouterNode, type RouterNodeDeps } from "../src/graph/nodes/router.js";
+import {
+  makeRouterNode,
+  type RouterNodeDeps,
+  AFTER_HUMAN_DECISION,
+} from "../src/graph/nodes/router.js";
 import { FINISH } from "../src/graph/state.js";
 import type { RouteOutcome, RouteRequest } from "../src/routers/index.js";
 import { baseState, fakeDeps, usageRecord } from "./helpers.js";
@@ -118,39 +122,57 @@ describe("first hop", () => {
   });
 });
 
-describe("human decisions in router input", () => {
-  it("shows decisions of the run, and nothing when there are none", async () => {
-    const route = vi.fn<(request: RouteRequest) => Promise<RouteOutcome>>(() =>
-      Promise.resolve({ kind: "decided", decision: { next: FINISH, reason: "r" } }),
+describe("after a human decision the turn ends (#100)", () => {
+  const route = () =>
+    vi.fn<(request: RouteRequest) => Promise<RouteOutcome>>(() =>
+      Promise.resolve({ kind: "decided", decision: { next: "alpha", reason: "again" } }),
     );
+  const decision = (approved: boolean) => ({
+    agent: "alpha",
+    tool: "note_save",
+    args: { text: "x" },
+    approved,
+    result: approved ? "{}" : "Tool error: rejected by human",
+  });
+  const answered = [{ agent: "alpha", content: "not saved" }];
+
+  it("AC1 (#100): after a rejected call and the agent's answer — finish, the router is not asked", async () => {
+    const router = route();
     const node = makeRouterNode({
       ...routerDeps({ kind: "failed", reason: "unused" }),
-      router: { name: "main", route },
+      router: { name: "main", route: router },
     });
-    const contributions = [{ agent: "alpha", content: "not saved" }];
 
-    await node(baseState({ contributions }));
-    await node(
-      baseState({
-        contributions,
-        approvals: [
-          {
-            agent: "alpha",
-            tool: "note_save",
-            args: { text: "x" },
-            approved: false,
-            result: "Tool error: rejected by human",
-          },
-          { agent: "alpha", tool: "note_save", args: { text: "y" }, approved: true, result: "{}" },
-        ],
-      }),
-    );
+    const update = await node(baseState({ contributions: answered, approvals: [decision(false)] }));
 
-    const inputs = route.mock.calls.map(([request]) => request.input);
-    expect(inputs[0]).not.toContain("Human decisions");
-    expect(inputs[1]).toContain(
-      'Human decisions:\n- alpha → note_save {"text":"x"}: Tool error: rejected by human',
-    );
-    expect(inputs[1]).toContain('- alpha → note_save {"text":"y"}: approved');
+    expect(update).toMatchObject({ next: FINISH, routeReason: AFTER_HUMAN_DECISION });
+    expect(router).not.toHaveBeenCalled();
+  });
+
+  it("AC2 (#100): after an approved call and the agent's answer — the same", async () => {
+    const router = route();
+    const node = makeRouterNode({
+      ...routerDeps({ kind: "failed", reason: "unused" }),
+      router: { name: "main", route: router },
+    });
+
+    expect(
+      await node(baseState({ contributions: answered, approvals: [decision(true)] })),
+    ).toMatchObject({ next: FINISH });
+    expect(router).not.toHaveBeenCalled();
+  });
+
+  it("AC3 (#100): without human decisions the router decides as before", async () => {
+    const router = route();
+    const node = makeRouterNode({
+      ...routerDeps({ kind: "failed", reason: "unused" }),
+      router: { name: "main", route: router },
+    });
+
+    expect(await node(baseState({ contributions: answered }))).toMatchObject({
+      next: "alpha",
+      routeReason: "again",
+    });
+    expect(router).toHaveBeenCalledTimes(1);
   });
 });
