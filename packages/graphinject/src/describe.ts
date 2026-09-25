@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { loadWorkflow } from "./cli/load-workflow.js";
-import { describeBundle } from "./cli/describe.js";
+import { describeWorkflow } from "./cli/describe.js";
 import { withProfile } from "./profile-workflow.js";
 
 // graphinject describe --workflow <path> [--profile <p>] — no API key or network needed.
@@ -11,6 +11,6 @@ const { values } = parseArgs({
   },
 });
 const bundle = await withProfile(await loadWorkflow(values.workflow), values.profile);
-describeBundle(bundle, values.profile ?? "base").forEach((line) =>
+describeWorkflow(bundle, values.profile ?? "base").forEach((line) =>
   process.stdout.write(`${line}\n`),
 );

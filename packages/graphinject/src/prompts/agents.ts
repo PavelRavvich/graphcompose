@@ -1,6 +1,10 @@
 /** The agent's user message: the task and what other agents already contributed. */
-export const renderAgentInput = (task: string, contributions: string, history = ""): string =>
-  `${history}Task:\n${task}\n\nPrevious contributions:\n${contributions}`;
+export const renderAgentInput = (
+  task: string,
+  contributions: string,
+  history = "",
+  decisions = "",
+): string => `${history}Task:\n${task}\n\nPrevious contributions:\n${contributions}${decisions}`;
 
 /** Reasoning: the judge scores each attempt; criteria give feedback for the next one. */
 export const QUALITY_QUESTION = "Is this answer good enough for the task?";

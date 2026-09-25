@@ -37,9 +37,9 @@ export const DEFAULT_MAX_TOKENS = 8192;
  * that serve a model — e.g. `{ ignore: ["Inceptron"] }` or `{ sort: "latency" }`.
  */
 export const ProviderPreferencesSchema = z.strictObject({
-  order: z.array(z.string().min(1)).optional(),
-  only: z.array(z.string().min(1)).optional(),
-  ignore: z.array(z.string().min(1)).optional(),
+  order: z.array(z.string().min(1)).readonly().optional(),
+  only: z.array(z.string().min(1)).readonly().optional(),
+  ignore: z.array(z.string().min(1)).readonly().optional(),
   sort: z.enum(["price", "throughput", "latency"]).optional(),
   allowFallbacks: z.boolean().optional(),
 });

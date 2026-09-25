@@ -102,7 +102,7 @@ function agentLines(bundle: AssembledWorkflow, tools: ReadonlyMap<string, AnyToo
 }
 
 /** The workflow at a glance: settings, and which agent can use which tool. */
-export function describeBundle(bundle: AssembledWorkflow, profile = "base"): string[] {
+export function describeWorkflow(bundle: AssembledWorkflow, profile = "base"): string[] {
   const c = bundle.config;
   const tools = new Map(
     resolveTools(bundle, describeServices).map((tool) => [tool.name, tool] as const),

@@ -13,6 +13,7 @@ export { createAppDeps, type AppDeps } from "./app.js";
 export { studioGraphOf } from "./studio.js";
 export { loadWorkflow, loadWorkflowClass, WorkflowLoadError } from "./cli/load-workflow.js";
 export { withProfile } from "./profile-workflow.js";
+export { describeWorkflow } from "./cli/describe.js";
 export type { GraphDeps } from "./graph/graph.js";
 export { resumeAgent, NotPausedError } from "./run/resume-agent.js";
 export { runAgent } from "./run/run-agent.js";
