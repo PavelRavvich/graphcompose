@@ -24,12 +24,22 @@ export const ThinkingSchema = z.union([
 ]);
 
 /** Defaults for every chat model (agents and LLM routers). */
+/** Chat-model requests: LangChain ChatOpenAI's own `timeout` (per request) and `maxRetries` (backoff). */
+export const DEFAULT_TIMEOUT_MS = 120_000;
+export const DEFAULT_MAX_RETRIES = 2;
+const TimeoutMsSchema = z.number().int().positive();
+const MaxRetriesSchema = z.number().int().nonnegative();
+
 export const ChatDefaultsSchema = z.object({
   temperature: z.number().min(0).max(2),
   maxTokens: MaxTokensSchema,
   thinking: ThinkingSchema,
   /** Prompt caching where the model supports it. */
   cache: z.boolean(),
+  /** Per request; default 120 000. A request that gets no answer fails instead of hanging the turn. */
+  timeoutMs: TimeoutMsSchema.optional(),
+  /** Automatic retries of a failed request (with backoff); default 2. */
+  maxRetries: MaxRetriesSchema.optional(),
 });
 
 export const ModelSettingsSchema = z.object({
@@ -38,6 +48,8 @@ export const ModelSettingsSchema = z.object({
   maxTokens: MaxTokensSchema.optional(),
   thinking: ThinkingSchema.optional(),
   cache: z.boolean().optional(),
+  timeoutMs: TimeoutMsSchema.optional(),
+  maxRetries: MaxRetriesSchema.optional(),
   price: PriceSchema,
 });
 
@@ -226,6 +238,8 @@ export interface ResolvedModelSettings {
   readonly maxTokens: MaxTokens;
   readonly thinking: Thinking;
   readonly cache: boolean;
+  readonly timeoutMs: number;
+  readonly maxRetries: number;
   readonly price: Price;
 }
 

@@ -26,9 +26,13 @@ export function jevDecisionsUrl(baseUrl: string): string {
 }
 
 /** OpenRouter Decisions API (alpha): POST {base}/alpha/decisions. */
+/** A Jev decision that gets no answer in time is a router failure (routing falls back as usual). */
+export const JEV_TIMEOUT_MS = 30_000;
+
 export function createJevClient(
   connection: OpenRouterConnection,
   fetchImpl: typeof fetch = fetch,
+  timeoutMs: number = JEV_TIMEOUT_MS,
 ): JevClient {
   const url = jevDecisionsUrl(connection.baseUrl);
   return async (request) => {
@@ -39,6 +43,7 @@ export function createJevClient(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!response.ok) {
       throw new JevApiError(`Jev API ${String(response.status)}: ${await response.text()}`);

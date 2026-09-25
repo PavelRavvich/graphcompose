@@ -44,6 +44,9 @@ export function createChatModel(
     temperature: settings.temperature,
     ...(settings.maxTokens === MODEL_MAX ? {} : { maxTokens: settings.maxTokens }),
     ...(reasoning ? { modelKwargs: { reasoning } } : {}),
+    // LangChain's own request timeout and retries (with backoff) — a stalled request fails, not hangs
+    timeout: settings.timeoutMs,
+    maxRetries: settings.maxRetries,
     configuration: {
       baseURL: connection.baseUrl,
       defaultHeaders: { "X-Title": "langgraph-ts-template" },
