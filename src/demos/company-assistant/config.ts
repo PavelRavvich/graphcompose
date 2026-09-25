@@ -1,13 +1,13 @@
-import { agentsConfig } from "../config/agents.config.js";
-import type { AgentsConfigOf } from "../config/types.js";
+import { agentsConfig } from "../../config/agents.config.js";
+import type { AgentsConfigOf } from "../../config/types.js";
 import { DOCS_DIR, FILESYSTEM_SERVER } from "./paths.js";
 import type { DemoToolName } from "./tools.js";
 
 const { price } = agentsConfig.agents.researcher;
 
-/** Demo "assistant": three agents with a bit of everything. Core defaults, guards and budget. */
+/** company-assistant: a new joiner's helper at Nimbus Labs — three agents, a bit of everything. */
 export const assistantConfig = {
-  name: "demo-assistant",
+  name: "company-assistant",
   defaults: agentsConfig.defaults,
   budget: agentsConfig.budget,
   routers: agentsConfig.routers,
@@ -32,10 +32,10 @@ export const assistantConfig = {
   },
 } as const satisfies AgentsConfigOf<string, DemoToolName>;
 
-/** Demo "approval": the same agents; writing a note waits for a human (pause seam). */
+/** company-assistant-approval: the same agents; writing a note waits for a human (pause seam). */
 export const approvalConfig = {
   ...assistantConfig,
-  name: "demo-approval",
+  name: "company-assistant-approval",
 } as const satisfies AgentsConfigOf<string, DemoToolName>;
 
 export type DemoAgentName = keyof typeof assistantConfig.agents;

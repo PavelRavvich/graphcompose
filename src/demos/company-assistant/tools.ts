@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { z } from "zod";
-import { createCurrentTimeTool, defineTool, mcpServer, type Tool } from "../tools/index.js";
+import { createCurrentTimeTool, defineTool, mcpServer, type Tool } from "../../tools/index.js";
 import { DEFAULT_NOTES_FILE } from "./paths.js";
 
 /** MCP: the official filesystem server over src/demo/docs, seen through typed facades. */
