@@ -1,5 +1,11 @@
 import { resolveTools, type AssembledWorkflow, type WorkflowServices } from "../workflow.js";
-import { resolveRouterModel, type RouterModel, type Thinking } from "../config/types.js";
+import {
+  DEFAULT_MAX_TOKENS,
+  resolveRouterModel,
+  type ProviderPreferences,
+  type RouterModel,
+  type Thinking,
+} from "../config/types.js";
 import { isMcpFacade, type AnyTool } from "../tools/index.js";
 
 /** Tools are built with a router that is never called — describing needs no key and no network. */
@@ -43,6 +49,22 @@ function bundleLines(bundle: AssembledWorkflow): string[] {
   ];
 }
 
+const ceilingLabel = (maxTokens: number | "max" | undefined): string =>
+  maxTokens === "max"
+    ? "no output ceiling"
+    : `max ${String(maxTokens ?? DEFAULT_MAX_TOKENS)} tokens`;
+
+const providerLabel = (provider: ProviderPreferences | undefined): string => {
+  if (provider === undefined) return "";
+  const parts = [
+    provider.only === undefined ? "" : `only ${provider.only.join(", ")}`,
+    provider.order === undefined ? "" : `order ${provider.order.join(" > ")}`,
+    provider.ignore === undefined ? "" : `ignore ${provider.ignore.join(", ")}`,
+    provider.sort === undefined ? "" : `sort by ${provider.sort}`,
+  ].filter((part) => part !== "");
+  return parts.length === 0 ? "" : ` · providers: ${parts.join("; ")}`;
+};
+
 /** An agent's reasoning and knowledge bases, when it has them. */
 function settingsLines(agent: AssembledWorkflow["config"]["agents"][string]): string[] {
   const r = agent.reasoning;
@@ -66,7 +88,7 @@ function agentLines(bundle: AssembledWorkflow, tools: ReadonlyMap<string, AnyToo
     const history = `history ${String(agent.historyLimit ?? c.defaults.history.limit)} turns${summaries > 0 ? ` + ${String(summaries)} summaries` : ""}`;
     const own = (agent.tools ?? []).map((t) => tools.get(t));
     return [
-      `  ${name}  ${agent.model} · thinking ${thinkingLabel(agent.thinking ?? c.defaults.chat.thinking)} · ${history}`,
+      `  ${name}  ${agent.model} · thinking ${thinkingLabel(agent.thinking ?? c.defaults.chat.thinking)} · ${ceilingLabel(agent.maxTokens ?? c.defaults.chat.maxTokens)} · ${history}${providerLabel(agent.provider ?? c.defaults.chat.provider)}`,
       `    ${agent.description}`,
       ...settingsLines(agent),
       ...(own.length === 0

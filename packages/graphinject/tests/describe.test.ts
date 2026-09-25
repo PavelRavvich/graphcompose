@@ -47,7 +47,9 @@ describe("describe a workflow", () => {
     expect(lines).toContain("memory    raw turns only");
     expect(
       lines.some((l) =>
-        l.startsWith("  researcher  test/researcher · thinking default · history 5 turns"),
+        l.startsWith(
+          "  researcher  test/researcher · thinking default · no output ceiling · history 5 turns",
+        ),
       ),
     ).toBe(true);
     expect(
@@ -81,5 +83,41 @@ describe("describe a workflow", () => {
 
     expect(lines.at(-1)).toBe("unassigned tools: extra");
     expect(after(lines, "  coder")).toContain("    · ghost (not in the catalog)");
+  });
+  it("AC3 (#97): each agent shows its output ceiling and provider preference", () => {
+    const coder = test.config.agents.coder;
+    if (coder === undefined) throw new Error("the test workflow has a coder");
+    const workflow: AssembledWorkflow = {
+      ...test,
+      config: {
+        ...test.config,
+        defaults: {
+          ...test.config.defaults,
+          chat: { ...test.config.defaults.chat, provider: { ignore: ["Inceptron"] } },
+        },
+        agents: {
+          ...test.config.agents,
+          coder: { ...coder, maxTokens: 4000, provider: { sort: "latency" } },
+        },
+      },
+    };
+    const lines = describeBundle(workflow);
+
+    expect(
+      lines.some(
+        (l) =>
+          l.startsWith("  researcher") &&
+          l.includes("no output ceiling") &&
+          l.includes("providers: ignore Inceptron"),
+      ),
+    ).toBe(true);
+    expect(
+      lines.some(
+        (l) =>
+          l.startsWith("  coder") &&
+          l.includes("max 4000 tokens") &&
+          l.includes("providers: sort by latency"),
+      ),
+    ).toBe(true);
   });
 });

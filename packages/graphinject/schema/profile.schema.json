@@ -69,6 +69,40 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 9007199254740991
+            },
+            "provider": {
+              "type": "object",
+              "properties": {
+                "order": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "only": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "ignore": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "sort": {
+                  "type": "string",
+                  "enum": ["price", "throughput", "latency"]
+                },
+                "allowFallbacks": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
@@ -149,6 +183,40 @@
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 9007199254740991
+                },
+                "provider": {
+                  "type": "object",
+                  "properties": {
+                    "order": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "only": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "ignore": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "sort": {
+                      "type": "string",
+                      "enum": ["price", "throughput", "latency"]
+                    },
+                    "allowFallbacks": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
                 },
                 "price": {
                   "type": "object",
@@ -329,6 +397,40 @@
                     "minimum": 0,
                     "maximum": 9007199254740991
                   },
+                  "provider": {
+                    "type": "object",
+                    "properties": {
+                      "order": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "only": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "ignore": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "sort": {
+                        "type": "string",
+                        "enum": ["price", "throughput", "latency"]
+                      },
+                      "allowFallbacks": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
                   "price": {
                     "type": "object",
                     "properties": {
@@ -438,6 +540,40 @@
               "minimum": 0,
               "maximum": 9007199254740991
             },
+            "provider": {
+              "type": "object",
+              "properties": {
+                "order": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "only": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "ignore": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "sort": {
+                  "type": "string",
+                  "enum": ["price", "throughput", "latency"]
+                },
+                "allowFallbacks": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
             "price": {
               "type": "object",
               "properties": {
@@ -531,6 +667,40 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 9007199254740991
+          },
+          "provider": {
+            "type": "object",
+            "properties": {
+              "order": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "only": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "ignore": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "sort": {
+                "type": "string",
+                "enum": ["price", "throughput", "latency"]
+              },
+              "allowFallbacks": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
           },
           "price": {
             "type": "object",
@@ -707,6 +877,40 @@
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
+                      },
+                      "provider": {
+                        "type": "object",
+                        "properties": {
+                          "order": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "only": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "ignore": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "sort": {
+                            "type": "string",
+                            "enum": ["price", "throughput", "latency"]
+                          },
+                          "allowFallbacks": {
+                            "type": "boolean"
+                          }
+                        },
+                        "additionalProperties": false
                       },
                       "price": {
                         "type": "object",
