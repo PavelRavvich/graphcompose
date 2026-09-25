@@ -24,6 +24,9 @@ describe("job-scout search config", () => {
       "Places the search knows (they also match their cities): germany.",
     );
     expect(prompts.profiler).toContain("acme (Acme)");
+    expect(prompts.profiler).toContain("Proposed search brief:");
+    expect(prompts.profiler).toContain("Boards: all 1");
+    expect(prompts.profiler).not.toMatch(/^\d\. /m);
     expect(jobScoutPrompts({ boards: { acme: "Acme" }, places: {} }).scout).toContain(
       "matched literally",
     );
