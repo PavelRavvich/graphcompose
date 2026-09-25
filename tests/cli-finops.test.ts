@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { costSummary, costTotal, costTrace } from "../src/cli/finops.js";
+import { costSummary, costTrace } from "../src/cli/finops.js";
 import { buildCostReport, recordToolCost } from "../src/finops/usage.js";
 import { usageRecord } from "./helpers.js";
 
@@ -10,13 +10,11 @@ describe("CLI cost output", () => {
     recordToolCost("exchange_rate", 0.001),
   ]);
 
-  it("lists non-zero categories only", () => {
-    expect(costSummary(report)).toBe("agents $0.003378 · routing $0.000050 · tools $0.001000");
-    expect(costSummary(buildCostReport([]))).toBe("no paid calls");
-  });
-
-  it("ends with an explicit total", () => {
-    expect(costTotal(report)).toBe("total $0.004428 (3 calls)");
+  it("summarises non-zero categories", () => {
+    expect(costSummary(report)).toBe(
+      "$0.004428 in 3 calls — agents $0.003378 · routing $0.000050 · tools $0.001000",
+    );
+    expect(costSummary(buildCostReport([]))).toBe("$0.000000 in 0 calls");
   });
 
   it("says how each call was priced", () => {

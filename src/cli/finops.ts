@@ -14,17 +14,14 @@ const BASIS: Readonly<Record<CostSource, (line: CostLine) => string>> = {
 
 const usd = (value: number): string => `$${value.toFixed(6)}`;
 
-/** Categories that cost something: "agents $0.003378 · routing $0.000050 · guards $0.000044". */
+/** "$0.003471 in 7 calls — agents $0.003378 · routing $0.000050 · guards $0.000044" */
 export function costSummary(cost: CostReport): string {
   const parts = COST_CATEGORIES.filter((category) => cost.byCategory[category] > 0).map(
     (category) => `${category} ${usd(cost.byCategory[category])}`,
   );
-  return parts.length === 0 ? "no paid calls" : parts.join(" · ");
+  const head = `${usd(cost.totalUsd)} in ${String(cost.calls)} calls`;
+  return parts.length === 0 ? head : `${head} — ${parts.join(" · ")}`;
 }
-
-/** "total $0.003471 (7 calls)" */
-export const costTotal = (cost: CostReport): string =>
-  `total ${usd(cost.totalUsd)} (${String(cost.calls)} calls)`;
 
 /** One line per call, in order: n. caller  model  cost  tokens in/out. */
 export function costTrace(cost: CostReport): string[] {
