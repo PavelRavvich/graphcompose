@@ -25,7 +25,8 @@
     "job-scout:probe": "tsx src/demos/job-scout/probe-boards.ts",
     "compare": "tsx src/eval/cli.ts compare",
     "golden": "tsx src/eval/cli.ts golden",
-    "schema": "tsx src/config/write-profile-schema.ts"
+    "schema": "tsx src/config/write-profile-schema.ts",
+    "describe": "tsx src/describe.ts"
   },
   "dependencies": {
     "@langchain/core": "^1.2.12",
