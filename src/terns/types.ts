@@ -25,6 +25,9 @@ export interface Tern {
   readonly modelVersion: string;
   /** Id of the Tern this one replays, if any. */
   readonly replayOf: string | null;
+  /** Declared config version and hash of the resolved config (null for runs before #78). */
+  readonly configVersion: string | null;
+  readonly configHash: string | null;
   /** Quality-gated attempts of agents with reasoning; empty otherwise. */
   readonly attempts: readonly TernAttempt[];
 }
@@ -56,6 +59,28 @@ export interface Summary {
 
 export type NewSummary = Omit<Summary, "id" | "createdAt">;
 
+/** A resolved config as first seen under a version. */
+export interface ConfigSnapshot {
+  readonly version: string;
+  readonly hash: string;
+  readonly snapshot: string;
+  readonly firstSeen: string;
+}
+
+/** Readable config versions: snapshots and "changed without a version bump" detection. */
+export interface ConfigStore {
+  /** Stores the snapshot the first time; `drift` when the version already has another hash. */
+  readonly rememberConfig: (
+    bundle: string,
+    version: string,
+    hash: string,
+    snapshot: string,
+  ) => Promise<{ readonly drift: boolean }>;
+  readonly configSnapshots: (bundle: string, version: string) => Promise<ConfigSnapshot[]>;
+  /** The latest `limit` original (not replayed) answered Terns of a bundle, oldest first. */
+  readonly recentOriginals: (bundle: string, limit: number) => Promise<Tern[]>;
+}
+
 /** Conversation memory: which turns are not yet summarised, and the summaries. */
 export interface MemoryStore {
   /** Turns of the thread after the last summary, oldest first. */
@@ -86,7 +111,7 @@ export interface VersionScore {
 }
 
 /** Durable memory of runs: threads, Terns, their quality scores and conversation summaries. */
-export interface TernStore extends MemoryStore {
+export interface TernStore extends MemoryStore, ConfigStore {
   readonly createThread: (bundle: string) => Promise<string>;
   readonly hasThread: (bundle: string, threadId: string) => Promise<boolean>;
   readonly append: (tern: NewTern) => Promise<Tern>;

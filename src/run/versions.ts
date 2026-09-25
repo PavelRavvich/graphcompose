@@ -4,10 +4,22 @@ import { routerPromptTexts } from "../routers/index.js";
 import { versionOf } from "../terns/index.js";
 import type { RunDeps } from "./types.js";
 
+/** Everything a run's behaviour depends on in config and prompts — what `configHash` hashes. */
+export const configSnapshot = <TName extends string>(deps: RunDeps<TName>): unknown => ({
+  config: deps.config,
+  prompts: deps.prompts,
+  compactionPrompt: deps.compactionPrompt ?? null,
+});
+
 /** Prompt and model versions of the current configuration — stored with every Tern. */
 export function runVersions<TName extends string>(
   deps: RunDeps<TName>,
-): { readonly promptVersion: string; readonly modelVersion: string } {
+): {
+  readonly promptVersion: string;
+  readonly modelVersion: string;
+  readonly configVersion: string;
+  readonly configHash: string;
+} {
   const guards = [...deps.guards.input, ...deps.guards.output].map(
     ({ name, question, flag, pass }) => ({
       name,
@@ -31,5 +43,7 @@ export function runVersions<TName extends string>(
       routers: deps.config.routers,
       agents: deps.config.agents,
     }),
+    configVersion: deps.config.version,
+    configHash: versionOf(configSnapshot(deps)),
   };
 }

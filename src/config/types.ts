@@ -138,6 +138,8 @@ export const GuardSettingsSchema = z.object({
 export const AgentsConfigSchema = z.object({
   /** Agent bundle id: key of the daily spend ledger. */
   name: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "lowercase letters, digits and dashes"),
+  /** Readable config version (e.g. 1.3.0) — labels every run; profiles set their own. */
+  version: z.string().min(1),
   defaults: z.object({
     chat: ChatDefaultsSchema,
     router: RouterModelSchema,

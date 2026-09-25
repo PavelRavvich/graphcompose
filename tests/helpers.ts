@@ -16,6 +16,7 @@ export type TestAgent = "alpha" | "beta";
 /** Main router overridden to an LLM so graph tests can script routing with fake chat models. */
 export const testConfig: AgentsConfigOf<TestAgent> = {
   name: "test-bundle",
+  version: "1.0.0",
   defaults: {
     chat: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-test" },

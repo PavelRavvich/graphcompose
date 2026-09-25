@@ -36,6 +36,7 @@ Multi-agent project on LangGraph + LangChain (TypeScript). Built with a three-ph
 | `scripts/langfuse.sh up\|down\|status`            | local Langfuse for tracing; writes keys to `.env`                 |
 | `npm run job-scout:probe -- --place <p> <token…>` | which Greenhouse boards have jobs in a place (demo)               |
 
+Any run command takes `--profile <name>` (`profiles/<bundle>/<name>.yaml`).
 Bundles: `default` (the project's agents) and the demos `company-assistant`,
 `company-assistant-approval`, `job-scout` (Wiki → Demos).
 

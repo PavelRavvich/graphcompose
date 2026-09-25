@@ -6,6 +6,7 @@ const { price } = agentsConfig.agents.researcher;
 /** job-scout: resume from disk → interview → Greenhouse search judged by Jev, in a chat loop. */
 export const jobScoutConfig = {
   name: "job-scout",
+  version: "1.0.0",
   defaults: { ...agentsConfig.defaults, history: { limit: 8 } },
   budget: { ...agentsConfig.budget, runBudgetCap: 0.1 },
   routers: agentsConfig.routers,
