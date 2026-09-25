@@ -7,6 +7,7 @@ import { bundleNamed } from "./bundles.js";
 import { summaryLine, untilDone } from "./cli/approve.js";
 import { costSummary, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
+import { withSpinner } from "./cli/spinner.js";
 import { runAgent } from "./index.js";
 
 // Usage: npm run chat -- [--config <name>] [--thread <id>]
@@ -20,6 +21,7 @@ const say = (text: string): void => {
   stdout.write(`${text}\n`);
 };
 let threadId = values.thread;
+const busy = <T>(work: () => Promise<T>): Promise<T> => withSpinner(stdout, "thinking", work);
 
 say(styleText("dim", `Chat with "${values.config}". /new — new conversation, /exit — quit.`));
 try {
@@ -33,11 +35,9 @@ try {
       continue;
     }
     try {
-      const first = await runAgent(
-        { task: line, ...(threadId === undefined ? {} : { threadId }) },
-        deps,
-      );
-      const result = await untilDone(first, deps, ask);
+      const input = { task: line, ...(threadId === undefined ? {} : { threadId }) };
+      const first = await busy(() => runAgent(input, deps));
+      const result = await untilDone(first, deps, ask, busy);
       threadId = result.threadId;
       say(`${styleText("cyan", "agent ›")} ${result.answer}`);
       say(styleText("dim", `  ${summaryLine(result)}`));
