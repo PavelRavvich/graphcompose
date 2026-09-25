@@ -1,6 +1,7 @@
-export { htmlToText, JOB_BOARDS } from "./boards.js";
+export { htmlToText } from "./boards.js";
 import { z } from "zod";
-import { boardReader, defaultFetchJson, JOB_BOARDS, type Candidate } from "./boards.js";
+import { boardReader, defaultFetchJson, type Candidate } from "./boards.js";
+import type { JobSearch } from "./search.config.js";
 import { defineTool, type Tool } from "../../tools/index.js";
 import { mapLimited, type FitJudge } from "./fit.js";
 
@@ -21,39 +22,12 @@ export function matchScore(
   };
 }
 
-/** Country names that also match its cities (Greenhouse often lists only the city). */
-const LOCATION_ALIASES: Readonly<Record<string, readonly string[]>> = {
-  israel: [
-    "israel",
-    "tel aviv",
-    "tel-aviv",
-    "herzliya",
-    "haifa",
-    "jerusalem",
-    "netanya",
-    "petah tikva",
-    "petach tikva",
-    "ramat gan",
-    "ra'anana",
-    "raanana",
-    "yokneam",
-    "rehovot",
-    "beer sheva",
-    "hod hasharon",
-    "caesarea",
-    "or yehuda",
-    "rosh haayin",
-    "kfar saba",
-    "modiin",
-    "airport city",
-  ],
-};
-
-const locationTerms = (locations: readonly string[]): string[] =>
-  locations.flatMap(
-    (location) =>
-      LOCATION_ALIASES[location.trim().toLowerCase()] ?? [location.trim().toLowerCase()],
-  );
+/** A configured place expands to its words; anything else matches literally. */
+const locationTerms = (locations: readonly string[], places: JobSearch["places"]): string[] =>
+  locations.flatMap((location) => {
+    const key = location.trim().toLowerCase();
+    return places[key]?.map((word) => word.toLowerCase()) ?? [key];
+  });
 
 /** At most this many jobs are judged per search — bounds time and cost. */
 export const MAX_JUDGED = 400;
@@ -69,7 +43,7 @@ const Input = z.object({
   locations: z
     .array(z.string())
     .min(1)
-    .describe("Countries or cities; a country also matches its cities"),
+    .describe("Places or cities; a configured place (e.g. a country) also matches its cities"),
   titleMustInclude: z
     .array(z.string())
     .default([])
@@ -84,7 +58,7 @@ const Input = z.object({
     .array(z.string())
     .default([])
     .describe("Skills from the resume — shown as matched skills"),
-  boards: z.array(z.string()).default([]).describe("Board tokens; empty = all known boards"),
+  boards: z.array(z.string()).default([]).describe("Board tokens; empty = all configured boards"),
   count: z.number().int().min(1).max(50).default(20),
   minFit: z
     .number()
@@ -124,11 +98,11 @@ export type GreenhouseTool = Tool<
 >;
 type Search = z.output<typeof Input>;
 
-function passesFilters(job: Candidate, search: Search): boolean {
+function passesFilters(job: Candidate, search: Search, places: JobSearch["places"]): boolean {
   const location = job.location.toLowerCase();
   const title = job.title.toLowerCase();
   return (
-    locationTerms(search.locations).some((term) => location.includes(term)) &&
+    locationTerms(search.locations, places).some((term) => location.includes(term)) &&
     (search.titleMustInclude.length === 0 ||
       search.titleMustInclude.some((word) => title.includes(word.trim().toLowerCase()))) &&
     !search.excludeTitleWords.some((word) => title.includes(word.trim().toLowerCase()))
@@ -137,6 +111,8 @@ function passesFilters(job: Candidate, search: Search): boolean {
 
 export interface GreenhouseDeps {
   readonly judge: FitJudge;
+  /** Boards and places (search.config.ts). */
+  readonly search: JobSearch;
   readonly fetchJson?: (url: string) => Promise<unknown>;
 }
 
@@ -171,7 +147,7 @@ function fitScorer(
  * links. Board responses and judgements are cached for the session; judge spend is reported.
  */
 export function createGreenhouseTool(deps: GreenhouseDeps): GreenhouseTool {
-  const readBoards = boardReader(deps.fetchJson ?? defaultFetchJson);
+  const readBoards = boardReader(deps.fetchJson ?? defaultFetchJson, deps.search.boards);
   const score = fitScorer(deps.judge);
   return defineTool({
     name: "greenhouse_jobs",
@@ -181,10 +157,10 @@ export function createGreenhouseTool(deps: GreenhouseDeps): GreenhouseTool {
     output: Output,
     timeoutMs: 240_000,
     run: async (search, ctx) => {
-      const requested = search.boards.length > 0 ? search.boards : Object.keys(JOB_BOARDS);
+      const requested = search.boards.length > 0 ? search.boards : Object.keys(deps.search.boards);
       const boards = [...new Set(requested.map((board) => board.trim().toLowerCase()))];
       const { failedBoards, candidates } = await readBoards(boards);
-      const filtered = candidates.filter((job) => passesFilters(job, search));
+      const filtered = candidates.filter((job) => passesFilters(job, search, deps.search.places));
       const judgedJobs = filtered.slice(0, MAX_JUDGED);
       const { fits, costUsd } = await score(search.profile, judgedJobs);
       ctx.reportCost(costUsd);

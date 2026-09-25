@@ -4,14 +4,15 @@ import { jobScoutConfig } from "./config.js";
 import { routerFitJudge } from "./fit.js";
 import { createGreenhouseTool } from "./greenhouse.js";
 import { jobScoutPrompts } from "./prompts.js";
+import { jobSearchConfig } from "./search.config.js";
 import { createReadResumeTool } from "./resume.js";
 
 export const jobScout = defineBundle({
   config: jobScoutConfig,
-  prompts: jobScoutPrompts,
+  prompts: jobScoutPrompts(jobSearchConfig),
   tools: ({ router }) => [
     createReadResumeTool(),
-    createGreenhouseTool({ judge: routerFitJudge(router("job-fit")) }),
+    createGreenhouseTool({ judge: routerFitJudge(router("job-fit")), search: jobSearchConfig }),
   ],
   mcpServers: [],
 });
