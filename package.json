@@ -26,7 +26,8 @@
     "compare": "tsx src/eval/cli.ts compare",
     "golden": "tsx src/eval/cli.ts golden",
     "schema": "tsx src/config/write-profile-schema.ts",
-    "describe": "tsx src/describe.ts"
+    "describe": "tsx src/describe.ts",
+    "rag:index": "tsx src/rag-index.ts"
   },
   "dependencies": {
     "@langchain/core": "^1.2.12",

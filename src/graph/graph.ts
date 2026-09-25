@@ -9,6 +9,7 @@ import type { AnyTool } from "../tools/index.js";
 import { makeAgentNode, type AgentDefinition } from "./nodes/agent.js";
 import type { AgentReasoning } from "./nodes/attempts.js";
 import { DEFAULT_CRITERIA } from "../prompts/agents.js";
+import type { KnowledgeSource } from "../rag/types.js";
 import { finalize } from "./nodes/finalize.js";
 import { makeApprovalNode } from "./nodes/approval.js";
 import { makeGuardNode } from "./nodes/guards.js";
@@ -37,6 +38,8 @@ export interface GraphDeps<TName extends string> {
   readonly guards: GuardSet;
   /** Quality judges by agent name (agents with `reasoning`). */
   readonly judges: ReadonlyMap<string, Router>;
+  /** Context-mode knowledge bases per agent (knowledge bases, #88). */
+  readonly knowledge?: (agent: string) => readonly KnowledgeSource[];
   /** Optional pause seam (human approval). Off by default. */
   readonly pause?: PauseSeam | undefined;
 }
@@ -97,6 +100,7 @@ function agentDefinitions<TName extends string>(
       tools: (agent?.tools ?? []).map(deps.tools),
       ...limitsOf(agent, deps),
       reasoning: reasoningOf(name, agent, deps),
+      knowledge: deps.knowledge?.(name) ?? [],
     });
   }
   return definitions;

@@ -1,8 +1,15 @@
 import type { AgentsConfig, ReasoningSettings } from "../config/types.js";
 import type { AnyTool } from "../tools/index.js";
+import type { RagMode } from "../rag/types.js";
 import type { Class, Provider } from "./injection.js";
 
 type AgentSettings = AgentsConfig["agents"][string];
+
+/** An agent's use of a `@Rag` knowledge base; both fields required (no defaults). */
+export interface RagBinding {
+  readonly use: Class;
+  readonly mode: RagMode;
+}
 
 /** `@Agent` — settings of one agent; tools are class references; the prompt is a file next to it. */
 export interface AgentMeta {
@@ -20,6 +27,8 @@ export interface AgentMeta {
   readonly reasoning?: ReasoningSettings;
   /** `@Tool` or `@McpTool` classes. */
   readonly tools?: readonly Class[];
+  /** Knowledge bases: `{ use: CompanyDocs, mode: "tool" | "context" }` — `mode` is required. */
+  readonly rag?: readonly RagBinding[];
   /** `new URL("./name.prompt.md", import.meta.url)` */
   readonly prompt: URL;
 }

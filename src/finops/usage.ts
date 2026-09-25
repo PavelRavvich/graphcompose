@@ -42,6 +42,7 @@ export const COST_CATEGORIES = [
   "review",
   "tools",
   "compaction",
+  "retrieval",
 ] as const;
 export type CostCategory = (typeof COST_CATEGORIES)[number];
 
@@ -49,6 +50,7 @@ export type CostCategory = (typeof COST_CATEGORIES)[number];
 export function costCategoryOf(caller: string): CostCategory {
   if (caller.startsWith("tool:")) return "tools";
   if (caller === "compaction") return "compaction";
+  if (caller.startsWith("rag:")) return "retrieval";
   if (caller.startsWith("router:guard:")) return "guards";
   if (caller.startsWith("router:quality:")) return "review";
   if (caller.startsWith("router:")) return "routing";
@@ -134,6 +136,15 @@ export class InvalidToolCostError extends Error {
 }
 
 /** A paid tool's own cost, recorded like a model call: caller `tool:<name>`. */
+/** A cost a tool reported, billed to its `costCaller` when it has one (e.g. `rag:<name>`). */
+export const recordReportedCost = (
+  tool: { readonly name: string; readonly costCaller?: string },
+  costUsd: number,
+): UsageRecord =>
+  tool.costCaller === undefined
+    ? recordToolCost(tool.name, costUsd)
+    : { ...recordToolCost(tool.name, costUsd), caller: tool.costCaller };
+
 export function recordToolCost(tool: string, costUsd: number): UsageRecord {
   if (!Number.isFinite(costUsd) || costUsd < 0) {
     throw new InvalidToolCostError(`Tool "${tool}" reported an invalid cost: ${String(costUsd)}`);
@@ -166,6 +177,7 @@ export function buildCostReport(records: readonly UsageRecord[]): CostReport {
     review: 0,
     tools: 0,
     compaction: 0,
+    retrieval: 0,
   };
   for (const line of trace) byCategory[line.category] += line.costUsd;
   return {

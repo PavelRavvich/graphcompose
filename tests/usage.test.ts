@@ -80,7 +80,15 @@ describe("finops usage", () => {
       calls: 0,
       cacheReadTokens: 0,
       byCaller: {},
-      byCategory: { agents: 0, routing: 0, guards: 0, review: 0, tools: 0, compaction: 0 },
+      byCategory: {
+        agents: 0,
+        routing: 0,
+        guards: 0,
+        review: 0,
+        tools: 0,
+        compaction: 0,
+        retrieval: 0,
+      },
       byModel: {},
       trace: [],
     });
@@ -123,6 +131,7 @@ describe("turn financials", () => {
       review: 0,
       tools: 0.001,
       compaction: 0,
+      retrieval: 0,
     });
     expect(report.byModel.jev).toBeCloseTo(0.00003);
     expect(report.trace.map((line) => [line.caller, line.category])).toEqual([

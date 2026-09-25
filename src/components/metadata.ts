@@ -34,6 +34,15 @@ export type ComponentMeta =
   | { readonly kind: "mcp-tool"; readonly meta: McpToolMeta }
   | { readonly kind: "agent"; readonly meta: AgentMeta }
   | { readonly kind: "injectable"; readonly meta: { readonly deps: readonly Token[] } }
+  | {
+      readonly kind: "rag";
+      readonly meta: {
+        readonly name: string;
+        readonly description: string;
+        readonly k: number;
+        readonly deps: readonly Token[];
+      };
+    }
   | { readonly kind: "bundle"; readonly meta: BundleMeta };
 
 /** Decorator metadata per class. Symbol.metadata is not available at runtime on Node 26. */
@@ -69,5 +78,6 @@ const kindName: Readonly<Record<ComponentMeta["kind"], string>> = {
   "mcp-tool": "McpTool",
   agent: "Agent",
   injectable: "Injectable",
+  rag: "Rag",
   bundle: "Bundle",
 };

@@ -1,51 +1,14 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import type { AgentBundle, BundleServices } from "../bundle.js";
+import type { AgentBundle } from "../bundle.js";
 import { validateAgentsConfig, type AgentsConfigOf } from "../config/types.js";
-import type { Router } from "../routers/index.js";
-import {
-  defineTool,
-  mcpServer,
-  type AnyTool,
-  type Tool,
-  type ToolContext,
-} from "../tools/index.js";
-import { checkGraph, createContainer, dependencyTree } from "./container.js";
-import type { ToolHandler } from "./decorators.js";
-import { InjectionToken, type Class, type Token } from "./injection.js";
-import { ComponentError, componentOf, requireComponent, type ToolMeta } from "./metadata.js";
+import { mcpServer, type AnyTool } from "../tools/index.js";
+import { checkGraph, dependencyTree } from "./container.js";
+import { CORE_TOKENS, ragParts, toolBuilder } from "./runtime.js";
+import { ragClassesOf, ragMeta, ragSettings, searchToolName } from "./rag.js";
+import { type Class } from "./injection.js";
+import { ComponentError, componentOf, requireComponent } from "./metadata.js";
 import type { AgentMeta, BundleMeta } from "./meta-types.js";
-
-/** Core services a component can depend on. */
-export const ROUTER_FACTORY = new InjectionToken<(name: string) => Router>("ROUTER_FACTORY");
-export const ENV = new InjectionToken<NodeJS.ProcessEnv>("ENV");
-const CORE_TOKENS = [ROUTER_FACTORY, ENV];
-
-/**
- * A tool component instance as the core's tool (validation, timeout, errors to the model), typed
- * from its `run` — e.g. in tests: `toolOf(new GreenhouseJobs(fakeJudge, search, fakeFetch))`.
- */
-export function toolOf<TInput, TOutput>(instance: {
-  run(input: TInput, ctx: ToolContext): Promise<TOutput>;
-}): Tool<string, TInput, TOutput> {
-  const { meta } = requireComponent(instance.constructor as Class, "tool", "toolOf");
-  // The decorator's schemas are erased in metadata; `run` is what they validate for.
-  return adapt(instance, meta) as unknown as Tool<string, TInput, TOutput>;
-}
-
-const adapt = (
-  handler: ToolHandler<ToolMeta["input"], ToolMeta["output"]>,
-  meta: ToolMeta,
-): AnyTool =>
-  defineTool({
-    name: meta.name,
-    description: meta.description,
-    input: meta.input,
-    output: meta.output,
-    ...(meta.effect === undefined ? {} : { effect: meta.effect }),
-    ...(meta.timeoutMs === undefined ? {} : { timeoutMs: meta.timeoutMs }),
-    run: (input, ctx) => handler.run(input, ctx),
-  });
 
 async function promptOf(
   agent: AgentMeta,
@@ -78,11 +41,16 @@ function agentSettings(
     maxToolCalls: agent.maxToolCalls,
     reasoning: agent.reasoning,
   };
+  const search = (agent.rag ?? [])
+    .filter((b) => b.mode === "tool")
+    .map((b) => searchToolName(ragMeta(b.use)));
+  const rag = ragSettings(agent);
   return {
     model: agent.model,
     price: agent.price,
     description: agent.description,
-    tools: (agent.tools ?? []).map((cls) => names.get(cls) ?? cls.name),
+    tools: [...(agent.tools ?? []).map((cls) => names.get(cls) ?? cls.name), ...search],
+    ...(rag.length === 0 ? {} : { rag }),
     ...Object.fromEntries(Object.entries(optional).filter(([, value]) => value !== undefined)),
   };
 }
@@ -156,24 +124,6 @@ function configOf(
   };
 }
 
-/** Tools per run of the app: the container creates the tool instances with the core services. */
-const toolBuilder =
-  (bundle: BundleMeta, local: readonly Class[], mcp: Mcp) =>
-  (services: BundleServices): readonly AnyTool[] => {
-    const core = new Map<Token, unknown>([
-      [ROUTER_FACTORY, services.router],
-      [ENV, services.env ?? process.env],
-    ]);
-    const container = createContainer(bundle.providers ?? [], core);
-    const instances = local.map((cls) =>
-      adapt(
-        container.get(cls) as ToolHandler<ToolMeta["input"], ToolMeta["output"]>,
-        requireComponent(cls, "tool", "bundleOf").meta,
-      ),
-    );
-    return [...instances, ...mcp.facades.values()];
-  };
-
 /** Assembles a `@Bundle` class into the bundle the core runs (config, prompts, tools, MCP). */
 export async function bundleOf(bundleClass: Class): Promise<AgentBundle> {
   const { meta: bundle } = requireComponent(bundleClass, "bundle", "bundleOf");
@@ -182,7 +132,8 @@ export async function bundleOf(bundleClass: Class): Promise<AgentBundle> {
   );
   const tools = toolsOf(bundle, agents);
   const mcp = mcpOf(bundle, tools.mcp);
-  checkGraph(tools.local, bundle.providers ?? [], CORE_TOKENS);
+  const rags = ragClassesOf(bundle, agents);
+  checkGraph([...tools.local, ...rags], bundle.providers ?? [], CORE_TOKENS);
   const names = new Map<Class, string>([
     ...tools.local.map(
       (cls) => [cls, requireComponent(cls, "tool", "bundleOf").meta.name] as const,
@@ -197,11 +148,15 @@ export async function bundleOf(bundleClass: Class): Promise<AgentBundle> {
     ),
   );
   const config = configOf(bundle, agents, names, mcp);
-  validateAgentsConfig(config, [...names.values()]);
+  validateAgentsConfig(config, [
+    ...names.values(),
+    ...rags.map((cls) => searchToolName(ragMeta(cls))),
+  ]);
   return {
     config,
     prompts,
-    tools: toolBuilder(bundle, tools.local, mcp),
+    tools: toolBuilder(bundle, agents, tools.local, mcp.facades),
+    ...(rags.length === 0 ? {} : ragParts(bundle, agents, rags)),
     mcpServers: mcp.handles,
     toolDependencies: Object.fromEntries(
       tools.local.flatMap((cls) => {

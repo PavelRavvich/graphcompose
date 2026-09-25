@@ -83,6 +83,16 @@ export const AgentSettingsSchema = ModelSettingsSchema.extend({
   /** Crossing it fails the run (fail fast). Default: defaults.tools.maxToolCalls. */
   maxToolCalls: z.number().int().nonnegative().optional(),
   reasoning: ReasoningSettingsSchema.optional(),
+  /** Knowledge bases the agent uses (from `@Agent({ rag })`): name, mode and passages per retrieval. */
+  rag: z
+    .array(
+      z.object({
+        name: z.string(),
+        mode: z.enum(["tool", "context"]),
+        k: z.number().int().positive(),
+      }),
+    )
+    .optional(),
 });
 
 /** Jev (TypeSafe) via OpenRouter Decisions API: probabilities over options, exact cost. */

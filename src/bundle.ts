@@ -1,4 +1,5 @@
 import type { AgentPrompts, AgentsConfigOf } from "./config/types.js";
+import type { KnowledgeSource, RagConnector } from "./rag/types.js";
 import type { AnyTool, McpServerHandle } from "./tools/index.js";
 import type { Router } from "./routers/index.js";
 
@@ -22,6 +23,14 @@ export interface AgentBundle<TName extends string = string> {
   readonly prompts: AgentPrompts<TName>;
   readonly tools: BundleTools;
   readonly mcpServers: readonly McpServerHandle<string>[];
+  /** Context-mode knowledge bases per agent (retrieved before the agent runs). */
+  readonly knowledge?: (
+    services: BundleServices,
+  ) => ReadonlyMap<string, readonly KnowledgeSource[]>;
+  /** Every knowledge base of the bundle (for `npm run rag:index`). */
+  readonly knowledgeBases?: (
+    services: BundleServices,
+  ) => readonly { readonly name: string; readonly connector: RagConnector }[];
   /** Per tool: its constructor dependencies as a tree, e.g. `JobFitJudge (ROUTER_FACTORY), JOB_SEARCH`. */
   readonly toolDependencies?: Readonly<Record<string, string>>;
   /** Compaction prompt override (bundles with `compaction`). */
