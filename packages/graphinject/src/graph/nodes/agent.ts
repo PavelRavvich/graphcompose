@@ -5,7 +5,7 @@ import { systemMessageFor } from "../../llm/cache.js";
 import type { ModelBinding } from "../../llm/registry.js";
 import { renderAgentInput } from "../../prompts/agents.js";
 import { toLangChainTool, type AnyTool, type ToolContext } from "../../tools/index.js";
-import { formatContributions, formatMemory } from "../contributions.js";
+import { formatContributions, formatDecisionsForAgent, formatMemory } from "../contributions.js";
 import { AgentFailedError, QualityNotReachedError } from "../errors.js";
 import type { PendingApproval } from "../../pause/index.js";
 import { accountingMiddleware, approvalMiddleware } from "../middleware.js";
@@ -152,6 +152,7 @@ export function makeAgentNode(deps: AgentNodeDeps): AsyncNode<AgentStateType, Ag
         state.task,
         formatContributions(state.contributions),
         formatMemory(state, { summaries: agent.summariesLimit, turns: agent.historyLimit }),
+        formatDecisionsForAgent(state.approvals, state.next),
       );
     try {
       const { content, attempts } = await answer(pass, input);

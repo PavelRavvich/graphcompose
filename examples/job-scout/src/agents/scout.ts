@@ -1,5 +1,6 @@
 import { GreenhouseJobs } from "../tools/greenhouse-jobs.js";
 import { Agent } from "graphinject";
+import { CompanyNotes } from "../rag/company-notes.js";
 import { KIMI, KIMI_PRICE } from "../settings.js";
 
 @Agent({
@@ -11,6 +12,7 @@ import { KIMI, KIMI_PRICE } from "../settings.js";
   // ranking is Jev's job; the scout only filters and formats — no reasoning to pay for
   thinking: "none",
   tools: [GreenhouseJobs],
+  rag: [{ use: CompanyNotes, mode: "tool" }],
   prompt: new URL("./scout.prompt.md", import.meta.url),
 })
 export class Scout {}

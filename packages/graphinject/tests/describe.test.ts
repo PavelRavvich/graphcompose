@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { describeBundle } from "../src/cli/describe.js";
+import { describeWorkflow } from "../src/cli/describe.js";
 import { workflowOf } from "../src/components/index.js";
 import { defineTool } from "../src/tools/index.js";
 import { resolveTools, type AssembledWorkflow } from "../src/workflow.js";
@@ -18,13 +18,13 @@ const after = (lines: readonly string[], start: string): string[] => {
 
 describe("describe a workflow", () => {
   it("AC1: which agent can use which tool, with its kind and constructor dependencies — no keys, no network", () => {
-    const lines = after(describeBundle(greetings), "  greeter");
+    const lines = after(describeWorkflow(greetings), "  greeter");
 
     expect(
       lines.some((l) => l.includes("· greet (read, local) ← Greeter (GREETING, ROUTER_FACTORY)")),
     ).toBe(true);
     expect(lines.some((l) => l.includes("· files__read (read, MCP files)"))).toBe(true);
-    expect(after(describeBundle(test), "  coder")).toContain("    tools: none");
+    expect(after(describeWorkflow(test), "  coder")).toContain("    tools: none");
   });
 
   it("AC1: marks tools that wait for a human when the pause seam is on", () => {
@@ -34,13 +34,13 @@ describe("describe a workflow", () => {
     };
 
     expect(
-      describeBundle(paused).some((l) => l.includes("· greet (read, local, waits for approval)")),
+      describeWorkflow(paused).some((l) => l.includes("· greet (read, local, waits for approval)")),
     ).toBe(true);
-    expect(describeBundle(paused)).toContain("pause     on — marked tools wait for a human");
+    expect(describeWorkflow(paused)).toContain("pause     on — marked tools wait for a human");
   });
 
   it("AC2: settings of the workflow and of each agent; the profile in the header", () => {
-    const lines = describeBundle(test);
+    const lines = describeWorkflow(test);
 
     expect(lines[0]).toBe("test-workflow 1.0.0");
     expect(lines).toContain("guards    input: prompt_injection ≥0.7 · output: pii ≥0.7");
@@ -57,7 +57,7 @@ describe("describe a workflow", () => {
         l.includes("reasoning: threshold 0.8 · 3 attempts [low, medium, high] · best"),
       ),
     ).toBe(true);
-    expect(describeBundle(test, "fast")[0]).toBe("test-workflow 1.0.0 (profile fast)");
+    expect(describeWorkflow(test, "fast")[0]).toBe("test-workflow 1.0.0 (profile fast)");
   });
 
   it("AC3: tools nobody can use, and tools an agent names but the catalog lacks", () => {
@@ -79,7 +79,7 @@ describe("describe a workflow", () => {
       },
     };
 
-    const lines = describeBundle(workflow);
+    const lines = describeWorkflow(workflow);
 
     expect(lines.at(-1)).toBe("unassigned tools: extra");
     expect(after(lines, "  coder")).toContain("    · ghost (not in the catalog)");

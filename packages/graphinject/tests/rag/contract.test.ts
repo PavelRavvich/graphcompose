@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { WorkflowServices } from "../../src/workflow.js";
 import { resolveTools } from "../../src/workflow.js";
 import { workflowOf } from "../../src/components/index.js";
-import { describeBundle } from "../../src/cli/describe.js";
+import { describeWorkflow } from "../../src/cli/describe.js";
 import type { ToolContext } from "../../src/tools/index.js";
 import { bundleWith, Handbook, HandbookFromApi } from "./fixture.js";
 
@@ -41,7 +41,7 @@ describe("knowledge bases — contract", () => {
       },
     });
     expect(costs).toEqual([0.0002]);
-    expect(describeBundle(bundle)).toContain("    rag: handbook (tool, k 2)");
+    expect(describeWorkflow(bundle)).toContain("    rag: handbook (tool, k 2)");
   });
 
   it("AC1: context mode gives the agent a source retrieving top-k; the index list has every base", async () => {
