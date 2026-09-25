@@ -64,7 +64,7 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd 
     prompts: { alpha: "You are alpha.", beta: "You are beta." },
     terns: createSqliteTernStore(":memory:"),
     guards: NO_GUARDS,
-    reviewers: new Map(),
+    judges: new Map(),
     tools: (name) =>
       name === "paid_search" ? paidSearch(toolCostUsd) : toolRegistry.get(name as never),
     ledger,

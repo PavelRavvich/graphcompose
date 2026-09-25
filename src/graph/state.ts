@@ -2,6 +2,7 @@ import { Annotation } from "@langchain/langgraph";
 import type { UsageRecord } from "../finops/usage.js";
 import type { ApprovalRecord, PendingApproval } from "../pause/index.js";
 import type { Contribution, HistoryTurn } from "./contributions.js";
+import type { AttemptRecord } from "./nodes/attempts.js";
 
 /** Router decision meaning "stop and produce the answer". */
 export const FINISH = "finish";
@@ -34,6 +35,8 @@ export const AgentState = Annotation.Root({
     reducer: (_previous, next) => next,
     default: () => null,
   }),
+  /** Quality-gated attempts of agents with `reasoning`. */
+  attempts: Annotation<AttemptRecord[]>({ reducer: append, default: () => [] }),
   /** Human decisions on tool calls in this run. */
   approvals: Annotation<ApprovalRecord[]>({ reducer: append, default: () => [] }),
   /** Name of the guard that stopped the run, "" if none. */

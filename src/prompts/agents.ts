@@ -13,19 +13,32 @@ export const agentSystemPrompts: AgentPrompts<AgentName> = {
 export const renderAgentInput = (task: string, contributions: string, history = ""): string =>
   `${history}Task:\n${task}\n\nPrevious contributions:\n${contributions}`;
 
-/** Review: asked to the review router after an agent answers. */
-export const REVIEW_QUESTION = "Does this answer need another pass to be correct and complete?";
-export const REVISE_OPTION = "The answer is wrong, incomplete or unclear and should be improved.";
-export const ACCEPT_OPTION = "The answer is correct and complete as it is.";
-export const REVISE_INSTRUCTION =
-  "Improve your previous answer: fix mistakes, fill gaps, keep what is right. Reply with the full improved answer.";
+/** Reasoning: the judge scores each attempt; criteria give feedback for the next one. */
+export const QUALITY_QUESTION = "Is this answer good enough for the task?";
+export const GOOD_OPTION = "Correct, complete and directly usable for the task.";
+export const NOT_GOOD_OPTION = "Wrong, incomplete, unclear or not directly usable.";
+export const DEFAULT_CRITERIA: readonly string[] = [
+  "The answer is correct.",
+  "The answer fully addresses the task.",
+  "The answer is clear and directly usable.",
+];
+export const MEETS_OPTION = "The answer meets it.";
+export const MISSES_OPTION = "The answer does not meet it.";
+export const criterionQuestion = (criterion: string): string =>
+  `Does the answer meet this criterion: ${criterion}`;
+export const IMPROVE_INSTRUCTION =
+  "Improve your previous answer: fix what the reviewer flagged, keep what is right. Reply with the full improved answer.";
 
-/** Review texts — part of the prompt version. */
-export const reviewPromptTexts: readonly string[] = [
-  REVIEW_QUESTION,
-  REVISE_OPTION,
-  ACCEPT_OPTION,
-  REVISE_INSTRUCTION,
+/** Reasoning texts — part of the prompt version. */
+export const reasoningPromptTexts: readonly string[] = [
+  QUALITY_QUESTION,
+  GOOD_OPTION,
+  NOT_GOOD_OPTION,
+  ...DEFAULT_CRITERIA,
+  criterionQuestion(""),
+  MEETS_OPTION,
+  MISSES_OPTION,
+  IMPROVE_INSTRUCTION,
 ];
 
 /** Tool result shown to the model while a human decides; the loop then stops. */

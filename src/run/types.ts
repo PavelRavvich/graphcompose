@@ -1,6 +1,7 @@
 import type { SpendLedger } from "../finops/ledger.js";
 import type { CostReport } from "../finops/usage.js";
 import type { GraphDeps } from "../graph/graph.js";
+import type { AttemptRecord } from "../graph/nodes/attempts.js";
 import type { PendingApproval } from "../pause/index.js";
 import type { TernStore } from "../terns/index.js";
 import type { RunTracing } from "../tracing/index.js";
@@ -40,6 +41,8 @@ export interface AgentRunResult {
   readonly cost: CostReport;
   readonly threadId: string;
   readonly ternId: string;
+  /** Quality-gated attempts (agents with `reasoning`), when any were made. */
+  readonly attempts?: readonly AttemptRecord[];
   /** The conversation in the tracing UI (session = thread), when tracing is on. */
   readonly traceUrl?: string;
   /** Checkpoint id of this run — used to resume a paused run. */

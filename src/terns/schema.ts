@@ -16,6 +16,8 @@ const MIGRATIONS: readonly string[] = [
    CREATE INDEX terns_version ON terns(bundle, prompt_version);
    CREATE TABLE scores (tern_id TEXT NOT NULL REFERENCES terns(id), judge TEXT NOT NULL,
      score REAL NOT NULL, created_at TEXT NOT NULL);`,
+  // 2 — reasoning attempts (#79)
+  `ALTER TABLE terns ADD COLUMN attempts TEXT NOT NULL DEFAULT '[]';`,
 ];
 
 const TernRow = z.object({
@@ -33,9 +35,20 @@ const TernRow = z.object({
   prompt_version: z.string(),
   model_version: z.string(),
   replay_of: z.string().nullable(),
+  attempts: z.string(),
 });
 
 const Route = z.array(z.string());
+const Attempts = z.array(
+  z.object({
+    agent: z.string(),
+    attempt: z.number(),
+    thinking: z.string(),
+    score: z.number().nullable(),
+    returned: z.boolean(),
+    reason: z.enum(["threshold", "best", "last"]).optional(),
+  }),
+);
 const Steps = z.array(z.object({ agent: z.string(), content: z.string() }));
 
 const SummaryRow = z.object({
@@ -64,6 +77,7 @@ export function toTern(row: unknown): Tern {
     promptVersion: r.prompt_version,
     modelVersion: r.model_version,
     replayOf: r.replay_of,
+    attempts: Attempts.parse(JSON.parse(r.attempts)),
   };
 }
 

@@ -48,7 +48,7 @@ A ticket is not done until `make check` is green.
 - `router` — graph adapter around an isolated `Router` (Jev by default) that picks the next agent
   or `finish` (answered, waiting for the user, or impossible); stops on `maxHops` or budget before
   spending. The first hop always goes to an agent.
-- `agent` — the chosen agent's loop (`createAgent`): own model, prompt, tools, optional `review`.
+- `agent` — the chosen agent's loop (`createAgent`): own model, prompt, tools, optional `reasoning` (quality-gated attempts judged by Jev).
 - `input_guards` / `output_guards` — Jev yes/no checks; a trip returns the guard's refusal.
 - `approval` — only with a pause seam: a write tool waits for a human (`resumeAgent`).
 - Every turn: spend to the daily ledger, a Tern to SQLite, financials in the result, optional
@@ -102,7 +102,7 @@ src/
   finops/       usage records, cost report, daily ledger
   eval/         Jev judge, eval and replay CLIs
   tracing/      optional run tracing (self-hosted Langfuse)
-  prompts/      agent, routing, guard and review texts
+  prompts/      agent, routing, guard and reasoning texts
   cli/          terminal helpers: approval, keys, multi-line input, spinner, cost output
   demos/        demo bundles (company-assistant, job-scout) — removable
   types/        shared type utilities (Brand)

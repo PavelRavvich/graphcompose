@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { attemptsLines } from "../src/cli/approve.js";
 import { costSummary, costTotal, costTrace } from "../src/cli/finops.js";
 import { buildCostReport, recordToolCost } from "../src/finops/usage.js";
 import { usageRecord } from "./helpers.js";
@@ -33,5 +34,34 @@ describe("CLI cost output", () => {
     expect(lines[2]).toMatch(
       /^ 3\. tool:exchange_rate\s+exchange_rate\s+\$0\.001000\s+tool-reported$/,
     );
+  });
+
+  it("AC5: shows attempts per agent with more than one, and which was returned", () => {
+    const result = {
+      attempts: [
+        { agent: "coder", attempt: 1, thinking: "low", score: 0.62, returned: false },
+        { agent: "coder", attempt: 2, thinking: "medium", score: null, returned: false },
+        {
+          agent: "coder",
+          attempt: 3,
+          thinking: "high",
+          score: 0.79,
+          returned: true,
+          reason: "best" as const,
+        },
+        {
+          agent: "researcher",
+          attempt: 1,
+          thinking: "low",
+          score: 0.9,
+          returned: true,
+          reason: "threshold" as const,
+        },
+      ],
+    };
+
+    expect(attemptsLines(result as never)).toEqual([
+      "coder attempts: 0.62 → ? → 0.79 · returned #3 (best)",
+    ]);
   });
 });

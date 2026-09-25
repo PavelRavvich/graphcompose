@@ -9,6 +9,7 @@ export {
   type Tern,
   type TernStatus,
   type TernStep,
+  type TernAttempt,
   type TernOutcome,
   type TernStore,
   type VersionScore,

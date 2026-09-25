@@ -17,6 +17,7 @@ const tern = (overrides: Partial<NewTern> = {}): NewTern => ({
   promptVersion: "p1",
   modelVersion: "m1",
   replayOf: null,
+  attempts: [],
   ...overrides,
 });
 
@@ -88,5 +89,42 @@ describe("SQLite Tern store", () => {
 
     expect(await second.hasThread("b", thread)).toBe(true);
     second.close();
+  });
+
+  it("AC5: migration 2 upgrades an old database — existing Terns get no attempts, new ones keep theirs", async () => {
+    const path = join(await mkdtemp(join(tmpdir(), "terns-")), "old.sqlite");
+    const { DatabaseSync } = await import("node:sqlite");
+    const old = new DatabaseSync(path);
+    old.exec(`CREATE TABLE threads (id TEXT PRIMARY KEY, bundle TEXT NOT NULL, created_at TEXT NOT NULL);
+      CREATE TABLE terns (id TEXT PRIMARY KEY, thread_id TEXT NOT NULL REFERENCES threads(id), bundle TEXT NOT NULL,
+        created_at TEXT NOT NULL, task TEXT NOT NULL, answer TEXT NOT NULL, status TEXT NOT NULL,
+        stop_reason TEXT NOT NULL, route TEXT NOT NULL, steps TEXT NOT NULL, cost_usd REAL NOT NULL,
+        prompt_version TEXT NOT NULL, model_version TEXT NOT NULL, replay_of TEXT);
+      CREATE TABLE scores (tern_id TEXT NOT NULL, judge TEXT NOT NULL, score REAL NOT NULL, created_at TEXT NOT NULL);
+      INSERT INTO threads VALUES ('t', 'b', '2026-01-01');
+      INSERT INTO terns VALUES ('old', 't', 'b', '2026-01-01', 'q', 'a', 'answered', 'done', '[]', '[]', 0, 'p', 'm', NULL);
+      PRAGMA user_version = 1;`);
+    old.close();
+
+    const store = createSqliteTernStore(path);
+    const fresh = await store.append(
+      tern({
+        threadId: "t",
+        attempts: [
+          {
+            agent: "alpha",
+            attempt: 1,
+            thinking: "low",
+            score: 0.9,
+            returned: true,
+            reason: "threshold",
+          },
+        ],
+      }),
+    );
+
+    expect((await store.byIds(["old"]))[0]?.attempts).toEqual([]);
+    expect((await store.byIds([fresh.id]))[0]?.attempts).toHaveLength(1);
+    store.close();
   });
 });

@@ -17,8 +17,8 @@ export type ModelFactory = (settings: ResolvedModelSettings) => BaseChatModel;
 /** Chat models of the agents. The router is built separately (see src/routing). */
 export interface ModelRegistry {
   readonly agents: ReadonlyMap<string, ModelBinding>;
-  /** For agents with `review`: the same model with `thinkingOnRetry`. */
-  readonly retries: ReadonlyMap<string, ModelBinding>;
+  /** For agents with `reasoning`: the model per attempt (thinking from the attempt's level). */
+  readonly attempts: ReadonlyMap<string, readonly ModelBinding[]>;
 }
 
 export function resolveSettings(
@@ -57,12 +57,21 @@ export function createModelRegistry(
   const agents = new Map(
     Object.entries(config.agents).map(([name, settings]) => [name, bind(settings)] as const),
   );
-  const retries = new Map(
-    Object.entries(config.agents).flatMap(([name, settings]) =>
-      settings.review === undefined
-        ? []
-        : [[name, bind({ ...settings, thinking: settings.review.thinkingOnRetry })] as const],
-    ),
+  const attempts = new Map(
+    Object.entries(config.agents).flatMap(([name, settings]) => {
+      const reasoning = settings.reasoning;
+      if (reasoning === undefined) return [];
+      const levels = Array.from(
+        { length: reasoning.maxAttempts },
+        (_, i) => reasoning.thinking[Math.min(i, reasoning.thinking.length - 1)] ?? "default",
+      );
+      const byLevel = new Map(
+        [...new Set(levels)].map(
+          (level) => [level, bind({ ...settings, thinking: level })] as const,
+        ),
+      );
+      return [[name, levels.map((level) => byLevel.get(level) ?? bind(settings))] as const];
+    }),
   );
-  return { agents, retries };
+  return { agents, attempts };
 }

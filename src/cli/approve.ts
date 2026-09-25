@@ -36,6 +36,25 @@ export function threadLine(result: AgentRunResult): string {
     : `thread ${result.threadId} · ${result.traceUrl}`;
 }
 
+/** Per agent with more than one attempt: `coder attempts: 0.62 → 0.74 → 0.79 · returned #3 (best)`. */
+export function attemptsLines(result: AgentRunResult): string[] {
+  const byAgent = new Map<string, NonNullable<AgentRunResult["attempts"]>[number][]>();
+  for (const attempt of result.attempts ?? []) {
+    byAgent.set(attempt.agent, [...(byAgent.get(attempt.agent) ?? []), attempt]);
+  }
+  return [...byAgent.entries()]
+    .filter(([, attempts]) => attempts.length > 1)
+    .map(([agent, attempts]) => {
+      const scores = attempts.map((a) => (a.score === null ? "?" : a.score.toFixed(2))).join(" → ");
+      const returned = attempts.find((a) => a.returned);
+      const which =
+        returned === undefined
+          ? ""
+          : ` · returned #${String(returned.attempt)} (${returned.reason ?? "?"})`;
+      return `${agent} attempts: ${scores}${which}`;
+    });
+}
+
 /** One line under an answer: route and why the run stopped. */
 export function summaryLine(result: AgentRunResult): string {
   const route = result.route.length > 0 ? result.route.join(" → ") : "(none)";

@@ -4,7 +4,7 @@ import { createInterface } from "node:readline";
 import { parseArgs } from "node:util";
 import { createAppDeps } from "./app.js";
 import { bundleNamed } from "./bundles.js";
-import { summaryLine, threadLine, untilDone } from "./cli/approve.js";
+import { attemptsLines, summaryLine, threadLine, untilDone } from "./cli/approve.js";
 import { costSummary, costTotal, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
 import { withSpinner } from "./cli/spinner.js";
@@ -40,6 +40,7 @@ const result = await busy(() => runAgent(input, deps))
 process.stdout.write(`${result.answer}\n`);
 process.stderr.write(`${threadLine(result)}  (continue with --thread ${result.threadId})\n`);
 process.stderr.write(`config: ${values.config} | ${summaryLine(result)}\n`);
+attemptsLines(result).forEach((line) => process.stderr.write(`${line}\n`));
 process.stderr.write(`cost: ${costSummary(result.cost)}\n`);
 costTrace(result.cost).forEach((line) => process.stderr.write(`  ${line}\n`));
 process.stderr.write(`${costTotal(result.cost)}\n`);

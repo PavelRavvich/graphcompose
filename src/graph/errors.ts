@@ -14,6 +14,32 @@ export class PaidStepError extends Error {
   }
 }
 
+/** `onExhausted: "fail"`: no attempt reached the threshold — the run fails, spend recorded. */
+export class QualityNotReachedError extends PaidStepError {
+  override name = "QualityNotReachedError";
+  readonly agent: string;
+  readonly bestScore: number | undefined;
+
+  constructor(
+    agent: string,
+    usage: readonly UsageRecord[],
+    detail: {
+      readonly bestScore: number | undefined;
+      readonly threshold: number;
+      readonly attempts: number;
+    },
+  ) {
+    const best = detail.bestScore === undefined ? "none" : detail.bestScore.toFixed(2);
+    super(
+      `Agent "${agent}": quality not reached — best ${best} < ${String(detail.threshold)} after ${String(detail.attempts)} attempts`,
+      usage,
+      undefined,
+    );
+    this.agent = agent;
+    this.bestScore = detail.bestScore;
+  }
+}
+
 /** An agent's loop failed. */
 export class AgentFailedError extends PaidStepError {
   override name = "AgentFailedError";
