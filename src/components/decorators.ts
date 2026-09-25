@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import type { McpServerConfig } from "../config/types.js";
+import type { RagConnector } from "../rag/types.js";
 import type { ToolContext, ToolEffect } from "../tools/index.js";
 import type { Class, ResolvedAll, Token } from "./injection.js";
 import { recordComponent } from "./metadata.js";
@@ -64,6 +65,22 @@ export function McpTool(options: {
 }) {
   return <C extends Class>(value: C): C => {
     recordComponent(value, { kind: "mcp-tool", meta: options });
+    return value;
+  };
+}
+
+/**
+ * A knowledge base: a class implementing `RagConnector`. `k` (passages per retrieval) is required —
+ * there is no default. Agents bind it with a required `mode`: `rag: [{ use: CompanyDocs, mode: "tool" }]`.
+ */
+export function Rag<const D extends readonly Token[] = []>(options: {
+  readonly name: string;
+  readonly description: string;
+  readonly k: number;
+  readonly deps?: D;
+}) {
+  return <C extends new (...args: ResolvedAll<D>) => RagConnector>(value: C): C => {
+    recordComponent(value, { kind: "rag", meta: { ...options, deps: options.deps ?? [] } });
     return value;
   };
 }

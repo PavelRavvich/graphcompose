@@ -1,5 +1,6 @@
 import { MemorySaver } from "@langchain/langgraph";
-import { resolveTools, type AgentBundle } from "./bundle.js";
+import { resolveTools, type AgentBundle, type BundleServices } from "./bundle.js";
+import type { KnowledgeSource } from "./rag/types.js";
 import { ResearchCoder } from "./bundles/research-coder/research-coder.bundle.js";
 import { bundleOf } from "./components/index.js";
 import { resolveRouterModel, validateAgentsConfig, type AgentsConfigOf } from "./config/types.js";
@@ -49,12 +50,25 @@ const evaluationFor = (
   account: { key: `${config.name}:eval`, dailyCap: config.budget.evalBudgetCap },
 });
 
-/** Bundle tools; factories get a router on the bundle's default router model (Jev). */
-const toolsFor = (bundle: AgentBundle, factories: RouterFactories): readonly AnyTool[] =>
-  resolveTools(bundle, {
-    router: (name) =>
-      createRouter(name, bundle.config.defaults.router, bundle.config.defaults.chat, factories),
-  });
+/** Core services for the bundle's components; one object, so tools and knowledge share instances. */
+const servicesFor = (
+  bundle: AgentBundle,
+  factories: RouterFactories,
+  env: NodeJS.ProcessEnv,
+): BundleServices => ({
+  router: (name) =>
+    createRouter(name, bundle.config.defaults.router, bundle.config.defaults.chat, factories),
+  env,
+});
+
+/** Context-mode knowledge bases per agent, when the bundle has any. */
+function knowledgeFor(
+  bundle: AgentBundle,
+  services: BundleServices,
+): { readonly knowledge?: (agent: string) => readonly KnowledgeSource[] } {
+  const byAgent = bundle.knowledge?.(services);
+  return byAgent === undefined ? {} : { knowledge: (agent) => byAgent.get(agent) ?? [] };
+}
 
 const pauseFor = (bundle: AgentBundle): AppDeps["pause"] =>
   bundle.needsApproval === undefined
@@ -140,7 +154,8 @@ export async function createAppDeps(
   const connection = readOpenRouterEnv(env);
   const chatModel: ModelFactory = (settings) => createChatModel(settings, connection);
   const factories = { chatModel, jevClient: createJevClient(connection) };
-  const tools = toolsFor(bundle, factories);
+  const services = servicesFor(bundle, factories, env);
+  const tools: readonly AnyTool[] = resolveTools(bundle, services);
   const config = validateAgentsConfig(
     bundle.config,
     tools.map((tool) => tool.name),
@@ -166,6 +181,7 @@ export async function createAppDeps(
     tools: toolLookup(tools),
     pause: pauseFor(bundle),
     compactionPrompt: bundle.compactionPrompt,
+    ...knowledgeFor(bundle, services),
     ledger,
     terns,
     evaluation: evaluationFor(config, { terns, ledger }, factories),

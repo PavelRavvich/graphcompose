@@ -6,6 +6,7 @@ import { Notes } from "./agents/notes.js";
 import { Researcher } from "./agents/researcher.js";
 import { DocsServer } from "./mcp/docs.js";
 import { DEFAULT_NOTES_FILE, DOCS_DIR } from "./paths.js";
+import { DOCS_INDEX, docsIndex } from "./rag/company-docs.js";
 import { NOTES_FILE } from "./tools/notes.js";
 
 /** A new joiner's helper at Nimbus Labs — docs over MCP, notes, coder; a bit of everything. */
@@ -22,7 +23,10 @@ const assistant = {
   },
   agents: [Researcher, Notes, Coder],
   mcp: [DocsServer],
-  providers: [{ provide: NOTES_FILE, useValue: DEFAULT_NOTES_FILE }],
+  providers: [
+    { provide: NOTES_FILE, useValue: DEFAULT_NOTES_FILE },
+    { provide: DOCS_INDEX, useValue: docsIndex },
+  ],
   promptVariables: { docsDir: DOCS_DIR },
 };
 

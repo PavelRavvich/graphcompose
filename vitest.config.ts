@@ -11,6 +11,7 @@ export default defineConfig({
       exclude: [
         "src/cli.ts",
         "src/describe.ts",
+        "src/rag-index.ts",
         "src/chat.ts",
         "src/cli/ask.ts",
         "src/studio.ts",

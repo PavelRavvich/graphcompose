@@ -43,24 +43,32 @@ function bundleLines(bundle: AgentBundle): string[] {
   ];
 }
 
+/** An agent's reasoning and knowledge bases, when it has them. */
+function settingsLines(agent: AgentBundle["config"]["agents"][string]): string[] {
+  const r = agent.reasoning;
+  const reasoning =
+    r === undefined
+      ? []
+      : [
+          `    reasoning: threshold ${String(r.threshold)} · ${String(r.maxAttempts)} attempts [${r.thinking.map(thinkingLabel).join(", ")}] · ${r.onExhausted ?? "best"}`,
+        ];
+  return [
+    ...reasoning,
+    ...(agent.rag ?? []).map((kb) => `    rag: ${kb.name} (${kb.mode}, k ${String(kb.k)})`),
+  ];
+}
+
 function agentLines(bundle: AgentBundle, tools: ReadonlyMap<string, AnyTool>): string[] {
   const c = bundle.config;
   const defaultSummaries = c.defaults.history.summaries ?? c.compaction?.keep ?? 0;
   return Object.entries(c.agents).flatMap(([name, agent]) => {
     const summaries = c.compaction === undefined ? 0 : (agent.historySummaries ?? defaultSummaries);
     const history = `history ${String(agent.historyLimit ?? c.defaults.history.limit)} turns${summaries > 0 ? ` + ${String(summaries)} summaries` : ""}`;
-    const r = agent.reasoning;
-    const reasoning =
-      r === undefined
-        ? []
-        : [
-            `    reasoning: threshold ${String(r.threshold)} · ${String(r.maxAttempts)} attempts [${r.thinking.map(thinkingLabel).join(", ")}] · ${r.onExhausted ?? "best"}`,
-          ];
     const own = (agent.tools ?? []).map((t) => tools.get(t));
     return [
       `  ${name}  ${agent.model} · thinking ${thinkingLabel(agent.thinking ?? c.defaults.chat.thinking)} · ${history}`,
       `    ${agent.description}`,
-      ...reasoning,
+      ...settingsLines(agent),
       ...(own.length === 0
         ? ["    tools: none"]
         : own.map(

@@ -1,6 +1,6 @@
 import { HumanMessage } from "@langchain/core/messages";
 import { createAgent, toolCallLimitMiddleware, type AgentMiddleware } from "langchain";
-import { recordToolCost, totalCost, type UsageRecord } from "../../finops/usage.js";
+import { recordReportedCost, totalCost, type UsageRecord } from "../../finops/usage.js";
 import { systemMessageFor } from "../../llm/cache.js";
 import type { ModelBinding } from "../../llm/registry.js";
 import { renderAgentInput } from "../../prompts/agents.js";
@@ -10,7 +10,9 @@ import { AgentFailedError, QualityNotReachedError } from "../errors.js";
 import type { PendingApproval } from "../../pause/index.js";
 import { accountingMiddleware, approvalMiddleware } from "../middleware.js";
 import type { AgentStateType, AgentStateUpdate } from "../state.js";
+import type { KnowledgeSource } from "../../rag/types.js";
 import { runAttempts, type AgentReasoning, type AttemptRecord } from "./attempts.js";
+import { gatherKnowledge } from "./knowledge.js";
 import type { AsyncNode } from "../types.js";
 
 /** Everything needed to run one configured agent. */
@@ -23,6 +25,8 @@ export interface AgentDefinition {
   readonly summariesLimit: number;
   /** Quality-gated attempts (config `reasoning`). */
   readonly reasoning?: AgentReasoning | undefined;
+  /** Context-mode knowledge bases: retrieved before the loop. */
+  readonly knowledge?: readonly KnowledgeSource[];
 }
 
 export interface AgentNodeDeps {
@@ -58,7 +62,7 @@ function toolContext(pass: Pass, tool: AnyTool): ToolContext {
     agent: pass.state.next,
     signal: new AbortController().signal,
     reportCost: (usd) => {
-      pass.records.push(recordToolCost(tool.name, usd));
+      pass.records.push(recordReportedCost(tool, usd));
     },
   };
 }
@@ -136,15 +140,19 @@ async function answer(
  * review. Crossing maxToolCalls fails fast; the spend travels with the failure to the ledger.
  */
 export function makeAgentNode(deps: AgentNodeDeps): AsyncNode<AgentStateType, AgentStateUpdate> {
-  return async (state) => {
+  return async (state, config) => {
     const agent = deps.agents.get(state.next);
     if (agent === undefined) throw new UnknownAgentError(state.next);
     const pass: Pass = { state, agent, deps, records: [], pending: {} };
-    const input = renderAgentInput(
-      state.task,
-      formatContributions(state.contributions),
-      formatMemory(state, { summaries: agent.summariesLimit, turns: agent.historyLimit }),
-    );
+    const knowledge = await gatherKnowledge(agent.knowledge ?? [], state.task, config);
+    pass.records.push(...knowledge.records);
+    const input =
+      knowledge.block +
+      renderAgentInput(
+        state.task,
+        formatContributions(state.contributions),
+        formatMemory(state, { summaries: agent.summariesLimit, turns: agent.historyLimit }),
+      );
     try {
       const { content, attempts } = await answer(pass, input);
       const pending = pass.pending.value;

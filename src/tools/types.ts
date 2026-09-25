@@ -27,6 +27,8 @@ export interface Tool<TName extends string = string, TInput = unknown, TOutput =
   readonly input: z.ZodType<TInput>;
   readonly output: z.ZodType<TOutput>;
   readonly invoke: (raw: unknown, ctx: ToolContext) => Promise<ToolResult<TOutput>>;
+  /** Who reported costs are billed to (default `tool:<name>`), e.g. `rag:<name>` → category retrieval. */
+  readonly costCaller?: string;
 }
 
 export type AnyTool = Tool;

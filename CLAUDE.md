@@ -58,6 +58,8 @@ A ticket is not done until `make check` is green.
 - Components, Angular style (Wiki → Components): annotated classes, one per file, folders by kind
   (`agents/`, `tools/`, `mcp/`); a `@Bundle` module lists them by class reference; dependencies
   through the constructor, declared in `deps` (compiler-checked); prompts in `*.prompt.md`.
+- Knowledge bases: a `@Rag` class implementing `RagConnector` in `rag/`, bound by agents with
+  `rag: [{ use, mode: "tool" | "context" }]` (Wiki → Knowledge bases).
 - Add a tool: a `@Tool` class in `tools/`, referenced from an agent. Add an agent: `agents/<name>.ts`
   - `<name>.prompt.md`, listed in `@Bundle`. Another set of agents: a folder with a `*.bundle.ts`,
     registered in `src/bundles.ts`. Test tools with `toolOf(new Tool(fakes))` — no container.
@@ -97,7 +99,8 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 ```
 src/
   config/       typed config schema, profiles (YAML overlays), defaults resolution
-  components/   @Tool @Agent @McpServer @McpTool @Injectable @Bundle, DI container, assembly (bundleOf)
+  components/   @Tool @Agent @McpServer @McpTool @Rag @Injectable @Bundle, DI container, assembly (bundleOf)
+  rag/          knowledge-base contract (RagConnector) + reference SQLite FTS5 connector
   bundles/      the project's agents (research-coder/: agents/, *.prompt.md, *.bundle.ts), shared.ts
   graph/        state, routing, assembly, middleware, errors; nodes/ (guards, router, agent, approval, finalize)
   llm/          OpenRouter chat factory (thinking), Jev client, cache breakpoints, registry
