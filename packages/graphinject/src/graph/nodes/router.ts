@@ -1,6 +1,6 @@
 import { totalCost } from "../../finops/usage.js";
 import type { RouteOption, Router } from "../../routers/index.js";
-import { formatHumanDecisions, formatMemory, renderRouteInput } from "../contributions.js";
+import { formatMemory, renderRouteInput } from "../contributions.js";
 import { FINISH, type AgentStateType, type AgentStateUpdate } from "../state.js";
 import type { AsyncNode } from "../types.js";
 
@@ -14,8 +14,12 @@ export interface RouterNodeDeps {
 }
 
 /** Guards checked before spending money on a routing call. */
+export const AFTER_HUMAN_DECISION = "the agent answered after the human decision";
+
 function stopReason(state: AgentStateType, deps: RouterNodeDeps): string | undefined {
   if (state.hops >= deps.maxHops) return "max hops reached";
+  // approval → agent → router: the agent has answered after the human decision — the turn ends (#100)
+  if (state.approvals.length > 0) return AFTER_HUMAN_DECISION;
   if (totalCost(state.usage) >= Math.min(deps.maxCostUsd, state.budgetUsd)) {
     return "budget exhausted";
   }
@@ -38,7 +42,6 @@ export function makeRouterNode(deps: RouterNodeDeps): AsyncNode<AgentStateType, 
         state.task,
         state.contributions,
         formatMemory(state, { summaries: deps.summariesLimit, turns: deps.historyLimit }),
-        formatHumanDecisions(state.approvals),
       ),
       options: optionsFor(state, deps),
     });
