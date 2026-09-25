@@ -2,7 +2,16 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist", "**/coverage", "**/node_modules", ".artifacts", "packages/*/bin"] },
+  {
+    ignores: [
+      "**/dist",
+      "**/coverage",
+      "**/node_modules",
+      ".artifacts",
+      "packages/*/bin",
+      "**/.scaffold-tmp",
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,

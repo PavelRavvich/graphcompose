@@ -22,6 +22,7 @@
   "files": [
     "bin",
     "dist",
+    "templates",
     "schema",
     "README.md"
   ],
@@ -35,6 +36,7 @@
     "schema": "tsx src/config/write-profile-schema.ts"
   },
   "dependencies": {
+    "@inquirer/prompts": "^8.7.2",
     "@langchain/core": "^1.2.12",
     "@langchain/langgraph": "^1.4.17",
     "@langchain/openai": "^1.5.13",
@@ -49,9 +51,10 @@
     "dotenv": "^18.0.3",
     "langchain": "^1.5.12",
     "langsmith": "^0.10.5",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3",
     "yaml": "^2.9.1",
-    "zod": "^4.6.5",
-    "tsx": "^4.19.0"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@modelcontextprotocol/server-filesystem": "^2026.8.31"

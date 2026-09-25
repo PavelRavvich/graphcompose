@@ -10,3 +10,5 @@ coverage/
 # LangGraph API
 .langgraph_api
 packages/*/dist
+packages/*/.scaffold-tmp
+*.tgz

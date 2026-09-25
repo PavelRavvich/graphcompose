@@ -75,6 +75,31 @@ export const COMMANDS: Readonly<Record<string, CommandHelp>> = {
     usage: "gc rag:index --workflow <path> [--kb <name>]",
     options: [WORKFLOW, ["--kb <name>", "only this knowledge base"]],
   },
+  create: {
+    summary: "a new project from a short questionnaire (alias c)",
+    usage:
+      'gc create <name> [--agents "a:role,…"] [--tools "a:tool,…"] [--mcp …] [--rag …] [--yes] [--skip-install]',
+    options: [
+      ["--agents <list>", 'agents and roles: "triage:Sorts requests,answerer:Answers"'],
+      ["--tools <list>", 'tools per agent: "answerer:search_orders,answerer:refund"'],
+      ["--mcp <spec>", "none | filesystem:<dir> | command:<cmd>:<tool>"],
+      ["--rag <folder>", "none | a folder of notes to search"],
+      ["--yes, -y", "no questions: defaults for anything not given"],
+      ["--skip-install", "do not run npm install"],
+    ],
+  },
+  generate: {
+    summary: "add a workflow, agent, tool, MCP server or knowledge base, wired (alias g)",
+    usage: "gc generate <workflow|agent|tool|mcp|rag> <name> [--workflow <path>] [options]",
+    options: [
+      ["--workflow <path>", "the workflow to add to (src/<name>/<name>.workflow.ts)"],
+      ["--agent <name>", "the agent that uses the tool / MCP tool / knowledge base"],
+      ["--description <text>", "an agent's role"],
+      ["--dir <folder>", "mcp: a filesystem server over this folder"],
+      ["--command <cmd>", "mcp: a server started with this command (with --tool <name>)"],
+      ["--folder <dir>", "rag: the folder of notes"],
+    ],
+  },
   help: {
     summary: "this list, or one command's options",
     usage: "gc help [<command>]",

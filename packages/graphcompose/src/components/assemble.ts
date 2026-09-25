@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import type { AssembledWorkflow } from "../workflow.js";
 import { validateAgentsConfig, type AgentsConfigOf } from "../config/types.js";
 import { mcpServer, type AnyTool } from "../tools/index.js";
+import { renderTemplate } from "../scaffold/render.js";
 import { checkGraph, dependencyTree } from "./container.js";
 import { CORE_TOKENS, ragParts, toolBuilder } from "./runtime.js";
 import { ragClassesOf, ragMeta, ragSettings, searchToolName } from "./rag.js";
@@ -18,12 +19,11 @@ async function promptOf(
   const text = await readFile(path, "utf8").catch(() => {
     throw new ComponentError(`@Agent "${agent.name}": prompt file not found: ${path}`);
   });
-  return text.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => {
-    const value = variables[key];
-    if (value === undefined)
-      throw new ComponentError(`@Agent "${agent.name}": unknown prompt variable {{${key}}}`);
-    return value;
-  });
+  return renderTemplate(
+    text,
+    variables,
+    (key) => new ComponentError(`@Agent "${agent.name}": unknown prompt variable {{${key}}}`),
+  );
 }
 
 /** An agent's settings as the config holds them (tools by name). */

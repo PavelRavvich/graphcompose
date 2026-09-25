@@ -1,0 +1,14 @@
+import { Agent } from "graphcompose";
+{{imports}}
+import { KIMI, KIMI_PRICE } from "../models.js";
+
+@Agent({
+  name: "{{snake}}",
+  description: "{{description}}",
+  model: KIMI,
+  price: KIMI_PRICE,
+  maxTokens: 4000,
+  tools: [{{tools}}],
+  prompt: new URL("./{{kebab}}.prompt.md", import.meta.url),
+})
+export class {{pascal}}Agent {}
