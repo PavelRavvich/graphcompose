@@ -7,7 +7,7 @@ import { withProfile } from "./profile-bundle.js";
 const { values } = parseArgs({
   options: { config: { type: "string", default: "default" }, profile: { type: "string" } },
 });
-const bundle = await withProfile(bundleNamed(values.config), values.profile);
+const bundle = await withProfile(await bundleNamed(values.config), values.profile);
 describeBundle(bundle, values.profile ?? "base").forEach((line) =>
   process.stdout.write(`${line}\n`),
 );

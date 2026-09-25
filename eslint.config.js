@@ -19,6 +19,8 @@ export default tseslint.config(
       complexity: ["error", 10],
       "no-console": "error",
       "@typescript-eslint/explicit-module-boundary-types": "error",
+      // Angular-style components: @Agent / @Bundle / @McpServer / @McpTool classes are empty on purpose
+      "@typescript-eslint/no-extraneous-class": ["error", { allowWithDecorator: true }],
     },
   },
   {
@@ -71,7 +73,7 @@ export default tseslint.config(
   },
   {
     files: ["src/**/*.ts"],
-    ignores: ["src/routers/**", "src/tools/**", "src/terns/**"],
+    ignores: ["src/routers/**", "src/tools/**", "src/terns/**", "src/bundles/**", "src/demos/**"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -87,6 +89,31 @@ export default tseslint.config(
             },
             {
               regex: "/terns/(?!index\\.js$)",
+              message: "Import terns only through src/terns/index.ts.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Bundles have their own tools/ folders: the core modules are two or more levels up.
+    files: ["src/bundles/**/*.ts", "src/demos/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(\\.\\./){2,}routers/(?!index\\.js$)",
+              message: "Import routers only through src/routers/index.ts.",
+            },
+            {
+              regex: "^(\\.\\./){2,}tools/(?!index\\.js$)",
+              message: "Import the core tools only through src/tools/index.ts.",
+            },
+            {
+              regex: "^(\\.\\./){2,}terns/(?!index\\.js$)",
               message: "Import terns only through src/terns/index.ts.",
             },
           ],

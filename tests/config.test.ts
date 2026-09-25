@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { agentsConfig } from "../src/config/agents.config.js";
+import { ResearchCoder } from "../src/bundles/research-coder/research-coder.bundle.js";
+import { bundleOf } from "../src/components/index.js";
 import {
   MODEL_MAX,
   UnknownAgentToolError,
@@ -10,8 +11,8 @@ import {
 import { testConfig } from "./helpers.js";
 
 describe("validateAgentsConfig", () => {
-  it("accepts the shipped config: Jev routers by default, model-max output", () => {
-    const config = validateAgentsConfig(agentsConfig);
+  it("accepts the shipped config: Jev routers by default, model-max output", async () => {
+    const config = validateAgentsConfig((await bundleOf(ResearchCoder)).config);
 
     expect(config.defaults.router.kind).toBe("jev");
     expect(config.defaults.chat.maxTokens).toBe(MODEL_MAX);

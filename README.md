@@ -56,8 +56,9 @@ npm run studio             # LangGraph Studio
 done, `maxHops` is reached or the per-run budget is spent. All models go through OpenRouter.
 Every call is cost-accounted; each run returns a cost report.
 
-Add an agent: one entry in `src/config/agents.config.ts` + one prompt in
-`src/prompts/agents.ts`.
+Agents, tools and MCP servers are Angular-style components — annotated classes in folders, wired by
+a `@Bundle` module ([Wiki → Components](https://github.com/PavelRavvich/langgraph-ts-template/wiki/Components)).
+Add an agent: `agents/<name>.ts` + `<name>.prompt.md`, listed in the bundle.
 
 ## Try the demos
 

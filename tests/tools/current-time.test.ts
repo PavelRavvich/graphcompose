@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { createCurrentTimeTool } from "../../src/tools/index.js";
+import { toolOf } from "../../src/components/index.js";
+import { CurrentTime } from "../../src/tools/index.js";
 
 const ctx = {
   runId: "r",
@@ -8,7 +9,7 @@ const ctx = {
   signal: new AbortController().signal,
   reportCost: vi.fn(),
 };
-const tool = createCurrentTimeTool(() => new Date("2026-09-24T23:30:00Z"));
+const tool = toolOf(new CurrentTime(() => new Date("2026-09-24T23:30:00Z")));
 
 describe("current_time", () => {
   it("defaults to UTC", async () => {
@@ -29,7 +30,7 @@ describe("current_time", () => {
   });
 
   it("uses the real clock by default", async () => {
-    const result = await createCurrentTimeTool().invoke({}, ctx);
+    const result = await toolOf(new CurrentTime()).invoke({}, ctx);
 
     expect(result.kind).toBe("ok");
   });

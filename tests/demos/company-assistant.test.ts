@@ -6,15 +6,19 @@ import { createAppDeps } from "../../src/app.js";
 import { resolveTools, type BundleServices } from "../../src/bundle.js";
 import { bundleNamed, bundles, UnknownBundleError } from "../../src/bundles.js";
 import { validateAgentsConfig } from "../../src/config/types.js";
+import { bundleOf, toolOf } from "../../src/components/index.js";
 import {
-  companyAssistant,
-  companyAssistantApproval,
-} from "../../src/demos/company-assistant/index.js";
+  CompanyAssistant,
+  CompanyAssistantApproval,
+} from "../../src/demos/company-assistant/company-assistant.bundle.js";
 import {
-  createExchangeRateTool,
-  createNoteTools,
   EXCHANGE_RATE_COST_USD,
-} from "../../src/demos/company-assistant/tools.js";
+  ExchangeRate,
+} from "../../src/demos/company-assistant/tools/exchange-rate.js";
+import { NoteSave, NoteSearch } from "../../src/demos/company-assistant/tools/notes.js";
+
+const companyAssistant = await bundleOf(CompanyAssistant);
+const companyAssistantApproval = await bundleOf(CompanyAssistantApproval);
 import type { ToolContext } from "../../src/tools/index.js";
 
 const ctx = (costs: number[] = []): ToolContext => ({
@@ -32,8 +36,9 @@ const services: BundleServices = {
 };
 
 describe("bundles", () => {
-  it("every bundle is valid: tools exist, every agent has a prompt", () => {
-    for (const bundle of Object.values(bundles)) {
+  it("every bundle is valid: tools exist, every agent has a prompt", async () => {
+    for (const bundleClass of Object.values(bundles)) {
+      const bundle = await bundleOf(bundleClass);
       expect(() =>
         validateAgentsConfig(
           bundle.config,
@@ -44,15 +49,17 @@ describe("bundles", () => {
     }
   });
 
-  it("finds bundles by name and rejects unknown ones", () => {
-    expect(bundleNamed("company-assistant-approval")).toBe(companyAssistantApproval);
+  it("finds bundles by name and rejects unknown ones", async () => {
+    expect((await bundleNamed("company-assistant-approval")).config.name).toBe(
+      "company-assistant-approval",
+    );
     expect(Object.keys(bundles)).toEqual([
       "default",
       "company-assistant",
       "company-assistant-approval",
       "job-scout",
     ]);
-    expect(() => bundleNamed("nope")).toThrow(UnknownBundleError);
+    await expect(bundleNamed("nope")).rejects.toThrow(UnknownBundleError);
   });
 
   it("only the approval demo turns the pause seam on, for write tools", () => {
@@ -93,7 +100,8 @@ describe("bundles", () => {
 describe("demo tools", () => {
   it("saves notes and finds them", async () => {
     const file = join(await mkdtemp(join(tmpdir(), "notes-")), "notes.json");
-    const [search, save] = createNoteTools(file, () => new Date("2026-09-24T10:00:00Z"));
+    const search = toolOf(new NoteSearch(file));
+    const save = toolOf(new NoteSave(file, () => new Date("2026-09-24T10:00:00Z")));
 
     expect(await search.invoke({ query: "" }, ctx())).toEqual({ kind: "ok", value: [] });
     await save.invoke({ text: "Call Misha on Thursday" }, ctx());
@@ -109,15 +117,15 @@ describe("demo tools", () => {
   it("reports a broken notes file as a tool error", async () => {
     const file = join(await mkdtemp(join(tmpdir(), "notes-")), "notes.json");
     await writeFile(file, "not json");
-    const [search] = createNoteTools(file);
+    const search = toolOf(new NoteSearch(file));
 
     expect((await search.invoke({ query: "" }, ctx())).kind).toBe("error");
   });
 
   it("the paid exchange-rate tool reports its cost", async () => {
     const costs: number[] = [];
-    const tool = createExchangeRateTool(() =>
-      Promise.resolve({ date: "2026-09-24", rates: { EUR: 0.9 } }),
+    const tool = toolOf(
+      new ExchangeRate(() => Promise.resolve({ date: "2026-09-24", rates: { EUR: 0.9 } })),
     );
 
     const result = await tool.invoke({ from: "usd", to: "eur" }, ctx(costs));
@@ -130,7 +138,7 @@ describe("demo tools", () => {
   });
 
   it("an unknown currency is a tool error the model sees", async () => {
-    const tool = createExchangeRateTool(() => Promise.resolve({ date: "2026-09-24", rates: {} }));
+    const tool = toolOf(new ExchangeRate(() => Promise.resolve({ date: "2026-09-24", rates: {} })));
 
     expect((await tool.invoke({ from: "USD", to: "XXX" }, ctx())).kind).toBe("error");
   });

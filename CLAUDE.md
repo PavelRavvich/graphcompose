@@ -13,7 +13,8 @@ Multi-agent project on LangGraph + LangChain (TypeScript). Built with a three-ph
     cost); any router can override its model in config (e.g. `kind: "llm"`).
   - Agents: cheap chat models (default `moonshotai/kimi-k2.6`) via `@langchain/openai`, each with
     `maxTokens` (`MODEL_MAX` = model's maximum), `thinking`, `cache`.
-  - Everything is set in `src/config/agents.config.ts` — reference: Wiki → Configuration.
+  - Everything is set in the bundle's components (`@Agent`, `@Bundle`) — reference: Wiki →
+    Components, Configuration.
 - Observability: `langsmith` tracing via env (`LANGSMITH_TRACING=true`). FinOps: built-in cost
   accounting, `runBudgetCap` per run and `dailyBudgetCap` per agent bundle (resets 00:00 UTC) (`QUALITY.md` → FinOps).
 - Vitest (+ v8 coverage), ESLint (`typescript-eslint` strict), Prettier,
@@ -54,8 +55,12 @@ A ticket is not done until `make check` is green.
 - `approval` — only with a pause seam: a write tool waits for a human (`resumeAgent`).
 - Every turn: spend to the daily ledger, a Tern to SQLite, financials in the result, optional
   tracing (Langfuse) and conversation compaction (summaries queue).
-- Add an agent: entry in `agents.config.ts` + prompt in `src/prompts/agents.ts`. Nothing else.
-- Another set of agents: a bundle (`src/bundle.ts`) registered in `src/bundles.ts`.
+- Components, Angular style (Wiki → Components): annotated classes, one per file, folders by kind
+  (`agents/`, `tools/`, `mcp/`); a `@Bundle` module lists them by class reference; dependencies
+  through the constructor, declared in `deps` (compiler-checked); prompts in `*.prompt.md`.
+- Add a tool: a `@Tool` class in `tools/`, referenced from an agent. Add an agent: `agents/<name>.ts`
+  - `<name>.prompt.md`, listed in `@Bundle`. Another set of agents: a folder with a `*.bundle.ts`,
+    registered in `src/bundles.ts`. Test tools with `toolOf(new Tool(fakes))` — no container.
 
 ## Conveyor
 
@@ -91,11 +96,13 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 
 ```
 src/
-  config/       agents.config.ts (agents, models, prices, budget, guards) + typed schema
+  config/       typed config schema, profiles (YAML overlays), defaults resolution
+  components/   @Tool @Agent @McpServer @McpTool @Injectable @Bundle, DI container, assembly (bundleOf)
+  bundles/      the project's agents (research-coder/: agents/, *.prompt.md, *.bundle.ts), shared.ts
   graph/        state, routing, assembly, middleware, errors; nodes/ (guards, router, agent, approval, finalize)
   llm/          OpenRouter chat factory (thinking), Jev client, cache breakpoints, registry
   routers/      isolated routing strategies (Jev, LLM); public API = routers/index.ts
-  tools/        typed tools, registry, MCP facades, LangChain adapter; public API = tools/index.ts
+  tools/        tool contract, library tools (CurrentTime), MCP facades, LangChain adapter; public API = tools/index.ts
   guards/       input / output guards on routers
   terns/        run records, threads, scores in SQLite (isolated)
   run/          runAgent / resumeAgent: threads, budget, Terns, financials, tracing, pause
@@ -107,7 +114,7 @@ src/
   cli/          terminal helpers: approval, keys, multi-line input, spinner, cost output
   demos/        demo bundles (company-assistant, job-scout) — removable
   types/        shared type utilities (Brand)
-  bundle.ts, bundles.ts   agent bundles and the --config registry
+  bundle.ts, bundles.ts   the assembled bundle type and the --config registry of @Bundle classes
   app.ts        production wiring of a bundle (OpenRouter, MCP, ledger, Terns, tracing)
   index.ts      public API: runAgent, resumeAgent, types
   cli.ts, chat.ts, studio.ts   entry points

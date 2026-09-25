@@ -1,11 +1,16 @@
-import { describe, expect, expectTypeOf, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { defaultBundle, type AgentBundle } from "../src/bundle.js";
+import { resolveTools, type AgentBundle } from "../src/bundle.js";
+import { ResearchCoder } from "../src/bundles/research-coder/research-coder.bundle.js";
+import { bundleOf } from "../src/components/index.js";
 import { describeBundle } from "../src/cli/describe.js";
-import { companyAssistantApproval } from "../src/demos/company-assistant/index.js";
-import { jobScout } from "../src/demos/job-scout/index.js";
-import type { JobScoutToolName } from "../src/demos/job-scout/tools.js";
+import { CompanyAssistantApproval } from "../src/demos/company-assistant/company-assistant.bundle.js";
+import { JobScout } from "../src/demos/job-scout/job-scout.bundle.js";
 import { defineTool } from "../src/tools/index.js";
+
+const defaultBundle = await bundleOf(ResearchCoder);
+const companyAssistantApproval = await bundleOf(CompanyAssistantApproval);
+const jobScout = await bundleOf(JobScout);
 
 const after = (lines: readonly string[], start: string): string[] => {
   const i = lines.findIndex((line) => line.startsWith(start));
@@ -33,7 +38,7 @@ describe("describe a bundle", () => {
     const lines = describeBundle(jobScout);
     const coder = after(describeBundle(defaultBundle), "  coder");
 
-    expect(lines[0]).toBe("job-scout 1.0.0");
+    expect(lines[0]).toBe("job-scout 1.1.0");
     expect(lines).toContain("guards    input: prompt_injection ≥0.7 · output: pii ≥0.7");
     expect(
       lines.some((l) => l.startsWith("memory    compaction every 5 turns, keep 10 summaries")),
@@ -52,7 +57,7 @@ describe("describe a bundle", () => {
       ),
     ).toBe(true);
     expect(describeBundle(jobScout, "scout-low-thinking")[0]).toBe(
-      "job-scout 1.0.0 (profile scout-low-thinking)",
+      "job-scout 1.1.0 (profile scout-low-thinking)",
     );
   });
 
@@ -64,14 +69,16 @@ describe("describe a bundle", () => {
       output: z.string(),
       run: () => Promise.resolve(""),
     });
+    const coder = defaultBundle.config.agents.coder;
+    if (coder === undefined) throw new Error("research-coder has a coder");
     const bundle: AgentBundle = {
       ...defaultBundle,
-      tools: [...(defaultBundle.tools as readonly never[]), extra],
+      tools: (services) => [...resolveTools(defaultBundle, services), extra],
       config: {
         ...defaultBundle.config,
         agents: {
           ...defaultBundle.config.agents,
-          coder: { ...defaultBundle.config.agents.coder, tools: ["ghost"] },
+          coder: { ...coder, tools: ["ghost"] },
         },
       },
     };
@@ -80,9 +87,5 @@ describe("describe a bundle", () => {
 
     expect(lines.at(-1)).toBe("unassigned tools: extra");
     expect(after(lines, "  coder")).toContain("    · ghost (not in the catalog)");
-  });
-
-  it("AC4: job-scout's tool-name type comes from its catalog", () => {
-    expectTypeOf<JobScoutToolName>().toEqualTypeOf<"read_resume" | "greenhouse_jobs">();
   });
 });

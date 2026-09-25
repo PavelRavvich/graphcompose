@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { probeBoard } from "../../src/demos/job-scout/boards.js";
-import { jobScoutPrompts } from "../../src/demos/job-scout/prompts.js";
+import { bundleOf } from "../../src/components/index.js";
+import { JobScout } from "../../src/demos/job-scout/job-scout.bundle.js";
+import { jobScoutPromptVariables } from "../../src/demos/job-scout/prompt-variables.js";
 import { jobSearchConfig, JobSearchSchema } from "../../src/demos/job-scout/search.config.js";
 
 describe("job-scout search config", () => {
@@ -14,24 +16,34 @@ describe("job-scout search config", () => {
     expect(Object.keys(jobSearchConfig.places)).toContain("israel");
   });
 
-  it("prompts list the configured boards and places", () => {
-    const prompts = jobScoutPrompts({
+  it("prompt variables list the configured boards and places", () => {
+    const variables = jobScoutPromptVariables({
       boards: { acme: "Acme" },
       places: { germany: ["Berlin", "Munich"] },
     });
 
-    expect(prompts.scout).toContain(
-      "Places the search knows (they also match their cities): germany.",
-    );
-    expect(prompts.profiler).toContain("acme (Acme)");
-    expect(prompts.profiler).toContain("Proposed search brief:");
-    expect(prompts.scout).toContain("Never add a filter of your own.");
-    expect(prompts.scout).not.toMatch(/e\.g\. (Lead|Senior)/);
-    expect(prompts.profiler).toContain("Boards: all 1");
-    expect(prompts.profiler).not.toMatch(/^\d\. /m);
-    expect(jobScoutPrompts({ boards: { acme: "Acme" }, places: {} }).scout).toContain(
+    expect(variables).toEqual({
+      boards: "acme (Acme)",
+      boardCount: "1",
+      knownPlaces: "Places the search knows (they also match their cities): germany.",
+    });
+    expect(jobScoutPromptVariables({ boards: { acme: "Acme" }, places: {} }).knownPlaces).toContain(
       "matched literally",
     );
+  });
+
+  it("assembled prompts: every variable filled, the rules in place", async () => {
+    const { prompts } = await bundleOf(JobScout);
+    const boards = String(Object.keys(jobSearchConfig.boards).length);
+
+    expect(prompts.profiler).not.toContain("{{");
+    expect(prompts.scout).not.toContain("{{");
+    expect(prompts.profiler).toContain("Proposed search brief:");
+    expect(prompts.profiler).toContain(`Boards: all ${boards}`);
+    expect(prompts.profiler).not.toMatch(/^\d\. /m);
+    expect(prompts.scout).toContain("Never add a filter of your own.");
+    expect(prompts.scout).not.toMatch(/e\.g\. (Lead|Senior)/);
+    expect(prompts.scout).toContain("they also match their cities): israel");
   });
 });
 

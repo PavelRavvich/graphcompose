@@ -34,7 +34,7 @@ const depsFor = async (profile: string | undefined): Promise<AppDeps> => {
   const deps = await createAppDeps(
     process.env,
     undefined,
-    await withProfile(bundleNamed(values.config), profile),
+    await withProfile(await bundleNamed(values.config), profile),
   );
   deps.warnings.forEach((warning) => process.stderr.write(`warning: ${warning}\n`));
   return deps;

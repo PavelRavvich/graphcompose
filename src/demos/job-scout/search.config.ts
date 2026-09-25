@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { InjectionToken } from "../../components/index.js";
 
 /**
  * Where job-scout looks. Change this file to point it at another country or set of companies —
@@ -15,6 +16,9 @@ export const JobSearchSchema = z.object({
 });
 
 export type JobSearch = z.output<typeof JobSearchSchema>;
+
+/** The search config as a dependency (Greenhouse tool, prompts). */
+export const JOB_SEARCH = new InjectionToken<JobSearch>("JOB_SEARCH");
 
 /** Example: Israeli tech and global companies with Israeli R&D (probed 2026-09). */
 export const jobSearchConfig: JobSearch = JobSearchSchema.parse({

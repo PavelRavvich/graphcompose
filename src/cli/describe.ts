@@ -18,7 +18,8 @@ const routerLabel = (model: RouterModel): string => `${model.kind} ${model.model
 function toolLine(tool: AnyTool, bundle: AgentBundle): string {
   const kind = isMcpFacade(tool) ? `MCP ${tool.mcp.server}` : "local";
   const waits = bundle.needsApproval?.(tool) === true ? ", waits for approval" : "";
-  return `${tool.name} (${tool.effect}, ${kind}${waits}) — ${tool.description}`;
+  const deps = bundle.toolDependencies?.[tool.name];
+  return `${tool.name} (${tool.effect}, ${kind}${waits})${deps === undefined ? "" : ` ← ${deps}`} — ${tool.description}`;
 }
 
 function bundleLines(bundle: AgentBundle): string[] {

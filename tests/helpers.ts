@@ -9,7 +9,8 @@ import type { RunDeps } from "../src/index.js";
 import { createRouter } from "../src/routers/index.js";
 import { NO_GUARDS } from "../src/guards/index.js";
 import { createSqliteTernStore } from "../src/terns/index.js";
-import { toolRegistry } from "../src/tools/index.js";
+import { toolOf } from "../src/components/index.js";
+import { CurrentTime, type AnyTool } from "../src/tools/index.js";
 
 export type TestAgent = "alpha" | "beta";
 
@@ -83,7 +84,7 @@ export function fakeDeps(
       { chatModel, jevClient: unusedJevClient },
     ),
     prompts: { alpha: "You are alpha.", beta: "You are beta." },
-    tools: (name) => toolRegistry.get(name as never),
+    tools: libraryTool,
     ledger,
     terns: createSqliteTernStore(":memory:"),
     guards: NO_GUARDS,
@@ -123,4 +124,10 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     summaries: [],
     ...overrides,
   };
+}
+
+/** The core's library tools by name (what agents in test configs may list). */
+export function libraryTool(name: string): AnyTool {
+  if (name === "current_time") return toolOf(new CurrentTime());
+  throw new Error(`Unknown tool "${name}"`);
 }

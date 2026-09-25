@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { extractText, getDocumentProxy } from "unpdf";
 import { z } from "zod";
-import { defineTool, type Tool } from "../../tools/index.js";
+import { Tool, type ToolHandler } from "../../../components/index.js";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 /** The model gets at most this much resume text. */
@@ -29,8 +29,6 @@ interface Resume {
   readonly text: string;
   readonly truncated: boolean;
 }
-
-export type ReadResumeTool = Tool<"read_resume", { path: string }, Resume>;
 
 /** Name for near-match comparison: case, underscores, spaces and dashes do not matter. */
 const looseName = (name: string): string => name.toLowerCase().replace(/[\s_-]+/g, "");
@@ -65,38 +63,44 @@ const expandHome = (path: string): string =>
   path.startsWith("~/") ? `${homedir()}${path.slice(1)}` : path;
 
 /** Reads a resume from disk: PDF, Markdown or plain text. */
-export function createReadResumeTool(pdf: PdfExtractor = extractPdf): ReadResumeTool {
-  return defineTool({
-    name: "read_resume",
-    description:
-      "Read the user's resume from a local file (.pdf, .md or .txt). Pass the path exactly as the user gave it.",
-    input: z.object({ path: z.string().min(1) }),
-    output: z.object({
-      path: z.string(),
-      requestedPath: z.string().optional(),
-      format: z.enum(["pdf", "markdown", "text"]),
-      text: z.string(),
-      truncated: z.boolean(),
-    }),
-    run: async ({ path }) => {
-      const resolved = await resolveResumePath(resolve(expandHome(path.trim())));
-      const full = resolved.path;
-      const ext = extname(full).toLowerCase();
-      if (!isFormatExt(ext))
-        throw new Error(`Unsupported resume format "${ext}" — use .pdf, .md or .txt`);
-      if ((await stat(full)).size > MAX_FILE_BYTES)
-        throw new Error("Resume file is larger than 5 MB");
-      const bytes = await readFile(full);
-      const format = FORMATS[ext];
-      const raw = format === "pdf" ? await pdf(new Uint8Array(bytes)) : bytes.toString("utf8");
-      const text = raw.replace(/[ \t]+/g, " ").trim();
-      return {
-        path: full,
-        ...(resolved.requestedPath === undefined ? {} : { requestedPath: resolved.requestedPath }),
-        format,
-        text: text.slice(0, MAX_RESUME_CHARS),
-        truncated: text.length > MAX_RESUME_CHARS,
-      };
-    },
-  });
+const ResumeInput = z.object({ path: z.string().min(1) });
+const ResumeOutput = z.object({
+  path: z.string(),
+  requestedPath: z.string().optional(),
+  format: z.enum(["pdf", "markdown", "text"]),
+  text: z.string(),
+  truncated: z.boolean(),
+});
+
+/** Reads a resume (PDF, Markdown, text); a slightly mangled path resolves in the same folder. */
+@Tool({
+  name: "read_resume",
+  description:
+    "Read the user's resume from a local file (.pdf, .md or .txt). Pass the path exactly as the user gave it.",
+  input: ResumeInput,
+  output: ResumeOutput,
+})
+export class ReadResume implements ToolHandler<typeof ResumeInput, typeof ResumeOutput> {
+  constructor(private readonly pdf: PdfExtractor = extractPdf) {}
+
+  async run({ path }: z.output<typeof ResumeInput>): Promise<Resume> {
+    const resolved = await resolveResumePath(resolve(expandHome(path.trim())));
+    const full = resolved.path;
+    const ext = extname(full).toLowerCase();
+    if (!isFormatExt(ext))
+      throw new Error(`Unsupported resume format "${ext}" — use .pdf, .md or .txt`);
+    if ((await stat(full)).size > MAX_FILE_BYTES)
+      throw new Error("Resume file is larger than 5 MB");
+    const bytes = await readFile(full);
+    const format = FORMATS[ext];
+    const raw = format === "pdf" ? await this.pdf(new Uint8Array(bytes)) : bytes.toString("utf8");
+    const text = raw.replace(/[ \t]+/g, " ").trim();
+    return {
+      path: full,
+      ...(resolved.requestedPath === undefined ? {} : { requestedPath: resolved.requestedPath }),
+      format,
+      text: text.slice(0, MAX_RESUME_CHARS),
+      truncated: text.length > MAX_RESUME_CHARS,
+    };
+  }
 }

@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createAppDeps } from "../src/app.js";
-import { defaultBundle } from "../src/bundle.js";
+import { ResearchCoder } from "../src/bundles/research-coder/research-coder.bundle.js";
+import { bundleOf } from "../src/components/index.js";
 import { runAgent } from "../src/index.js";
 import { createSqliteTernStore } from "../src/terns/index.js";
 import { decide, fakeDeps } from "./helpers.js";
@@ -36,11 +37,12 @@ describe("config versions", () => {
       OPENROUTER_API_KEY: "k",
       TERN_DB: join(await mkdtemp(join(tmpdir(), "versions-")), "t.sqlite"),
     };
-    const first = await createAppDeps(env, undefined, defaultBundle);
+    const base = await bundleOf(ResearchCoder);
+    const first = await createAppDeps(env, undefined, base);
     await first.close();
     const changed = {
-      ...defaultBundle,
-      prompts: { ...defaultBundle.prompts, coder: "A different coder prompt." },
+      ...base,
+      prompts: { ...base.prompts, coder: "A different coder prompt." },
     };
 
     const second = await createAppDeps(env, undefined, changed);
@@ -48,7 +50,7 @@ describe("config versions", () => {
 
     expect(first.warnings).toEqual([]);
     expect(second.warnings[0]).toMatch(
-      /config "research-coder" 1\.0\.0 changed without a version bump/,
+      /config "research-coder" 1\.1\.0 changed without a version bump/,
     );
   });
 });

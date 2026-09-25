@@ -1,5 +1,7 @@
 import { MemorySaver } from "@langchain/langgraph";
-import { defaultBundle, resolveTools, type AgentBundle } from "./bundle.js";
+import { resolveTools, type AgentBundle } from "./bundle.js";
+import { ResearchCoder } from "./bundles/research-coder/research-coder.bundle.js";
+import { bundleOf } from "./components/index.js";
 import { resolveRouterModel, validateAgentsConfig, type AgentsConfigOf } from "./config/types.js";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -18,10 +20,13 @@ import { createRouter, type Router, type RouterFactories } from "./routers/index
 import {
   connectMcpServers,
   isMcpFacade,
-  UnknownToolError,
   type AnyTool,
   type TransportFactory,
 } from "./tools/index.js";
+
+export class UnknownToolError extends Error {
+  override name = "UnknownToolError";
+}
 
 /** Tool lookup for the graph; an unknown name is a wiring bug. */
 const toolLookup = (tools: readonly AnyTool[]): ((name: string) => AnyTool) => {
@@ -129,8 +134,9 @@ async function versionWarnings(deps: RunDeps<string>): Promise<string[]> {
 export async function createAppDeps(
   env: NodeJS.ProcessEnv = process.env,
   makeTransport?: TransportFactory,
-  bundle: AgentBundle = defaultBundle,
+  given?: AgentBundle,
 ): Promise<AppDeps> {
+  const bundle = given ?? (await bundleOf(ResearchCoder));
   const connection = readOpenRouterEnv(env);
   const chatModel: ModelFactory = (settings) => createChatModel(settings, connection);
   const factories = { chatModel, jevClient: createJevClient(connection) };
