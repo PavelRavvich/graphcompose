@@ -10,6 +10,7 @@ export default defineConfig({
       // thin entry points, exercised by `make smoke` / `npm run studio`
       exclude: [
         "src/cli.ts",
+        "src/describe.ts",
         "src/chat.ts",
         "src/cli/ask.ts",
         "src/studio.ts",

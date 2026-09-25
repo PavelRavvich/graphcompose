@@ -1,5 +1,6 @@
 import { agentsConfig } from "../../config/agents.config.js";
 import type { AgentsConfigOf } from "../../config/types.js";
+import type { JobScoutToolName } from "./tools.js";
 
 const { price } = agentsConfig.agents.researcher;
 
@@ -34,6 +35,6 @@ export const jobScoutConfig = {
       price,
     },
   },
-} as const satisfies AgentsConfigOf<string, "read_resume" | "greenhouse_jobs">;
+} as const satisfies AgentsConfigOf<string, JobScoutToolName>;
 
 export type JobScoutAgent = keyof typeof jobScoutConfig.agents;
