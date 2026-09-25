@@ -76,3 +76,37 @@ describe("greenhouse helpers", () => {
     expect(matchScore([], "anything").score).toBe(0);
   });
 });
+
+describe("read_resume near-miss paths", () => {
+  it("reads the one loosely matching file when the model mangled the name", async () => {
+    const real = await fileWith("Pavel__Ravvich_CV.md", "# CV\nJava");
+    const mangled = real.replace("Pavel__Ravvich_CV.md", "pavel__ravvich__cv.md");
+
+    const result = await createReadResumeTool().invoke({ path: mangled }, ctx);
+
+    expect(result).toMatchObject({
+      kind: "ok",
+      value: { path: real, requestedPath: mangled, text: "# CV\nJava" },
+    });
+  });
+
+  it("reports the folder's resume files when nothing matches, and a plain error for a missing folder", async () => {
+    const real = await fileWith("cv.md", "x");
+    const tool = createReadResumeTool();
+
+    const other = await tool.invoke({ path: real.replace("cv.md", "resume.pdf") }, ctx);
+    const nowhere = await tool.invoke({ path: "/nope/nope/cv.pdf" }, ctx);
+
+    expect(other.kind === "error" && other.message).toContain("Files in that folder: cv.md");
+    expect(nowhere.kind === "error" && nowhere.message).toContain("No such file or folder");
+  });
+
+  it("does not report a requested path when the exact file exists", async () => {
+    const result = await createReadResumeTool().invoke(
+      { path: await fileWith("cv.txt", "x") },
+      ctx,
+    );
+
+    expect(result.kind === "ok" && "requestedPath" in result.value).toBe(false);
+  });
+});

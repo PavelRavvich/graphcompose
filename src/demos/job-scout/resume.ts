@@ -1,6 +1,6 @@
-import { readFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
-import { extname, resolve } from "node:path";
+import { basename, dirname, extname, join, resolve } from "node:path";
 import { extractText, getDocumentProxy } from "unpdf";
 import { z } from "zod";
 import { defineTool, type Tool } from "../../tools/index.js";
@@ -23,12 +23,43 @@ const isFormatExt = (ext: string): ext is keyof typeof FORMATS => ext in FORMATS
 
 interface Resume {
   readonly path: string;
+  /** The path that was asked for, when it did not exist and a near match was read instead. */
+  readonly requestedPath?: string;
   readonly format: Format;
   readonly text: string;
   readonly truncated: boolean;
 }
 
 export type ReadResumeTool = Tool<"read_resume", { path: string }, Resume>;
+
+/** Name for near-match comparison: case, underscores, spaces and dashes do not matter. */
+const looseName = (name: string): string => name.toLowerCase().replace(/[\s_-]+/g, "");
+
+const exists = async (path: string): Promise<boolean> =>
+  stat(path).then(
+    () => true,
+    () => false,
+  );
+
+/**
+ * Models sometimes mangle a path they copy (an extra underscore, a changed case). A missing file
+ * resolves to the one supported file in the same folder whose name matches loosely; otherwise the
+ * error lists what the folder has.
+ */
+async function resolveResumePath(full: string): Promise<{ path: string; requestedPath?: string }> {
+  if (await exists(full)) return { path: full };
+  const folder = dirname(full);
+  const files = await readdir(folder).catch(() => {
+    throw new Error(`No such file or folder: ${full}`);
+  });
+  const resumes = files.filter((file) => isFormatExt(extname(file).toLowerCase()));
+  const matches = resumes.filter((file) => looseName(file) === looseName(basename(full)));
+  const [only] = matches;
+  if (only !== undefined && matches.length === 1)
+    return { path: join(folder, only), requestedPath: full };
+  const listed = resumes.length > 0 ? resumes.join(", ") : "no .pdf, .md or .txt files";
+  throw new Error(`No such file: ${full}. Files in that folder: ${listed}`);
+}
 
 const expandHome = (path: string): string =>
   path.startsWith("~/") ? `${homedir()}${path.slice(1)}` : path;
@@ -38,16 +69,18 @@ export function createReadResumeTool(pdf: PdfExtractor = extractPdf): ReadResume
   return defineTool({
     name: "read_resume",
     description:
-      "Read the user's resume from a local file (.pdf, .md or .txt). Pass the path the user gave.",
+      "Read the user's resume from a local file (.pdf, .md or .txt). Pass the path exactly as the user gave it.",
     input: z.object({ path: z.string().min(1) }),
     output: z.object({
       path: z.string(),
+      requestedPath: z.string().optional(),
       format: z.enum(["pdf", "markdown", "text"]),
       text: z.string(),
       truncated: z.boolean(),
     }),
     run: async ({ path }) => {
-      const full = resolve(expandHome(path.trim()));
+      const resolved = await resolveResumePath(resolve(expandHome(path.trim())));
+      const full = resolved.path;
       const ext = extname(full).toLowerCase();
       if (!isFormatExt(ext))
         throw new Error(`Unsupported resume format "${ext}" — use .pdf, .md or .txt`);
@@ -59,6 +92,7 @@ export function createReadResumeTool(pdf: PdfExtractor = extractPdf): ReadResume
       const text = raw.replace(/[ \t]+/g, " ").trim();
       return {
         path: full,
+        ...(resolved.requestedPath === undefined ? {} : { requestedPath: resolved.requestedPath }),
         format,
         text: text.slice(0, MAX_RESUME_CHARS),
         truncated: text.length > MAX_RESUME_CHARS,
