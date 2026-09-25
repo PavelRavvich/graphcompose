@@ -26,11 +26,13 @@ const LOCATION_ALIASES: Readonly<Record<string, readonly string[]>> = {
   israel: [
     "israel",
     "tel aviv",
+    "tel-aviv",
     "herzliya",
     "haifa",
     "jerusalem",
     "netanya",
     "petah tikva",
+    "petach tikva",
     "ramat gan",
     "ra'anana",
     "raanana",
@@ -39,6 +41,11 @@ const LOCATION_ALIASES: Readonly<Record<string, readonly string[]>> = {
     "beer sheva",
     "hod hasharon",
     "caesarea",
+    "or yehuda",
+    "rosh haayin",
+    "kfar saba",
+    "modiin",
+    "airport city",
   ],
 };
 
@@ -63,6 +70,12 @@ const Input = z.object({
     .array(z.string())
     .min(1)
     .describe("Countries or cities; a country also matches its cities"),
+  titleMustInclude: z
+    .array(z.string())
+    .default([])
+    .describe(
+      "Keep only jobs whose title has any of these words, e.g. Senior — applied before the judge",
+    ),
   excludeTitleWords: z
     .array(z.string())
     .default([])
@@ -116,6 +129,8 @@ function passesFilters(job: Candidate, search: Search): boolean {
   const title = job.title.toLowerCase();
   return (
     locationTerms(search.locations).some((term) => location.includes(term)) &&
+    (search.titleMustInclude.length === 0 ||
+      search.titleMustInclude.some((word) => title.includes(word.trim().toLowerCase()))) &&
     !search.excludeTitleWords.some((word) => title.includes(word.trim().toLowerCase()))
   );
 }

@@ -5,7 +5,7 @@ import { parseArgs, styleText } from "node:util";
 import { createAppDeps } from "./app.js";
 import { bundleNamed } from "./bundles.js";
 import { summaryLine, untilDone } from "./cli/approve.js";
-import { costSummary, costTotal, costTrace } from "./cli/finops.js";
+import { costSummary, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
 import { withSpinner } from "./cli/spinner.js";
 import { runAgent } from "./index.js";
@@ -45,7 +45,6 @@ try {
       costTrace(result.cost).forEach((line) => {
         say(styleText("dim", `    ${line}`));
       });
-      say(styleText("bold", `  ${costTotal(result.cost)}`));
     } catch (error) {
       say(styleText("red", `error › ${error instanceof Error ? error.message : String(error)}`));
     }

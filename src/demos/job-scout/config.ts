@@ -23,6 +23,8 @@ export const jobScoutConfig = {
       description:
         "Searches Greenhouse with the agreed search brief and returns the best-fitting jobs with links",
       tools: ["greenhouse_jobs"],
+      // ranking is Jev's job; the scout only filters and formats — no reasoning to pay for
+      thinking: "none",
       price,
     },
   },

@@ -2,27 +2,49 @@ import { z } from "zod";
 import type { JobText } from "./fit.js";
 
 /**
- * Live Greenhouse job boards (checked 2026-09) — Israeli tech and global companies with Israeli
- * roles. Greenhouse has no global search: every company has its own board.
+ * Greenhouse job boards with live Israeli jobs (probed 2026-09: ~140 Israeli tech and global
+ * companies with Israeli R&D; ordered by Israeli openings). Greenhouse has no global search —
+ * every company has its own board.
  */
 export const JOB_BOARDS: Readonly<Record<string, string>> = {
+  catonetworks: "Cato Networks",
   similarweb: "Similarweb",
-  riskified: "Riskified",
-  payoneer: "Payoneer",
-  fireblocks: "Fireblocks",
-  jfrog: "JFrog",
   taboola: "Taboola",
-  forter: "Forter",
-  via: "Via",
-  melio: "Melio",
-  yotpo: "Yotpo",
+  payoneer: "Payoneer",
+  nice: "NICE",
+  jfrog: "JFrog",
   transmitsecurity: "Transmit Security",
-  torq: "Torq",
+  appsflyer: "AppsFlyer",
+  via: "Via",
+  fireblocks: "Fireblocks",
   gitlab: "GitLab",
+  axonius: "Axonius",
+  melio: "Melio",
+  riskified: "Riskified",
   mongodb: "MongoDB",
+  torq: "Torq",
+  forter: "Forter",
+  saltsecurity: "Salt Security",
+  yotpo: "Yotpo",
+  apiiro: "Apiiro",
+  datarails: "Datarails",
   elastic: "Elastic",
-  datadog: "Datadog",
+  safebreach: "SafeBreach",
+  zscaler: "Zscaler",
+  cymulate: "Cymulate",
+  rubrik: "Rubrik",
   stripe: "Stripe",
+  datadog: "Datadog",
+  grafanalabs: "Grafana Labs",
+  obligo: "Obligo",
+  orcasecurity: "Orca Security",
+  bigid: "BigID",
+  databricks: "Databricks",
+  innovid: "Innovid",
+  jamf: "Jamf",
+  lightricks: "Lightricks",
+  okta: "Okta",
+  island: "Island",
 };
 
 const BoardResponse = z.object({
