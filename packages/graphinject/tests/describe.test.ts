@@ -101,7 +101,7 @@ describe("describe a workflow", () => {
         },
       },
     };
-    const lines = describeBundle(workflow);
+    const lines = describeWorkflow(workflow);
 
     expect(
       lines.some(

@@ -74,6 +74,7 @@
               "type": "object",
               "properties": {
                 "order": {
+                  "readOnly": true,
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -81,6 +82,7 @@
                   }
                 },
                 "only": {
+                  "readOnly": true,
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -88,6 +90,7 @@
                   }
                 },
                 "ignore": {
+                  "readOnly": true,
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -188,6 +191,7 @@
                   "type": "object",
                   "properties": {
                     "order": {
+                      "readOnly": true,
                       "type": "array",
                       "items": {
                         "type": "string",
@@ -195,6 +199,7 @@
                       }
                     },
                     "only": {
+                      "readOnly": true,
                       "type": "array",
                       "items": {
                         "type": "string",
@@ -202,6 +207,7 @@
                       }
                     },
                     "ignore": {
+                      "readOnly": true,
                       "type": "array",
                       "items": {
                         "type": "string",
@@ -401,6 +407,7 @@
                     "type": "object",
                     "properties": {
                       "order": {
+                        "readOnly": true,
                         "type": "array",
                         "items": {
                           "type": "string",
@@ -408,6 +415,7 @@
                         }
                       },
                       "only": {
+                        "readOnly": true,
                         "type": "array",
                         "items": {
                           "type": "string",
@@ -415,6 +423,7 @@
                         }
                       },
                       "ignore": {
+                        "readOnly": true,
                         "type": "array",
                         "items": {
                           "type": "string",
@@ -544,6 +553,7 @@
               "type": "object",
               "properties": {
                 "order": {
+                  "readOnly": true,
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -551,6 +561,7 @@
                   }
                 },
                 "only": {
+                  "readOnly": true,
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -558,6 +569,7 @@
                   }
                 },
                 "ignore": {
+                  "readOnly": true,
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -672,6 +684,7 @@
             "type": "object",
             "properties": {
               "order": {
+                "readOnly": true,
                 "type": "array",
                 "items": {
                   "type": "string",
@@ -679,6 +692,7 @@
                 }
               },
               "only": {
+                "readOnly": true,
                 "type": "array",
                 "items": {
                   "type": "string",
@@ -686,6 +700,7 @@
                 }
               },
               "ignore": {
+                "readOnly": true,
                 "type": "array",
                 "items": {
                   "type": "string",
@@ -882,6 +897,7 @@
                         "type": "object",
                         "properties": {
                           "order": {
+                            "readOnly": true,
                             "type": "array",
                             "items": {
                               "type": "string",
@@ -889,6 +905,7 @@
                             }
                           },
                           "only": {
+                            "readOnly": true,
                             "type": "array",
                             "items": {
                               "type": "string",
@@ -896,6 +913,7 @@
                             }
                           },
                           "ignore": {
+                            "readOnly": true,
                             "type": "array",
                             "items": {
                               "type": "string",
