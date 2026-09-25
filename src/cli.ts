@@ -17,7 +17,8 @@ const { values, positionals } = parseArgs({
 });
 const deps = await createAppDeps(process.env, undefined, bundleNamed(values.config));
 const rl = createInterface({ input: stdin, terminal: false });
-const busy = <T>(work: () => Promise<T>): Promise<T> => withSpinner(stderr, "thinking", work);
+const busy = <T>(work: (signal: AbortSignal | undefined) => Promise<T>): Promise<T> =>
+  withSpinner(stderr, "thinking", () => work(undefined));
 const input = {
   task: positionals.join(" "),
   ...(values.thread === undefined ? {} : { threadId: values.thread }),

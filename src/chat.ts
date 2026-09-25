@@ -7,6 +7,8 @@ import { bundleNamed } from "./bundles.js";
 import { summaryLine, threadLine, untilDone } from "./cli/approve.js";
 import { costSummary, costTotal, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
+import { onInterruptKey } from "./cli/keys.js";
+import { askMessage } from "./cli/multiline.js";
 import { withSpinner } from "./cli/spinner.js";
 import { runAgent } from "./index.js";
 
@@ -21,12 +23,32 @@ const say = (text: string): void => {
   stdout.write(`${text}\n`);
 };
 let threadId = values.thread;
-const busy = <T>(work: () => Promise<T>): Promise<T> => withSpinner(stdout, "thinking", work);
+const turn = { interrupted: false };
+/** A turn: loader, and Esc / Ctrl+C abort it through its signal. */
+const busy = async <T>(work: (signal: AbortSignal | undefined) => Promise<T>): Promise<T> => {
+  const controller = new AbortController();
+  const stopKeys = onInterruptKey(stdin, () => {
+    turn.interrupted = true;
+    controller.abort();
+  });
+  try {
+    return await withSpinner(stdout, "thinking · esc to interrupt", () => work(controller.signal));
+  } finally {
+    stopKeys();
+  }
+};
 
-say(styleText("dim", `Chat with "${values.config}". /new — new conversation, /exit — quit.`));
+say(
+  styleText(
+    "dim",
+    `Chat with "${values.config}". /new — new conversation, /exit — quit, \\ + Enter — new line, Esc — interrupt.`,
+  ),
+);
 try {
   for (;;) {
-    const line = (await ask(styleText("bold", "you › ")))?.trim();
+    const line = (
+      await askMessage(ask, styleText("bold", "you › "), styleText("dim", "  … "))
+    )?.trim();
     if (line === undefined || line === "/exit") break;
     if (line === "") continue;
     if (line === "/new") {
@@ -36,7 +58,8 @@ try {
     }
     try {
       const input = { task: line, ...(threadId === undefined ? {} : { threadId }) };
-      const first = await busy(() => runAgent(input, deps));
+      turn.interrupted = false;
+      const first = await busy((signal) => runAgent(input, deps, { signal }));
       const result = await untilDone(first, deps, ask, busy);
       threadId = result.threadId;
       say(`${styleText("cyan", "agent ›")} ${result.answer}`);
@@ -48,7 +71,9 @@ try {
       });
       say(styleText("bold", `  ${costTotal(result.cost)}`));
     } catch (error) {
-      say(styleText("red", `error › ${error instanceof Error ? error.message : String(error)}`));
+      if (turn.interrupted) say(styleText("yellow", "interrupted"));
+      else
+        say(styleText("red", `error › ${error instanceof Error ? error.message : String(error)}`));
     }
   }
 } finally {

@@ -23,6 +23,8 @@ export interface RunOptions {
   /** Id of the Tern this run replays (eval). */
   readonly replayOf?: string;
   readonly account?: SpendAccount;
+  /** Aborts the run (graph and in-flight model calls), e.g. when the user presses Esc. */
+  readonly signal?: AbortSignal | undefined;
 }
 
 /** How a run ended for its caller. Failures are thrown, not returned. */

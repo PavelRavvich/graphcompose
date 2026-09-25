@@ -3,10 +3,10 @@ import { resumeAgent, type AgentRunResult, type RunDeps } from "../index.js";
 /** Asks the human a question; undefined when input ended (Ctrl+D). */
 export type Ask = (question: string) => Promise<string | undefined>;
 
-/** Wraps a turn's work, e.g. to show a loader; identity by default. */
-export type Busy = <T>(work: () => Promise<T>) => Promise<T>;
+/** Wraps a turn's work (loader, interrupt key); hands the work a signal to stop it. */
+export type Busy = <T>(work: (signal: AbortSignal | undefined) => Promise<T>) => Promise<T>;
 
-const idle: Busy = (work) => work();
+const idle: Busy = (work) => work(undefined);
 
 /** A paused run asks the human in the terminal, then continues in the same process. */
 export async function untilDone(
@@ -24,7 +24,7 @@ export async function untilDone(
     const approve = /^y(es)?$/i.test((reply ?? "").trim());
     const paused = result;
     const decision = approve ? { approve } : { approve, note: "declined by the user" };
-    result = await busy(() => resumeAgent(paused, decision, deps));
+    result = await busy((signal) => resumeAgent(paused, decision, deps, { signal }));
   }
   return result;
 }

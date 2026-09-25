@@ -25,10 +25,12 @@ export interface RunContext<TName extends string> {
 export function streamConfig<TName extends string>(
   deps: RunDeps<TName>,
   context: { readonly threadId: string; readonly runId: string },
+  signal?: AbortSignal,
 ): ReturnType<typeof runConfig> & {
   streamMode: "values";
   runName: string;
   callbacks: BaseCallbackHandler[];
+  signal?: AbortSignal;
 } {
   const callbacks = deps.tracing?.callbacks({ bundle: deps.config.name, ...context }) ?? [];
   return {
@@ -36,6 +38,7 @@ export function streamConfig<TName extends string>(
     streamMode: "values",
     runName: deps.config.name,
     callbacks,
+    ...(signal === undefined ? {} : { signal }),
   };
 }
 
@@ -46,6 +49,10 @@ export const runConfig = (runId: string): { configurable: { thread_id: string } 
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
+
+/** A run stopped by its signal reads as interrupted, whatever error the abort surfaced as. */
+export const outcomeError = (error: unknown, signal: AbortSignal | undefined): unknown =>
+  signal?.aborted === true ? new Error("interrupted by the user") : error;
 
 export const failedOutcome = (error: unknown, spent: readonly UsageRecord[]): TernOutcome => ({
   answer: "",

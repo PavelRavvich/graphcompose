@@ -1,5 +1,6 @@
 import type { Interface } from "node:readline";
 import type { Ask } from "./approve.js";
+import { cleanLine } from "./keys.js";
 
 /**
  * Line-queue prompt: lines typed (or piped) while the agent is busy are kept, not lost; resolves
@@ -9,7 +10,8 @@ export function askWith(rl: Interface, write: (text: string) => void): Ask {
   const lines: string[] = [];
   const waiting: ((line: string | undefined) => void)[] = [];
   let ended = false;
-  rl.on("line", (line) => {
+  rl.on("line", (raw) => {
+    const line = cleanLine(raw);
     const next = waiting.shift();
     if (next === undefined) lines.push(line);
     else next(line);
