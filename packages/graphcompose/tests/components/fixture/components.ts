@@ -5,6 +5,7 @@ import {
   Injectable,
   InjectionToken,
   McpServer,
+  McpServerClient,
   McpTool,
   ROUTER_FACTORY,
   Tool,
@@ -36,24 +37,42 @@ const GreetOutput = z.string();
   output: GreetOutput,
   deps: [Greeter],
 })
-export class GreetTool implements ToolHandler<typeof GreetInput, typeof GreetOutput> {
+export class GreetTool implements ToolHandler<z.infer<typeof GreetInput>, string> {
   constructor(private readonly greeter: Greeter) {}
   run(input: { name: string }): Promise<string> {
     return Promise.resolve(this.greeter.greet(input.name));
   }
 }
 
-@McpServer({ name: "files", transport: "stdio", command: "files-server" })
-export class FilesServer {}
+const FilePath = z.object({ path: z.string() });
+type FilePath = z.infer<typeof FilePath>;
+const FileText = z.string();
+type FileText = z.infer<typeof FileText>;
+const filesTools = { read: { input: FilePath, output: FileText } };
+
+@McpServer({
+  name: "files",
+  transport: "stdio",
+  command: "files-server",
+  tools: filesTools,
+})
+export class FilesServer extends McpServerClient<typeof filesTools> {}
 
 @McpTool({
   server: FilesServer,
-  tool: "read",
+  name: "read_file",
   description: "Read a file.",
-  input: z.object({ path: z.string() }),
-  output: z.string(),
+  input: FilePath,
+  output: FileText,
+  deps: [FilesServer],
 })
-export class ReadFile {}
+export class ReadFile implements ToolHandler<FilePath, FileText> {
+  constructor(private readonly files: FilesServer) {}
+
+  run(file: FilePath): Promise<FileText> {
+    return this.files.call("read", file);
+  }
+}
 
 @Agent({
   name: "greeter",

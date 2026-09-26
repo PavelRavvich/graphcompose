@@ -1,0 +1,22 @@
+import { McpServer, McpServerClient } from "graphcompose";
+import { z } from "zod";
+
+// TODO: the arguments and the result of the server's "{{serverTool}}" tool (checked at startup)
+export const {{toolPascal}}Args = z.object({});
+export type {{toolPascal}}Args = z.infer<typeof {{toolPascal}}Args>;
+export const {{toolPascal}}Reply = z.string();
+export type {{toolPascal}}Reply = z.infer<typeof {{toolPascal}}Reply>;
+
+/** The server tools this workflow uses — checked against the server at startup. */
+const tools = {
+  "{{serverTool}}": { input: {{toolPascal}}Args, output: {{toolPascal}}Reply },
+};
+
+/** An MCP server started with `{{command}}` (env: variable NAMES in `env`, never secrets). */
+@McpServer({
+  name: "{{snake}}",
+  transport: "stdio",
+  command: "{{command}}",
+  tools,
+})
+export class {{pascal}}Server extends McpServerClient<typeof tools> {}

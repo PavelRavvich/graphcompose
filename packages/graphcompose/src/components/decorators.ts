@@ -4,12 +4,16 @@ import type { RagConnector } from "../rag/types.js";
 import type { ToolContext, ToolEffect } from "../tools/index.js";
 import type { Class, ResolvedAll, Token } from "./injection.js";
 import { callerFile } from "./call-site.js";
+import type { McpServerClient, ServerTools } from "./mcp-client.js";
 import { recordComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 
-/** What a `@Tool` class implements — the compiler checks `run` against the schemas. */
-export interface ToolHandler<In extends z.ZodType, Out extends z.ZodType> {
-  run(input: z.output<In>, ctx: ToolContext): Promise<z.input<Out>>;
+/**
+ * The contract of a tool (`@Tool`, `@McpTool`): `implements ToolHandler<OrderQuery, OrderStatus>` — the
+ * types of its input and output data (a schema and its type share one name).
+ */
+export interface ToolHandler<TInput, TOutput> {
+  run(input: TInput, ctx: ToolContext): Promise<TOutput>;
 }
 
 interface ToolOptions<In extends z.ZodType, Out extends z.ZodType, D extends readonly Token[]> {
@@ -29,7 +33,9 @@ export function Tool<
   Out extends z.ZodType,
   const D extends readonly Token[] = [],
 >(options: ToolOptions<In, Out, D>) {
-  return <C extends new (...args: ResolvedAll<D>) => ToolHandler<In, Out>>(value: C): C => {
+  return <C extends new (...args: ResolvedAll<D>) => ToolHandler<z.output<In>, z.input<Out>>>(
+    value: C,
+  ): C => {
     recordComponent(value, { kind: "tool", meta: { ...options, deps: options.deps ?? [] } });
     return value;
   };
@@ -45,27 +51,34 @@ export function Injectable<const D extends readonly Token[] = []>(
   };
 }
 
-/** An MCP server the workflow connects to (listed in `@Workflow({ mcp })`). */
-export function McpServer(options: { readonly name: string } & McpServerConfig) {
-  return <C extends Class>(value: C): C => {
-    const { name, ...config } = options;
-    recordComponent(value, { kind: "mcp-server", meta: { name, config } });
+/**
+ * An MCP server the workflow connects to: its launch config and the server tools the workflow uses
+ * (`tools`), which type the class's `call` (`extends McpServerClient<typeof tools>`).
+ */
+export function McpServer<const TTools extends ServerTools>(
+  options: { readonly name: string; readonly tools: TTools } & McpServerConfig,
+) {
+  return <C extends new () => McpServerClient<TTools>>(value: C): C => {
+    const { name, tools, ...config } = options;
+    recordComponent(value, { kind: "mcp-server", meta: { name, config, tools } });
     return value;
   };
 }
 
-/** A typed facade of one tool of an `@McpServer`; agents reference it like any tool. */
-export function McpTool(options: {
-  readonly server: Class;
-  readonly tool: string;
-  readonly description: string;
-  readonly effect?: ToolEffect;
-  readonly timeoutMs?: number;
-  readonly input: z.ZodType<Record<string, unknown>>;
-  readonly output: z.ZodType;
-}) {
-  return <C extends Class>(value: C): C => {
-    recordComponent(value, { kind: "mcp-tool", meta: options });
+/**
+ * A tool backed by an MCP server: like `@Tool` (implements `ToolHandler`, dependencies through the
+ * constructor) with its server's client among `deps`; `run` calls the server's tools through it.
+ */
+export function McpTool<
+  In extends z.ZodType,
+  Out extends z.ZodType,
+  const D extends readonly Token[] = [],
+>(options: ToolOptions<In, Out, D> & { readonly server: Class }) {
+  return <C extends new (...args: ResolvedAll<D>) => ToolHandler<z.output<In>, z.input<Out>>>(
+    value: C,
+  ): C => {
+    const { server, ...tool } = options;
+    recordComponent(value, { kind: "mcp-tool", meta: { ...tool, deps: tool.deps ?? [], server } });
     return value;
   };
 }

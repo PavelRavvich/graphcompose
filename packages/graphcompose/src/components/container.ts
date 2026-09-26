@@ -3,7 +3,12 @@ import { ComponentError, componentOf } from "./metadata.js";
 
 const depsOf = (cls: Class): readonly Token[] => {
   const meta = componentOf(cls);
-  if (meta?.kind === "tool" || meta?.kind === "injectable" || meta?.kind === "rag")
+  if (
+    meta?.kind === "tool" ||
+    meta?.kind === "mcp-tool" ||
+    meta?.kind === "injectable" ||
+    meta?.kind === "rag"
+  )
     return meta.meta.deps;
   return [];
 };

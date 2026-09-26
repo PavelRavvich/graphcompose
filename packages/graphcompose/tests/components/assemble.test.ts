@@ -47,7 +47,7 @@ describe("components — assembly", () => {
     const tools = typeof bundle.tools === "function" ? bundle.tools(services) : bundle.tools;
     const greet = tools.find((tool) => tool.name === "greet");
 
-    expect(bundle.config.agents.greeter?.tools).toEqual(["greet", "files__read"]);
+    expect(bundle.config.agents.greeter?.tools).toEqual(["greet", "read_file"]);
     expect(await greet?.invoke({ name: "Pavel" }, ctx)).toEqual({
       kind: "ok",
       value: "Shalom, Pavel",

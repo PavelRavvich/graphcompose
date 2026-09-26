@@ -77,14 +77,15 @@ describe("gc create / gc generate end to end", () => {
     // create wires the MCP server and the knowledge base into the first agent
     expect(out).toMatch(/triage .*\n\s+Sorts requests\n\s+rag: desk_notes \(tool, k 3\)/);
     expect(out).toContain("· search_orders (read, local)");
-    expect(out).toContain("· desk_files__read_text_file (read, MCP desk_files)");
+    expect(out).toContain("· read_desk_files (read, MCP desk_files)");
     // #107 AC2: files named by kind, the prompt next to its agent (no prompt parameter)
     for (const file of [
       "agents/answerer.agent.ts",
       "agents/answerer.prompt.md",
       "tools/search-orders.tool.ts",
       "tools/search-orders.tool.test.ts",
-      "mcp/desk-files.mcp.ts",
+      "mcp/desk-files.server.ts",
+      "mcp/read-desk-files.mcp.ts",
       "rag/desk-notes.rag.ts",
     ]) {
       expect(existsSync(join(project, "src/desk", file)), file).toBe(true);
@@ -127,7 +128,7 @@ describe("gc create / gc generate end to end", () => {
     expect(out).toMatch(/billing .*\n\s+Handles invoices/);
     expect(out).toContain("rag: policies (tool, k 3)");
     expect(out).toContain("· refund (read, local)");
-    expect(out).toContain("· tickets__search (read, MCP tickets)");
+    expect(out).toContain("· tickets_search (read, MCP tickets)");
     expect(check("src/onboarding/onboarding.workflow.ts")).toContain("onboarding 0.1.0");
     expect(scripts()["chat:onboarding"]).toBeDefined();
   }, 240_000);

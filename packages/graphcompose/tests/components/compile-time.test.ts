@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { Agent, InjectionToken, Tool, type ToolHandler } from "../../src/components/index.js";
 import { testConfig } from "../helpers.js";
+import type { FilesServer } from "./fixture/components.js";
 
 class Judge {
   readonly judge = true;
@@ -13,9 +14,10 @@ class Judge {
 const SEARCH = new InjectionToken<{ boards: string[] }>("SEARCH");
 const In = z.object({ q: z.string() });
 const Out = z.string();
+type Query = z.infer<typeof In>;
 
 @Tool({ name: "ok", description: "d", input: In, output: Out, deps: [Judge, SEARCH] })
-class Ok implements ToolHandler<typeof In, typeof Out> {
+class Ok implements ToolHandler<Query, string> {
   constructor(
     readonly judge: Judge,
     readonly search: { boards: string[] },
@@ -27,7 +29,7 @@ class Ok implements ToolHandler<typeof In, typeof Out> {
 
 // @ts-expect-error — deps in the wrong order
 @Tool({ name: "swapped", description: "d", input: In, output: Out, deps: [SEARCH, Judge] })
-class Swapped implements ToolHandler<typeof In, typeof Out> {
+class Swapped implements ToolHandler<Query, string> {
   constructor(
     readonly judge: Judge,
     readonly search: { boards: string[] },
@@ -39,7 +41,7 @@ class Swapped implements ToolHandler<typeof In, typeof Out> {
 
 // @ts-expect-error — a dependency missing from deps
 @Tool({ name: "missing", description: "d", input: In, output: Out, deps: [Judge] })
-class Missing implements ToolHandler<typeof In, typeof Out> {
+class Missing implements ToolHandler<Query, string> {
   constructor(
     readonly judge: Judge,
     readonly search: { boards: string[] },
@@ -72,8 +74,16 @@ function usesMissing(): unknown {
   return UsesMissing;
 }
 
+/** Type-checked, never run: the server's tools and their arguments are checked by the compiler (#109). */
+function wrongServerCall(files: FilesServer): unknown {
+  // @ts-expect-error — the server declares no tool "write"
+  void files.call("write", { path: "x" });
+  // @ts-expect-error — "read" takes { path }
+  return files.call("read", { file: "x" });
+}
+
 describe("components — compile-time checks", () => {
   it("AC3: the file above type-checks only because each mistake is a compile error", () => {
-    expect([Ok, Swapped, Missing, WrongOutput, usesMissing]).toHaveLength(5);
+    expect([Ok, Swapped, Missing, WrongOutput, usesMissing, wrongServerCall]).toHaveLength(6);
   });
 });

@@ -23,7 +23,7 @@ describe("describe a workflow", () => {
     expect(
       lines.some((l) => l.includes("· greet (read, local) ← Greeter (GREETING, ROUTER_FACTORY)")),
     ).toBe(true);
-    expect(lines.some((l) => l.includes("· files__read (read, MCP files)"))).toBe(true);
+    expect(lines.some((l) => l.includes("· read_file (read, MCP files)"))).toBe(true);
     expect(after(describeWorkflow(test), "  coder")).toContain("    tools: none");
   });
 

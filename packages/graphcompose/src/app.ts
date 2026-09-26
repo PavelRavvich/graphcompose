@@ -16,12 +16,7 @@ import { createModelRegistry, type ModelFactory } from "./llm/registry.js";
 import { buildGuards, type GuardSet } from "./guards/index.js";
 import { guardPrompts } from "./prompts/guards.js";
 import { createRouter, type Router, type RouterFactories } from "./routers/index.js";
-import {
-  connectMcpServers,
-  isMcpFacade,
-  type AnyTool,
-  type TransportFactory,
-} from "./tools/index.js";
+import { connectMcpServers, type AnyTool, type TransportFactory } from "./tools/index.js";
 
 export class UnknownToolError extends Error {
   override name = "UnknownToolError";
@@ -160,7 +155,7 @@ export async function createAppDeps(
   const mcp = await connectMcpServers(
     config.mcpServers,
     bundle.mcpServers,
-    tools.filter(isMcpFacade),
+    bundle.serverTools ?? [],
     env,
     makeTransport,
   );

@@ -1,6 +1,6 @@
 import type { AgentPrompts, AgentsConfigOf } from "./config/types.js";
 import type { KnowledgeSource, RagConnector } from "./rag/types.js";
-import type { AnyTool, McpServerHandle } from "./tools/index.js";
+import type { AnyTool, McpFacade, McpServerHandle } from "./tools/index.js";
 import type { Router } from "./routers/index.js";
 
 /** What the core offers the tools of a workflow. */
@@ -24,6 +24,8 @@ export interface AssembledWorkflow<TName extends string = string> {
   readonly prompts: AgentPrompts<TName>;
   readonly tools: WorkflowTools;
   readonly mcpServers: readonly McpServerHandle<string>[];
+  /** Every declared server tool, checked against its server at startup (`@McpServer({ tools })`). */
+  readonly serverTools?: readonly McpFacade[];
   /** Context-mode knowledge bases per agent (retrieved before the agent runs). */
   readonly knowledge?: (
     services: WorkflowServices,

@@ -58,8 +58,13 @@ takes `--profile <name>` (`profiles/<workflow>/<name>.yaml`) and `--thread <id>`
 - Add a tool: a `@Tool` class in `tools/`, referenced from an agent. Add an agent: `agents/<name>.ts`
   - `<name>.prompt.md`, listed in `@Workflow`. A workflow = related agents under one directory with a
     `*.workflow.ts`; commands find it by path (`--workflow`). Test tools with `toolOf(new Tool(fakes))`.
+- **Component rules** (Wiki → Components): decorator = metadata (one option per line), constructor =
+  dependencies (`private readonly`, one per line), methods = a contract — `implements` for your own
+  (`ToolHandler<In, Out>`, `RagConnector`), `extends` + `override` for a standard implementation
+  (`SqliteFtsConnector`, `McpServerClient`); a schema and its type share one name; services do I/O, helpers
+  are pure. An `@McpTool` is a tool with its `*.server.ts` server injected.
 - **File conventions** (Wiki → Components): `*.agent.ts` + `*.prompt.md` (found by convention), `*.tool.ts`
-  - `*.tool.test.ts`, `*.mcp.ts`, `*.rag.ts`, `*.service.ts` (`@Injectable`), `*.helper.ts`; tools keep `run`,
+  - `*.tool.test.ts`, `*.server.ts` + `*.mcp.ts`, `*.rag.ts`, `*.service.ts` (`@Injectable`), `*.helper.ts`; tools keep `run`,
     bulky helpers go to `*.helper.ts`.
 - **Framework and examples apart** (ESLint-enforced both ways): `packages/graphcompose` never imports
   `examples/`; an example imports only `graphcompose` (its public `src/index.ts`), like an outside project.
