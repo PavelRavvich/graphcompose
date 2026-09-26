@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { ScaffoldError } from "./errors.js";
 import { namesOf } from "./names.js";
-import { agentFiles, mcpFile, planWorkflow, ragFiles, toolFiles } from "./plan.js";
+import { mcpFiles, ragFiles } from "./parts.js";
+import { agentFiles, planWorkflow, toolFiles } from "./plan.js";
 import { wire } from "./wire.js";
 import { FILESYSTEM_SERVER_PACKAGE, filesystemServerVersion, workflowScripts } from "./project.js";
 import type { Changes, FileToWrite } from "./write.js";
@@ -129,16 +130,26 @@ const PLANS: Readonly<Record<Kind, (root: string, name: string, o: GenerateOptio
             command: need(o.command, "--dir <folder> or --command <cmd>", "mcp"),
             tool: need(o.tool, "--tool <name>", "mcp"),
           };
-    const mcp = mcpFile(dir, spec);
-    const from = `./mcp/${namesOf(name).kebab}.mcp.js`;
-    const modify = [wire(module, "Workflow", "mcp", mcp.server, mcp.server, from)];
-    if (o.agent !== undefined)
+    const mcp = mcpFiles(dir, spec);
+    const modify = [
+      wire(module, "Workflow", "mcp", mcp.server, mcp.server, `./${mcp.serverModule}.js`),
+    ];
+    if (o.agent !== undefined) {
       modify.push(
-        wire(agentFile(root, dir, o.agent), "Agent", "tools", mcp.facade, mcp.facade, `.${from}`),
+        wire(
+          agentFile(root, dir, o.agent),
+          "Agent",
+          "tools",
+          mcp.tool,
+          mcp.tool,
+          `../${mcp.toolModule}.js`,
+        ),
       );
-    if (spec.kind === "filesystem")
+    }
+    if (spec.kind === "filesystem") {
       modify.push(withScripts(root, {}, [FILESYSTEM_SERVER_PACKAGE, filesystemServerVersion()]));
-    return { create: [mcp.file], modify };
+    }
+    return { create: mcp.files, modify };
   },
   rag: (root, name, o) => {
     const { dir } = workflowOf(root, o.workflow ?? "", "rag");

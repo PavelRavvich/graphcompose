@@ -6,6 +6,8 @@ const In = z.object({
   timeZone: z.string().default("UTC").describe("IANA time zone, e.g. Asia/Tokyo"),
 });
 const Out = z.object({ iso: z.string(), timeZone: z.string() });
+type ClockQuery = z.infer<typeof In>;
+type ClockTime = z.infer<typeof Out>;
 
 /** A test tool: the time, from an injected clock. */
 @Tool({
@@ -14,7 +16,7 @@ const Out = z.object({ iso: z.string(), timeZone: z.string() });
   input: In,
   output: Out,
 })
-export class Clock implements ToolHandler<typeof In, typeof Out> {
+export class Clock implements ToolHandler<ClockQuery, ClockTime> {
   constructor(private readonly now: () => Date = () => new Date("2026-09-25T10:00:00Z")) {}
   run({ timeZone }: z.output<typeof In>): Promise<z.output<typeof Out>> {
     // an unknown time zone throws — the model sees it as a tool error

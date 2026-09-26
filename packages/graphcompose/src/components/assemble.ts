@@ -2,10 +2,12 @@ import { readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import type { AssembledWorkflow } from "../workflow.js";
 import { validateAgentsConfig, type AgentsConfigOf } from "../config/types.js";
-import { mcpServer, type AnyTool } from "../tools/index.js";
+import { mcpServer, type McpFacade } from "../tools/index.js";
 import { renderTemplate } from "../scaffold/render.js";
 import { checkGraph, dependencyTree } from "./container.js";
-import { CORE_TOKENS, ragParts, toolBuilder } from "./runtime.js";
+import { CORE_TOKENS, ragParts, rememberServers, toolBuilder } from "./runtime.js";
+import type { McpServerClient, ServerTools } from "./mcp-client.js";
+import type { Token } from "./injection.js";
 import { ragClassesOf, ragMeta, ragSettings, searchToolName } from "./rag.js";
 import { type Class } from "./injection.js";
 import { ComponentError, componentOf, requireComponent } from "./metadata.js";
@@ -86,29 +88,43 @@ function mcpOf(bundle: WorkflowMeta, mcpTools: readonly Class[]) {
     cls,
     ...requireComponent(cls, "mcp-server", `@Workflow "${bundle.name}"`).meta,
   }));
-  const handles = new Map(servers.map((server) => [server.cls, mcpServer(server.name)] as const));
-  const facades = new Map<Class, AnyTool>();
+  const handles = [];
+  const serverTools: McpFacade[] = [];
+  const instances = new Map<Token, unknown>();
+  for (const server of servers) {
+    const handle = mcpServer(server.name);
+    handles.push(handle);
+    const facades = new Map(
+      Object.entries(server.tools).map(([tool, schemas]) => [
+        tool,
+        handle.tool({
+          tool,
+          description: `${server.name}: ${tool}`,
+          input: schemas.input,
+          output: schemas.output,
+        }),
+      ]),
+    );
+    serverTools.push(...facades.values());
+    const instance = new (server.cls as unknown as new () => McpServerClient<ServerTools>)();
+    instance.attachServerTools(facades);
+    instances.set(server.cls, instance);
+  }
   for (const cls of mcpTools) {
     const { meta } = requireComponent(cls, "mcp-tool", `@Workflow "${bundle.name}"`);
-    const handle = handles.get(meta.server);
-    if (handle === undefined) {
+    if (!instances.has(meta.server)) {
       throw new ComponentError(
         `@McpTool ${cls.name}: its server ${meta.server.name} is not in @Workflow({ mcp })`,
       );
     }
-    facades.set(
-      cls,
-      handle.tool({
-        tool: meta.tool,
-        description: meta.description,
-        input: meta.input,
-        output: meta.output,
-        ...(meta.effect === undefined ? {} : { effect: meta.effect }),
-        ...(meta.timeoutMs === undefined ? {} : { timeoutMs: meta.timeoutMs }),
-      }),
-    );
   }
-  return { servers, handles: [...handles.values()], facades };
+  return {
+    servers,
+    handles,
+    serverTools,
+    instances,
+    names: new Map(servers.map((s) => [s.cls, s.name] as const)),
+  };
 }
 
 type Mcp = ReturnType<typeof mcpOf>;
@@ -143,12 +159,18 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   const tools = toolsOf(bundle, agents);
   const mcp = mcpOf(bundle, tools.mcp);
   const rags = ragClassesOf(bundle, agents);
-  checkGraph([...tools.local, ...rags], bundle.providers ?? [], CORE_TOKENS);
+  checkGraph([...tools.local, ...tools.mcp, ...rags], bundle.providers ?? [], [
+    ...CORE_TOKENS,
+    ...mcp.instances.keys(),
+  ]);
+  rememberServers(bundle, mcp.instances);
   const names = new Map<Class, string>([
     ...tools.local.map(
       (cls) => [cls, requireComponent(cls, "tool", "workflowOf").meta.name] as const,
     ),
-    ...[...mcp.facades].map(([cls, tool]) => [cls, tool.name] as const),
+    ...tools.mcp.map(
+      (cls) => [cls, requireComponent(cls, "mcp-tool", "workflowOf").meta.name] as const,
+    ),
   ]);
   const prompts = Object.fromEntries(
     await Promise.all(
@@ -165,11 +187,12 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   return {
     config,
     prompts,
-    tools: toolBuilder(bundle, agents, tools.local, mcp.facades),
+    tools: toolBuilder(bundle, agents, tools.local, tools.mcp, mcp.names),
     ...(rags.length === 0 ? {} : ragParts(bundle, agents, rags)),
     mcpServers: mcp.handles,
+    serverTools: mcp.serverTools,
     toolDependencies: Object.fromEntries(
-      tools.local.flatMap((cls) => {
+      [...tools.local, ...tools.mcp].flatMap((cls) => {
         const tree = dependencyTree(cls, bundle.providers ?? []);
         return tree === "" ? [] : [[names.get(cls) ?? cls.name, tree] as const];
       }),

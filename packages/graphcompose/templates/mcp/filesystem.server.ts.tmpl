@@ -1,0 +1,31 @@
+import { dirname, join } from "node:path";
+import { createRequire } from "node:module";
+import { McpServer, McpServerClient } from "graphcompose";
+import { z } from "zod";
+
+/** The official filesystem MCP server (a dependency of this project). */
+const FILESYSTEM_SERVER = join(
+  dirname(createRequire(import.meta.url).resolve("@modelcontextprotocol/server-filesystem/package.json")),
+  "dist",
+  "index.js",
+);
+
+export const FilePath = z.object({ path: z.string().describe("absolute path of a file in {{dir}}") });
+export type FilePath = z.infer<typeof FilePath>;
+export const FileText = z.object({ content: z.string() });
+export type FileText = z.infer<typeof FileText>;
+
+/** The server tools this workflow uses — checked against the server at startup. */
+const tools = {
+  read_text_file: { input: FilePath, output: FileText },
+};
+
+/** Files in {{dir}}, through the filesystem MCP server. */
+@McpServer({
+  name: "{{snake}}",
+  transport: "stdio",
+  command: process.execPath,
+  args: [FILESYSTEM_SERVER, "{{dir}}"],
+  tools,
+})
+export class {{pascal}}Server extends McpServerClient<typeof tools> {}

@@ -14,3 +14,10 @@ export {
 export { InjectionToken, type Class, type Provider, type Token } from "./injection.js";
 export { ComponentError, componentOf } from "./metadata.js";
 export type { AgentMeta, WorkflowMeta, RagBinding } from "./meta-types.js";
+export {
+  McpServerClient,
+  mcpServerStub,
+  type ServerTool,
+  type ServerTools,
+  type ToolsOf,
+} from "./mcp-client.js";

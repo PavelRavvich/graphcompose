@@ -1,6 +1,7 @@
 import type { McpServerConfig } from "../config/types.js";
 import type { ToolEffect } from "../tools/index.js";
 import type { z } from "zod";
+import type { ServerTools } from "./mcp-client.js";
 import type { Class, Token } from "./injection.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 
@@ -14,14 +15,9 @@ export interface ToolMeta {
   readonly deps: readonly Token[];
 }
 
-export interface McpToolMeta {
+/** `@McpTool`: a tool whose server is among its dependencies. */
+export interface McpToolMeta extends ToolMeta {
   readonly server: Class;
-  readonly tool: string;
-  readonly description: string;
-  readonly effect?: ToolEffect;
-  readonly timeoutMs?: number;
-  readonly input: z.ZodType<Record<string, unknown>>;
-  readonly output: z.ZodType;
 }
 
 /** What a decorator recorded about a class. */
@@ -29,7 +25,11 @@ export type ComponentMeta =
   | { readonly kind: "tool"; readonly meta: ToolMeta }
   | {
       readonly kind: "mcp-server";
-      readonly meta: { readonly name: string; readonly config: McpServerConfig };
+      readonly meta: {
+        readonly name: string;
+        readonly config: McpServerConfig;
+        readonly tools: ServerTools;
+      };
     }
   | { readonly kind: "mcp-tool"; readonly meta: McpToolMeta }
   | { readonly kind: "agent"; readonly meta: AgentMeta }

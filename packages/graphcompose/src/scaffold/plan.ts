@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { ScaffoldError } from "./errors.js";
 import { namesOf, type Names } from "./names.js";
 import { renderTemplate } from "./render.js";
+import { mcpFiles, ragFiles } from "./parts.js";
 import { wire } from "./wire.js";
 import type { FileToWrite } from "./write.js";
 
@@ -15,7 +16,7 @@ export const render = (path: string, variables: Readonly<Record<string, string>>
     (key) => new ScaffoldError(`template ${path}: unknown variable {{${key}}}`),
   );
 
-const vars = (n: Names): Record<string, string> => ({
+export const vars = (n: Names): Record<string, string> => ({
   kebab: n.kebab,
   snake: n.snake,
   pascal: n.pascal,
@@ -86,49 +87,6 @@ export function agentFiles(
   ];
 }
 
-export function mcpFile(
-  dir: string,
-  mcp: Exclude<McpSpec, { kind: "none" }>,
-): { file: FileToWrite; server: string; facade: string } {
-  const n = namesOf(mcp.name);
-  if (mcp.kind === "filesystem") {
-    const content = render("mcp/filesystem.ts.tmpl", { ...vars(n), dir: mcp.dir });
-    return {
-      file: { path: `${dir}/mcp/${n.kebab}.mcp.ts`, content },
-      server: `${n.pascal}Server`,
-      facade: `Read${n.pascal}File`,
-    };
-  }
-  const tool = namesOf(mcp.tool);
-  const content = render("mcp/command.ts.tmpl", {
-    ...vars(n),
-    command: mcp.command,
-    tool: tool.snake,
-    toolPascal: tool.pascal,
-  });
-  return {
-    file: { path: `${dir}/mcp/${n.kebab}.mcp.ts`, content },
-    server: `${n.pascal}Server`,
-    facade: `${tool.pascal}${n.pascal}`,
-  };
-}
-
-export function ragFiles(
-  dir: string,
-  workflow: Names,
-  rag: { name: string; folder: string },
-): { files: FileToWrite[]; knowledge: string } {
-  const n = namesOf(rag.name);
-  const variables = { ...vars(n), folder: rag.folder, workflow: workflow.kebab };
-  return {
-    files: [
-      { path: `${dir}/rag/${n.kebab}.rag.ts`, content: render("rag/knowledge.ts.tmpl", variables) },
-      { path: `${rag.folder}/README.md`, content: render("rag/note.md.tmpl", variables) },
-    ],
-    knowledge: `${n.pascal}Knowledge`,
-  };
-}
-
 /** MCP server and knowledge base of a new workflow — both wired into its first agent. */
 function extras(
   spec: WorkflowSpec,
@@ -140,18 +98,12 @@ function extras(
   let agent = firstAgent;
   let server = "";
   if (spec.mcp.kind !== "none") {
-    const mcp = mcpFile(dir, spec.mcp);
-    files.push(mcp.file);
+    const mcp = mcpFiles(dir, spec.mcp);
+    files.push(...mcp.files);
     server = mcp.server;
-    agent = wire(
-      agent,
-      "Agent",
-      "tools",
-      mcp.facade,
-      mcp.facade,
-      `../mcp/${namesOf(spec.mcp.name).kebab}.mcp.js`,
-    );
+    agent = wire(agent, "Agent", "tools", mcp.tool, mcp.tool, `../${mcp.toolModule}.js`);
   }
+
   if (spec.rag !== undefined) {
     const rag = ragFiles(dir, workflow, spec.rag);
     files.push(...rag.files);
@@ -187,7 +139,7 @@ export function planWorkflow(spec: WorkflowSpec): FileToWrite[] {
     ),
     ...(spec.mcp.kind === "none"
       ? []
-      : [`import { ${more.server} } from "./mcp/${namesOf(spec.mcp.name).kebab}.mcp.js";`]),
+      : [`import { ${more.server} } from "./mcp/${namesOf(spec.mcp.name).kebab}.server.js";`]),
   ].join("\n");
   const module = render("workflow/workflow.ts.tmpl", {
     ...vars(workflow),
