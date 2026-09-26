@@ -23,14 +23,13 @@ npm i graphcompose
 ```
 
 ```ts
-// src/agents/scout.ts
+// src/agents/scout.agent.ts — its prompt is scout.prompt.md next to it (like templateUrl)
 @Agent({
   name: "scout",
   description: "Finds jobs",
   model: "moonshotai/kimi-k2.6",
   price,
   tools: [GreenhouseJobs],
-  prompt: new URL("./scout.prompt.md", import.meta.url),
 })
 export class Scout {}
 
@@ -64,7 +63,7 @@ by Jev. It depends on `graphcompose` exactly like your project would:
 
 ```bash
 npm install && npm run build          # at the repo root
-cd examples/job-scout && npm run chat # "my resume src/sample-resume.md"
+cd examples/job-scout && npm run chat # "my resume src/data/sample-resume.md"
 ```
 
 More: [Wiki → Example](https://github.com/PavelRavvich/graphcompose/wiki/Example).

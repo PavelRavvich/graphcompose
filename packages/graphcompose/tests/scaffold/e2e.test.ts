@@ -4,7 +4,7 @@
  * (its installed dependencies); a real `npm install` is the manual check M1.
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { specFromFlags } from "../../src/scaffold/flags.js";
@@ -78,6 +78,20 @@ describe("gc create / gc generate end to end", () => {
     expect(out).toMatch(/triage .*\n\s+Sorts requests\n\s+rag: desk_notes \(tool, k 3\)/);
     expect(out).toContain("· search_orders (read, local)");
     expect(out).toContain("· desk_files__read_text_file (read, MCP desk_files)");
+    // #107 AC2: files named by kind, the prompt next to its agent (no prompt parameter)
+    for (const file of [
+      "agents/answerer.agent.ts",
+      "agents/answerer.prompt.md",
+      "tools/search-orders.tool.ts",
+      "tools/search-orders.tool.test.ts",
+      "mcp/desk-files.mcp.ts",
+      "rag/desk-notes.rag.ts",
+    ]) {
+      expect(existsSync(join(project, "src/desk", file)), file).toBe(true);
+    }
+    expect(readFileSync(join(project, "src/desk/agents/answerer.agent.ts"), "utf8")).not.toContain(
+      "prompt:",
+    );
     expect(scripts().chat).toBe("graphcompose chat --workflow src/desk/desk.workflow.ts");
   }, 240_000);
 

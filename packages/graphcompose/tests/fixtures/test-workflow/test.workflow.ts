@@ -29,7 +29,7 @@ export class Clock implements ToolHandler<typeof In, typeof Out> {
   model: "test/researcher",
   price,
   tools: [Clock],
-  prompt: new URL("./researcher.prompt.md", import.meta.url),
+  prompt: "./researcher.prompt.md",
 })
 export class Researcher {}
 
@@ -40,7 +40,7 @@ export class Researcher {}
   price,
   thinking: "low",
   reasoning: { threshold: 0.8, maxAttempts: 3, thinking: ["low", "medium", "high"] },
-  prompt: new URL("./coder.prompt.md", import.meta.url),
+  prompt: "./coder.prompt.md",
 })
 export class Coder {}
 

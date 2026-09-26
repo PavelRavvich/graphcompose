@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { ScaffoldError } from "./errors.js";
 import { namesOf, type Names } from "./names.js";
 import { renderTemplate } from "./render.js";
-import { addImport, addToArray } from "./wire.js";
+import { wire } from "./wire.js";
 import type { FileToWrite } from "./write.js";
 
 const TEMPLATES = new URL("../../templates/", import.meta.url);
@@ -48,9 +48,12 @@ export const workflowDir = (workflow: Names): string => `src/${workflow.kebab}`;
 
 export function toolFiles(dir: string, tool: Names): FileToWrite[] {
   return [
-    { path: `${dir}/tools/${tool.kebab}.ts`, content: render("tool/tool.ts.tmpl", vars(tool)) },
     {
-      path: `${dir}/tools/${tool.kebab}.test.ts`,
+      path: `${dir}/tools/${tool.kebab}.tool.ts`,
+      content: render("tool/tool.ts.tmpl", vars(tool)),
+    },
+    {
+      path: `${dir}/tools/${tool.kebab}.tool.test.ts`,
       content: render("tool/tool.test.ts.tmpl", vars(tool)),
     },
   ];
@@ -63,7 +66,7 @@ export function agentFiles(
   tools: readonly Names[],
 ): FileToWrite[] {
   const imports = tools
-    .map((t) => `import { ${t.pascal}Tool } from "../tools/${t.kebab}.js";`)
+    .map((t) => `import { ${t.pascal}Tool } from "../tools/${t.kebab}.tool.js";`)
     .join("\n");
   const variables = {
     ...vars(agent),
@@ -73,7 +76,7 @@ export function agentFiles(
   };
   return [
     {
-      path: `${dir}/agents/${agent.kebab}.ts`,
+      path: `${dir}/agents/${agent.kebab}.agent.ts`,
       content: render("agent/agent.ts.tmpl", variables).replace(/\n\n\n/g, "\n\n"),
     },
     {
@@ -91,7 +94,7 @@ export function mcpFile(
   if (mcp.kind === "filesystem") {
     const content = render("mcp/filesystem.ts.tmpl", { ...vars(n), dir: mcp.dir });
     return {
-      file: { path: `${dir}/mcp/${n.kebab}.ts`, content },
+      file: { path: `${dir}/mcp/${n.kebab}.mcp.ts`, content },
       server: `${n.pascal}Server`,
       facade: `Read${n.pascal}File`,
     };
@@ -104,7 +107,7 @@ export function mcpFile(
     toolPascal: tool.pascal,
   });
   return {
-    file: { path: `${dir}/mcp/${n.kebab}.ts`, content },
+    file: { path: `${dir}/mcp/${n.kebab}.mcp.ts`, content },
     server: `${n.pascal}Server`,
     facade: `${tool.pascal}${n.pascal}`,
   };
@@ -119,24 +122,11 @@ export function ragFiles(
   const variables = { ...vars(n), folder: rag.folder, workflow: workflow.kebab };
   return {
     files: [
-      { path: `${dir}/rag/${n.kebab}.ts`, content: render("rag/knowledge.ts.tmpl", variables) },
+      { path: `${dir}/rag/${n.kebab}.rag.ts`, content: render("rag/knowledge.ts.tmpl", variables) },
       { path: `${rag.folder}/README.md`, content: render("rag/note.md.tmpl", variables) },
     ],
     knowledge: `${n.pascal}Knowledge`,
   };
-}
-
-/** Wires a class into an agent or workflow file: the array entry and its import. */
-export function wire(
-  file: FileToWrite,
-  decorator: "Agent" | "Workflow",
-  property: string,
-  element: string,
-  name: string,
-  from: string,
-): FileToWrite {
-  const added = addToArray(file.content, file.path, decorator, property, element);
-  return { path: file.path, content: addImport(added, file.path, name, from) };
 }
 
 /** MCP server and knowledge base of a new workflow — both wired into its first agent. */
@@ -159,7 +149,7 @@ function extras(
       "tools",
       mcp.facade,
       mcp.facade,
-      `../mcp/${namesOf(spec.mcp.name).kebab}.js`,
+      `../mcp/${namesOf(spec.mcp.name).kebab}.mcp.js`,
     );
   }
   if (spec.rag !== undefined) {
@@ -171,7 +161,7 @@ function extras(
       "rag",
       `{ use: ${rag.knowledge}, mode: "tool" }`,
       rag.knowledge,
-      `../rag/${namesOf(spec.rag.name).kebab}.js`,
+      `../rag/${namesOf(spec.rag.name).kebab}.rag.js`,
     );
   }
   return { files, agent, server };
@@ -192,10 +182,12 @@ export function planWorkflow(spec: WorkflowSpec): FileToWrite[] {
   if (firstAgent === undefined) throw new ScaffoldError("A workflow needs at least one agent");
   const more = extras(spec, dir, firstAgent);
   const imports = [
-    ...agents.map((a) => `import { ${a.names.pascal}Agent } from "./agents/${a.names.kebab}.js";`),
+    ...agents.map(
+      (a) => `import { ${a.names.pascal}Agent } from "./agents/${a.names.kebab}.agent.js";`,
+    ),
     ...(spec.mcp.kind === "none"
       ? []
-      : [`import { ${more.server} } from "./mcp/${namesOf(spec.mcp.name).kebab}.js";`]),
+      : [`import { ${more.server} } from "./mcp/${namesOf(spec.mcp.name).kebab}.mcp.js";`]),
   ].join("\n");
   const module = render("workflow/workflow.ts.tmpl", {
     ...vars(workflow),

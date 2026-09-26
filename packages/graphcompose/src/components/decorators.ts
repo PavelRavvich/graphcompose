@@ -3,6 +3,7 @@ import type { McpServerConfig } from "../config/types.js";
 import type { RagConnector } from "../rag/types.js";
 import type { ToolContext, ToolEffect } from "../tools/index.js";
 import type { Class, ResolvedAll, Token } from "./injection.js";
+import { callerFile } from "./call-site.js";
 import { recordComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 
@@ -86,9 +87,13 @@ export function Rag<const D extends readonly Token[] = []>(options: {
 }
 
 /** An agent: its settings, its tools (class references) and its prompt file. */
-export function Agent(options: AgentMeta) {
+export function Agent(options: Omit<AgentMeta, "source">) {
+  const source = callerFile();
   return <C extends Class>(value: C): C => {
-    recordComponent(value, { kind: "agent", meta: options });
+    recordComponent(value, {
+      kind: "agent",
+      meta: { ...options, ...(source === undefined ? {} : { source }) },
+    });
     return value;
   };
 }

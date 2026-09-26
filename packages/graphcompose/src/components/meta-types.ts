@@ -29,8 +29,13 @@ export interface AgentMeta {
   readonly tools?: readonly Class[];
   /** Knowledge bases: `{ use: CompanyDocs, mode: "tool" | "context" }` — `mode` is required. */
   readonly rag?: readonly RagBinding[];
-  /** `new URL("./name.prompt.md", import.meta.url)` */
-  readonly prompt: URL;
+  /**
+   * The prompt file, relative to the agent's file. Default: `<name>.prompt.md` next to `<name>.agent.ts`
+   * (like Angular's `templateUrl`).
+   */
+  readonly prompt?: string;
+  /** Set by `@Agent` itself: the file the agent is declared in. */
+  readonly source?: string;
 }
 
 /** `@Workflow` — the module: workflow settings, its agents and MCP servers, and providers for DI. */

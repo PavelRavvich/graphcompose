@@ -62,7 +62,7 @@ export class ReadFile {}
   price: testConfig.agents.alpha.price,
   thinking: "low",
   tools: [GreetTool, ReadFile],
-  prompt: new URL("./greeter.prompt.md", import.meta.url),
+  prompt: "./greeter.prompt.md",
 })
 export class GreeterAgent {}
 
