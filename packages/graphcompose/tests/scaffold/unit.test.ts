@@ -112,7 +112,7 @@ describe("writing", () => {
         { workflow: "src/desk/desk.workflow.ts", agent: "answerer" },
         root,
       ),
-    ).toThrow("src/desk/agents/answerer.ts: SearchOrdersTool is already in tools");
+    ).toThrow("src/desk/agents/answerer.agent.ts: SearchOrdersTool is already in tools");
     expect(() =>
       planGenerate("tool", "x", { workflow: "src/desk/desk.workflow.ts" }, root),
     ).toThrow("gc generate tool needs --agent <name>");

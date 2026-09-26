@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { ScaffoldError } from "./errors.js";
 import { namesOf } from "./names.js";
-import { agentFiles, mcpFile, planWorkflow, ragFiles, toolFiles, wire } from "./plan.js";
+import { agentFiles, mcpFile, planWorkflow, ragFiles, toolFiles } from "./plan.js";
+import { wire } from "./wire.js";
 import { FILESYSTEM_SERVER_PACKAGE, filesystemServerVersion, workflowScripts } from "./project.js";
 import type { Changes, FileToWrite } from "./write.js";
 
@@ -42,7 +43,7 @@ function workflowOf(root: string, path: string, kind: Kind): { dir: string; modu
 }
 
 const agentFile = (root: string, dir: string, agent: string): FileToWrite =>
-  read(root, `${dir}/agents/${namesOf(agent).kebab}.ts`);
+  read(root, `${dir}/agents/${namesOf(agent).kebab}.agent.ts`);
 
 function withScripts(
   root: string,
@@ -94,7 +95,7 @@ const PLANS: Readonly<Record<Kind, (root: string, name: string, o: GenerateOptio
           "agents",
           `${n.pascal}Agent`,
           `${n.pascal}Agent`,
-          `./agents/${n.kebab}.js`,
+          `./agents/${n.kebab}.agent.js`,
         ),
       ],
     };
@@ -112,7 +113,7 @@ const PLANS: Readonly<Record<Kind, (root: string, name: string, o: GenerateOptio
           "tools",
           `${n.pascal}Tool`,
           `${n.pascal}Tool`,
-          `../tools/${n.kebab}.js`,
+          `../tools/${n.kebab}.tool.js`,
         ),
       ],
     };
@@ -129,7 +130,7 @@ const PLANS: Readonly<Record<Kind, (root: string, name: string, o: GenerateOptio
             tool: need(o.tool, "--tool <name>", "mcp"),
           };
     const mcp = mcpFile(dir, spec);
-    const from = `./mcp/${namesOf(name).kebab}.js`;
+    const from = `./mcp/${namesOf(name).kebab}.mcp.js`;
     const modify = [wire(module, "Workflow", "mcp", mcp.server, mcp.server, from)];
     if (o.agent !== undefined)
       modify.push(
@@ -143,7 +144,7 @@ const PLANS: Readonly<Record<Kind, (root: string, name: string, o: GenerateOptio
     const { dir } = workflowOf(root, o.workflow ?? "", "rag");
     const workflow = namesOf(basename(dir));
     const rag = ragFiles(dir, workflow, { name, folder: need(o.folder, "--folder <dir>", "rag") });
-    const from = `../rag/${namesOf(name).kebab}.js`;
+    const from = `../rag/${namesOf(name).kebab}.rag.js`;
     const modify =
       o.agent === undefined
         ? []

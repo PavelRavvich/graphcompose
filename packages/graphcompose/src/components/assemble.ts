@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { basename, dirname, join, resolve } from "node:path";
 import type { AssembledWorkflow } from "../workflow.js";
 import { validateAgentsConfig, type AgentsConfigOf } from "../config/types.js";
 import { mcpServer, type AnyTool } from "../tools/index.js";
@@ -11,11 +11,21 @@ import { type Class } from "./injection.js";
 import { ComponentError, componentOf, requireComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 
+/** The agent's prompt file: `prompt` relative to the agent's file, or `<name>.prompt.md` next to it. */
+function promptPath(agent: AgentMeta): string {
+  if (agent.source === undefined) {
+    throw new ComponentError(`@Agent "${agent.name}": cannot tell which file it is declared in`);
+  }
+  const dir = dirname(agent.source);
+  if (agent.prompt !== undefined) return resolve(dir, agent.prompt);
+  return join(dir, `${basename(agent.source).replace(/(\.agent)?\.[cm]?[jt]s$/, "")}.prompt.md`);
+}
+
 async function promptOf(
   agent: AgentMeta,
   variables: Readonly<Record<string, string>>,
 ): Promise<string> {
-  const path = fileURLToPath(agent.prompt);
+  const path = promptPath(agent);
   const text = await readFile(path, "utf8").catch(() => {
     throw new ComponentError(`@Agent "${agent.name}": prompt file not found: ${path}`);
   });

@@ -1,5 +1,6 @@
 import ts from "typescript";
 import { ScaffoldError } from "./errors.js";
+import type { FileToWrite } from "./write.js";
 
 type Decorator = "Agent" | "Workflow";
 
@@ -95,4 +96,17 @@ export function addImport(text: string, file: string, name: string, from: string
   const at = source.statements.filter(ts.isImportDeclaration).at(-1)?.getEnd() ?? 0;
   const line = `import { ${name} } from "${from}";`;
   return at === 0 ? `${line}\n${text}` : `${text.slice(0, at)}\n${line}${text.slice(at)}`;
+}
+
+/** Wires a class into an agent or workflow file: the array entry and its import. */
+export function wire(
+  file: FileToWrite,
+  decorator: "Agent" | "Workflow",
+  property: string,
+  element: string,
+  name: string,
+  from: string,
+): FileToWrite {
+  const added = addToArray(file.content, file.path, decorator, property, element);
+  return { path: file.path, content: addImport(added, file.path, name, from) };
 }

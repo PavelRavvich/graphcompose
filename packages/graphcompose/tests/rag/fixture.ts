@@ -27,7 +27,7 @@ export class HandbookFromApi implements RagConnector {
   }
 }
 
-const prompt = new URL("../components/fixture/greeter.prompt.md", import.meta.url);
+const prompt = "../components/fixture/greeter.prompt.md";
 const base = {
   version: "1.0.0",
   defaults: testConfig.defaults,

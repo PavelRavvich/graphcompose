@@ -108,7 +108,7 @@ describe("components — errors at assembly", () => {
     class Plain {
       readonly plain = true;
     }
-    const agent = (prompt: URL, tools: (abstract new () => unknown)[] = []) => {
+    const agent = (prompt: string, tools: (abstract new () => unknown)[] = []) => {
       @Agent({
         name: "a",
         description: "d",
@@ -125,14 +125,14 @@ describe("components — errors at assembly", () => {
       class B {}
       return B;
     };
-    const prompt = new URL("./fixture/greeter.prompt.md", import.meta.url);
+    const prompt = "./fixture/greeter.prompt.md";
 
     await expect(workflowOf(bundleWith(agent(prompt, [Plain])))).rejects.toThrow(
       /Plain in an agent's tools is not a @Tool/,
     );
-    await expect(
-      workflowOf(bundleWith(agent(new URL("./fixture/nope.md", import.meta.url)))),
-    ).rejects.toThrow(/prompt file not found/);
+    await expect(workflowOf(bundleWith(agent("./fixture/nope.md")))).rejects.toThrow(
+      /prompt file not found/,
+    );
     await expect(workflowOf(bundleWith(agent(prompt)))).rejects.toThrow(
       /unknown prompt variable \{\{language\}\}/,
     );

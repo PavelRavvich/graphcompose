@@ -58,6 +58,9 @@ takes `--profile <name>` (`profiles/<workflow>/<name>.yaml`) and `--thread <id>`
 - Add a tool: a `@Tool` class in `tools/`, referenced from an agent. Add an agent: `agents/<name>.ts`
   - `<name>.prompt.md`, listed in `@Workflow`. A workflow = related agents under one directory with a
     `*.workflow.ts`; commands find it by path (`--workflow`). Test tools with `toolOf(new Tool(fakes))`.
+- **File conventions** (Wiki → Components): `*.agent.ts` + `*.prompt.md` (found by convention), `*.tool.ts`
+  - `*.tool.test.ts`, `*.mcp.ts`, `*.rag.ts`, `*.service.ts` (`@Injectable`), `*.helper.ts`; tools keep `run`,
+    bulky helpers go to `*.helper.ts`.
 - **Framework and examples apart** (ESLint-enforced both ways): `packages/graphcompose` never imports
   `examples/`; an example imports only `graphcompose` (its public `src/index.ts`), like an outside project.
 
@@ -109,7 +112,9 @@ packages/graphcompose/        the framework (npm package `graphcompose`; builds 
   schema/           profile.schema.json (YAML autocomplete)
   bin/              graphcompose launcher
 examples/job-scout/          the example (package job-scout-example; depends on graphcompose)
-  src/              job-scout.workflow.ts, agents/ (+ *.prompt.md), tools/, fit, boards, search config, studio.ts
+  src/              job-scout.workflow.ts, studio.ts; agents/ (*.agent.ts + *.prompt.md), tools/ (*.tool.ts),
+                    services/ (*.service.ts), mcp/ (*.mcp.ts), rag/ (*.rag.ts), helpers/ (*.helper.ts),
+                    config/, scripts/, data/
   tests/  profiles/  golden/
 scripts/        bootstrap-repo, bootstrap-labels, ticket, wiki, langfuse, coverage-badge
 ../<repo>.wiki  GitHub Wiki working copy (separate git repo, never inside this repo)
