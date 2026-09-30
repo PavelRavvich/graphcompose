@@ -122,6 +122,10 @@ ${lines.join("\n")}
 
 Every command takes --workflow <path>: a module exporting one @Workflow class.
 gc help <command> — its options.
+
+Environment:
+  GRAPHCOMPOSE_NO_STAR=1   hide the closing "Star us on GitHub" line on stderr; it is also
+                           hidden when stderr is not a terminal, CI is set, or with --json / --quiet.
 `;
 }
 
