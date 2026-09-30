@@ -1,8 +1,10 @@
 import { expect, it } from "vitest";
 import type { RunEvent } from "./events.js";
-import { harness } from "./fixtures.js";
+import { harness, NO_JUDGES } from "./fixtures.js";
 import { resumeInput, runLoop, startInput, streamLoop } from "./run.js";
 import { answer, callTools } from "./scripted-model.js";
+import { codeJudge } from "./tool.js";
+import type { AnswerMove, ReviewVerdict } from "./types.js";
 
 const thread = { thread: "t-stream" };
 const write = { id: "w1", name: "write-file", args: { path: "a.ts", content: "x" } };
@@ -80,4 +82,17 @@ it("stops the run and its running tool when the consumer breaks out of the loop"
 
   expect(h.effects).toEqual([]);
   expect(h.modelCalls).toEqual([0]);
+});
+
+it("has already streamed the tokens of an answer that a judge then returns (the spec needs an event for it)", async () => {
+  const complete = codeJudge<AnswerMove, ReviewVerdict>("answer-complete", 1, (move) =>
+    move.text.includes("tests") ? { kind: "accept" } : { kind: "revise", remark: "tests?" },
+  );
+  const judges = { ...NO_JUDGES, beforeAnswer: [complete] };
+  const h = harness({ moves: [answer("done. "), answer("done, tests pass")], judges });
+
+  const events = await collect(streamLoop(h.graph, startInput("go"), thread));
+
+  expect(events.map(tokenText).join("")).toBe("done. done, tests pass");
+  expect(events.at(-1)).toEqual({ kind: "done", answer: "done, tests pass" });
 });
