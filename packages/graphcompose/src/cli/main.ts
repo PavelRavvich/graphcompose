@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { runWithStar, type StarContext } from "./star.js";
 import { helpFor, usage } from "./usage.js";
 
 /** Commands → their entry modules; eval-like commands keep their name as the first argument. */
@@ -18,18 +19,31 @@ const ENTRIES: Readonly<Record<string, { readonly module: string; readonly keepN
 /** Short names, Angular-style: `gc c <name>`, `gc g tool <name>`. */
 const ALIASES: Readonly<Record<string, string>> = { c: "create", g: "generate" };
 
-const [given, rawTopic] = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const [given, rawTopic] = argv;
 const name = given === undefined ? undefined : (ALIASES[given] ?? given);
 const topic = rawTopic === undefined ? undefined : (ALIASES[rawTopic] ?? rawTopic);
 const entry = name === undefined ? undefined : ENTRIES[name];
-if (name === undefined || name === "help" || name === "--help" || name === "-h") {
+
+const isHelp = name === undefined || name === "help" || name === "--help" || name === "-h";
+
+/** `gc help [<command>]`. */
+function showHelp(): void {
   const text = topic === undefined ? usage() : helpFor(topic);
   process.stdout.write(text ?? `Unknown command "${topic ?? ""}".\n\n${usage()}`);
   process.exitCode = text === undefined ? 1 : 0;
-} else if (entry === undefined) {
-  process.stderr.write(`Unknown command "${name}".\n\n${usage()}`);
-  process.exitCode = 1;
-} else {
-  if (!entry.keepName) process.argv.splice(2, 1);
-  await import(entry.module);
 }
+
+async function dispatch(): Promise<void> {
+  if (isHelp) showHelp();
+  else if (entry === undefined) {
+    process.stderr.write(`Unknown command "${name}".\n\n${usage()}`);
+    process.exitCode = 1;
+  } else {
+    if (!entry.keepName) process.argv.splice(2, 1);
+    await import(entry.module);
+  }
+}
+
+const star: StarContext = { isTTY: process.stderr.isTTY, env: process.env, argv };
+if ((await runWithStar(dispatch, star, process.stderr)) === "threw") process.exitCode = 1;
