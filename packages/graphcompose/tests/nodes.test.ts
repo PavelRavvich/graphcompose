@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { makeAgentNode, UnknownAgentError } from "../src/graph/nodes/agent.js";
-import { AFTER_HUMAN_DECISION, makeFlowRouterNode } from "../src/graph/nodes/flow-router.js";
+import { AFTER_APPROVAL_DECISION, makeFlowRouterNode } from "../src/graph/nodes/flow-router.js";
 import type { RouteOutcome, RouteRequest } from "../src/routers/index.js";
 import { testRouters } from "./fixtures/test-flow/test.flow.js";
 import { baseState, fakeDeps, flowState } from "./helpers.js";
@@ -63,7 +63,8 @@ describe("after a human decision the turn ends (#100)", () => {
     tool: "note_save",
     args: { text: "x" },
     approved,
-    result: approved ? "{}" : "Tool error: rejected by human",
+    by: "tester",
+    result: approved ? "{}" : "Tool error: the call was rejected by tester",
   });
   const answered = [{ agent: "alpha", content: "not saved" }];
 
@@ -72,7 +73,7 @@ describe("after a human decision the turn ends (#100)", () => {
 
     const update = await node(flowState({ contributions: answered, approvals: [decision(false)] }));
 
-    expect(update).toEqual({ next: "answer", routeReason: AFTER_HUMAN_DECISION });
+    expect(update).toEqual({ next: "answer", routeReason: AFTER_APPROVAL_DECISION });
     expect(route).not.toHaveBeenCalled();
   });
 

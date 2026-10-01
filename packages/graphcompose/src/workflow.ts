@@ -23,7 +23,7 @@ export type WorkflowTools =
 
 /**
  * Everything one workflow needs: its flow, limits and routers, config, prompts, the tools it may
- * use, the MCP servers behind its facades and, optionally, which tools wait for a human (pause seam).
+ * use, the MCP servers behind its facades and, optionally, which tools wait for an approval (pause seam).
  */
 export interface AssembledWorkflow<TName extends string = string> {
   readonly config: AgentsConfigOf<TName>;

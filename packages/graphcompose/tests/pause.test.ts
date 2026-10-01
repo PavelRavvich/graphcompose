@@ -102,7 +102,7 @@ describe("pause seam", () => {
     expect((await deps.terns.byIds([paused.ternId]))[0]?.status).toBe("answered");
   });
 
-  it("#141 AC5: resumes with { approved, by, reason }; the rejection's reason reaches the agent", async () => {
+  it("#141 AC5, #148 AC2: resumes with { approved, by, reason }; who rejected and why reach the agent", async () => {
     const { deps, sent, alpha } = setup([callSend, callSend, "Understood, not sending."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);
 
@@ -114,7 +114,9 @@ describe("pause seam", () => {
 
     expect(done.answer).toBe("Understood, not sending.");
     expect(sent).toEqual([]);
-    expect(alpha.sent[2]?.at(-1)?.text).toContain("rejected by human: not now");
+    expect(alpha.sent[2]?.at(-1)?.text).toBe(
+      "Tool error: the call was rejected by tester: not now",
+    );
   });
 
   it("AC6: recognises the decided call when the model repeats it with keys in another order", async () => {
@@ -129,13 +131,13 @@ describe("pause seam", () => {
     expect(sent).toEqual([]);
   });
 
-  it("reports a rejection without a reason plainly", async () => {
+  it("#148 AC2: reports a rejection without a reason plainly, naming who rejected", async () => {
     const { deps, alpha } = setup([callSend, callSend, "Ok."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);
 
     await resumeAgent(paused, { approved: false, by: "tester" }, deps);
 
-    expect(alpha.sent[2]?.at(-1)?.text).toBe("Tool error: rejected by human");
+    expect(alpha.sent[2]?.at(-1)?.text).toBe("Tool error: the call was rejected by tester");
   });
 
   it("keeps FinOps consistent: no spend recorded twice across pause and resume", async () => {
@@ -226,7 +228,7 @@ describe("terminal approval (CLI and chat)", () => {
     const { deps } = setup([callSend, "Sent."]);
     const done = await inTerminal(deps, () => Promise.resolve("y"));
 
-    expect(summaryLine(done)).toBe("alpha · stop: the agent answered after the human decision");
+    expect(summaryLine(done)).toBe("alpha · stop: the agent answered after the approval decision");
     expect(summaryLine({ ...done, route: [] })).toMatch(/^\(none\) · /);
   });
 });

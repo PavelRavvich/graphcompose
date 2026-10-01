@@ -22,7 +22,7 @@ function outcomeOf(state: AgentStateType, paused: boolean): TernOutcome & { stat
   return {
     answer: paused ? "" : state.answer,
     status,
-    stopReason: paused ? "waiting for human approval" : state.routeReason,
+    stopReason: paused ? "waiting for approval" : state.routeReason,
     route: state.contributions.map((item) => item.agent),
     steps: state.contributions,
     costUsd: totalCost(state.usage),

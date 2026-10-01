@@ -20,7 +20,7 @@ self-review before every PR.
   (and `id`, `url`, `llm` in code).
 - **Naming grammar (#127)** for every public name: kind as the suffix (`MainRouter`,
   `CoderAgent`; DTOs are noun pairs — `FileRead` → `FileContent`), when + what for moments
-  (`BeforeCallJudge`), `max…` for one limit and a `limits` object for several, enums for closed
+  (`BeforeToolCallJudge`), `max…` for one limit and a `limits` object for several, enums for closed
   sets, one field name per meaning, `…Of` for getting something for a component,
   `<verb>(what).on(target)` for attaching, `…Repository` for storage contracts, values with units
   (`usd()`, `seconds()`), `override…` only for replacing what is inherited.

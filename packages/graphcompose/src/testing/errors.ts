@@ -1,6 +1,10 @@
 /** Codes of the testing toolkit's failures — stable, so a test can expect them. */
 export type TestFailureCode =
-  "test.live-call-blocked" | "test.script-exhausted" | "test.not-a-route" | "test.wrong-script";
+  | "test.live-call-blocked"
+  | "test.script-exhausted"
+  | "test.not-a-route"
+  | "test.wrong-script"
+  | "test.app-closed";
 
 /** A failure the toolkit raises for a test: it carries a stable code. */
 export class TestFailure extends Error {

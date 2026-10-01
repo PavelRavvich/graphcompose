@@ -13,8 +13,12 @@ import "./vitest-types.js";
 export interface WorkflowFixtures {
   /** The workflow's real container and graph, everything external replaced; built on first use. */
   readonly app: TestApp;
-  /** A second app over the same test state — e.g. to resume a run "in another process". */
-  readonly openApp: () => Promise<TestApp>;
+  /**
+   * Closes the current app (its `onStop` hooks run, as on a real stop) and returns a new one over
+   * the same test state (checkpoints, ledger, clock, ids) — "a paused run survives a restart".
+   * The closed app fails every call with `test.app-closed`.
+   */
+  readonly restartApp: () => Promise<TestApp>;
   /** The script of an agent or a router (by class): `modelOf(Scout).respond(answer("…"))`. */
   readonly modelOf: (component: FlowNode) => ModelScript;
   /** A typed mock injected instead of a component; the same instance the app uses. */
@@ -62,8 +66,13 @@ export function testWith(
     app: async ({ environment }, use) => {
       await use(createTestApp(environment));
     },
-    openApp: async ({ environment }, use) => {
-      await use(() => Promise.resolve(createTestApp(environment)));
+    restartApp: async ({ environment, app }, use) => {
+      let current = app;
+      await use(async () => {
+        await current.close();
+        current = createTestApp(environment);
+        return current;
+      });
     },
     modelOf: async ({ environment }, use) => {
       await use((component) => environment.modelOf(component));

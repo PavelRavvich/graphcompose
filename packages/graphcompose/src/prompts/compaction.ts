@@ -5,6 +5,6 @@ export const DEFAULT_COMPACTION_PROMPT = [
   "references — do not summarise them.",
   "The note must be self-contained: name people, companies, products and files in full; never use",
   "pronouns or words like 'it', 'he', 'that one' that point outside the note.",
-  "Keep: facts about the user, decisions made, answers given, preferences, open questions and",
-  "anything the user may refer to later. Drop greetings and repetition. Plain text, at most 12 short lines.",
+  "Keep: facts about whoever started the run, decisions made, answers given, preferences, open questions and",
+  "anything they may refer to later. Drop greetings and repetition. Plain text, at most 12 short lines.",
 ].join("\n");

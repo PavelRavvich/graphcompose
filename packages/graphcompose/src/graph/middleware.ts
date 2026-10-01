@@ -19,7 +19,7 @@ export interface AccountingDeps {
   /** Spent in this run before the agent started. */
   readonly spentBeforeUsd: number;
   readonly budgetUsd: number;
-  /** True once a tool call waits for a human: the loop stops without another model call. */
+  /** True once a tool call waits for an approval: the loop stops without another model call. */
   readonly isPaused: () => boolean;
 }
 
@@ -55,8 +55,8 @@ const sameCall = (record: ApprovalRecord, tool: string, args: unknown): boolean 
   record.tool === tool && stableJson(record.args) === stableJson(args);
 
 /**
- * Pause seam inside an agent loop: a call that needs a human is not executed — it is reported as
- * pending and the loop ends. A call a human already decided returns that decision's result.
+ * Pause seam inside an agent loop: a call that needs an approval is not executed — it is reported as
+ * pending and the loop ends. A call already decided returns that decision's result.
  */
 export function approvalMiddleware(deps: ApprovalDeps): AgentMiddleware {
   return createMiddleware({

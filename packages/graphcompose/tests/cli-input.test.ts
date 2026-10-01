@@ -78,7 +78,7 @@ describe("interrupted runs", () => {
     controller.abort();
 
     await expect(runAgent({ task: "Hi" }, deps, { signal: controller.signal })).rejects.toThrow(
-      "interrupted by the user",
+      "the run was cancelled",
     );
 
     expect((await deps.terns.summary("test-bundle"))[0]).toMatchObject({ terns: 1 });

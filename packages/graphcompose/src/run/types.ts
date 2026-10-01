@@ -58,6 +58,6 @@ export interface AgentRunResult {
   readonly traceUrl?: string;
   /** Checkpoint id of this run — used to resume a paused run. */
   readonly runId: string;
-  /** Present only when `status` is "paused": the tool call waiting for a human. */
+  /** Present only when `status` is "paused": the tool call waiting for an approval. */
   readonly pending?: PendingApproval;
 }

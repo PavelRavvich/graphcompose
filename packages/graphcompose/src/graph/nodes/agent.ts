@@ -33,7 +33,7 @@ export interface AgentNodeDeps {
   readonly agents: ReadonlyMap<string, AgentDefinition>;
   readonly bundle: string;
   readonly runBudgetCap: number;
-  /** Set only with a pause seam: which tools wait for a human. */
+  /** Set only with a pause seam: which tools wait for an approval. */
   readonly needsApproval?: ((tool: AnyTool) => boolean) | undefined;
 }
 
@@ -50,7 +50,7 @@ interface Pass {
   readonly agent: AgentDefinition;
   readonly deps: AgentNodeDeps;
   readonly records: UsageRecord[];
-  /** Set when a tool call waits for a human; the loop then stops. */
+  /** Set when a tool call waits for an approval; the loop then stops. */
   readonly pending: { value?: PendingApproval };
 }
 

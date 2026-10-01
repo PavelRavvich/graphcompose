@@ -7,7 +7,7 @@ export const runConfig = (runId: string): { configurable: { thread_id: string } 
   configurable: { thread_id: runId },
 });
 
-/** A run with nodes left in its checkpoint is waiting for a human. */
+/** A run with nodes left in its checkpoint is waiting for an approval. */
 export async function isWaiting(graph: CompiledFlowGraph, runId: string): Promise<boolean> {
   return (await graph.getState(runConfig(runId))).next.length > 0;
 }

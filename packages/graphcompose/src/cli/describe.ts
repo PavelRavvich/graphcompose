@@ -40,7 +40,7 @@ function bundleLines(bundle: AssembledWorkflow): string[] {
   return [
     `guards    input: ${inputGuards.join(", ") || "none"} · output: ${outputGuards.join(", ") || "none"}`,
     `memory    ${memory}`,
-    `pause     ${bundle.needsApproval === undefined ? "off" : "on — marked tools wait for a human"}`,
+    `pause     ${bundle.needsApproval === undefined ? "off" : "on — marked tools wait for an approval"}`,
     `limits    ${limitsLabel(bundle)}`,
   ];
 }

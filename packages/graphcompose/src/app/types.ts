@@ -17,7 +17,7 @@ export interface RunCallOptions {
 
 /**
  * What one run (or resume) of the app ended with. `finish` / `output` when it reached a workflow
- * finish, `pause` when it waits for a human; `path` = the flow nodes it visited, `spend` = its cost.
+ * finish, `pause` when it waits for an approval; `path` = the flow nodes it visited, `spend` = its cost.
  */
 export interface RunResult extends Pick<
   AgentRunResult,

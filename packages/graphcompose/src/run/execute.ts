@@ -63,9 +63,9 @@ export function streamConfig<TName extends string>(
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-/** A run stopped by its signal reads as interrupted, whatever error the abort surfaced as. */
+/** A run stopped by its signal reads as cancelled, whatever error the abort surfaced as. */
 export const outcomeError = (error: unknown, signal: AbortSignal | undefined): unknown =>
-  signal?.aborted === true ? new Error("interrupted by the user") : error;
+  signal?.aborted === true ? new Error("the run was cancelled") : error;
 
 export const failedOutcome = (error: unknown, spent: readonly UsageRecord[]): TernOutcome => ({
   answer: "",
