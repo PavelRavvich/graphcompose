@@ -20,7 +20,7 @@ describe("config versions", () => {
 
     const [tern] = await deps.terns.byIds([result.ternId]);
     expect(tern?.configVersion).toBe("1.0.0");
-    expect(tern?.configHash).toMatch(/^[0-9a-f]{12}$/);
+    expect(tern?.configHash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("AC2: the same version with other content is drift; snapshots are kept", async () => {
@@ -30,6 +30,18 @@ describe("config versions", () => {
     expect(await store.rememberConfig("b", "1.0.0", "h1", "{a}")).toEqual({ drift: false });
     expect(await store.rememberConfig("b", "1.0.0", "h2", "{b}")).toEqual({ drift: true });
     expect((await store.configSnapshots("b", "1.0.0")).map((s) => s.hash)).toEqual(["h1", "h2"]);
+  });
+
+  it("AC4: a 12-character hash from before canonical JSON is not comparable — no drift", async () => {
+    const store = createSqliteTernStore(":memory:");
+
+    await store.rememberConfig("b", "1.0.0", "a".repeat(12), "{old}");
+    expect(await store.rememberConfig("b", "1.0.0", "b".repeat(64), "{new}")).toEqual({
+      drift: false,
+    });
+    expect(await store.rememberConfig("b", "1.0.0", "c".repeat(64), "{newer}")).toEqual({
+      drift: true,
+    });
   });
 
   it("AC2: a config changed without a version bump warns on start", async () => {
@@ -50,7 +62,7 @@ describe("config versions", () => {
 
     expect(first.warnings).toEqual([]);
     expect(second.warnings[0]).toMatch(
-      /config "test-workflow" 1\.0\.0 changed without a version bump/,
+      /config "test-workflow" 1\.0\.0 changed without a version bump \(hash [0-9a-f]{8}\)$/,
     );
   });
 });
