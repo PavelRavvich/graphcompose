@@ -3,6 +3,8 @@
  * `@Router` with `route(...)`, workflow settings and limits, and the errors assembly and runs raise.
  * Wiki → Workflow, Routers.
  */
+import "../polyfills/symbol-metadata.js";
+
 export {
   chain,
   from,
