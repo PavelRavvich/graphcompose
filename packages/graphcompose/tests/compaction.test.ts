@@ -12,6 +12,7 @@ import {
   recordingRouters,
   testConfig,
   type TestAgent,
+  fakeGateway,
 } from "./helpers.js";
 
 const price = testConfig.agents.alpha.price;
@@ -79,7 +80,7 @@ function setup({
     ...base,
     config,
     limits: { perRun: { cost: usd(runBudgetCap) } },
-    registry: createModelRegistry(config, factory),
+    registry: createModelRegistry(config, fakeGateway(factory)),
   };
   return { deps, alpha, summariser, ledger };
 }

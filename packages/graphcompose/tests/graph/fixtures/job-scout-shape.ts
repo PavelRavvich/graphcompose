@@ -18,7 +18,7 @@ import { createSqliteTernStore } from "../../../src/terns/index.js";
 import { defineTool } from "../../../src/tools/index.js";
 import { usd } from "../../../src/units/index.js";
 import { ScriptedChatModel, type Reply } from "../../fakes/scripted-model.js";
-import { memoryLedger, testConfig, unusedJevClient } from "../../helpers.js";
+import { fakeGateway, memoryLedger, testConfig } from "../../helpers.js";
 import { testNode } from "./nodes.js";
 
 @Entry({ name: "chat-message", description: "A message from the job seeker", input: ChatMessage })
@@ -119,7 +119,7 @@ export function jobScoutDeps(script: JobScoutScript): JobScoutRun {
   const ledger = memoryLedger();
   const deps: RunDeps<JobScoutAgent> = {
     config,
-    registry: createModelRegistry(config, chatModel),
+    registry: createModelRegistry(config, fakeGateway(chatModel)),
     prompts: { profiler: "You profile.", scout: "You scout.", shortlist: "You save." },
     tools: () => saveShortlist,
     guards: script.guards ?? NO_GUARDS,
@@ -130,7 +130,7 @@ export function jobScoutDeps(script: JobScoutScript): JobScoutRun {
     limits: { perRun: { steps: 12, cost: usd(0.1) }, perDay: { cost: usd(1) } },
     routers: [],
     routerFor: flowRouterFactory({
-      factories: { chatModel, jevClient: unusedJevClient },
+      gateway: fakeGateway(chatModel),
       chatDefaults: config.defaults.chat,
       chatModelSettings: (model) => ({ model, price: { inputPerMTok: 1, outputPerMTok: 2 } }),
     }),

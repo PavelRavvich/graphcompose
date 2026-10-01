@@ -1,16 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import type { JevClient } from "../../src/llm/jev-client.js";
 import { createRouter } from "../../src/routers/index.js";
-import { fakeChatFactory, testConfig, unusedJevClient } from "../helpers.js";
+import { fakeChatFactory, fakeGateway, testConfig } from "../helpers.js";
 import { jevAnswer, request } from "./fixtures.js";
 
 describe("createRouter", () => {
   it("builds a Jev router for kind jev", async () => {
     const client = vi.fn<JevClient>(() => Promise.resolve(jevAnswer({ choice: "finish" })));
-    const router = createRouter("main", testConfig.defaults.router, testConfig.defaults.chat, {
-      chatModel: fakeChatFactory({}),
-      jevClient: client,
-    });
+    const router = createRouter(
+      "main",
+      testConfig.defaults.router,
+      testConfig.defaults.chat,
+      fakeGateway(fakeChatFactory({}), client),
+    );
 
     await router.route(request);
 
@@ -18,18 +20,17 @@ describe("createRouter", () => {
     expect(client).toHaveBeenCalledOnce();
   });
 
-  it("builds an LLM router with chat defaults applied for kind llm", () => {
-    const chatModel = vi.fn(fakeChatFactory({}));
+  it("builds an LLM router with chat defaults applied for kind llm", async () => {
+    const chatModel = vi.fn(fakeChatFactory({ "test/router": ['{"next":"alpha"}'] }));
     const model = {
       kind: "llm",
       model: "test/router",
       price: { inputPerMTok: 1, outputPerMTok: 2 },
     } as const;
 
-    createRouter("main", model, testConfig.defaults.chat, {
-      chatModel,
-      jevClient: unusedJevClient,
-    });
+    await createRouter("main", model, testConfig.defaults.chat, fakeGateway(chatModel)).route(
+      request,
+    );
 
     expect(chatModel).toHaveBeenCalledWith(
       expect.objectContaining({ model: "test/router", maxTokens: "max", cache: true }),
@@ -40,10 +41,12 @@ describe("createRouter", () => {
 describe("trivial option sets", () => {
   const client = () => vi.fn<JevClient>(() => Promise.resolve(jevAnswer({ choice: "alpha" })));
   const router = (jevClient: JevClient) =>
-    createRouter("main", testConfig.defaults.router, testConfig.defaults.chat, {
-      chatModel: fakeChatFactory({}),
-      jevClient,
-    });
+    createRouter(
+      "main",
+      testConfig.defaults.router,
+      testConfig.defaults.chat,
+      fakeGateway(fakeChatFactory({}), jevClient),
+    );
 
   it("skips the call for a single option", async () => {
     const jev = client();

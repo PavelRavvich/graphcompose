@@ -15,6 +15,7 @@ import {
   testConfig,
   type TestAgent,
   libraryTool,
+  fakeGateway,
 } from "./helpers.js";
 
 const sendEmail = (sent: string[]) =>
@@ -44,8 +45,11 @@ function setup(alphaReplies: readonly Reply[], withSeam = true) {
   const deps: RunDeps<TestAgent> = {
     ...base,
     config,
-    registry: createModelRegistry(config, (settings) =>
-      settings.model === "test/alpha" ? alpha : new FakeListChatModel({ responses: ["x"] }),
+    registry: createModelRegistry(
+      config,
+      fakeGateway((settings) =>
+        settings.model === "test/alpha" ? alpha : new FakeListChatModel({ responses: ["x"] }),
+      ),
     ),
     tools: (name) => (name === "send_email" ? sendEmail(sent) : libraryTool(name)),
     ...(withSeam

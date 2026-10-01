@@ -1,15 +1,8 @@
 import type { ChatDefaults, RouterModel } from "../config/types.js";
-import type { JevClient } from "../llm/jev-client.js";
-import { resolveSettings, type ModelFactory } from "../llm/registry.js";
-import { createJevRouter } from "./jev-router.js";
-import { createLlmRouter } from "./llm-router.js";
+import type { DecisionModel, ModelGateway } from "../llm/gateway.js";
+import { resolveSettings } from "../llm/registry.js";
 import { decided, failed } from "./outcome.js";
 import type { Router } from "./types.js";
-
-export interface RouterFactories {
-  readonly chatModel: ModelFactory;
-  readonly jevClient: JevClient;
-}
 
 /**
  * One option = an unconditional step, no options = nothing to decide: neither pays for a call.
@@ -27,23 +20,26 @@ export function withTrivialOptions(router: Router): Router {
   };
 }
 
-/** Builds a router from its model config (use resolveRouterModel for the Jev default). */
+/** A router's configured model with the chat defaults applied (LLM routers). */
+function decisionModelOf(model: RouterModel, chatDefaults: ChatDefaults): DecisionModel {
+  return model.kind === "jev"
+    ? { kind: "jev", model: model.model }
+    : { kind: "llm", settings: resolveSettings(model, chatDefaults) };
+}
+
+/**
+ * Builds a router from its model config (use resolveRouterModel for the Jev default). Every paid
+ * decision goes through the gateway; trivial option sets never reach it.
+ */
 export function createRouter(
   name: string,
   model: RouterModel,
   chatDefaults: ChatDefaults,
-  factories: RouterFactories,
+  gateway: Pick<ModelGateway, "decide">,
 ): Router {
-  switch (model.kind) {
-    case "jev":
-      return withTrivialOptions(
-        createJevRouter({ name, model: model.model, client: factories.jevClient }),
-      );
-    case "llm": {
-      const settings = resolveSettings(model, chatDefaults);
-      return withTrivialOptions(
-        createLlmRouter({ name, model: factories.chatModel(settings), settings }),
-      );
-    }
-  }
+  const decisionModel = decisionModelOf(model, chatDefaults);
+  return withTrivialOptions({
+    name,
+    route: (request) => gateway.decide({ router: name, model: decisionModel, request }),
+  });
 }

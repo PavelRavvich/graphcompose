@@ -1,6 +1,38 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
+/** What any framework module may not import (src/routers, tools and terns have their own rules). */
+const frameworkImportPatterns = [
+  {
+    regex: "(^|/)examples/",
+    message: "The framework never imports example code (#91).",
+  },
+  {
+    regex: "/routers/(?!index\\.js$)",
+    message: "Import routers only through src/routers/index.ts.",
+  },
+  {
+    regex: "/tools/(?!index\\.js$)",
+    message: "Import tools only through src/tools/index.ts.",
+  },
+  {
+    regex: "/terns/(?!index\\.js$)",
+    message: "Import terns only through src/terns/index.ts.",
+  },
+];
+
+/** Every model call goes through ModelGateway (#135): only src/llm and src/routers touch clients. */
+const modelClientImportPatterns = [
+  {
+    regex: "^@langchain/openai",
+    message: "Model clients are created only behind ModelGateway (src/llm/gateway.ts).",
+  },
+  {
+    regex: "/llm/(model|jev-client)\\.js$",
+    message: "Model clients are created only behind ModelGateway (src/llm/gateway.ts).",
+  },
+];
+
 export default tseslint.config(
   {
     ignores: [
@@ -95,6 +127,7 @@ export default tseslint.config(
   {
     files: ["packages/graphcompose/src/**/*.ts"],
     ignores: [
+      "packages/graphcompose/src/llm/**",
       "packages/graphcompose/src/routers/**",
       "packages/graphcompose/src/tools/**",
       "packages/graphcompose/src/terns/**",
@@ -104,27 +137,15 @@ export default tseslint.config(
     rules: {
       "no-restricted-imports": [
         "error",
-        {
-          patterns: [
-            {
-              regex: "(^|/)examples/",
-              message: "The framework never imports example code (#91).",
-            },
-            {
-              regex: "/routers/(?!index\\.js$)",
-              message: "Import routers only through src/routers/index.ts.",
-            },
-            {
-              regex: "/tools/(?!index\\.js$)",
-              message: "Import tools only through src/tools/index.ts.",
-            },
-            {
-              regex: "/terns/(?!index\\.js$)",
-              message: "Import terns only through src/terns/index.ts.",
-            },
-          ],
-        },
+        { patterns: [...frameworkImportPatterns, ...modelClientImportPatterns] },
       ],
+    },
+  },
+  {
+    // the model-call seam itself (#135): src/llm creates the clients behind ModelGateway
+    files: ["packages/graphcompose/src/llm/**/*.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: frameworkImportPatterns }],
     },
   },
   {

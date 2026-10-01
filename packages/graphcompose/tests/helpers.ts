@@ -6,6 +6,7 @@ import type { AgentStateType } from "../src/graph/state.js";
 import type { FlowStateType } from "../src/graph/flow-state.js";
 import type { JevClient } from "../src/llm/jev-client.js";
 import { createModelRegistry, type ModelFactory } from "../src/llm/registry.js";
+import { createModelGateway, type ModelGateway } from "../src/llm/gateway.js";
 import type { RunDeps } from "../src/index.js";
 import type { RouteRequest } from "../src/routers/index.js";
 import { flowRouterFactory } from "../src/graph/router-model.js";
@@ -57,6 +58,12 @@ export const fakeChatFactory =
 
 export const unusedJevClient: JevClient = () => Promise.reject(new Error("jev not used"));
 
+/** The default gateway over fake clients: chat models from `chatModel`, Jev from `jevClient`. */
+export const fakeGateway = (
+  chatModel: ModelFactory,
+  jevClient: JevClient = unusedJevClient,
+): ModelGateway => createModelGateway({ chatModel, jevClient });
+
 /** In-memory ledger: starts at `spentToday`, remembers what runs record. */
 export function memoryLedger(spentToday = 0): SpendLedger & { readonly recorded: UsageRecord[] } {
   const recorded: UsageRecord[] = [];
@@ -81,7 +88,7 @@ export function flowDeps(
     limits,
     routers: testRouters,
     routerFor: flowRouterFactory({
-      factories: { chatModel, jevClient: unusedJevClient },
+      gateway: fakeGateway(chatModel),
       chatDefaults: testConfig.defaults.chat,
       chatModelSettings: (model) => ({ model, price: { inputPerMTok: 1, outputPerMTok: 2 } }),
     }),
@@ -95,7 +102,7 @@ export function fakeDeps(
   const chatModel = fakeChatFactory(script);
   return {
     config: testConfig,
-    registry: createModelRegistry(testConfig, chatModel),
+    registry: createModelRegistry(testConfig, fakeGateway(chatModel)),
     ...flowDeps(chatModel),
     prompts: { alpha: "You are alpha.", beta: "You are beta." },
     tools: libraryTool,

@@ -11,12 +11,11 @@ import type { RunDeps } from "./index.js";
 import { configSnapshot, runVersions } from "./run/versions.js";
 import { createSqliteTernStore, shortVersion, stableJson } from "./terns/index.js";
 import { langfuseTracing } from "./tracing/index.js";
-import { createJevClient } from "./llm/jev-client.js";
-import { createChatModel, readOpenRouterEnv } from "./llm/model.js";
-import { createModelRegistry, type ModelFactory } from "./llm/registry.js";
+import { createOpenRouterGateway, type ModelGateway } from "./llm/gateway.js";
+import { createModelRegistry } from "./llm/registry.js";
 import { buildGuards, type GuardSet } from "./guards/index.js";
 import { guardPrompts } from "./prompts/guards.js";
-import { createRouter, type Router, type RouterFactories } from "./routers/index.js";
+import { createRouter, type Router } from "./routers/index.js";
 import { connectMcpServers, type AnyTool, type TransportFactory } from "./tools/index.js";
 
 export class UnknownToolError extends Error {
@@ -37,15 +36,10 @@ const toolLookup = (tools: readonly AnyTool[]): ((name: string) => AnyTool) => {
 const evaluationFor = (
   bundle: AssembledWorkflow,
   stores: Pick<EvalDeps, "terns" | "ledger">,
-  factories: RouterFactories,
+  gateway: ModelGateway,
 ): EvalDeps => ({
   ...stores,
-  judge: createRouter(
-    "judge",
-    bundle.config.defaults.router,
-    bundle.config.defaults.chat,
-    factories,
-  ),
+  judge: createRouter("judge", bundle.config.defaults.router, bundle.config.defaults.chat, gateway),
   account: {
     key: `${bundle.config.name}:eval`,
     dailyCap: bundle.limits.perDay?.cost ?? Number.POSITIVE_INFINITY,
@@ -55,11 +49,11 @@ const evaluationFor = (
 /** Core services for the workflow's components; one object, so tools and knowledge share instances. */
 const servicesFor = (
   bundle: AssembledWorkflow,
-  factories: RouterFactories,
+  gateway: ModelGateway,
   env: NodeJS.ProcessEnv,
 ): WorkflowServices => ({
   router: (name) =>
-    createRouter(name, bundle.config.defaults.router, bundle.config.defaults.chat, factories),
+    createRouter(name, bundle.config.defaults.router, bundle.config.defaults.chat, gateway),
   env,
 });
 
@@ -79,7 +73,7 @@ const pauseFor = (bundle: AssembledWorkflow): AppDeps["pause"] =>
 /** One quality judge per agent with `reasoning` (Jev unless reasoning sets a model). */
 const judgesFor = (
   config: AgentsConfigOf<string>,
-  factories: RouterFactories,
+  gateway: ModelGateway,
 ): ReadonlyMap<string, Router> =>
   new Map(
     Object.entries(config.agents).flatMap(([name, agent]) =>
@@ -92,7 +86,7 @@ const judgesFor = (
                 `quality:${name}`,
                 agent.reasoning.model ?? config.defaults.router,
                 config.defaults.chat,
-                factories,
+                gateway,
               ),
             ] as const,
           ],
@@ -100,22 +94,22 @@ const judgesFor = (
   );
 
 /** Guards from config + their texts; each guard is a router (Jev unless it sets a model). */
-const guardsFor = (config: AgentsConfigOf<string>, factories: RouterFactories): GuardSet =>
+const guardsFor = (config: AgentsConfigOf<string>, gateway: ModelGateway): GuardSet =>
   buildGuards(config.guards, guardPrompts, (name, model) =>
-    createRouter(`guard:${name}`, model ?? config.defaults.router, config.defaults.chat, factories),
+    createRouter(`guard:${name}`, model ?? config.defaults.router, config.defaults.chat, gateway),
   );
 
 /** The workflow's flow, limits and routers; each router decides on its own model. */
 const flowFor = (
   bundle: AssembledWorkflow,
   config: AgentsConfigOf<string>,
-  factories: RouterFactories,
+  gateway: ModelGateway,
 ): Pick<AppDeps, "flow" | "limits" | "routers" | "routerFor"> => ({
   flow: bundle.flow,
   limits: bundle.limits,
   routers: bundle.routers,
   routerFor: flowRouterFactory({
-    factories,
+    gateway,
     chatDefaults: config.defaults.chat,
     chatModelSettings: chatModelSettingsOf(config),
   }),
@@ -154,16 +148,15 @@ async function versionWarnings(deps: RunDeps<string>): Promise<string[]> {
 /**
  * Production wiring of a workflow (default: the project's agents): OpenRouter (chat + Jev), MCP
  * servers, file spend ledger, Tern store. Fails fast when an MCP server is unavailable or drifted.
+ * Every model call goes through `gateway` (default: OpenRouter, credentials from `env`).
  */
 export async function createAppDeps(
   bundle: AssembledWorkflow,
   env: NodeJS.ProcessEnv = process.env,
   makeTransport?: TransportFactory,
+  gateway: ModelGateway = createOpenRouterGateway(env),
 ): Promise<AppDeps> {
-  const connection = readOpenRouterEnv(env);
-  const chatModel: ModelFactory = (settings) => createChatModel(settings, connection);
-  const factories = { chatModel, jevClient: createJevClient(connection) };
-  const services = servicesFor(bundle, factories, env);
+  const services = servicesFor(bundle, gateway, env);
   const tools: readonly AnyTool[] = resolveTools(bundle, services);
   const config = validateAgentsConfig(
     bundle.config,
@@ -181,18 +174,18 @@ export async function createAppDeps(
   const ledger = createFileLedger(env.SPEND_LEDGER_DIR ?? DEFAULT_LEDGER_DIR);
   const deps = {
     config,
-    registry: createModelRegistry(config, chatModel),
-    ...flowFor(bundle, config, factories),
+    registry: createModelRegistry(config, gateway),
+    ...flowFor(bundle, config, gateway),
     prompts: bundle.prompts,
-    guards: guardsFor(config, factories),
-    judges: judgesFor(config, factories),
+    guards: guardsFor(config, gateway),
+    judges: judgesFor(config, gateway),
     tools: toolLookup(tools),
     pause: pauseFor(bundle),
     compactionPrompt: bundle.compactionPrompt,
     ...knowledgeFor(bundle, services),
     ledger,
     terns,
-    evaluation: evaluationFor(bundle, { terns, ledger }, factories),
+    evaluation: evaluationFor(bundle, { terns, ledger }, gateway),
     tracing,
     close: async () => {
       await mcp.close();

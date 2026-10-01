@@ -14,6 +14,7 @@ import {
   testConfig,
   usageRecord,
   type TestAgent,
+  fakeGateway,
 } from "./helpers.js";
 import { usd } from "../src/units/index.js";
 
@@ -73,7 +74,7 @@ function setup(settings: ReasoningSettings, router: Router, runBudgetCap = 1) {
     ...base,
     config,
     limits: { perRun: { cost: usd(runBudgetCap) } },
-    registry: createModelRegistry(config, factory),
+    registry: createModelRegistry(config, fakeGateway(factory)),
     judges: new Map([["alpha", router]]),
   };
   return { deps, models, ledger };

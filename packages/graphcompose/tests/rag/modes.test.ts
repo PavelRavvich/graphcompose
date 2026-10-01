@@ -8,7 +8,7 @@ import { createModelRegistry, type ModelFactory } from "../../src/llm/registry.j
 import { CITE_INSTRUCTION } from "../../src/prompts/rag.js";
 import type { KnowledgeSource } from "../../src/rag/index.js";
 import { ScriptedChatModel } from "../fakes/scripted-model.js";
-import { decide, fakeDeps, testConfig, type TestAgent } from "../helpers.js";
+import { decide, fakeDeps, testConfig, type TestAgent, fakeGateway } from "../helpers.js";
 
 const handbook = (retrieve: KnowledgeSource["retrieve"]): KnowledgeSource => ({
   name: "handbook",
@@ -29,7 +29,7 @@ function setup(source: KnowledgeSource) {
   const base = fakeDeps({ "test/router": [decide("alpha"), decide("answer", "done")] });
   const deps: RunDeps<TestAgent> = {
     ...base,
-    registry: createModelRegistry(testConfig, factory),
+    registry: createModelRegistry(testConfig, fakeGateway(factory)),
     knowledge: (agent) => (agent === "alpha" ? [source] : []),
   };
   return { deps, alpha };
