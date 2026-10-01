@@ -1,0 +1,60 @@
+import { describe, expect, it } from "vitest";
+import { MODEL_MAX, type AgentsConfigOf } from "../../src/config/types.js";
+import { flowLines } from "../../src/graph/flow-text.js";
+import { chatModelSettingsOf, UnknownRouterModelError } from "../../src/graph/router-model.js";
+import { codeReviewFlow } from "./fixtures/code-review.js";
+import { from, Self } from "../../src/graph/flow.js";
+import { A, Done, Gate, SomeTool, Start } from "./fixtures/rule-nodes.js";
+import { testConfig } from "../helpers.js";
+
+describe("AC1: describe lists the flow as transitions (text)", () => {
+  it("one line per declared step: to, choose, chain — nodes by name", () => {
+    expect(flowLines(codeReviewFlow)).toEqual([
+      "chat → main",
+      "main → explainer | coder",
+      "explainer → answer",
+      "coder → reviewer → review-gate",
+      "review-gate → coder | pull-request",
+    ]);
+  });
+
+  it("Self and classes that are not nodes are shown as people read them", () => {
+    expect(
+      flowLines([
+        from(Start).to(A),
+        from(A).to(Gate),
+        from(Gate).choose(Self, Done),
+        from(A).to(SomeTool),
+      ]),
+    ).toEqual(["start → a", "a → gate", "gate → Self | done", "a → SomeTool"]);
+  });
+});
+
+describe("a router on a chat model is priced like the agent using that model", () => {
+  const config: AgentsConfigOf<"alpha" | "beta"> = {
+    ...testConfig,
+    defaults: {
+      ...testConfig.defaults,
+      chat: { ...testConfig.defaults.chat, maxTokens: MODEL_MAX },
+    },
+    compaction: {
+      every: 2,
+      keep: 3,
+      model: { model: "test/compactor", price: { inputPerMTok: 9, outputPerMTok: 9 } },
+    },
+  };
+
+  it("finds the price by model id (agents, then compaction)", () => {
+    const settingsOf = chatModelSettingsOf(config);
+
+    expect(settingsOf("test/alpha")).toEqual({
+      model: "test/alpha",
+      price: testConfig.agents.alpha.price,
+    });
+    expect(settingsOf("test/compactor").price.inputPerMTok).toBe(9);
+  });
+
+  it("refuses a model nobody prices", () => {
+    expect(() => chatModelSettingsOf(testConfig)("test/unknown")).toThrow(UnknownRouterModelError);
+  });
+});

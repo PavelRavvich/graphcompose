@@ -1,6 +1,7 @@
 /**
  * `graphcompose/graph` — the workflow's graph: the flow DSL (`from`, `chain`, `node`, `Self`),
- * `@Router` with `route(...)`, workflow settings and limits, and the errors assembly and runs raise.
+ * `@Entry`, `@Router` with `route(...)`, `@Conclusion`, workflow settings and limits, and the errors
+ * assembly and runs raise.
  * Wiki → Workflow, Routers.
  */
 import "../polyfills/symbol-metadata.js";
@@ -22,6 +23,8 @@ export {
   type ToStep,
 } from "./flow.js";
 export { route, type PromptSource, type RouteDeclaration } from "./route.js";
+export { Entry, type EntryOptions } from "./entry.decorator.js";
+export { Conclusion, type ConclusionOptions } from "./conclusion.decorator.js";
 export { Router, type RouterOptions } from "./router.decorator.js";
 export {
   WorkflowSettings,

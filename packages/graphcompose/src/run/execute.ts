@@ -1,13 +1,18 @@
 import type { BaseCallbackHandler } from "@langchain/core/callbacks/base";
-import { BudgetExceededError, runBudgetUsd } from "../finops/ledger.js";
 import { drainRecordingUsage } from "../finops/record-stream.js";
-import { buildCostReport, totalCost, type UsageRecord } from "../finops/usage.js";
+import { totalCost, type UsageRecord } from "../finops/usage.js";
+import type { FlowGraph } from "../graph/build.js";
 import { PaidStepError } from "../graph/errors.js";
-import type { AgentGraph } from "../graph/graph.js";
-import { compactIfDue } from "./compaction.js";
-import type { AgentStateType } from "../graph/state.js";
+import type { FlowStateType } from "../graph/flow-state.js";
+import { LimitExceededError, type LimitBreach } from "../graph/limits.js";
+import type { RunLimits } from "../graph/flow-runtime.js";
+import type { WorkflowLimits } from "../graph/settings.js";
 import type { NewTern, TernOutcome } from "../terns/index.js";
-import type { AgentRunResult, RunDeps, RunStatus, SpendAccount } from "./types.js";
+import { usd } from "../units/index.js";
+import { runConfig } from "./paused.js";
+import type { RunDeps, SpendAccount } from "./types.js";
+
+export { runConfig } from "./paused.js";
 
 export type TernBase = Pick<
   NewTern,
@@ -23,12 +28,14 @@ export type TernBase = Pick<
 
 export interface RunContext<TName extends string> {
   readonly deps: RunDeps<TName>;
-  readonly graph: AgentGraph;
+  readonly flow: FlowGraph;
   readonly base: TernBase;
   readonly runId: string;
   readonly budgetUsd: number;
-  /** Where spend after the graph (compaction) goes: the run's ledger account. */
+  /** Where spend goes as it happens: the run's ledger account. */
   readonly record: (records: readonly UsageRecord[]) => Promise<void>;
+  /** How many of the run's usage records are already in the ledger. */
+  readonly recorded: number;
   readonly callbacks: BaseCallbackHandler[];
 }
 
@@ -52,11 +59,6 @@ export function streamConfig<TName extends string>(
     ...(signal === undefined ? {} : { signal }),
   };
 }
-
-/** LangGraph checkpoint thread = the run id (not the conversation thread). */
-export const runConfig = (runId: string): { configurable: { thread_id: string } } => ({
-  configurable: { thread_id: runId },
-});
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -87,106 +89,61 @@ export function recorder<TName extends string>(
   };
 }
 
+/** The account a run pays from: the workflow's own, its daily cap `limits.perDay.cost`. */
+export const workflowAccount = <TName extends string>(deps: RunDeps<TName>): SpendAccount => ({
+  key: deps.config.name,
+  dailyCap: deps.limits.perDay?.cost ?? Number.POSITIVE_INFINITY,
+});
+
+/** What a run may spend, and the limits the flow holds it to (the account's day, read once). */
+export interface RunBudget {
+  readonly budgetUsd: number;
+  readonly run: RunLimits;
+}
+
+const limitsFor = (limits: WorkflowLimits, account: SpendAccount): WorkflowLimits => ({
+  ...(limits.perRun === undefined ? {} : { perRun: limits.perRun }),
+  ...(Number.isFinite(account.dailyCap) ? { perDay: { cost: usd(account.dailyCap) } } : {}),
+});
+
 /** Run budget = run cap ∩ what is left of the account's day; nothing left → no calls at all. */
 export async function allowedBudget<TName extends string>(
   deps: RunDeps<TName>,
   account: SpendAccount,
-): Promise<number> {
-  const caps = { ...deps.config.budget, dailyBudgetCap: account.dailyCap };
-  const budgetUsd = runBudgetUsd(caps, await deps.ledger.spentToday(account.key));
-  if (budgetUsd <= 0) {
-    throw new BudgetExceededError(`Daily budget of "${account.key}" is spent — no calls made`);
+): Promise<RunBudget> {
+  const spentToday = await deps.ledger.spentToday(account.key);
+  const left = account.dailyCap - spentToday;
+  if (left <= 0) {
+    const breach: LimitBreach = {
+      key: "limits.perDay.cost",
+      limit: account.dailyCap,
+      actual: spentToday,
+    };
+    throw new LimitExceededError(breach, [], 0);
   }
-  return budgetUsd;
+  return {
+    budgetUsd: Math.min(deps.limits.perRun?.cost ?? Number.POSITIVE_INFINITY, left),
+    run: { limits: limitsFor(deps.limits, account), spentToday: () => Promise.resolve(spentToday) },
+  };
 }
 
 /** LangGraph emits `{ __interrupt__ }` chunks when a run pauses; only real states carry usage. */
-async function* statesOnly(chunks: AsyncIterable<AgentStateType>): AsyncGenerator<AgentStateType> {
+async function* statesOnly(chunks: AsyncIterable<FlowStateType>): AsyncGenerator<FlowStateType> {
   for await (const chunk of chunks) {
-    if (Array.isArray((chunk as Partial<AgentStateType>).usage)) yield chunk;
+    if (Array.isArray((chunk as Partial<FlowStateType>).usage)) yield chunk;
   }
 }
 
-/** Drains the graph stream; a paid failure (agent, guard) still records its spend. */
+/** Drains the graph stream; a paid failure (agent, guard, router) still records its spend. */
 export function drainRun(
-  states: AsyncIterable<AgentStateType>,
+  states: AsyncIterable<FlowStateType>,
   record: (records: readonly UsageRecord[]) => Promise<void>,
   alreadyRecorded = 0,
-): Promise<AgentStateType> {
+): Promise<FlowStateType> {
   return drainRecordingUsage(statesOnly(states), record, alreadyRecorded).catch(
     async (error: unknown) => {
       if (error instanceof PaidStepError) await record(error.usage);
       throw error;
     },
   );
-}
-
-function outcomeOf(state: AgentStateType, paused: boolean): TernOutcome & { status: RunStatus } {
-  const status: RunStatus = paused ? "paused" : state.guarded === "" ? "answered" : "guarded";
-  return {
-    answer: paused ? "" : state.answer,
-    status,
-    stopReason: paused ? "waiting for human approval" : state.routeReason,
-    route: state.contributions.map((item) => item.agent),
-    steps: state.contributions,
-    costUsd: totalCost(state.usage),
-    attempts: state.attempts,
-  };
-}
-
-const traceUrlOf = <TName extends string>(
-  deps: RunDeps<TName>,
-  threadId: string,
-): { traceUrl?: string } => {
-  const traceUrl = deps.tracing?.sessionUrl(threadId);
-  return traceUrl === undefined ? {} : { traceUrl };
-};
-
-/** Pause is detected from the checkpoint: a run with next nodes left is waiting for a human. */
-async function isPaused<TName extends string>(ctx: RunContext<TName>): Promise<boolean> {
-  if (ctx.deps.pause === undefined) return false;
-  return (await ctx.graph.getState(runConfig(ctx.runId))).next.length > 0;
-}
-
-/** Conversation memory after a finished turn; its spend is recorded to the run's account. */
-async function compactAfter<TName extends string>(
-  ctx: RunContext<TName>,
-  state: AgentStateType,
-): Promise<Awaited<ReturnType<typeof compactIfDue>>> {
-  const memory = await compactIfDue(ctx.deps, {
-    threadId: ctx.base.threadId,
-    budgetLeftUsd: ctx.budgetUsd - totalCost(state.usage),
-    callbacks: ctx.callbacks,
-  });
-  if (memory.usage.length > 0) await ctx.record(memory.usage);
-  return memory;
-}
-
-/** Writes (or completes) the Tern and shapes the result: answered, guarded or paused. */
-export async function finishRun<TName extends string>(
-  ctx: RunContext<TName>,
-  state: AgentStateType,
-  existingTernId?: string,
-): Promise<AgentRunResult> {
-  const paused = await isPaused(ctx);
-  const outcome = outcomeOf(state, paused);
-  let ternId = existingTernId;
-  if (ternId === undefined) ternId = (await ctx.deps.terns.append({ ...ctx.base, ...outcome })).id;
-  else await ctx.deps.terns.complete(ternId, outcome);
-  const memory = paused ? { usage: [] } : await compactAfter(ctx, state);
-  return {
-    status: outcome.status,
-    answer: outcome.answer,
-    route: outcome.route,
-    stopReason: outcome.stopReason,
-    budgetUsd: ctx.budgetUsd,
-    cost: buildCostReport([...state.usage, ...memory.usage]),
-    threadId: ctx.base.threadId,
-    ternId,
-    runId: ctx.runId,
-    ...(paused && state.pending !== null ? { pending: state.pending } : {}),
-    ...traceUrlOf(ctx.deps, ctx.base.threadId),
-    ...(state.attempts.length === 0 ? {} : { attempts: state.attempts }),
-    ...(memory.compacted === undefined ? {} : { compacted: memory.compacted }),
-  };
 }

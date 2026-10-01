@@ -1,4 +1,4 @@
-import { BudgetExceededError } from "../finops/ledger.js";
+import { isDayCapReached } from "../graph/limits.js";
 import { runAgent, type RunDeps } from "../index.js";
 import type { RouteRequest } from "../routers/index.js";
 import { judgeRequest, scoreOf, type EvalDeps } from "./eval.js";
@@ -56,7 +56,7 @@ export async function runProfile(
         tern === undefined ? undefined : scoreOf(await judged(run.evaluation, judgeRequest(tern))),
       );
     } catch (error) {
-      if (error instanceof BudgetExceededError) {
+      if (isDayCapReached(error)) {
         return {
           name: run.name,
           version: run.deps.config.version,

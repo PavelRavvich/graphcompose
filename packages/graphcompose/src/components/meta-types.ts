@@ -1,6 +1,7 @@
 import type { AgentsConfig, ReasoningSettings } from "../config/types.js";
 import type { AnyTool } from "../tools/index.js";
 import type { RagMode } from "../rag/types.js";
+import type { Flow } from "../graph/flow.js";
 import type { Class, Provider } from "./injection.js";
 
 type AgentSettings = AgentsConfig["agents"][string];
@@ -38,16 +39,18 @@ export interface AgentMeta {
   readonly source?: string;
 }
 
-/** `@Workflow` — the module: workflow settings, its agents and MCP servers, and providers for DI. */
+/**
+ * `@Workflow` — the module: its graph (`flow`; the agents are the flow's agent nodes), workflow
+ * settings, MCP servers and providers for DI. Limits come from the class's `settings()`.
+ */
 export interface WorkflowMeta {
   readonly name: string;
   readonly version: string;
+  /** The workflow's graph: transitions between its nodes (Wiki → Workflow). */
+  readonly flow: Flow;
   readonly defaults: AgentsConfig["defaults"];
-  readonly budget: AgentsConfig["budget"];
-  readonly routers: AgentsConfig["routers"];
   readonly guards?: AgentsConfig["guards"];
   readonly compaction?: AgentsConfig["compaction"];
-  readonly agents: readonly Class[];
   readonly mcp?: readonly Class[];
   readonly providers?: readonly Provider[];
   /** `{{key}}` in agent prompts is replaced with the value (assembly fails on unknown keys). */

@@ -1,6 +1,6 @@
 import type { SpendLedger } from "../finops/ledger.js";
 import type { CostReport } from "../finops/usage.js";
-import type { GraphDeps } from "../graph/graph.js";
+import type { GraphDeps } from "../graph/deps.js";
 import type { AttemptRecord } from "../graph/nodes/attempts.js";
 import type { Compacted } from "./compaction.js";
 import type { PendingApproval } from "../pause/index.js";
@@ -39,6 +39,8 @@ export interface AgentRunResult {
   readonly answer: string;
   /** Agents in the order they ran. */
   readonly route: readonly string[];
+  /** The conclusion the run reached (absent when a guard stopped it or it is paused). */
+  readonly conclusion?: string;
   readonly stopReason: string;
   readonly budgetUsd: number;
   readonly cost: CostReport;

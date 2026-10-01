@@ -3,6 +3,7 @@ import { ScaffoldError } from "./errors.js";
 import { namesOf, type Names } from "./names.js";
 import { renderTemplate } from "./render.js";
 import { mcpFiles, ragFiles } from "./parts.js";
+import { agentRoute, ANSWER_ROUTE, endpointFiles, MAIN_ROUTER, routerFile } from "./flow-files.js";
 import { wire } from "./wire.js";
 import type { FileToWrite } from "./write.js";
 
@@ -147,8 +148,14 @@ export function planWorkflow(spec: WorkflowSpec): FileToWrite[] {
     agents: agents.map((a) => `${a.names.pascal}Agent`).join(", "),
     servers: more.server,
   });
+  const router = routerFile(dir, namesOf("main"), MAIN_ROUTER, [
+    ...agents.map((a) => agentRoute(a.names, a.spec.description)),
+    ANSWER_ROUTE,
+  ]);
   return [
     { path: `${dir}/models.ts`, content: render("workflow/models.ts.tmpl", {}) },
+    ...endpointFiles(dir),
+    router,
     ...agents.flatMap((a) => a.tools.flatMap((t) => toolFiles(dir, t))),
     ...more.files,
     more.agent,

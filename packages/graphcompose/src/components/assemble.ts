@@ -13,6 +13,7 @@ import { ragClassesOf, ragMeta, ragSettings, searchToolName } from "./rag.js";
 import { type Class } from "./injection.js";
 import { ComponentError, componentOf, requireComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
+import { flowOf, limitsOf } from "./flow-parts.js";
 
 /** The agent's prompt file: `prompt` relative to the agent's file, or `<name>.prompt.md` next to it. */
 function promptPath(agent: AgentMeta): string {
@@ -141,8 +142,6 @@ function configOf(
     name: bundle.name,
     version: bundle.version,
     defaults: bundle.defaults,
-    budget: bundle.budget,
-    routers: bundle.routers,
     ...(bundle.guards === undefined ? {} : { guards: bundle.guards }),
     ...(bundle.compaction === undefined ? {} : { compaction: bundle.compaction }),
     ...(mcp.servers.length === 0
@@ -152,12 +151,25 @@ function configOf(
   };
 }
 
-/** Assembles a `@Workflow` class into the workflow the core runs (config, prompts, tools, MCP). */
+/** Tool classes → their tool names. */
+const toolNames = (tools: ReturnType<typeof toolsOf>): Map<Class, string> =>
+  new Map<Class, string>([
+    ...tools.local.map(
+      (cls) => [cls, requireComponent(cls, "tool", "workflowOf").meta.name] as const,
+    ),
+    ...tools.mcp.map(
+      (cls) => [cls, requireComponent(cls, "mcp-tool", "workflowOf").meta.name] as const,
+    ),
+  ]);
+
+/**
+ * Assembles a `@Workflow` class into the workflow the core runs: its flow checked against every rule
+ * (all violations at once), router texts loaded, limits from `settings()`, config, prompts, tools, MCP.
+ */
 export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow> {
   const { meta: bundle } = requireComponent(bundleClass, "workflow", "workflowOf");
-  const agents = bundle.agents.map(
-    (cls) => requireComponent(cls, "agent", `@Workflow "${bundle.name}"`).meta,
-  );
+  const graph = await flowOf(bundle);
+  const agents = graph.agents;
   const tools = toolsOf(bundle, agents);
   const mcp = mcpOf(bundle, tools.mcp);
   const rags = ragClassesOf(bundle, agents);
@@ -166,14 +178,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     ...mcp.instances.keys(),
   ]);
   rememberServers(bundle, mcp.instances);
-  const names = new Map<Class, string>([
-    ...tools.local.map(
-      (cls) => [cls, requireComponent(cls, "tool", "workflowOf").meta.name] as const,
-    ),
-    ...tools.mcp.map(
-      (cls) => [cls, requireComponent(cls, "mcp-tool", "workflowOf").meta.name] as const,
-    ),
-  ]);
+  const names = toolNames(tools);
   const prompts = Object.fromEntries(
     await Promise.all(
       agents.map(
@@ -188,6 +193,9 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   ]);
   return {
     config,
+    flow: bundle.flow,
+    limits: limitsOf(bundleClass, bundle),
+    routers: graph.routers,
     prompts,
     tools: toolBuilder(bundle, agents, tools.local, tools.mcp, mcp.names),
     ...(rags.length === 0 ? {} : ragParts(bundle, agents, rags)),

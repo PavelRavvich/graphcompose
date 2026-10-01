@@ -1,7 +1,8 @@
 import { MemorySaver } from "@langchain/langgraph";
 import { resolveTools, type AssembledWorkflow, type WorkflowServices } from "./workflow.js";
 import type { KnowledgeSource } from "./rag/types.js";
-import { resolveRouterModel, validateAgentsConfig, type AgentsConfigOf } from "./config/types.js";
+import { validateAgentsConfig, type AgentsConfigOf } from "./config/types.js";
+import { chatModelSettingsOf, flowRouterFactory } from "./graph/router-model.js";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { createFileLedger } from "./finops/ledger.js";
@@ -32,15 +33,23 @@ const toolLookup = (tools: readonly AnyTool[]): ((name: string) => AnyTool) => {
   };
 };
 
-/** Eval / replay: a Jev judge, spend on `<workflow>:eval` within evalBudgetCap. */
+/** Eval / replay: a Jev judge, spend on `<workflow>:eval` — its own day, capped like the workflow's. */
 const evaluationFor = (
-  config: AgentsConfigOf<string>,
+  bundle: AssembledWorkflow,
   stores: Pick<EvalDeps, "terns" | "ledger">,
   factories: RouterFactories,
 ): EvalDeps => ({
   ...stores,
-  judge: createRouter("judge", config.defaults.router, config.defaults.chat, factories),
-  account: { key: `${config.name}:eval`, dailyCap: config.budget.evalBudgetCap },
+  judge: createRouter(
+    "judge",
+    bundle.config.defaults.router,
+    bundle.config.defaults.chat,
+    factories,
+  ),
+  account: {
+    key: `${bundle.config.name}:eval`,
+    dailyCap: bundle.limits.perDay?.cost ?? Number.POSITIVE_INFINITY,
+  },
 });
 
 /** Core services for the workflow's components; one object, so tools and knowledge share instances. */
@@ -96,6 +105,22 @@ const guardsFor = (config: AgentsConfigOf<string>, factories: RouterFactories): 
     createRouter(`guard:${name}`, model ?? config.defaults.router, config.defaults.chat, factories),
   );
 
+/** The workflow's flow, limits and routers; each router decides on its own model. */
+const flowFor = (
+  bundle: AssembledWorkflow,
+  config: AgentsConfigOf<string>,
+  factories: RouterFactories,
+): Pick<AppDeps, "flow" | "limits" | "routers" | "routerFor"> => ({
+  flow: bundle.flow,
+  limits: bundle.limits,
+  routers: bundle.routers,
+  routerFor: flowRouterFactory({
+    factories,
+    chatDefaults: config.defaults.chat,
+    chatModelSettings: chatModelSettingsOf(config),
+  }),
+});
+
 /** Daily spend ledgers live outside the repo. */
 export const DEFAULT_LEDGER_DIR = join(homedir(), ".langgraph-agents", "spend");
 
@@ -109,14 +134,6 @@ export interface AppDeps extends RunDeps<string> {
   readonly warnings: readonly string[];
   readonly close: () => Promise<void>;
 }
-
-const mainRouter = (config: AgentsConfigOf<string>, factories: RouterFactories): Router =>
-  createRouter(
-    "main",
-    resolveRouterModel(config.routers.main, config.defaults),
-    config.defaults.chat,
-    factories,
-  );
 
 /** Stores the config snapshot of this version; warns when the version already had other content. */
 async function versionWarnings(deps: RunDeps<string>): Promise<string[]> {
@@ -159,14 +176,13 @@ export async function createAppDeps(
     env,
     makeTransport,
   );
-  const router = mainRouter(config, factories);
   const terns = createSqliteTernStore(env.TERN_DB ?? DEFAULT_TERN_DB);
   const tracing = langfuseTracing(env);
   const ledger = createFileLedger(env.SPEND_LEDGER_DIR ?? DEFAULT_LEDGER_DIR);
   const deps = {
     config,
     registry: createModelRegistry(config, chatModel),
-    router,
+    ...flowFor(bundle, config, factories),
     prompts: bundle.prompts,
     guards: guardsFor(config, factories),
     judges: judgesFor(config, factories),
@@ -176,7 +192,7 @@ export async function createAppDeps(
     ...knowledgeFor(bundle, services),
     ledger,
     terns,
-    evaluation: evaluationFor(config, { terns, ledger }, factories),
+    evaluation: evaluationFor(bundle, { terns, ledger }, factories),
     tracing,
     close: async () => {
       await mcp.close();

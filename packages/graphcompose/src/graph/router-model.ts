@@ -1,4 +1,4 @@
-import type { ChatDefaults, ModelSettings, RouterModel } from "../config/types.js";
+import type { AgentsConfigOf, ChatDefaults, ModelSettings, RouterModel } from "../config/types.js";
 import { createRouter, type Router, type RouterFactories } from "../routers/index.js";
 import type { LoadedRouter } from "./router-texts.js";
 
@@ -23,4 +23,27 @@ export function routerModelOf(model: string, deps: FlowRouterFactoryDeps): Route
 export function flowRouterFactory(deps: FlowRouterFactoryDeps): (router: LoadedRouter) => Router {
   return (router) =>
     createRouter(router.name, routerModelOf(router.model, deps), deps.chatDefaults, deps.factories);
+}
+
+export class UnknownRouterModelError extends Error {
+  override name = "UnknownRouterModelError";
+}
+
+/** A router on a chat model is priced like the agent (or compaction) that uses the same model. */
+export function chatModelSettingsOf(
+  config: AgentsConfigOf<string>,
+): (model: string) => ModelSettings {
+  const known: readonly ModelSettings[] = [
+    ...Object.values(config.agents),
+    ...(config.compaction === undefined ? [] : [config.compaction.model]),
+  ];
+  return (model) => {
+    const settings = known.find((candidate) => candidate.model === model);
+    if (settings === undefined) {
+      throw new UnknownRouterModelError(
+        `Router model "${model}" has no price: use Jev (typesafe/jev-*) or a model an agent uses`,
+      );
+    }
+    return { model, price: settings.price };
+  };
 }

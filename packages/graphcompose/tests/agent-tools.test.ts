@@ -1,22 +1,21 @@
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { ToolCallLimitExceededError } from "langchain";
 import { describe, expect, it } from "vitest";
-import { resolveRouterModel, type AgentsConfigOf } from "../src/config/types.js";
+import type { AgentsConfigOf } from "../src/config/types.js";
 import { AgentFailedError } from "../src/graph/errors.js";
 import { runAgent, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
-import { BUDGET_STOP_MESSAGE } from "../src/prompts/agents.js";
-import { createRouter } from "../src/routers/index.js";
 import { NO_GUARDS } from "../src/guards/index.js";
 import { createSqliteTernStore } from "../src/terns/index.js";
 import { defineTool } from "../src/tools/index.js";
 import { z } from "zod";
 import { ScriptedChatModel, type Reply } from "./fakes/scripted-model.js";
+import { usd } from "../src/units/index.js";
 import {
   decide,
+  flowDeps,
   memoryLedger,
   testConfig,
-  unusedJevClient,
   type TestAgent,
   libraryTool,
 } from "./helpers.js";
@@ -47,7 +46,6 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd 
   const ledger = memoryLedger();
   const config: AgentsConfigOf<TestAgent> = {
     ...testConfig,
-    budget: { runBudgetCap, dailyBudgetCap: 10, evalBudgetCap: 5 },
     agents: {
       ...testConfig.agents,
       alpha: { ...testConfig.agents.alpha, tools: ["current_time", "paid_search"], maxToolCalls },
@@ -59,15 +57,10 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd 
     registry: createModelRegistry(config, (settings) =>
       settings.model === "test/alpha" ? model : new FakeListChatModel({ responses: ["beta"] }),
     ),
-    router: createRouter(
-      "main",
-      resolveRouterModel(config.routers.main, config.defaults),
-      config.defaults.chat,
-      {
-        chatModel: () => router,
-        jevClient: unusedJevClient,
-      },
-    ),
+    ...flowDeps(() => router, {
+      perRun: { cost: usd(runBudgetCap) },
+      perDay: { cost: usd(10) },
+    }),
     prompts: { alpha: "You are alpha.", beta: "You are beta." },
     terns: createSqliteTernStore(":memory:"),
     guards: NO_GUARDS,
@@ -79,7 +72,7 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd 
 }
 
 const toTokyo: Reply = [{ tool: "current_time", args: { timeZone: "Asia/Tokyo" } }];
-const answered = [decide("alpha"), decide("finish", "done")];
+const answered = [decide("alpha"), decide("answer", "done")];
 
 describe("agents with tools", () => {
   it("runs the model ↔ tool loop and answers", async () => {
@@ -143,19 +136,21 @@ describe("agents with tools", () => {
     expect(ledger.recorded.filter((record) => record.caller === "alpha").length).toBeGreaterThan(0);
   });
 
-  it("stops the loop when the run budget is spent", async () => {
-    const { deps, model } = setup({
+  it("stops the loop when the run budget is spent; the run then fails at limits.perRun.cost", async () => {
+    const { deps, model, ledger } = setup({
       routes: answered,
       alpha: [toTokyo, "never sent"],
       runBudgetCap: 0.0004,
     });
 
-    const result = await runAgent({ task: "Time?" }, deps);
+    const failure = runAgent({ task: "Time?" }, deps);
 
+    await expect(failure).rejects.toMatchObject({
+      key: "limits.perRun.cost",
+      path: ["chat", "main", "alpha", "main"],
+    });
     expect(model.sent).toHaveLength(1);
-    expect(result.route).toEqual(["alpha"]);
-    expect(result.answer).toBe(BUDGET_STOP_MESSAGE);
-    expect(result.stopReason).toBe("budget exhausted");
+    expect(ledger.recorded.map((record) => record.caller)).toContain("alpha");
   });
 });
 
@@ -177,10 +172,10 @@ describe("tool costs in FinOps", () => {
       runBudgetCap: 0.005,
     });
 
-    const result = await runAgent({ task: "Search" }, deps);
-
+    await expect(runAgent({ task: "Search" }, deps)).rejects.toMatchObject({
+      key: "limits.perRun.cost",
+    });
     expect(model.sent).toHaveLength(1);
-    expect(result.stopReason).toBe("budget exhausted");
   });
 
   it("records tool spend of a failed agent", async () => {

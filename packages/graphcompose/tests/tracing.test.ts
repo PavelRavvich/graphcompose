@@ -53,7 +53,7 @@ describe("tracing", () => {
       shutdown: () => Promise.resolve(),
     };
     const deps = {
-      ...fakeDeps({ "test/router": [decide("alpha"), decide("finish")], "test/alpha": ["ok"] }),
+      ...fakeDeps({ "test/router": [decide("alpha"), decide("answer")], "test/alpha": ["ok"] }),
       tracing,
     };
 
@@ -62,7 +62,9 @@ describe("tracing", () => {
     expect(seen).toEqual([
       { bundle: "test-bundle", threadId: result.threadId, runId: result.runId },
     ]);
-    expect(recorder.started).toEqual(expect.arrayContaining(["router", "agent", "finalize"]));
+    expect(recorder.started).toEqual(
+      expect.arrayContaining(["router.main", "agent.alpha", "conclusion.answer"]),
+    );
     expect(result.traceUrl).toBe(`http://traces/sessions/${result.threadId}`);
     expect(threadLine(result)).toBe(
       `thread ${result.threadId} · http://traces/sessions/${result.threadId}`,
@@ -83,7 +85,7 @@ describe("tracing", () => {
     await tracing?.shutdown();
     const plain = await runAgent(
       { task: "Hi" },
-      fakeDeps({ "test/router": [decide("alpha"), decide("finish")], "test/alpha": ["ok"] }),
+      fakeDeps({ "test/router": [decide("alpha"), decide("answer")], "test/alpha": ["ok"] }),
     );
     expect(plain.traceUrl).toBeUndefined();
     expect(threadLine(plain)).toBe(`thread ${plain.threadId}`);

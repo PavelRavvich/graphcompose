@@ -20,7 +20,6 @@ function checkNames(bundle: AssembledWorkflow, profile: Profile, file: string): 
   const unknown = [
     ...unknownKeys(Object.keys(profile.agents ?? {}), base.agents).map((a) => `agents.${a}`),
     ...unknownKeys(Object.keys(profile.prompts ?? {}), base.agents).map((a) => `prompts.${a}`),
-    ...unknownKeys(Object.keys(profile.routers ?? {}), base.routers).map((r) => `routers.${r}`),
   ];
   if (unknown.length > 0) {
     throw new ProfileError(`${file}: unknown in workflow "${base.name}": ${unknown.join(", ")}`);
@@ -38,8 +37,6 @@ export function applyProfile(
   const merged = deepMerge(bundle.config, {
     version: profile.version,
     defaults: profile.defaults,
-    budget: profile.budget,
-    routers: profile.routers,
     compaction: profile.compaction,
     agents: profile.agents,
   });

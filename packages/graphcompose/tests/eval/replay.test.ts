@@ -19,7 +19,7 @@ const judgeWith = (...confidences: number[]): Router => {
 describe("replay", () => {
   it("re-runs old tasks with the current prompts and compares scores", async () => {
     const script = {
-      "test/router": [decide("alpha"), decide("finish"), decide("alpha"), decide("finish")],
+      "test/router": [decide("alpha"), decide("answer"), decide("alpha"), decide("answer")],
       "test/alpha": ["old answer", "new answer"],
     };
     const deps = fakeDeps(script);
@@ -46,7 +46,7 @@ describe("replay", () => {
   });
 
   it("stops replaying when the eval budget is spent", async () => {
-    const deps = fakeDeps({ "test/router": [decide("finish")], "test/alpha": [] });
+    const deps = fakeDeps({ "test/router": [decide("answer")], "test/alpha": [] });
     await runAgent({ task: "T" }, deps);
     const evaluation: EvalDeps = {
       terns: deps.terns,

@@ -2,16 +2,15 @@ import { describe, expect, it } from "vitest";
 import { Workflow, workflowOf, type Class } from "../../src/index.js";
 import { CheckerAgent, CustomAgent, LostAgent } from "../fixtures/convention/checker.agent.js";
 import { testConfig } from "../helpers.js";
+import { starOf, TestSettings } from "../fixtures/test-flow/star.js";
 
 const base = {
   version: "1.0.0",
   defaults: testConfig.defaults,
-  budget: testConfig.budget,
-  routers: testConfig.routers,
 };
 const workflowWith = (agent: Class): Class => {
-  @Workflow({ ...base, name: "conventions", agents: [agent] })
-  class Conventions {}
+  @Workflow({ ...base, name: "conventions", flow: starOf(agent) })
+  class Conventions extends TestSettings {}
   return Conventions;
 };
 

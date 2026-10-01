@@ -7,6 +7,7 @@ import { callerFile } from "./call-site.js";
 import type { McpServerClient, ServerTools } from "./mcp-client.js";
 import { recordComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
+import type { WorkflowDefinition } from "../graph/settings.js";
 
 /**
  * The contract of a tool (`@Tool`, `@McpTool`): `implements ToolHandler<OrderQuery, OrderStatus>` — its
@@ -115,9 +116,12 @@ export function Agent(options: Omit<AgentMeta, "source">) {
   };
 }
 
-/** The module of a set of agents (Angular `@NgModule`-like). Assemble with `workflowOf`. */
+/**
+ * The module of a workflow (Angular `@NgModule`-like): its flow and settings. The class
+ * `implements WorkflowDefinition` (`settings()`). Assemble with `workflowOf`.
+ */
 export function Workflow(options: WorkflowMeta) {
-  return <C extends Class>(value: C): C => {
+  return <C extends new () => WorkflowDefinition>(value: C): C => {
     recordComponent(value, { kind: "workflow", meta: options });
     return value;
   };

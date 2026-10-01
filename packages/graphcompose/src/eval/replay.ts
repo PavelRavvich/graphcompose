@@ -1,4 +1,4 @@
-import { BudgetExceededError } from "../finops/ledger.js";
+import { isDayCapReached } from "../graph/limits.js";
 import { runAgent, type RunDeps } from "../index.js";
 import { scoreTerns, type EvalDeps } from "./eval.js";
 
@@ -38,7 +38,7 @@ export async function replay<TName extends string>(
       replayedIds.push(result.ternId);
       costUsd += result.cost.totalUsd;
     } catch (error) {
-      if (error instanceof BudgetExceededError) stoppedBy = "eval budget exhausted";
+      if (isDayCapReached(error)) stoppedBy = "eval budget exhausted";
     }
   }
   const scoring = await scoreTerns(evaluation, await run.terns.byIds(replayedIds));

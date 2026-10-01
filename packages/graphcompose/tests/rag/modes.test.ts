@@ -26,7 +26,7 @@ function setup(source: KnowledgeSource) {
   const factory = vi.fn<ModelFactory>((s) =>
     s.model === "test/alpha" ? alpha : new FakeListChatModel({ responses: ["x"] }),
   );
-  const base = fakeDeps({ "test/router": [decide("alpha"), decide("finish", "done")] });
+  const base = fakeDeps({ "test/router": [decide("alpha"), decide("answer", "done")] });
   const deps: RunDeps<TestAgent> = {
     ...base,
     registry: createModelRegistry(testConfig, factory),

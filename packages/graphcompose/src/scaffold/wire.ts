@@ -2,7 +2,7 @@ import ts from "typescript";
 import { ScaffoldError } from "./errors.js";
 import type { FileToWrite } from "./write.js";
 
-type Decorator = "Agent" | "Workflow";
+type Decorator = "Agent" | "Workflow" | "Router";
 
 const decoratorCall = (
   source: ts.SourceFile,
@@ -101,7 +101,7 @@ export function addImport(text: string, file: string, name: string, from: string
 /** Wires a class into an agent or workflow file: the array entry and its import. */
 export function wire(
   file: FileToWrite,
-  decorator: "Agent" | "Workflow",
+  decorator: Decorator,
   property: string,
   element: string,
   name: string,

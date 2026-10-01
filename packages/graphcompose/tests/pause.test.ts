@@ -40,7 +40,7 @@ function setup(alphaReplies: readonly Reply[], withSeam = true) {
     ...testConfig,
     agents: { ...testConfig.agents, alpha: { ...testConfig.agents.alpha, tools: ["send_email"] } },
   };
-  const base = fakeDeps({ "test/router": [decide("alpha"), decide("finish", "done")] }, ledger);
+  const base = fakeDeps({ "test/router": [decide("alpha"), decide("answer", "done")] }, ledger);
   const deps: RunDeps<TestAgent> = {
     ...base,
     config,
@@ -149,9 +149,12 @@ describe("pause seam", () => {
   });
 
   it("records a failure after resume on the same Tern", async () => {
-    const { deps } = setup([callSend]);
-    const paused = await runAgent({ task: "Email the boss" }, deps);
-    vi.spyOn(deps.router, "route").mockRejectedValue(new Error("router down"));
+    const { deps: base } = setup([callSend]);
+    const paused = await runAgent({ task: "Email the boss" }, base);
+    const deps = {
+      ...base,
+      routerFor: () => ({ name: "main", route: () => Promise.reject(new Error("router down")) }),
+    };
 
     await expect(resumeAgent(paused, { approve: true }, deps)).rejects.toThrow();
 

@@ -5,7 +5,7 @@ import { decide, fakeDeps, memoryLedger } from "../helpers.js";
 describe("runAgent writes Terns", () => {
   it("records an answered run with route, steps, cost and versions", async () => {
     const deps = fakeDeps({
-      "test/router": [decide("alpha"), decide("finish", "done")],
+      "test/router": [decide("alpha"), decide("answer", "done")],
       "test/alpha": ["42"],
     });
 

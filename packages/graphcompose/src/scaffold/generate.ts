@@ -1,14 +1,15 @@
-import { readFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { basename } from "node:path";
 import { ScaffoldError } from "./errors.js";
 import { namesOf } from "./names.js";
 import { mcpFiles, ragFiles } from "./parts.js";
-import { agentFiles, planWorkflow, toolFiles } from "./plan.js";
+import { planWorkflow, toolFiles } from "./plan.js";
+import { planAgent, planRouter } from "./generate-flow.js";
+import { agentFile, need, read, targetWorkflow } from "./project-files.js";
 import { wire } from "./wire.js";
 import { FILESYSTEM_SERVER_PACKAGE, filesystemServerVersion, workflowScripts } from "./project.js";
 import type { Changes, FileToWrite } from "./write.js";
 
-export const KINDS = ["workflow", "agent", "tool", "mcp", "rag"] as const;
+export const KINDS = ["workflow", "agent", "router", "tool", "mcp", "rag"] as const;
 export type Kind = (typeof KINDS)[number];
 
 export interface GenerateOptions {
@@ -20,31 +21,6 @@ export interface GenerateOptions {
   readonly tool?: string | undefined;
   readonly folder?: string | undefined;
 }
-
-const need = (value: string | undefined, flag: string, kind: Kind): string => {
-  if (value === undefined || value === "")
-    throw new ScaffoldError(`gc generate ${kind} needs ${flag}`);
-  return value;
-};
-
-const read = (root: string, path: string): FileToWrite => {
-  try {
-    return { path, content: readFileSync(join(root, path), "utf8") };
-  } catch {
-    throw new ScaffoldError(`Not found: ${path}`);
-  }
-};
-
-/** The workflow a part goes into: its folder and module file (`--workflow src/x/x.workflow.ts`). */
-function workflowOf(root: string, path: string, kind: Kind): { dir: string; module: FileToWrite } {
-  const file = need(path, "--workflow <path>", kind).replace(/^\.\//, "");
-  if (!basename(file).endsWith(".workflow.ts"))
-    throw new ScaffoldError(`--workflow must be a *.workflow.ts file: ${file}`);
-  return { dir: dirname(file), module: read(root, file) };
-}
-
-const agentFile = (root: string, dir: string, agent: string): FileToWrite =>
-  read(root, `${dir}/agents/${namesOf(agent).kebab}.agent.ts`);
 
 function withScripts(
   root: string,
@@ -84,25 +60,10 @@ const PLANS: Readonly<Record<Kind, (root: string, name: string, o: GenerateOptio
       modify: [withScripts(root, workflowScripts(n, `:${n.kebab}`))],
     };
   },
-  agent: (root, name, o) => {
-    const { dir, module } = workflowOf(root, o.workflow ?? "", "agent");
-    const n = namesOf(name);
-    return {
-      create: agentFiles(dir, n, o.description ?? `${n.title} (TODO: describe the role)`, []),
-      modify: [
-        wire(
-          module,
-          "Workflow",
-          "agents",
-          `${n.pascal}Agent`,
-          `${n.pascal}Agent`,
-          `./agents/${n.kebab}.agent.js`,
-        ),
-      ],
-    };
-  },
+  agent: planAgent,
+  router: planRouter,
   tool: (root, name, o) => {
-    const { dir } = workflowOf(root, o.workflow ?? "", "tool");
+    const { dir } = targetWorkflow(root, o.workflow ?? "", "tool");
     const n = namesOf(name);
     const agent = agentFile(root, dir, need(o.agent, "--agent <name>", "tool"));
     return {
@@ -120,7 +81,7 @@ const PLANS: Readonly<Record<Kind, (root: string, name: string, o: GenerateOptio
     };
   },
   mcp: (root, name, o) => {
-    const { dir, module } = workflowOf(root, o.workflow ?? "", "mcp");
+    const { dir, module } = targetWorkflow(root, o.workflow ?? "", "mcp");
     const spec =
       o.dir !== undefined
         ? { kind: "filesystem" as const, name, dir: o.dir }
@@ -152,7 +113,7 @@ const PLANS: Readonly<Record<Kind, (root: string, name: string, o: GenerateOptio
     return { create: mcp.files, modify };
   },
   rag: (root, name, o) => {
-    const { dir } = workflowOf(root, o.workflow ?? "", "rag");
+    const { dir } = targetWorkflow(root, o.workflow ?? "", "rag");
     const workflow = namesOf(basename(dir));
     const rag = ragFiles(dir, workflow, { name, folder: need(o.folder, "--folder <dir>", "rag") });
     const from = `../rag/${namesOf(name).kebab}.rag.js`;

@@ -5,6 +5,8 @@ export const RunInputSchema = z.object({
   task: z.string().trim().min(1, "task must not be empty"),
   /** Omit on first contact: a new thread is created and returned. */
   threadId: z.string().min(1).optional(),
+  /** The entry the run starts at (name); default: the workflow's chat entry. */
+  entry: z.string().min(1).optional(),
 });
 
 export type RunInput = z.infer<typeof RunInputSchema>;

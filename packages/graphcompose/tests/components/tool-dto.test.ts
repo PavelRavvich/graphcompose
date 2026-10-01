@@ -14,6 +14,7 @@ import {
 import { DtoError, Integer, ListOf, Nested, Text, Url } from "../../src/dto/index.js";
 import { toLangChainTool, type ToolContext } from "../../src/tools/index.js";
 import { testConfig } from "../helpers.js";
+import { starOf, TestSettings } from "../fixtures/test-flow/star.js";
 
 const ctx: ToolContext = {
   runId: "r",
@@ -108,11 +109,9 @@ describe("tools on DTOs (#118)", () => {
       name: "loose",
       version: "1",
       defaults: testConfig.defaults,
-      budget: testConfig.budget,
-      routers: testConfig.routers,
-      agents: [LooseAgent],
+      flow: starOf(LooseAgent),
     })
-    class LooseWorkflow {}
+    class LooseWorkflow extends TestSettings {}
 
     await expect(workflowOf(LooseWorkflow)).rejects.toThrow(DtoError);
     await expect(workflowOf(LooseWorkflow)).rejects.toThrow(

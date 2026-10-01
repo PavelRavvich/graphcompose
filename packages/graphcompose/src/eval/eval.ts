@@ -9,7 +9,7 @@ export interface EvalDeps {
   /** A two-option router (adequate / inadequate); Jev by default. */
   readonly judge: Router;
   readonly ledger: SpendLedger;
-  /** Where eval spend goes: `<workflow>:eval` with `evalBudgetCap`. */
+  /** Where eval spend goes: `<workflow>:eval`, its own day capped at `limits.perDay.cost`. */
   readonly account: SpendAccount;
 }
 

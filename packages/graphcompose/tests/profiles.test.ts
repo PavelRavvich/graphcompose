@@ -89,8 +89,18 @@ describe("profiles — validation", () => {
       applyProfile(base, profile({ version: base.config.version }), {}, "p.yaml"),
     ).toThrow(ProfileError);
     expect(() =>
-      applyProfile(base, profile({ budget: { runBudgetCap: -1 } }), {}, "p.yaml"),
-    ).toThrow(/p\.yaml: budget\.runBudgetCap/);
+      applyProfile(base, profile({ defaults: { history: { limit: -1 } } }), {}, "p.yaml"),
+    ).toThrow(/p\.yaml: defaults\.history\.limit/);
+  });
+
+  it("#116: routers and budget are no longer profile keys (the flow and settings() own them)", async () => {
+    const { file } = await profileFile(
+      "profile: variant\nversion: 2.0.0\nrouters:\n  main:\n    maxHops: 5\n",
+    );
+    const budget = await profileFile("profile: v2\nversion: 2.0.0\nbudget:\n  runBudgetCap: 1\n");
+
+    await expect(loadProfile(file)).rejects.toThrow(ProfileError);
+    await expect(loadProfile(budget.file)).rejects.toThrow(ProfileError);
   });
 
   it("AC1: schema/profile.schema.json is up to date (run `npm run schema`)", async () => {

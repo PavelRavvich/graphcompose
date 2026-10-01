@@ -21,8 +21,9 @@ export async function drainRecordingUsage<TState extends HasUsage>(
   let last: TState | undefined;
   let recorded = alreadyRecorded;
   for await (const state of states) {
+    // usage only grows; a resumed run's first states may be shorter than what is already recorded
     await record(state.usage.slice(recorded));
-    recorded = state.usage.length;
+    recorded = Math.max(recorded, state.usage.length);
     last = state;
   }
   if (last === undefined) throw new EmptyRunError("The run produced no state");

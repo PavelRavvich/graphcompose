@@ -1,42 +1,36 @@
 import { FakeListChatModel } from "@langchain/core/utils/testing";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { formatHistory } from "../src/graph/contributions.js";
 import { runAgent, UnknownThreadError, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
-import type { RouteRequest } from "../src/routers/index.js";
 import { ScriptedChatModel } from "./fakes/scripted-model.js";
-import { decide, fakeDeps, testConfig, type TestAgent } from "./helpers.js";
+import { decide, fakeDeps, recordingRouters, testConfig, type TestAgent } from "./helpers.js";
 
-/** Router: alpha then finish, for `runs` runs; alpha answers from `answers`. */
+/** Router: alpha then the answer, for `runs` runs; alpha answers from `answers`. */
 function setup(
   answers: string[],
-  historyLimits: { readonly defaults: number; readonly router?: number },
+  historyLimits: { readonly defaults: number; readonly alpha?: number },
 ) {
-  const routes = answers.flatMap(() => [decide("alpha"), decide("finish", "done")]);
+  const routes = answers.flatMap(() => [decide("alpha"), decide("answer", "done")]);
   const base = fakeDeps({ "test/router": routes });
   const alpha = new ScriptedChatModel(answers);
   const config = {
     ...testConfig,
     defaults: { ...testConfig.defaults, history: { limit: historyLimits.defaults } },
-    routers: {
-      main: {
-        ...testConfig.routers.main,
-        ...(historyLimits.router === undefined ? {} : { historyLimit: historyLimits.router }),
+    agents: {
+      ...testConfig.agents,
+      alpha: {
+        ...testConfig.agents.alpha,
+        ...(historyLimits.alpha === undefined ? {} : { historyLimit: historyLimits.alpha }),
       },
     },
   };
-  const deps: RunDeps<TestAgent> = {
+  const { deps, requests: routed } = recordingRouters<RunDeps<TestAgent>>({
     ...base,
     config,
     registry: createModelRegistry(config, (settings) =>
       settings.model === "test/alpha" ? alpha : new FakeListChatModel({ responses: ["x"] }),
     ),
-  };
-  const routed: RouteRequest[] = [];
-  const route = deps.router.route;
-  vi.spyOn(deps.router, "route").mockImplementation((request) => {
-    routed.push(request);
-    return route(request);
   });
   return { deps, alpha, routed };
 }
@@ -73,8 +67,8 @@ describe("threads and history", () => {
     expect(lastHumanText(alpha)).toContain("Q: My name is Pavel\nA: Nice to meet you, Pavel.");
   });
 
-  it("limits history per agent and router", async () => {
-    const { deps, alpha, routed } = setup(["a1", "a2", "a3"], { defaults: 1, router: 2 });
+  it("limits history per agent; routers read the default depth", async () => {
+    const { deps, alpha, routed } = setup(["a1", "a2", "a3"], { defaults: 2, alpha: 1 });
     const first = await runAgent({ task: "q1" }, deps);
     await runAgent({ task: "q2", threadId: first.threadId }, deps);
 

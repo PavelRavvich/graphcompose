@@ -1,22 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { resolveRouterModel } from "../../src/config/types.js";
 import type { JevClient } from "../../src/llm/jev-client.js";
 import { createRouter } from "../../src/routers/index.js";
 import { fakeChatFactory, testConfig, unusedJevClient } from "../helpers.js";
 import { jevAnswer, request } from "./fixtures.js";
-
-describe("resolveRouterModel", () => {
-  it("uses the default Jev model when a router sets none", () => {
-    expect(resolveRouterModel({ maxHops: 1 }, testConfig.defaults)).toEqual({
-      kind: "jev",
-      model: "typesafe/jev-test",
-    });
-  });
-
-  it("uses the router's own model when set", () => {
-    expect(resolveRouterModel(testConfig.routers.main, testConfig.defaults).kind).toBe("llm");
-  });
-});
 
 describe("createRouter", () => {
   it("builds a Jev router for kind jev", async () => {
@@ -34,7 +20,11 @@ describe("createRouter", () => {
 
   it("builds an LLM router with chat defaults applied for kind llm", () => {
     const chatModel = vi.fn(fakeChatFactory({}));
-    const model = resolveRouterModel(testConfig.routers.main, testConfig.defaults);
+    const model = {
+      kind: "llm",
+      model: "test/router",
+      price: { inputPerMTok: 1, outputPerMTok: 2 },
+    } as const;
 
     createRouter("main", model, testConfig.defaults.chat, {
       chatModel,

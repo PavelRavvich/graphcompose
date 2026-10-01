@@ -74,6 +74,11 @@ describe("gc create / gc generate end to end", () => {
     const out = check("src/desk/desk.workflow.ts");
 
     expect(out).toContain("desk 0.1.0");
+    // #116: the generated workflow is a flow — entry → main router ⇄ agents → answer
+    expect(out).toContain("chat-message → main");
+    expect(out).toContain("main → triage | answerer | answer");
+    expect(out).toContain("triage, answerer → main");
+    expect(out).toContain("limits    run 9 steps (default) · $0.1 · day $2");
     // create wires the MCP server and the knowledge base into the first agent
     expect(out).toMatch(/triage .*\n\s+Sorts requests\n\s+rag: desk_notes \(tool, k 3\)/);
     expect(out).toContain("· search_orders (read, local)");
@@ -96,7 +101,7 @@ describe("gc create / gc generate end to end", () => {
     expect(scripts().chat).toBe("graphcompose chat --workflow src/desk/desk.workflow.ts");
   }, 240_000);
 
-  it("AC2: generate agent, tool, mcp, rag and workflow — each wired, the project still compiles and passes", async () => {
+  it("AC2: generate agent, router, tool, mcp, rag and workflow — each wired, the project still compiles and passes", async () => {
     const workflow = "src/desk/desk.workflow.ts";
     const steps = [
       planGenerate("agent", "billing", { workflow, description: "Handles invoices" }, project),
@@ -118,6 +123,7 @@ describe("gc create / gc generate end to end", () => {
           { workflow, folder: "policies", agent: "billing" },
           project,
         ),
+      () => planGenerate("router", "escalation", { workflow }, project),
       () => planGenerate("workflow", "onboarding", {}, project),
     ]) {
       await applyChanges(project, plan());
@@ -126,6 +132,13 @@ describe("gc create / gc generate end to end", () => {
     const out = check(workflow);
 
     expect(out).toMatch(/billing .*\n\s+Handles invoices/);
+    // #116: a new agent joins the star — a route in the main router and both transitions
+    expect(out).toContain("main → triage | answerer | billing | answer");
+    expect(out).toContain("triage, answerer, billing → main");
+    expect(readFileSync(join(project, "src/desk/routers/main.router.ts"), "utf8")).toContain(
+      'route(BillingAgent, "Handles invoices")',
+    );
+    expect(existsSync(join(project, "src/desk/routers/escalation.router.ts"))).toBe(true);
     expect(out).toContain("rag: policies (tool, k 3)");
     expect(out).toContain("· refund (read, local)");
     expect(out).toContain("· tickets_search (read, MCP tickets)");

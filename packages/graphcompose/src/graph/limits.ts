@@ -41,6 +41,10 @@ export class LimitExceededError extends Error {
   }
 }
 
+/** The account's day is spent (`limits.perDay.cost`): eval and replay stop there. */
+export const isDayCapReached = (error: unknown): boolean =>
+  error instanceof LimitExceededError && error.key === "limits.perDay.cost";
+
 /** Limits with defaults applied. */
 export interface ResolvedLimits {
   readonly steps: number;

@@ -13,6 +13,7 @@ import {
 import { Text } from "../../../src/dto/index.js";
 import type { Router } from "../../../src/routers/index.js";
 import { testConfig } from "../../helpers.js";
+import { starOf, TestSettings } from "../../fixtures/test-flow/star.js";
 
 export const GREETING = new InjectionToken<string>("GREETING");
 
@@ -102,11 +103,9 @@ export class GreeterAgent {}
   name: "greetings",
   version: "1.0.0",
   defaults: testConfig.defaults,
-  budget: testConfig.budget,
-  routers: testConfig.routers,
-  agents: [GreeterAgent],
+  flow: starOf(GreeterAgent),
   mcp: [FilesServer],
   providers: [Greeter, { provide: GREETING, useValue: "Shalom" }],
   promptVariables: { language: "Hebrew" },
 })
-export class Greetings {}
+export class Greetings extends TestSettings {}

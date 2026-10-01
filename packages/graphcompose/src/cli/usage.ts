@@ -89,12 +89,12 @@ export const COMMANDS: Readonly<Record<string, CommandHelp>> = {
     ],
   },
   generate: {
-    summary: "add a workflow, agent, tool, MCP server or knowledge base, wired (alias g)",
-    usage: "gc generate <workflow|agent|tool|mcp|rag> <name> [--workflow <path>] [options]",
+    summary: "add a workflow, agent, router, tool, MCP server or knowledge base, wired (alias g)",
+    usage: "gc generate <workflow|agent|router|tool|mcp|rag> <name> [--workflow <path>] [options]",
     options: [
       ["--workflow <path>", "the workflow to add to (src/<name>/<name>.workflow.ts)"],
       ["--agent <name>", "the agent that uses the tool / MCP tool / knowledge base"],
-      ["--description <text>", "an agent's role"],
+      ["--description <text>", "an agent's role, or what a router decides"],
       ["--dir <folder>", "mcp: a filesystem server over this folder"],
       ["--command <cmd>", "mcp: a server started with this command (with --tool <name>)"],
       ["--folder <dir>", "rag: the folder of notes"],

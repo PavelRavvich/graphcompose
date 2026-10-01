@@ -3,8 +3,16 @@ import { describe, expect, it, vi } from "vitest";
 import { runAgent, type RunDeps } from "../src/index.js";
 import { createModelRegistry, type ModelFactory } from "../src/llm/registry.js";
 import { compactIfDue } from "../src/run/compaction.js";
+import { usd } from "../src/units/index.js";
 import { ScriptedChatModel } from "./fakes/scripted-model.js";
-import { decide, fakeDeps, memoryLedger, testConfig, type TestAgent } from "./helpers.js";
+import {
+  decide,
+  fakeDeps,
+  memoryLedger,
+  recordingRouters,
+  testConfig,
+  type TestAgent,
+} from "./helpers.js";
 
 const price = testConfig.agents.alpha.price;
 
@@ -14,7 +22,6 @@ interface Setup {
   readonly compactor?: ScriptedChatModel;
   readonly summaries?: {
     readonly defaults?: number;
-    readonly router?: number;
     readonly alpha?: number;
   };
   readonly runBudgetCap?: number;
@@ -42,18 +49,11 @@ function setup({
   );
   const config = {
     ...testConfig,
-    budget: { ...testConfig.budget, runBudgetCap },
     defaults: {
       ...testConfig.defaults,
       history: {
         limit: 10,
         ...(summaries.defaults === undefined ? {} : { summaries: summaries.defaults }),
-      },
-    },
-    routers: {
-      main: {
-        ...testConfig.routers.main,
-        ...(summaries.router === undefined ? {} : { historySummaries: summaries.router }),
       },
     },
     agents: {
@@ -70,7 +70,7 @@ function setup({
     {
       "test/router": Array.from({ length: turns + 2 }, () => [
         decide("alpha"),
-        decide("finish", "done"),
+        decide("answer", "done"),
       ]).flat(),
     },
     ledger,
@@ -78,6 +78,7 @@ function setup({
   const deps: RunDeps<TestAgent> = {
     ...base,
     config,
+    limits: { perRun: { cost: usd(runBudgetCap) } },
     registry: createModelRegistry(config, factory),
   };
   return { deps, alpha, summariser, ledger };
@@ -142,15 +143,19 @@ describe("conversation compaction", () => {
   });
 
   it("AC4: each reader sees its own number of summaries (0 = none)", async () => {
-    const { deps, alpha } = setup({ every: 2, turns: 5, summaries: { alpha: 1, router: 0 } });
-    const route = vi.spyOn(deps.router, "route");
+    const { deps: base, alpha } = setup({
+      every: 2,
+      turns: 5,
+      summaries: { defaults: 0, alpha: 1 },
+    });
+    const { deps, requests } = recordingRouters(base);
 
     await converse(deps, 5);
 
     const agentInput = lastHuman(alpha);
     expect(agentInput).toContain("[1] S2");
     expect(agentInput).not.toContain("S1");
-    expect(route.mock.calls.at(-1)?.[0].input).not.toContain("Earlier in this conversation");
+    expect(requests.at(-1)?.input).not.toContain("Earlier in this conversation");
   });
 
   it("AC5: a compaction failure never fails the turn; the next turn retries", async () => {

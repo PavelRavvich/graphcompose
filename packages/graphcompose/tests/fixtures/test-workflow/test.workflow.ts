@@ -1,5 +1,6 @@
 import { Agent, MODEL_MAX, Tool, Workflow, type ToolHandler } from "../../../src/index.js";
 import { DateTime, TimeZone } from "../../../src/dto/index.js";
+import { starOf, TestSettings } from "../test-flow/star.js";
 
 const price = { inputPerMTok: 0.5, outputPerMTok: 3, cacheReadPerMTok: 0.1 };
 class ClockQuery {
@@ -62,12 +63,10 @@ export class Coder {}
     tools: { maxToolCalls: 8 },
     history: { limit: 5 },
   },
-  budget: { runBudgetCap: 0.05, dailyBudgetCap: 2, evalBudgetCap: 1 },
-  routers: { main: { maxHops: 3 } },
   guards: {
     input: { prompt_injection: { threshold: 0.7, refusal: "I can't help with that request." } },
     output: { pii: { threshold: 0.7, refusal: "Withheld." } },
   },
-  agents: [Researcher, Coder],
+  flow: starOf(Researcher, Coder),
 })
-export class TestWorkflow {}
+export class TestWorkflow extends TestSettings {}
