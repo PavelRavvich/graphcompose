@@ -3,7 +3,8 @@ import { MemorySaver } from "@langchain/langgraph";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { userInfo } from "node:os";
-import { summaryLine, terminalDecision, untilDone } from "../src/cli/approve.js";
+import { summaryLine, terminalDecision } from "../src/cli/approve.js";
+import { inTerminal } from "./fakes/terminal.js";
 import { DtoValidationError } from "../src/dto/index.js";
 import { NotPausedError, resumeAgent, runAgent, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
@@ -179,7 +180,7 @@ describe("terminal approval (CLI and chat)", () => {
     const { deps, sent } = setup([callSend, "Sent."]);
     const ask = vi.fn(() => Promise.resolve("y"));
 
-    const done = await untilDone(await runAgent({ task: "Email the boss" }, deps), deps, ask);
+    const done = await inTerminal(deps, ask);
 
     expect(ask).toHaveBeenCalledWith(
       expect.stringContaining('alpha wants to call send_email {"to":"boss@example.com"}'),
@@ -192,9 +193,7 @@ describe("terminal approval (CLI and chat)", () => {
     for (const reply of ["n", undefined]) {
       const { deps, sent } = setup([callSend, "Ok, not sent."]);
 
-      const done = await untilDone(await runAgent({ task: "Email the boss" }, deps), deps, () =>
-        Promise.resolve(reply),
-      );
+      const done = await inTerminal(deps, () => Promise.resolve(reply));
 
       expect(done.answer).toBe("Ok, not sent.");
       expect(sent).toEqual([]);
@@ -225,9 +224,7 @@ describe("terminal approval (CLI and chat)", () => {
 
   it("summarises a result in one line", async () => {
     const { deps } = setup([callSend, "Sent."]);
-    const done = await untilDone(await runAgent({ task: "Email the boss" }, deps), deps, () =>
-      Promise.resolve("y"),
-    );
+    const done = await inTerminal(deps, () => Promise.resolve("y"));
 
     expect(summaryLine(done)).toBe("alpha · stop: the agent answered after the human decision");
     expect(summaryLine({ ...done, route: [] })).toMatch(/^\(none\) · /);

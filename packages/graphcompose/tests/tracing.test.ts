@@ -66,7 +66,7 @@ describe("tracing", () => {
       expect.arrayContaining(["router.main", "agent.alpha", "workflow-finish.answer"]),
     );
     expect(result.traceUrl).toBe(`http://traces/sessions/${result.threadId}`);
-    expect(threadLine(result)).toBe(
+    expect(threadLine({ thread: result.threadId, traceUrl: result.traceUrl })).toBe(
       `thread ${result.threadId} · http://traces/sessions/${result.threadId}`,
     );
   });
@@ -88,6 +88,6 @@ describe("tracing", () => {
       fakeDeps({ "test/router": [decide("alpha"), decide("answer")], "test/alpha": ["ok"] }),
     );
     expect(plain.traceUrl).toBeUndefined();
-    expect(threadLine(plain)).toBe(`thread ${plain.threadId}`);
+    expect(threadLine({ thread: plain.threadId })).toBe(`thread ${plain.threadId}`);
   });
 });

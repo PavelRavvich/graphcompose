@@ -55,7 +55,8 @@ export abstract class McpServerClient<TTools extends ServerTools> {
   }
 }
 
-type Handlers<TTools extends ServerTools> = {
+/** A handler per declared server tool: its arguments in, its result out (stubs, tests). */
+export type ServerToolHandlers<TTools extends ServerTools> = {
   readonly [K in keyof TTools]?: (args: ArgumentsOf<TTools[K]>) => Promise<ResultOf<TTools[K]>>;
 };
 
@@ -67,7 +68,7 @@ export type ToolsOf<TServer> = TServer extends { readonly declaredTools?: infer 
 /** A server instance answered by `handlers` — for testing MCP tools with `new`, no process. */
 export function mcpServerStub<TServer extends McpServerClient<ServerTools>>(
   server: new () => TServer,
-  handlers: Handlers<ToolsOf<TServer>>,
+  handlers: ServerToolHandlers<ToolsOf<TServer>>,
 ): TServer {
   const instance = new server();
   const entries = Object.entries(handlers).flatMap(([name, handler]) => {

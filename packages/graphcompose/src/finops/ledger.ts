@@ -65,3 +65,18 @@ export function createFileLedger(dir: string, now: Clock = () => new Date()): Sp
     },
   };
 }
+
+/** In-process ledger (tests, one-off runs): spend per workflow per UTC day of `now`. */
+export function createMemoryLedger(now: Clock = () => new Date()): SpendLedger {
+  const days = new Map<string, number>();
+  const keyOf = (bundle: string): string => `${bundle}/${utcDay(now())}`;
+  return {
+    spentToday: (bundle) => Promise.resolve(days.get(keyOf(bundle)) ?? 0),
+    record: (bundle, records) => {
+      const key = keyOf(bundle);
+      const spent = records.reduce((sum, record) => sum + record.costUsd, 0);
+      days.set(key, (days.get(key) ?? 0) + spent);
+      return Promise.resolve();
+    },
+  };
+}

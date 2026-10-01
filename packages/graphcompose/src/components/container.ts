@@ -79,6 +79,13 @@ export function checkGraph(
   });
 }
 
+/** How one app's container differs: values that replace registrations (test mocks), a creation hook. */
+export interface ContainerOptions {
+  readonly overrides?: ReadonlyMap<Token, unknown>;
+  /** Called with every instance the container creates (not with values or overrides). */
+  readonly onCreate?: (instance: unknown) => void;
+}
+
 export interface Container {
   readonly get: (token: Token) => unknown;
   /** Class names in creation order (dependencies before dependants). */
@@ -89,8 +96,12 @@ export interface Container {
 export function createContainer(
   providers: readonly Provider[],
   core: ReadonlyMap<Token, unknown>,
+  options: ContainerOptions = {},
 ): Container {
   const registered = registrations(providers, core);
+  for (const [token, value] of options.overrides ?? []) {
+    registered.set(token, { kind: "value", value });
+  }
   const instances = new Map<Token, unknown>();
   const created: string[] = [];
   const resolve = (token: Token): unknown => {
@@ -112,6 +123,7 @@ export function createContainer(
     const args = depsOf(cls).map(resolve);
     const instance: unknown = new (cls as unknown as new (...a: unknown[]) => unknown)(...args);
     created.push(tokenName(cls));
+    options.onCreate?.(instance);
     return instance;
   };
   return { get: (token: Token): unknown => resolve(token), created };

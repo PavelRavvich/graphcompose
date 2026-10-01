@@ -15,6 +15,8 @@ export interface RunDeps<TName extends string> extends GraphDeps<TName> {
   readonly compactionPrompt?: string | undefined;
   /** Optional tracing (e.g. local Langfuse); runs are identical without it. */
   readonly tracing?: RunTracing | undefined;
+  /** A new run id; random by default, deterministic in tests. */
+  readonly newRunId?: () => string;
 }
 
 /** Which ledger account pays for a run and its daily cap. Default: the workflow itself. */
@@ -39,6 +41,8 @@ export interface AgentRunResult {
   readonly answer: string;
   /** Agents in the order they ran. */
   readonly route: readonly string[];
+  /** Flow node keys in the order the run visited them (a paused run: up to the waiting agent). */
+  readonly path: readonly string[];
   /** The workflow finish the run reached (absent when a guard stopped it or it is paused). */
   readonly finish?: string;
   readonly stopReason: string;

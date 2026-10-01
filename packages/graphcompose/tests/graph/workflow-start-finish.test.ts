@@ -1,17 +1,12 @@
 import { describe, expect, it } from "vitest";
-import {
-  WorkflowStartText,
-  DtoValidationError,
-  Text,
-  WorkflowFinishText,
-} from "../../src/dto/index.js";
+import { WorkflowStartText, Text, WorkflowFinishText } from "../../src/dto/index.js";
 import { workflowFinishMetaOf } from "../../src/graph/workflow-finish.decorator.js";
 import { WorkflowStart, workflowStartMetaOf } from "../../src/graph/workflow-start.decorator.js";
 import { from, type Flow } from "../../src/graph/flow.js";
 import { nodeInfoOf } from "../../src/graph/node-kind.js";
-import { NotAWorkflowStartError, runAgent, runWorkflowStart } from "../../src/index.js";
+import { runAgent } from "../../src/index.js";
 import { Alpha, Beta, TestAnswer, TestChat } from "../fixtures/test-flow/test.flow.js";
-import { decide, fakeDeps, recordingRouters } from "../helpers.js";
+import { fakeDeps } from "../helpers.js";
 
 /** A second workflow start: a ticket from a helpdesk webhook (still a chat message for now). */
 class Ticket extends WorkflowStartText {
@@ -37,53 +32,13 @@ describe("AC1: minimal @WorkflowStart and @WorkflowFinish", () => {
     expect(workflowFinishMetaOf(TestAnswer)?.output).toBe(WorkflowFinishText);
   });
 
-  it("runWorkflowStart starts a run at the workflow start; the text is the task, the result names the workflow finish", async () => {
-    const deps = fakeDeps({
-      "test/router": [decide("alpha"), decide("answer", "done")],
-      "test/alpha": ["hello back"],
-    });
-
-    const result = await runWorkflowStart(deps, TestChat, { text: "hello" });
-    const next = await runWorkflowStart(
-      deps,
-      TestChat,
-      { text: "again" },
-      { threadId: result.threadId },
-    );
-
-    expect(result).toMatchObject({
-      status: "answered",
-      answer: "hello back",
-      finish: "answer",
-    });
-    expect(next.threadId).toBe(result.threadId);
-  });
-
-  it("checks the input against the workflow start's DTO before any call", async () => {
-    const { deps, requests } = recordingRouters(fakeDeps({}));
-
-    await expect(runWorkflowStart(deps, TestChat, { text: "" })).rejects.toBeInstanceOf(
-      DtoValidationError,
-    );
-    expect(requests).toEqual([]);
-  });
-
-  it("refuses a class that is not a workflow start", async () => {
-    await expect(runWorkflowStart(fakeDeps({}), TestAnswer, { text: "hi" })).rejects.toBeInstanceOf(
-      NotAWorkflowStartError,
-    );
-  });
-
   it("with several workflow starts, the run starts at the one asked for; a plain task goes to the chat workflow start", async () => {
     const deps = {
       ...fakeDeps({ "test/alpha": ["chat"], "test/beta": ["ticket"] }),
       flow: twoStarts,
     };
 
-    const ticket = await runWorkflowStart(deps, TicketWorkflowStart, {
-      text: "printer broken",
-      id: "T-1",
-    } as Ticket);
+    const ticket = await runAgent({ task: "printer broken", start: "ticket" }, deps);
     const chat = await runAgent({ task: "hi" }, deps);
 
     expect(ticket).toMatchObject({ answer: "ticket", route: ["beta"], finish: "answer" });

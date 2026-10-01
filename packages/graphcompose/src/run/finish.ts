@@ -30,6 +30,10 @@ function outcomeOf(state: AgentStateType, paused: boolean): TernOutcome & { stat
   };
 }
 
+/** The visited nodes; a paused run waits in an agent whose visit has not finished yet. */
+const pathOf = (state: FlowStateType, current: AgentStateType): readonly string[] =>
+  current.pending === null ? state.path : [...state.path, current.pending.agent];
+
 const traceUrlOf = <TName extends string>(
   deps: RunDeps<TName>,
   threadId: string,
@@ -86,6 +90,7 @@ export async function finishRun<TName extends string>(
     status: outcome.status,
     answer: outcome.answer,
     route: outcome.route,
+    path: pathOf(state, current),
     stopReason: outcome.stopReason,
     budgetUsd: ctx.budgetUsd,
     cost: buildCostReport([...current.usage, ...memory.usage]),

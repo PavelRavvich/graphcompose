@@ -161,9 +161,9 @@ export default tseslint.config(
               message: 'Examples import only from "graphcompose" (its public API).',
             },
             {
-              regex: "^graphcompose/(?!(dto|graph|units)$)",
+              regex: "^graphcompose/(?!(dto|graph|units|testing|testing/setup)$)",
               message:
-                'No deep imports: use "graphcompose", "graphcompose/graph", "graphcompose/units" or "graphcompose/dto" (its public API).',
+                'No deep imports: use "graphcompose", "graphcompose/graph", "graphcompose/units", "graphcompose/dto" or "graphcompose/testing" (its public API).',
             },
           ],
         },

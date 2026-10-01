@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { parseArgs } from "node:util";
-import { createAppDeps, type AppDeps } from "../app.js";
+import { createAppDeps, type AppDeps } from "../app/app-deps.js";
 import { loadWorkflow } from "../cli/load-workflow.js";
 import { withProfile } from "../profile-workflow.js";
 import { pairwise, runProfile, type ProfileOutcome } from "./compare.js";
@@ -31,10 +31,7 @@ const out = (line: string): void => {
   process.stdout.write(`${line}\n`);
 };
 const depsFor = async (profile: string | undefined): Promise<AppDeps> => {
-  const deps = await createAppDeps(
-    await withProfile(await loadWorkflow(values.workflow), profile),
-    process.env,
-  );
+  const deps = await createAppDeps(await withProfile(await loadWorkflow(values.workflow), profile));
   deps.warnings.forEach((warning) => process.stderr.write(`warning: ${warning}\n`));
   return deps;
 };

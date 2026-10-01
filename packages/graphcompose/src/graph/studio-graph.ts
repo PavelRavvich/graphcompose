@@ -1,4 +1,4 @@
-import type { AppDeps } from "../app.js";
+import type { AppDeps } from "../app/app-deps.js";
 import type { CompiledFlowGraph } from "./build.js";
 import { flowGraphOf } from "./flow-runtime.js";
 

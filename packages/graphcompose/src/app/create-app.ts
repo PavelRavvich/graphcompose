@@ -1,0 +1,110 @@
+import type { Class } from "../components/injection.js";
+import { workflowOf } from "../components/assemble.js";
+import { WorkflowStartText } from "../dto/standard/framework.js";
+import { validate } from "../dto/schema.js";
+import { workflowStartMetaOf } from "../graph/workflow-start.decorator.js";
+import { withProfile } from "../profile-workflow.js";
+import { resumeAgent, NotPausedError } from "../run/resume-agent.js";
+import { runAgent } from "../run/run-agent.js";
+import type { AgentRunResult } from "../run/types.js";
+import type { AssembledWorkflow } from "../workflow.js";
+import { createAppDeps, type AppDeps, type AppDepsOptions } from "./app-deps.js";
+import { createMemoryPausedRunRepository, type PausedRunRepository } from "./paused-runs.js";
+import { flowNodesByKey, runResultOf, type FlowNodesByKey } from "./result.js";
+import type { App, RunResult } from "./types.js";
+
+export class NotAWorkflowStartError extends Error {
+  override name = "NotAWorkflowStartError";
+}
+
+/** `createApp` options: a profile on top of the workflow, and any part instead of its default. */
+export interface AppOptions extends AppDepsOptions {
+  /** `profiles/<workflow>/<profile>.yaml` under `profileRoot` (default: the working directory). */
+  readonly profile?: string | undefined;
+  readonly profileRoot?: string;
+  /** Where paused runs wait for `resume` (default: in memory, this app only). */
+  readonly pausedRuns?: PausedRunRepository;
+}
+
+/** An app with the parts it was built from (the testing toolkit's slices read them). */
+export interface BuiltApp {
+  readonly app: App;
+  readonly deps: AppDeps;
+  readonly bundle: AssembledWorkflow;
+  readonly nodes: FlowNodesByKey;
+}
+
+const startsOf = (nodes: FlowNodesByKey): Class[] =>
+  [...nodes.values()].filter(
+    (node): node is Class => typeof node === "function" && workflowStartMetaOf(node) !== undefined,
+  );
+
+/** The start a plain text goes to: the one taking `WorkflowStartText`, else the first one. */
+const textStartOf = (nodes: FlowNodesByKey): Class | undefined => {
+  const starts = startsOf(nodes);
+  return (
+    starts.find((start) => workflowStartMetaOf(start)?.input === WorkflowStartText) ?? starts[0]
+  );
+};
+
+function startMetaOf(start: Class, nodes: FlowNodesByKey, workflow: string) {
+  const meta = workflowStartMetaOf(start);
+  if (meta === undefined || !startsOf(nodes).includes(start)) {
+    throw new NotAWorkflowStartError(`${start.name} is not a workflow start of "${workflow}"`);
+  }
+  return meta;
+}
+
+/** The app over already assembled parts (a profile applied, test replacements given). */
+export async function buildApp(
+  bundle: AssembledWorkflow,
+  options: AppOptions = {},
+): Promise<BuiltApp> {
+  const nodes = flowNodesByKey(bundle.flow);
+  const deps = await createAppDeps(bundle, options);
+  const paused = options.pausedRuns ?? createMemoryPausedRunRepository();
+  const settle = (run: AgentRunResult): RunResult => {
+    if (run.status === "paused") paused.set(run);
+    else paused.delete(run.threadId);
+    return runResultOf(run, nodes);
+  };
+  let closed = false;
+  const app: App = {
+    name: deps.config.name,
+    version: deps.config.version,
+    warnings: deps.warnings,
+    textStart: textStartOf(nodes),
+    run: async (start, input, call = {}) => {
+      const meta = startMetaOf(start, nodes, deps.config.name);
+      const { text } = validate(meta.input, input);
+      const thread = call.thread === undefined ? {} : { threadId: call.thread };
+      const task = { task: text, start: meta.name, ...thread };
+      return settle(await runAgent(task, deps, { signal: call.signal }));
+    },
+    resume: async (thread, decision, call = {}) => {
+      const run = paused.get(thread);
+      if (run === undefined) throw new NotPausedError(`Thread "${thread}" has no paused run`);
+      return settle(await resumeAgent(run, decision, deps, { signal: call.signal }));
+    },
+    close: async () => {
+      if (closed) return;
+      closed = true;
+      await deps.close();
+    },
+  };
+  return { app, deps, bundle, nodes };
+}
+
+/**
+ * Builds a workflow into an app: the container, the graph (every assembly error at once), the
+ * components' `onStart` hooks — `const app = await createApp(JobScout)`; then
+ * `app.run(ChatWorkflowStart, { text })`, `app.resume(thread, decision)`, `app.close()`.
+ */
+export async function createApp(workflow: Class, options: AppOptions = {}): Promise<App> {
+  const bundle = await withProfile(
+    await workflowOf(workflow),
+    options.profile,
+    options.profileRoot,
+  );
+  return (await buildApp(bundle, options)).app;
+}

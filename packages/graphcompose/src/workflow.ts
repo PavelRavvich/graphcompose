@@ -5,6 +5,7 @@ import type { Router } from "./routers/index.js";
 import type { Flow } from "./graph/flow.js";
 import type { LoadedRouter } from "./graph/router-texts.js";
 import type { WorkflowLimits } from "./graph/settings.js";
+import type { ContainerOptions } from "./components/container.js";
 
 /** What the core offers the tools of a workflow. */
 export interface WorkflowServices {
@@ -12,6 +13,8 @@ export interface WorkflowServices {
   readonly router: (name: string) => Router;
   /** The process environment (tools reading settings); default process.env. */
   readonly env?: NodeJS.ProcessEnv;
+  /** Framework wiring of the app's container: replacements (test mocks) and lifecycle. */
+  readonly container?: ContainerOptions;
 }
 
 /** Tools as a list, or a factory when they need core services. */

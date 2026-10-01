@@ -11,7 +11,16 @@ export {
   type WorkflowServices,
   type WorkflowTools,
 } from "./workflow.js";
-export { createAppDeps, type AppDeps } from "./app.js";
+export {
+  createAppDeps,
+  type AppDeps,
+  type AppDepsOptions,
+  type AppStores,
+  type McpConnect,
+} from "./app/app-deps.js";
+export { createApp, NotAWorkflowStartError, type AppOptions } from "./app/create-app.js";
+export type { PausedRunRepository } from "./app/paused-runs.js";
+export type { App, RunCallOptions, RunResult } from "./app/types.js";
 export { studioGraphOf } from "./studio.js";
 export { loadWorkflow, loadWorkflowClass, WorkflowLoadError } from "./cli/load-workflow.js";
 export { withProfile } from "./profile-workflow.js";
@@ -19,11 +28,6 @@ export { describeWorkflow } from "./cli/describe.js";
 export type { GraphDeps } from "./graph/deps.js";
 export { resumeAgent, NotPausedError } from "./run/resume-agent.js";
 export { runAgent } from "./run/run-agent.js";
-export {
-  runWorkflowStart,
-  NotAWorkflowStartError,
-  type WorkflowStartRunOptions,
-} from "./run/run-workflow-start.js";
 export { UnknownThreadError } from "./run/thread.js";
 export type { AgentRunResult, RunDeps, RunOptions, RunStatus, SpendAccount } from "./run/types.js";
 export { runVersions } from "./run/versions.js";

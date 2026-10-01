@@ -1,0 +1,149 @@
+import { LiveCallBlockedError, TestFailure } from "./errors.js";
+import type { ScriptedTurn } from "./script.js";
+
+/** One message of a chat request: who said it and its text. */
+export interface ChatLine {
+  readonly role: string;
+  readonly text: string;
+}
+
+/** What a component sent its model: an agent's chat, or a router's decision request. */
+export type ModelRequest =
+  | {
+      readonly kind: "chat";
+      readonly system: string;
+      readonly input: string;
+      readonly messages: readonly ChatLine[];
+    }
+  | {
+      readonly kind: "decision";
+      readonly input: string;
+      readonly options: readonly string[];
+      readonly instructions: string;
+    };
+
+/** A component's script and what it was asked: `modelOf(Scout).respond(answer("…"))`. */
+export interface ModelScript {
+  /** Adds turns, taken by position: the component's n-th model call gets the n-th turn. */
+  respond(...turns: readonly ScriptedTurn[]): ModelScript;
+  /** The turn every call after the scripted ones gets. */
+  thenAlways(turn: ScriptedTurn): ModelScript;
+  /** Every request, in order. */
+  readonly requests: readonly ModelRequest[];
+  /** The one request (fails unless there was exactly one). */
+  readonly onlyRequest: ModelRequest;
+  /** The last request (fails when there was none). */
+  readonly lastRequest: ModelRequest;
+  /** The tools the component's model called, in order (tool names). */
+  readonly toolCalls: readonly string[];
+  /** How the test names the component (its class). */
+  readonly label: string;
+}
+
+const plural = (count: number, word: string): string =>
+  `${String(count)} ${word}${count === 1 ? "" : "s"}`;
+
+/** One component's script: turns by position (its model calls so far in this test), requests. */
+export class ComponentScript implements ModelScript {
+  readonly requests: ModelRequest[] = [];
+  readonly toolCalls: string[] = [];
+  #turns: ScriptedTurn[] = [];
+  #always: ScriptedTurn | undefined;
+  #position = 0;
+
+  constructor(readonly label: string) {}
+
+  respond(...turns: readonly ScriptedTurn[]): this {
+    this.#turns.push(...turns);
+    return this;
+  }
+
+  thenAlways(turn: ScriptedTurn): this {
+    this.#always = turn;
+    return this;
+  }
+
+  get isScripted(): boolean {
+    return this.#turns.length > 0 || this.#always !== undefined;
+  }
+
+  /** The turn for the next call; unscripted → blocked, past the end → exhausted. */
+  next(): ScriptedTurn {
+    if (!this.isScripted) {
+      throw new LiveCallBlockedError(
+        `${this.label} has no script — a live model call is blocked in tests; script it with modelOf(${this.label}).respond(…)`,
+      );
+    }
+    const turn = this.#turns[this.#position] ?? this.#always;
+    this.#position += 1;
+    if (turn === undefined) {
+      throw new TestFailure(
+        "test.script-exhausted",
+        `script exhausted for ${this.label}: ${plural(this.#turns.length, "turn")} scripted, asked for #${String(this.#position)} — add turns or end with .thenAlways(…)`,
+      );
+    }
+    return turn;
+  }
+
+  get onlyRequest(): ModelRequest {
+    const [only, ...rest] = this.requests;
+    if (only === undefined || rest.length > 0) {
+      throw new TestFailure(
+        "test.wrong-script",
+        `modelOf(${this.label}).onlyRequest: expected exactly one request, got ${String(this.requests.length)}`,
+      );
+    }
+    return only;
+  }
+
+  get lastRequest(): ModelRequest {
+    const last = this.requests.at(-1);
+    if (last === undefined) {
+      throw new TestFailure("test.wrong-script", `modelOf(${this.label}): no request was sent`);
+    }
+    return last;
+  }
+}
+
+/**
+ * Every component's script in one test, shared by every app the test opens — so a run resumed in a
+ * new app continues the same script. Failures that must fail the test are kept until reported.
+ */
+export class ScriptBook {
+  readonly #scripts = new Map<string, ComponentScript>();
+  readonly #labels = new Map<string, string>();
+  readonly #failures: Error[] = [];
+  #toolCallIds = 0;
+
+  /** How the test names the component behind a key (its class), for messages. */
+  name(key: string, label: string): void {
+    this.#labels.set(key, label);
+  }
+
+  scriptOf(key: string): ComponentScript {
+    const existing = this.#scripts.get(key);
+    if (existing !== undefined) return existing;
+    const created = new ComponentScript(this.#labels.get(key) ?? key);
+    this.#scripts.set(key, created);
+    return created;
+  }
+
+  /** A tool call id unique within the test (results are keyed by it). */
+  nextToolCallId(): string {
+    this.#toolCallIds += 1;
+    return `call-${String(this.#toolCallIds)}`;
+  }
+
+  /** Remembers a failure the test must see, even if a run swallowed it (a tool error, a guard). */
+  report(failure: Error): Error {
+    this.#failures.push(failure);
+    return failure;
+  }
+
+  /** The first failure reported since the last call, if any (then forgotten). */
+  takeFailure(): Error | undefined {
+    const [first] = this.#failures;
+    this.#failures.length = 0;
+    return first;
+  }
+}

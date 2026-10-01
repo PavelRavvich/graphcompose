@@ -2,7 +2,7 @@
  * Public API of the Terns module (run records, threads, scores). Everything outside src/terns
  * imports from here only (lint-enforced); the module depends on nothing else in src.
  */
-export { createSqliteTernStore } from "./sqlite-store.js";
+export { createSqliteTernStore, type NewThreadId } from "./sqlite-store.js";
 export {
   TERN_STATUSES,
   type NewTern,

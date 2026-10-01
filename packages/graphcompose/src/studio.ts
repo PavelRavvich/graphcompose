@@ -1,4 +1,4 @@
-import { createAppDeps } from "./app.js";
+import { createAppDeps } from "./app/app-deps.js";
 import { workflowOf, type Class } from "./components/index.js";
 import { studioGraph } from "./graph/studio-graph.js";
 
