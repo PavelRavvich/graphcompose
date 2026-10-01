@@ -42,7 +42,7 @@ describe("describe a workflow", () => {
   it("AC2: settings of the workflow and of each agent; the profile in the header", () => {
     const lines = describeWorkflow(test);
 
-    expect(lines[0]).toBe("test-workflow 1.0.0");
+    expect(lines[0]).toMatch(/^test-workflow 1\.0\.0 · config [0-9a-f]{8}$/);
     expect(lines).toContain("guards    input: prompt_injection ≥0.7 · output: pii ≥0.7");
     expect(lines).toContain("memory    raw turns only");
     expect(
@@ -57,7 +57,9 @@ describe("describe a workflow", () => {
         l.includes("reasoning: threshold 0.8 · 3 attempts [low, medium, high] · best"),
       ),
     ).toBe(true);
-    expect(describeWorkflow(test, "fast")[0]).toBe("test-workflow 1.0.0 (profile fast)");
+    expect(describeWorkflow(test, "fast")[0]).toMatch(
+      /^test-workflow 1\.0\.0 \(profile fast\) · config [0-9a-f]{8}$/,
+    );
   });
 
   it("AC3: tools nobody can use, and tools an agent names but the catalog lacks", () => {

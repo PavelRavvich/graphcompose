@@ -19,4 +19,10 @@ export {
   type TernStore,
   type VersionScore,
 } from "./types.js";
-export { stableJson, versionOf } from "./versions.js";
+export {
+  NonJsonValueError,
+  SHORT_VERSION_LENGTH,
+  shortVersion,
+  stableJson,
+  versionOf,
+} from "./versions.js";

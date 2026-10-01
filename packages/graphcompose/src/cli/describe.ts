@@ -6,6 +6,8 @@ import {
   type RouterModel,
   type Thinking,
 } from "../config/types.js";
+import { configSnapshot } from "../run/versions.js";
+import { shortVersion, versionOf } from "../terns/index.js";
 import { isMcpFacade, type AnyTool } from "../tools/index.js";
 
 /** Tools are built with a router that is never called — describing needs no key and no network. */
@@ -110,7 +112,7 @@ export function describeWorkflow(bundle: AssembledWorkflow, profile = "base"): s
   const assigned = new Set(Object.values(c.agents).flatMap((agent) => agent.tools ?? []));
   const unassigned = [...tools.keys()].filter((name) => !assigned.has(name));
   return [
-    `${c.name} ${c.version}${profile === "base" ? "" : ` (profile ${profile})`}`,
+    `${c.name} ${c.version}${profile === "base" ? "" : ` (profile ${profile})`} · config ${shortVersion(versionOf(configSnapshot(bundle)))}`,
     ...bundleLines(bundle),
     "agents",
     ...agentLines(bundle, tools),

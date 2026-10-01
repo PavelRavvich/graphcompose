@@ -8,7 +8,7 @@ import { createFileLedger } from "./finops/ledger.js";
 import type { EvalDeps } from "./eval/eval.js";
 import type { RunDeps } from "./index.js";
 import { configSnapshot, runVersions } from "./run/versions.js";
-import { createSqliteTernStore, stableJson } from "./terns/index.js";
+import { createSqliteTernStore, shortVersion, stableJson } from "./terns/index.js";
 import { langfuseTracing } from "./tracing/index.js";
 import { createJevClient } from "./llm/jev-client.js";
 import { createChatModel, readOpenRouterEnv } from "./llm/model.js";
@@ -129,7 +129,7 @@ async function versionWarnings(deps: RunDeps<string>): Promise<string[]> {
   );
   return drift
     ? [
-        `config "${deps.config.name}" ${configVersion} changed without a version bump (hash ${configHash})`,
+        `config "${deps.config.name}" ${configVersion} changed without a version bump (hash ${shortVersion(configHash)})`,
       ]
     : [];
 }

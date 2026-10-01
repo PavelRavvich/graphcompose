@@ -14,9 +14,13 @@ const SnapshotRow = z.object({
 export function configMethods(db: DatabaseSync, now: () => Date): ConfigStore {
   return {
     rememberConfig: (bundle, version, hash, snapshot) => {
+      // Hashes of another length were made by an older hashing scheme: not comparable, not drift.
       const others = db
-        .prepare("SELECT 1 FROM config_versions WHERE bundle = ? AND version = ? AND hash <> ?")
-        .get(bundle, version, hash);
+        .prepare(
+          `SELECT 1 FROM config_versions WHERE bundle = ? AND version = ? AND hash <> ?
+           AND length(hash) = length(?)`,
+        )
+        .get(bundle, version, hash, hash);
       db.prepare("INSERT OR IGNORE INTO config_versions VALUES (?, ?, ?, ?, ?)").run(
         bundle,
         version,

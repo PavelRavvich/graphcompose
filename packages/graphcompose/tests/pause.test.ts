@@ -106,6 +106,18 @@ describe("pause seam", () => {
     expect(alpha.sent[2]?.at(-1)?.text).toContain("rejected by human: not now");
   });
 
+  it("AC6: recognises the decided call when the model repeats it with keys in another order", async () => {
+    const first: Reply = [{ tool: "send_email", args: { to: "boss@example.com", cc: "me" } }];
+    const again: Reply = [{ tool: "send_email", args: { cc: "me", to: "boss@example.com" } }];
+    const { deps, sent } = setup([first, again, "Not sent."]);
+    const paused = await runAgent({ task: "Email the boss" }, deps);
+
+    const done = await resumeAgent(paused, { approve: false }, deps);
+
+    expect(done).toMatchObject({ status: "answered", answer: "Not sent." });
+    expect(sent).toEqual([]);
+  });
+
   it("reports a rejection without a note plainly", async () => {
     const { deps, alpha } = setup([callSend, callSend, "Ok."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);

@@ -6,7 +6,9 @@ import { versionOf } from "../terns/index.js";
 import type { RunDeps } from "./types.js";
 
 /** Everything a run's behaviour depends on in config and prompts — what `configHash` hashes. */
-export const configSnapshot = <TName extends string>(deps: RunDeps<TName>): unknown => ({
+export const configSnapshot = <TName extends string>(
+  deps: Pick<RunDeps<TName>, "config" | "prompts" | "compactionPrompt">,
+): unknown => ({
   config: deps.config,
   prompts: deps.prompts,
   compactionPrompt: deps.compactionPrompt ?? null,
