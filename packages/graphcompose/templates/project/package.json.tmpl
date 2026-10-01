@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
 {{scripts}}
-    "check": "tsc --noEmit && vitest run"
+    "test": "vitest run --project unit --project integration",
+    "test:suites": "vitest run --project suites",
+    "check": "tsc --noEmit && npm test"
   },
   "dependencies": {
 {{dependencies}}
@@ -13,6 +15,6 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "{{typescriptVersion}}",
-    "vitest": "^3.0.0"
+    "vitest": "^3.2.0"
   }
 }

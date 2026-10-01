@@ -2,7 +2,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createAppDeps } from "../src/app.js";
+import { createAppDeps } from "../src/app/app-deps.js";
 import { TestWorkflow } from "./fixtures/test-workflow/test.workflow.js";
 import { workflowOf } from "../src/components/index.js";
 import { runAgent } from "../src/index.js";
@@ -67,14 +67,14 @@ describe("config versions", () => {
       TERN_DB: join(await mkdtemp(join(tmpdir(), "versions-")), "t.sqlite"),
     };
     const base = await workflowOf(TestWorkflow);
-    const first = await createAppDeps(base, env);
+    const first = await createAppDeps(base, { env });
     await first.close();
     const changed = {
       ...base,
       prompts: { ...base.prompts, coder: "A different coder prompt." },
     };
 
-    const second = await createAppDeps(changed, env);
+    const second = await createAppDeps(changed, { env });
     await second.close();
 
     expect(first.warnings).toEqual([]);

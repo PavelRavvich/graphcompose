@@ -139,8 +139,10 @@ chain / node / Self` (Wiki → Workflow); nodes are `@WorkflowStart`, `@Router`,
 ## Tests
 
 - **Coverage ≥ 80%** lines / branches / functions / statements (enforced).
-- Tests never hit a real LLM or network. Use `FakeListChatModel` /
-  `FakeStreamingChatModel` from `@langchain/core/utils/testing`.
+- Tests never hit a real LLM or network. Whole workflows: `testWith(Workflow)` from
+  `graphcompose/testing` (scripted models, stubbed MCP servers, blocked network, matchers by class);
+  units: `FakeListChatModel` / `FakeStreamingChatModel` from `@langchain/core/utils/testing`.
+- Compile-time tests: `// @ts-expect-error — <reason>` lines in a `*.test.ts`, checked by `tsc`.
 - Real-model checks go to `tests/smoke/` and run only via `make smoke`.
 - Each spec test case → one test. Name tests by behaviour:
   `it("returns a fallback answer when the model output is empty")`.

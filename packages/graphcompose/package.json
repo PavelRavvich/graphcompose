@@ -25,6 +25,14 @@
     "./dto": {
       "types": "./dist/dto/index.d.ts",
       "import": "./dist/dto/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    },
+    "./testing/setup": {
+      "types": "./dist/testing/setup.d.ts",
+      "import": "./dist/testing/setup.js"
     }
   },
   "bin": {
@@ -67,6 +75,14 @@
     "typescript": "^5.9.3",
     "yaml": "^2.9.1",
     "zod": "^4.6.5"
+  },
+  "peerDependencies": {
+    "vitest": "^3.2.0"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@modelcontextprotocol/server-filesystem": "^2026.8.31"

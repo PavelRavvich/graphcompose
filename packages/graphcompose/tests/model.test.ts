@@ -5,9 +5,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { describe, expect, it, vi } from "vitest";
-import { createAppDeps } from "../src/app.js";
+import { createAppDeps } from "../src/app/app-deps.js";
+import { createApp } from "../src/app/create-app.js";
 import type { ModelGateway } from "../src/llm/gateway.js";
-import { runWorkflowStart } from "../src/run/run-workflow-start.js";
 import { TestChat } from "./fixtures/test-flow/test.flow.js";
 import { MODEL_MAX, type ResolvedModelSettings } from "../src/config/types.js";
 import {
@@ -82,8 +82,7 @@ describe("createChatModel", () => {
 describe("createAppDeps", () => {
   it("wires every agent of the flow with a prompt, and its Jev router", async () => {
     const deps = await createAppDeps(await workflowOf(TestWorkflow), {
-      OPENROUTER_API_KEY: "k",
-      TERN_DB: ":memory:",
+      env: { OPENROUTER_API_KEY: "k", TERN_DB: ":memory:" },
     });
 
     expect([...deps.registry.agents.keys()].sort()).toEqual(Object.keys(deps.prompts).sort());
@@ -118,13 +117,10 @@ describe("AC12: createAppDeps on an injected model gateway", () => {
     );
     const decide = vi.fn(scriptedDecisions());
     const env = { TERN_DB: ":memory:", SPEND_LEDGER_DIR: mkdtempSync(join(tmpdir(), "gc-135-")) };
-    const deps = await createAppDeps(await workflowOf(TestWorkflow), env, undefined, {
-      chatModel,
-      decide,
-    });
+    const app = await createApp(TestWorkflow, { env, gateway: { chatModel, decide } });
 
-    const result = await runWorkflowStart(deps, TestChat, { text: "What time is it?" });
-    await deps.close();
+    const result = await app.run(TestChat, { text: "What time is it?" });
+    await app.close();
 
     expect(result.status).toBe("answered");
     expect(decide.mock.calls.map(([spec]) => spec.router)).toEqual([

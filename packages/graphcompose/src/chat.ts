@@ -2,16 +2,15 @@ import "dotenv/config";
 import { stdin, stdout } from "node:process";
 import { createInterface } from "node:readline";
 import { parseArgs, styleText } from "node:util";
-import { createAppDeps } from "./app.js";
-import { loadWorkflow } from "./cli/load-workflow.js";
-import { withProfile } from "./profile-workflow.js";
+import { createApp } from "./app/create-app.js";
+import { loadWorkflowClass } from "./cli/load-workflow.js";
 import { attemptsLines, memoryLine, summaryLine, threadLine, untilDone } from "./cli/approve.js";
 import { costSummary, costTotal, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
 import { onInterruptKey } from "./cli/keys.js";
 import { askMessage } from "./cli/multiline.js";
 import { withSpinner } from "./cli/spinner.js";
-import { runAgent } from "./index.js";
+import { textStartOrFail } from "./cli/text-start.js";
 
 // graphcompose chat --workflow <path> [--thread <id>] [--profile <p>]
 const { values } = parseArgs({
@@ -21,11 +20,9 @@ const { values } = parseArgs({
     thread: { type: "string" },
   },
 });
-const deps = await createAppDeps(
-  await withProfile(await loadWorkflow(values.workflow), values.profile),
-  process.env,
-);
-deps.warnings.forEach((warning) => {
+const app = await createApp(await loadWorkflowClass(values.workflow), { profile: values.profile });
+const start = textStartOrFail(app);
+app.warnings.forEach((warning) => {
   stdout.write(`warning: ${warning}\n`);
 });
 const rl = createInterface({ input: stdin, terminal: false });
@@ -52,7 +49,7 @@ const busy = async <T>(work: (signal: AbortSignal | undefined) => Promise<T>): P
 say(
   styleText(
     "dim",
-    `Chat with "${deps.config.name}"${values.profile === undefined ? "" : ` (profile ${values.profile})`} ${deps.config.version}. /new — new conversation, /exit — quit, \\ + Enter — new line, Esc — interrupt.`,
+    `Chat with "${app.name}"${values.profile === undefined ? "" : ` (profile ${values.profile})`} ${app.version}. /new — new conversation, /exit — quit, \\ + Enter — new line, Esc — interrupt.`,
   ),
 );
 try {
@@ -68,11 +65,11 @@ try {
       continue;
     }
     try {
-      const input = { task: line, ...(threadId === undefined ? {} : { threadId }) };
+      const thread = threadId === undefined ? {} : { thread: threadId };
       turn.interrupted = false;
-      const first = await busy((signal) => runAgent(input, deps, { signal }));
-      const result = await untilDone(first, deps, ask, busy);
-      threadId = result.threadId;
+      const first = await busy((signal) => app.run(start, { text: line }, { ...thread, signal }));
+      const result = await untilDone(first, app, ask, busy);
+      threadId = result.thread;
       say(`${styleText("cyan", "agent ›")} ${result.answer}`);
       say(styleText("dim", `  ${threadLine(result)}`));
       say(styleText("dim", `  ${summaryLine(result)}`));
@@ -81,11 +78,11 @@ try {
       });
       const memory = memoryLine(result);
       if (memory !== undefined) say(styleText("dim", `  ${memory}`));
-      say(styleText("dim", `  ${costSummary(result.cost)}`));
-      costTrace(result.cost).forEach((line) => {
+      say(styleText("dim", `  ${costSummary(result.spend)}`));
+      costTrace(result.spend).forEach((line) => {
         say(styleText("dim", `    ${line}`));
       });
-      say(styleText("bold", `  ${costTotal(result.cost)}`));
+      say(styleText("bold", `  ${costTotal(result.spend)}`));
     } catch (error) {
       if (turn.interrupted) say(styleText("yellow", "interrupted"));
       else
@@ -94,5 +91,5 @@ try {
   }
 } finally {
   rl.close();
-  await deps.close();
+  await app.close();
 }

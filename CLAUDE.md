@@ -166,7 +166,8 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 - Every model call records usage; models come only from the registry.
 - Never lower coverage thresholds, disable lint rules, or add `eslint-disable` / `@ts-ignore`
   to get green. Fix the code or stop and report.
-- Tests never call a real LLM. Use fakes from `@langchain/core/utils/testing`.
+- Tests never call a real LLM. A workflow is tested with `graphcompose/testing` (`testWith`: models
+  by script, MCP servers stubbed, network blocked); units use fakes from `@langchain/core/utils/testing`.
 - Read existing code before planning — the spec may be stale, the code is not.
 - **No specs, plans or docs as files.** Specs and implementation plans → GitHub Issues (bodies via
   stdin). Docs → GitHub Wiki via `scripts/wiki.sh`, updated right after the merge; decisions →
@@ -182,11 +183,14 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 ```
 packages/graphcompose/        the framework (npm package `graphcompose`; builds to dist/, bin `graphcompose`)
   src/
-    index.ts        public API (components, runAgent / resumeAgent, createAppDeps, RAG, tools, types)
+    index.ts        public API (components, createApp, runAgent / resumeAgent, createAppDeps, RAG, tools, types)
+    app/            createApp → app.run / resume / close; app-deps.ts — production wiring (model gateway,
+                    MCP, ledger, Terns, tracing), every part replaceable
+    testing/        `graphcompose/testing`: testWith (Vitest fixtures), scripted gateway, matchers, setup.ts
     components/     @Tool @Agent @McpServer @McpTool @Rag @Injectable @Workflow, DI container, workflowOf
     dto/            `graphcompose/dto`: field decorators, DTO schemas and validation, standard/ DTOs
     units/          `graphcompose/units`: usd(), seconds(), minutes()
-    workflow.ts     the assembled workflow type; app.ts — production wiring (OpenRouter, MCP, ledger, Terns, tracing)
+    workflow.ts     the assembled workflow type
     cli/            main.ts (graphcompose <command>), load-workflow.ts, usage, terminal helpers
     config/         typed config schema, profiles (YAML overlays), defaults resolution
     rag/            knowledge-base contract (RagConnector) + reference SQLite FTS5 connector

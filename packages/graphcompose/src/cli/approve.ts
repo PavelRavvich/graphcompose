@@ -1,6 +1,6 @@
 import { userInfo } from "node:os";
 import type { ToolCallApprovalDecision } from "../dto/standard/framework.js";
-import { resumeAgent, type AgentRunResult, type RunDeps } from "../index.js";
+import type { App, RunResult } from "../app/types.js";
 
 /** Asks the human a question; undefined when input ended (Ctrl+D). */
 export type Ask = (question: string) => Promise<string | undefined>;
@@ -18,35 +18,35 @@ export function terminalDecision(approved: boolean): ToolCallApprovalDecision {
 
 /** A paused run asks in the terminal, then continues in the same process. */
 export async function untilDone(
-  first: AgentRunResult,
-  deps: RunDeps<string>,
+  first: RunResult,
+  app: Pick<App, "resume">,
   ask: Ask,
   busy: Busy = idle,
-): Promise<AgentRunResult> {
+): Promise<RunResult> {
   let result = first;
-  while (result.status === "paused" && result.pending !== undefined) {
-    const { agent, tool, args } = result.pending;
+  while (result.pause !== undefined) {
+    const { agent, tool, args } = result.pause;
     const reply = await ask(
       `${agent} wants to call ${tool} ${JSON.stringify(args)} — approve? [y/N] `,
     );
     const approved = /^y(es)?$/i.test((reply ?? "").trim());
-    const paused = result;
+    const { thread } = result;
     const decision = terminalDecision(approved);
-    result = await busy((signal) => resumeAgent(paused, decision, deps, { signal }));
+    result = await busy((signal) => app.resume(thread, decision, { signal }));
   }
   return result;
 }
 
 /** First line under an answer: which conversation, and its trace when tracing is on. */
-export function threadLine(result: AgentRunResult): string {
+export function threadLine(result: Pick<RunResult, "thread" | "traceUrl">): string {
   return result.traceUrl === undefined
-    ? `thread ${result.threadId}`
-    : `thread ${result.threadId} · ${result.traceUrl}`;
+    ? `thread ${result.thread}`
+    : `thread ${result.thread} · ${result.traceUrl}`;
 }
 
 /** Per agent with more than one attempt: `coder attempts: 0.62 → 0.74 → 0.79 · returned #3 (best)`. */
-export function attemptsLines(result: AgentRunResult): string[] {
-  const byAgent = new Map<string, NonNullable<AgentRunResult["attempts"]>[number][]>();
+export function attemptsLines(result: Pick<RunResult, "attempts">): string[] {
+  const byAgent = new Map<string, NonNullable<RunResult["attempts"]>[number][]>();
   for (const attempt of result.attempts ?? []) {
     byAgent.set(attempt.agent, [...(byAgent.get(attempt.agent) ?? []), attempt]);
   }
@@ -64,14 +64,14 @@ export function attemptsLines(result: AgentRunResult): string[] {
 }
 
 /** `memory: turns 1–5 → summary 1/10` when this turn compacted the conversation. */
-export function memoryLine(result: AgentRunResult): string | undefined {
+export function memoryLine(result: Pick<RunResult, "compacted">): string | undefined {
   const c = result.compacted;
   if (c === undefined) return undefined;
   return `memory: turns ${String(c.fromTurn)}–${String(c.toTurn)} → summary ${String(c.summaries)}/${String(c.keep)}`;
 }
 
 /** One line under an answer: route and why the run stopped. */
-export function summaryLine(result: AgentRunResult): string {
+export function summaryLine(result: Pick<RunResult, "route" | "stopReason">): string {
   const route = result.route.length > 0 ? result.route.join(" → ") : "(none)";
   return `${route} · stop: ${result.stopReason}`;
 }

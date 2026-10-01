@@ -7,15 +7,18 @@ import { memoryMethods } from "./summaries.js";
 import type { Tern, TernStore } from "./types.js";
 
 type Clock = () => Date;
+/** A new thread id; random by default, deterministic in tests. */
+export type NewThreadId = () => string;
 type Rows = (sql: string, ...params: SQLInputValue[]) => Tern[];
 
 function threadMethods(
   db: DatabaseSync,
   now: Clock,
+  newThreadId: NewThreadId,
 ): Pick<TernStore, "createThread" | "hasThread"> {
   return {
     createThread: (bundle) => {
-      const id = randomUUID();
+      const id = newThreadId();
       db.prepare("INSERT INTO threads VALUES (?, ?, ?)").run(id, bundle, now().toISOString());
       return Promise.resolve(id);
     },
@@ -147,7 +150,11 @@ function scoreMethods(
 }
 
 /** Terns in SQLite (built-in `node:sqlite`). `:memory:` for tests. */
-export function createSqliteTernStore(path: string, now: Clock = () => new Date()): TernStore {
+export function createSqliteTernStore(
+  path: string,
+  now: Clock = () => new Date(),
+  newThreadId: NewThreadId = randomUUID,
+): TernStore {
   const db = openTernDatabase(path);
   const rows: Rows = (sql, ...params) =>
     db
@@ -155,7 +162,7 @@ export function createSqliteTernStore(path: string, now: Clock = () => new Date(
       .all(...params)
       .map(toTern);
   return {
-    ...threadMethods(db, now),
+    ...threadMethods(db, now, newThreadId),
     ...ternWrites(db, now),
     ...ternReads(rows),
     ...scoreMethods(db, now),

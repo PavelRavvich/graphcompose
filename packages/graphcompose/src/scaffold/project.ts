@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
+import { ScaffoldError } from "./errors.js";
 import { namesOf, type Names } from "./names.js";
-import { planWorkflow, render, workflowDir, type WorkflowSpec } from "./plan.js";
+import { planWorkflow, render, vars, workflowDir, type WorkflowSpec } from "./plan.js";
 import type { FileToWrite } from "./write.js";
 
 interface PackageJson {
@@ -29,7 +30,23 @@ export function workflowScripts(workflow: Names, suffix = ""): Record<string, st
   );
 }
 
-/** `gc create`: a standalone project with its first workflow. */
+/** The first workflow's test on `graphcompose/testing`: its first agent, by script. */
+function workflowTest(spec: WorkflowSpec): FileToWrite {
+  const workflow = namesOf(spec.name);
+  const [first] = spec.agents;
+  if (first === undefined) throw new ScaffoldError("A workflow needs at least one agent");
+  const agent = namesOf(first.name);
+  return {
+    path: `${workflowDir(workflow)}/${workflow.kebab}.workflow.test.ts`,
+    content: render("project/workflow.test.ts.tmpl", {
+      ...vars(workflow),
+      agent: agent.pascal,
+      agentKebab: agent.kebab,
+    }),
+  };
+}
+
+/** `gc create`: a standalone project with its first workflow and its test. */
 export function planProject(spec: WorkflowSpec): FileToWrite[] {
   const project = namesOf(spec.name);
   const scripts = Object.entries(workflowScripts(project))
@@ -59,5 +76,6 @@ export function planProject(spec: WorkflowSpec): FileToWrite[] {
     { path: ".gitignore", content: render("project/gitignore.tmpl", {}) },
     { path: "README.md", content: render("project/README.md.tmpl", variables) },
     ...planWorkflow(spec),
+    workflowTest(spec),
   ];
 }

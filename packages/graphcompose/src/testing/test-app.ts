@@ -1,0 +1,66 @@
+import type { BuiltApp } from "../app/create-app.js";
+import type { App, RunResult } from "../app/types.js";
+import type { FlowNode } from "../graph/flow.js";
+import type { TestClock } from "./clock.js";
+import type { TestEnvironment } from "./environment.js";
+import {
+  agentSlice,
+  routerSlice,
+  toolSlice,
+  type AgentSlice,
+  type RouterSlice,
+  type ToolClassOf,
+  type ToolSlice,
+} from "./slices.js";
+
+/**
+ * The app of a test: the same `run` / `resume` as in production, built on first use (so `mockOf`
+ * in the test body still takes effect), plus the test's clock and slices of single components.
+ * A blocked live call or a script problem fails the call, even when the run swallowed it.
+ */
+export interface TestApp extends Pick<App, "run" | "resume" | "close"> {
+  readonly clock: TestClock;
+  agent(agent: FlowNode): AgentSlice;
+  router(router: FlowNode): RouterSlice;
+  tool<TInput, TOutput>(tool: ToolClassOf<TInput, TOutput>): ToolSlice<TInput, TOutput>;
+}
+
+/** Rethrows what the test must see: a reported failure wins over the run's own error. */
+async function checked<T>(environment: TestEnvironment, work: () => Promise<T>): Promise<T> {
+  let value: T;
+  try {
+    value = await work();
+  } catch (error) {
+    throw environment.book.takeFailure() ?? error;
+  }
+  const failure = environment.book.takeFailure();
+  if (failure !== undefined) throw failure;
+  return value;
+}
+
+export function createTestApp(environment: TestEnvironment): TestApp {
+  let building: Promise<BuiltApp> | undefined;
+  const built = (): Promise<BuiltApp> => (building ??= environment.openApp());
+  return {
+    clock: environment.clock,
+    run: (start, input, options) =>
+      checked(environment, async () => (await built()).app.run(start, input, options)),
+    resume: (thread, decision, options): Promise<RunResult> =>
+      checked(environment, async () => (await built()).app.resume(thread, decision, options)),
+    close: async () => {
+      if (building !== undefined) await (await building).app.close();
+    },
+    agent: (agent) => ({
+      answer: (task) =>
+        checked(environment, async () => agentSlice(await built(), agent).answer(task)),
+    }),
+    router: (router) => ({
+      decide: (input) =>
+        checked(environment, async () => routerSlice(await built(), router).decide(input)),
+    }),
+    tool: (tool) => ({
+      invoke: (input) =>
+        checked(environment, async () => toolSlice(await built(), tool).invoke(input)),
+    }),
+  };
+}

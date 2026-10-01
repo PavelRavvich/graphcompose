@@ -4,6 +4,8 @@ export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     exclude: ["tests/smoke/**", "node_modules/**"],
+    // the workflow matchers (graphcompose/testing/setup in a project)
+    setupFiles: ["./src/testing/setup.ts"],
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
@@ -33,6 +35,9 @@ export default defineConfig({
         "src/dto/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
         // the model-call seam (#135): every model call goes through it
         "src/llm/gateway.ts": { lines: 90, branches: 90, functions: 90, statements: 90 },
+        // the app and the testing toolkit (#135)
+        "src/app/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
+        "src/testing/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
       },
     },
   },

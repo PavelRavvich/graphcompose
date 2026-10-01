@@ -6,4 +6,11 @@ export { createRouter, withTrivialOptions } from "./create-router.js";
 export { createJevRouter, type JevRouterDeps } from "./jev-router.js";
 export { createLlmRouter, type LlmRouterDeps } from "./llm-router.js";
 export { routerPromptTexts } from "./prompts.js";
-export type { RouteOption, RouteOutcome, RouteRequest, Router, RouterDecision } from "./types.js";
+export {
+  routerCaller,
+  type RouteOption,
+  type RouteOutcome,
+  type RouteRequest,
+  type Router,
+  type RouterDecision,
+} from "./types.js";

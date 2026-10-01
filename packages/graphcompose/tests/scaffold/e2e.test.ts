@@ -111,6 +111,14 @@ describe("gc create / gc generate end to end", () => {
       "prompt:",
     );
     expect(scripts().chat).toBe("graphcompose chat --workflow src/desk/desk.workflow.ts");
+    // #135 AC12: the workflow test on testWith runs offline in the unit project; empty projects pass
+    const vitest = bin("vitest/vitest.mjs");
+    const unit = run(vitest, ["run", "--root", project, "--project", "unit"]);
+    expect(unit.ok, unit.out).toBe(true);
+    expect(unit.out).toContain("desk.workflow.test.ts");
+    expect(run(vitest, ["run", "--root", project, "--project", "integration"]).ok).toBe(true);
+    expect(run(vitest, ["run", "--root", project, "--project", "suites"]).ok).toBe(true);
+    expect(scripts().test).toBe("vitest run --project unit --project integration");
   }, 240_000);
 
   it("AC2: generate agent, router, tool, mcp, rag and workflow — each wired, the project still compiles and passes", async () => {

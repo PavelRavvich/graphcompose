@@ -65,9 +65,9 @@ describe("CLI cost output", () => {
     ]);
   });
   it("AC2 (#77): says when a turn compacted the conversation", () => {
-    expect(
-      memoryLine({ compacted: { fromTurn: 1, toTurn: 5, summaries: 1, keep: 10 } } as never),
-    ).toBe("memory: turns 1–5 → summary 1/10");
-    expect(memoryLine({} as never)).toBeUndefined();
+    expect(memoryLine({ compacted: { fromTurn: 1, toTurn: 5, summaries: 1, keep: 10 } })).toBe(
+      "memory: turns 1–5 → summary 1/10",
+    );
+    expect(memoryLine({})).toBeUndefined();
   });
 });

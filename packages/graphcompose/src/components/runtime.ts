@@ -72,7 +72,7 @@ const containerFor = (bundle: WorkflowMeta, services: WorkflowServices): Contain
     [ENV, services.env ?? process.env],
   ]);
   for (const [token, instance] of serverInstances.get(bundle) ?? []) core.set(token, instance);
-  const container = createContainer(bundle.providers ?? [], core);
+  const container = createContainer(bundle.providers ?? [], core, services.container);
   perBundle.set(services, container);
   return container;
 };
