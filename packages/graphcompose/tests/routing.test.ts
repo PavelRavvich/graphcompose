@@ -15,7 +15,7 @@ describe("afterAgent (the agent loop)", () => {
   });
 });
 
-describe("lastAnswer (a conclusion's answer)", () => {
+describe("lastAnswer (a workflow finish's answer)", () => {
   it("answers with the latest contribution", () => {
     const state = baseState({
       contributions: [

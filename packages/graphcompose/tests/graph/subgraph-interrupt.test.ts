@@ -52,7 +52,7 @@ describe("AC1: a compiled subgraph as a flow node", () => {
     expect(paused.next).toEqual(["agent.a"]);
     expect(paused.tasks[0]?.interrupts[0]?.value).toBe('approve "deploy"?');
     expect(resumed.answer).toBe("yes");
-    expect(resumed.path).toEqual(["start", "a", "done"]);
+    expect(resumed.path).toEqual(["workflow-start.start", "a", "done"]);
     expect(resumed.steps).toBe(1);
   });
 });

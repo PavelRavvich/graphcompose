@@ -74,9 +74,9 @@ describe("gc create / gc generate end to end", () => {
     const out = check("src/desk/desk.workflow.ts");
 
     expect(out).toContain("desk 0.1.0");
-    // #116: the generated workflow is a flow — entry → main router ⇄ agents → answer
-    expect(out).toContain("chat-message → main");
-    expect(out).toContain("main → triage | answerer | answer");
+    // #116 / #141 AC6: the generated workflow is a flow — workflow start → main router ⇄ agents → finish
+    expect(out).toContain("text (workflow start) → main");
+    expect(out).toContain("main → triage | answerer | text (workflow finish)");
     expect(out).toContain("triage, answerer → main");
     expect(out).toContain("limits    run 9 steps (default) · $0.1 · day $2");
     // create wires the MCP server and the knowledge base into the first agent
@@ -92,9 +92,19 @@ describe("gc create / gc generate end to end", () => {
       "mcp/desk-files.server.ts",
       "mcp/read-desk-files.mcp.ts",
       "rag/desk-notes.rag.ts",
+      "workflow-starts/text.workflow-start.ts",
+      "workflow-finishes/text.workflow-finish.ts",
     ]) {
       expect(existsSync(join(project, "src/desk", file)), file).toBe(true);
     }
+    // #141 AC6: the start and the finish of a new workflow are TextWorkflowStart / TextWorkflowFinish
+    const desk = (file: string): string => readFileSync(join(project, "src/desk", file), "utf8");
+    expect(desk("workflow-starts/text.workflow-start.ts")).toContain(
+      "export class TextWorkflowStart {}",
+    );
+    expect(desk("workflow-finishes/text.workflow-finish.ts")).toContain(
+      "export class TextWorkflowFinish {}",
+    );
     expect(readFileSync(join(project, "src/desk/agents/answerer.agent.ts"), "utf8")).not.toContain(
       "prompt:",
     );
@@ -133,7 +143,7 @@ describe("gc create / gc generate end to end", () => {
 
     expect(out).toMatch(/billing .*\n\s+Handles invoices/);
     // #116: a new agent joins the star — a route in the main router and both transitions
-    expect(out).toContain("main → triage | answerer | billing | answer");
+    expect(out).toContain("main → triage | answerer | billing | text (workflow finish)");
     expect(out).toContain("triage, answerer, billing → main");
     expect(readFileSync(join(project, "src/desk/routers/main.router.ts"), "utf8")).toContain(
       'route(BillingAgent, "Handles invoices")',
@@ -142,6 +152,10 @@ describe("gc create / gc generate end to end", () => {
     expect(out).toContain("rag: policies (tool, k 3)");
     expect(out).toContain("· refund (read, local)");
     expect(out).toContain("· tickets_search (read, MCP tickets)");
+    // #141 AC3: a text-only MCP server tool replies with PlainText
+    expect(readFileSync(join(project, "src/desk/mcp/tickets.server.ts"), "utf8")).toContain(
+      "output: PlainText",
+    );
     expect(check("src/onboarding/onboarding.workflow.ts")).toContain("onboarding 0.1.0");
     expect(scripts()["chat:onboarding"]).toBeDefined();
   }, 240_000);

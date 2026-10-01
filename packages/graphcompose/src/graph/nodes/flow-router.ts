@@ -17,11 +17,11 @@ export interface FlowRouterNodeDeps {
   readonly router: Router;
   readonly loaded: LoadedRouter;
   readonly memory: MemoryLimits;
-  /** The router's route to a conclusion, if it has one: taken without a call after a human decision. */
-  readonly conclusion?: string;
+  /** The router's route to a workflow finish, if it has one: taken without a call after a human decision. */
+  readonly finish?: string;
 }
 
-/** Why a router sent the turn to its conclusion without asking its model (#100). */
+/** Why a router sent the turn to its workflow finish without asking its model (#100). */
 export const AFTER_HUMAN_DECISION = "the agent answered after the human decision";
 
 /** Why a router could not decide: its model call failed, or it chose something that is not a route. */
@@ -80,8 +80,8 @@ export function makeFlowRouterNode(
 ): AsyncNode<FlowStateType, FlowStateUpdate> {
   return async (state) => {
     // a human decided in this turn and the agent has answered since — the turn ends (#100)
-    if (state.approvals.length > 0 && deps.conclusion !== undefined) {
-      return { next: deps.conclusion, routeReason: AFTER_HUMAN_DECISION };
+    if (state.approvals.length > 0 && deps.finish !== undefined) {
+      return { next: deps.finish, routeReason: AFTER_HUMAN_DECISION };
     }
     const outcome = await deps.router.route(routeRequestOf(state, deps));
     const usage = outcome.usage === undefined ? [] : [outcome.usage];

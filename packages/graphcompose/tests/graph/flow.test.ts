@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { chain, from, isNamedNode, labelOf, node, Self } from "../../src/graph/flow.js";
 import { collectFlow } from "../../src/graph/flow-nodes.js";
 import { testNode } from "./fixtures/nodes.js";
-import { AnswerConclusion, codeReviewFlow, CoderAgent } from "./fixtures/code-review.js";
+import { AnswerWorkflowFinish, codeReviewFlow, CoderAgent } from "./fixtures/code-review.js";
 
 @testNode("agent", "a")
 class A {}
@@ -24,14 +24,14 @@ describe("AC1: flow DSL builds the expected transitions", () => {
   });
 
   it("from(A, B).to(C) fans in: one step from each source", () => {
-    expect(transitionsOf([from(A, B).to(AnswerConclusion)])).toEqual([
+    expect(transitionsOf([from(A, B).to(AnswerWorkflowFinish)])).toEqual([
       { from: "a", next: { kind: "to", target: "answer" } },
       { from: "b", next: { kind: "to", target: "answer" } },
     ]);
   });
 
   it("chain(A, B, C) is from(A).to(B) + from(B).to(C)", () => {
-    expect(transitionsOf([chain(A, B, AnswerConclusion)])).toEqual([
+    expect(transitionsOf([chain(A, B, AnswerWorkflowFinish)])).toEqual([
       { from: "a", next: { kind: "to", target: "b" } },
       { from: "b", next: { kind: "to", target: "answer" } },
     ]);
@@ -50,23 +50,23 @@ describe("AC1: flow DSL builds the expected transitions", () => {
 
     expect([...collected.nodes.keys()]).toEqual(["a", "a-again"]);
     expect(collected.nodes.get("a-again")).toMatchObject({ kind: "agent", use: A });
-    expect(collected.nameOf(SecondA)).toBe("a-again");
+    expect(collected.keyOf(SecondA)).toBe("a-again");
   });
 
   it("the code-review flow has every node once, with its kind", () => {
     const { nodes } = collectFlow(codeReviewFlow);
 
     expect([...nodes.values()].map((ref) => `${ref.kind}:${ref.name}`)).toEqual([
-      "entry:chat",
+      "workflow-start:chat",
       "router:main",
       "agent:explainer",
       "agent:coder",
-      "conclusion:answer",
+      "workflow-finish:answer",
       "agent:reviewer",
       "router:review-gate",
-      "conclusion:pull-request",
+      "workflow-finish:pull-request",
     ]);
-    expect(collectFlow(codeReviewFlow).nameOf(CoderAgent)).toBe("coder");
+    expect(collectFlow(codeReviewFlow).keyOf(CoderAgent)).toBe("coder");
   });
 
   it("labels say what a person wrote", () => {

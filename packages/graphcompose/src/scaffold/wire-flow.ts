@@ -41,7 +41,7 @@ interface Insert {
   readonly text: string;
 }
 
-/** Before the last element (`choose(A, Answer)` → `choose(A, B, Answer)`) or after the last one. */
+/** Before the last element (`choose(A, Finish)` → `choose(A, B, Finish)`) or after the last one. */
 function insertion(
   list: ts.NodeArray<ts.Expression>,
   element: string,
@@ -65,7 +65,7 @@ const applyInserts = (text: string, inserts: readonly Insert[]): string =>
     );
 
 /**
- * Puts a new agent into a star flow: `from(Router).choose(…, Agent, Answer)` and
+ * Puts a new agent into a star flow: `from(Router).choose(…, Agent, Finish)` and
  * `from(…, Agent).to(Router)`; an unexpected shape → an error naming the file — never a guess.
  */
 export function addAgentToFlow(file: FileToWrite, agent: string, router: string): FileToWrite {
@@ -78,7 +78,7 @@ export function addAgentToFlow(file: FileToWrite, agent: string, router: string)
     (c) =>
       c.method === "to" &&
       names(c.args, source).join() === router &&
-      !names(c.sources, source).includes("ChatEntry"),
+      !names(c.sources, source).includes("TextWorkflowStart"),
   );
   const intoChoice = choose === undefined ? undefined : insertion(choose.args, agent, true);
   const intoReturn = back === undefined ? undefined : insertion(back.sources, agent, false);

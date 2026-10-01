@@ -1,4 +1,4 @@
-import { agentRoute, ANSWER_ROUTE, routeLine, routerFile } from "./flow-files.js";
+import { agentRoute, FINISH_ROUTE, routeLine, routerFile } from "./flow-files.js";
 import type { GenerateOptions } from "./generate.js";
 import { namesOf } from "./names.js";
 import { agentFiles } from "./plan.js";
@@ -36,16 +36,16 @@ export function planAgent(root: string, name: string, o: GenerateOptions): Chang
 }
 
 /**
- * `gc g router <name> --workflow …`: a router with the answer route, ready for routes of its own. It is
+ * `gc g router <name> --workflow …`: a router with the finish route, ready for routes of its own. It is
  * not put into the flow — where it sits (`from(…).to(Router)`, `from(Router).choose(…)`) is a choice.
  */
 export function planRouter(root: string, name: string, o: GenerateOptions): Changes {
   const { dir } = targetWorkflow(root, o.workflow ?? "", "router");
-  read(root, `${dir}/conclusions/answer.conclusion.ts`);
+  read(root, `${dir}/workflow-finishes/text.workflow-finish.ts`);
   const n = namesOf(name);
   const text = {
     description: o.description ?? `${n.title} (TODO: say what it decides)`,
     prompt: "TODO: say how to choose between the routes.",
   };
-  return { create: [routerFile(dir, n, text, [ANSWER_ROUTE])], modify: [] };
+  return { create: [routerFile(dir, n, text, [FINISH_ROUTE])], modify: [] };
 }

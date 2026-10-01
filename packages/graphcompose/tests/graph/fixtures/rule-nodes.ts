@@ -3,7 +3,7 @@ import { Router } from "../../../src/graph/router.decorator.js";
 import { Self } from "../../../src/graph/flow.js";
 import { testNode } from "./nodes.js";
 
-@testNode("entry", "start")
+@testNode("workflow-start", "start")
 export class Start {}
 
 @testNode("agent", "a")
@@ -19,10 +19,10 @@ export class OtherA {}
 @testNode("agent", "a")
 export class AlsoNamedA {}
 
-@testNode("conclusion", "done")
+@testNode("workflow-finish", "done")
 export class Done {}
 
-@testNode("conclusion", "other-done")
+@testNode("workflow-finish", "other-done")
 export class OtherDone {}
 
 /** Not a flow node (e.g. a tool or a channel). */

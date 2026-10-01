@@ -6,7 +6,7 @@ import { WorkflowSettings, type WorkflowDefinition } from "../../../src/graph/se
 import { TestAnswer, TestChat } from "./test.flow.js";
 
 /**
- * A star flow over the given agents (test workflows): chat entry → a Jev router "main" → an agent →
+ * A star flow over the given agents (test workflows): chat workflow start → a Jev router "main" → an agent →
  * back to the router → … → answer.
  */
 export function starOf(...agents: readonly [Class, ...Class[]]): Flow {

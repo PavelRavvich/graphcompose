@@ -1,5 +1,4 @@
 import type { BaseCheckpointSaver } from "@langchain/langgraph";
-import { z } from "zod";
 import type { AnyTool } from "../tools/index.js";
 
 /**
@@ -22,14 +21,7 @@ export interface PendingApproval {
   readonly args: unknown;
 }
 
-export const ApprovalDecisionSchema = z.object({
-  approve: z.boolean(),
-  note: z.string().optional(),
-});
-
-export type ApprovalDecision = z.infer<typeof ApprovalDecisionSchema>;
-
-/** A decided call: approved (with the tool's result) or rejected (with the human's note). */
+/** A decided call: approved (with the tool's result) or rejected (with the decision's reason). */
 export interface ApprovalRecord extends PendingApproval {
   readonly approved: boolean;
   readonly result: string;

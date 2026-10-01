@@ -54,7 +54,7 @@ describe("after a human decision the turn ends (#100)", () => {
       router: { name: "main", route },
       loaded,
       memory: { summaries: 0, turns: 0 },
-      conclusion: "answer",
+      finish: "answer",
     });
     return { node, route };
   };

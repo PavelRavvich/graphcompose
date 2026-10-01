@@ -7,14 +7,14 @@ import type { RunContext } from "./execute.js";
 import { isWaiting, pausedLoopState } from "./paused.js";
 import type { AgentRunResult, RunDeps, RunStatus } from "./types.js";
 
-/** Where the run ended: the conclusion it reached, if it reached one (not when guarded or paused). */
-function conclusionOf<TName extends string>(
+/** Where the run ended: the workflow finish it reached, if it reached one (not when guarded or paused). */
+function finishOf<TName extends string>(
   ctx: RunContext<TName>,
   state: FlowStateType,
-): { conclusion?: string } {
+): { finish?: string } {
   const last = state.path.at(-1);
-  if (last === undefined) return {};
-  return ctx.flow.model.nodes.get(last)?.kind === "conclusion" ? { conclusion: last } : {};
+  const ref = last === undefined ? undefined : ctx.flow.model.nodes.get(last);
+  return ref?.kind === "workflow-finish" ? { finish: ref.name } : {};
 }
 
 function outcomeOf(state: AgentStateType, paused: boolean): TernOutcome & { status: RunStatus } {
@@ -92,7 +92,7 @@ export async function finishRun<TName extends string>(
     threadId: ctx.base.threadId,
     ternId,
     runId: ctx.runId,
-    ...(paused ? {} : conclusionOf(ctx, state)),
+    ...(paused ? {} : finishOf(ctx, state)),
     ...(paused && current.pending !== null ? { pending: current.pending } : {}),
     ...traceUrlOf(ctx.deps, ctx.base.threadId),
     ...(current.attempts.length === 0 ? {} : { attempts: current.attempts }),

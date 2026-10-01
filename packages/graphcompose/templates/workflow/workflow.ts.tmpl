@@ -1,8 +1,8 @@
 import { Workflow } from "graphcompose";
 import { from, WorkflowSettings, type WorkflowDefinition } from "graphcompose/graph";
 import { usd } from "graphcompose/units";
-import { ChatEntry } from "./entries/chat.entry.js";
-import { AnswerConclusion } from "./conclusions/answer.conclusion.js";
+import { TextWorkflowStart } from "./workflow-starts/text.workflow-start.js";
+import { TextWorkflowFinish } from "./workflow-finishes/text.workflow-finish.js";
 import { MainRouter } from "./routers/main.router.js";
 {{imports}}
 
@@ -10,10 +10,10 @@ import { MainRouter } from "./routers/main.router.js";
 @Workflow({
   name: "{{kebab}}",
   version: "0.1.0",
-  // the graph: the message goes to the main router, which picks an agent or sends the answer
+  // the graph: the text goes to the main router, which picks an agent or finishes the run
   flow: [
-    from(ChatEntry).to(MainRouter),
-    from(MainRouter).choose({{agents}}, AnswerConclusion),
+    from(TextWorkflowStart).to(MainRouter),
+    from(MainRouter).choose({{agents}}, TextWorkflowFinish),
     from({{agents}}).to(MainRouter),
   ],
   defaults: {

@@ -26,10 +26,10 @@ function textRules(router: FlowNodeRef, meta: RouterMeta): RuleViolation[] {
   return found;
 }
 
-/** A route's key: the target node's name, `Self`, or the class label when it is not in the flow. */
+/** A route's key: the target node's key, `Self`, or the class label when it is not in the flow. */
 function routeKey(flow: CollectedFlow, declaration: RouteDeclaration): string {
   if (isSelf(declaration.target)) return SELF_LABEL;
-  return flow.nameOf(declaration.target) ?? labelOf(declaration.target);
+  return flow.keyOf(declaration.target) ?? labelOf(declaration.target);
 }
 
 function chooseKeys(next: NextDeclaration | undefined): string[] {
@@ -37,8 +37,8 @@ function chooseKeys(next: NextDeclaration | undefined): string[] {
   return [...next.targets, ...(next.self ? [SELF_LABEL] : [])];
 }
 
-const chooseOf = (flow: CollectedFlow, router: string): NextDeclaration | undefined =>
-  flow.transitions.find((transition) => transition.from === router)?.next;
+const chooseOf = (flow: CollectedFlow, routerKey: string): NextDeclaration | undefined =>
+  flow.transitions.find((transition) => transition.from === routerKey)?.next;
 
 function routesMismatch(
   flow: CollectedFlow,
@@ -46,7 +46,7 @@ function routesMismatch(
   meta: RouterMeta,
 ): RuleViolation[] {
   const routes = new Set(meta.routes.map((declaration) => routeKey(flow, declaration)));
-  const chosen = new Set(chooseKeys(chooseOf(flow, router.name)));
+  const chosen = new Set(chooseKeys(chooseOf(flow, router.key)));
   const missingRoutes = [...chosen].filter((key) => !routes.has(key));
   const extraRoutes = [...routes].filter((key) => !chosen.has(key));
   if (missingRoutes.length === 0 && extraRoutes.length === 0) return [];
@@ -67,10 +67,10 @@ function routesMismatch(
   ];
 }
 
-/** Nodes with a transition into `name`. */
-export const predecessorsOf = (flow: CollectedFlow, name: string): FlowNodeRef[] =>
+/** Nodes with a transition into the node `key`. */
+export const predecessorsOf = (flow: CollectedFlow, key: string): FlowNodeRef[] =>
   flow.transitions
-    .filter((transition) => targetsOf(transition).includes(name))
+    .filter((transition) => targetsOf(transition).includes(key))
     .flatMap((transition) => flow.nodes.get(transition.from) ?? []);
 
 function selfWithoutAgent(
@@ -80,9 +80,9 @@ function selfWithoutAgent(
 ): RuleViolation[] {
   const usesSelf =
     meta.routes.some((declaration) => isSelf(declaration.target)) ||
-    chooseKeys(chooseOf(flow, router.name)).includes(SELF_LABEL);
+    chooseKeys(chooseOf(flow, router.key)).includes(SELF_LABEL);
   if (!usesSelf) return [];
-  const before = predecessorsOf(flow, router.name);
+  const before = predecessorsOf(flow, router.key);
   const notAgents = before.filter((ref) => ref.kind !== "agent").map((ref) => ref.label);
   if (before.length > 0 && notAgents.length === 0) return [];
   const why =

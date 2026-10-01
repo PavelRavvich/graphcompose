@@ -11,8 +11,17 @@ import {
 import { nodeInfoOf, type NodeKind } from "./node-kind.js";
 import { violation, type RuleViolation } from "./rule-error.js";
 
-/** One node of the assembled flow; `name` is the graph node's name. */
+/**
+ * A node's key in the flow — unique among its nodes. It is the node's name, except for a workflow
+ * start: starts are never a step's target, so they have names of their own (`workflow-start.<name>`)
+ * and a start and a finish may share a name (`chat` / `chat`).
+ */
+export const flowKeyOf = (kind: NodeKind, name: string): string =>
+  kind === "workflow-start" ? `${kind}.${name}` : name;
+
+/** One node of the assembled flow: its key in the flow and its name (the declared one). */
 export interface FlowNodeRef {
+  readonly key: string;
   readonly name: string;
   readonly kind: NodeKind;
   readonly use: Class;
@@ -24,19 +33,19 @@ export type NextDeclaration =
   | { readonly kind: "to"; readonly target: string }
   | { readonly kind: "choose"; readonly targets: readonly string[]; readonly self: boolean };
 
-/** A declared next step of one node. */
+/** A declared next step of one node (both ends are node keys). */
 export interface Transition {
   readonly from: string;
   readonly next: NextDeclaration;
 }
 
-/** Nodes, transitions and node-level violations of a flow. */
+/** Nodes (by key), transitions and node-level violations of a flow. */
 export interface CollectedFlow {
   readonly nodes: ReadonlyMap<string, FlowNodeRef>;
   readonly transitions: readonly Transition[];
   readonly violations: readonly RuleViolation[];
-  /** The node name of a class or named node, if it is a node of this flow. */
-  readonly nameOf: (target: FlowNode) => string | undefined;
+  /** The node key of a class or named node, if it is a node of this flow. */
+  readonly keyOf: (target: FlowNode) => string | undefined;
 }
 
 type Identity = Class | FlowNode;
@@ -59,20 +68,21 @@ function createResolver() {
     const use = isNamedNode(target) ? target.use : target;
     const info = nodeInfoOf(use);
     if (info === undefined) {
-      const message = `${labelOf(target)} is not a flow node (@Entry, @Router, @Agent or @Conclusion)`;
+      const message = `${labelOf(target)} is not a flow node (@WorkflowStart, @Router, @Agent or @WorkflowFinish)`;
       violations.push(violation("graph.not-a-node", message, [labelOf(target)]));
       return undefined;
     }
     const name = isNamedNode(target) ? target.name : info.name;
-    const taken = owners.get(name);
+    const key = flowKeyOf(info.kind, name);
+    const taken = owners.get(key);
     if (taken !== undefined) {
       // reported once; the duplicate stands for the same node, so no follow-up violations
       violations.push(duplicateViolation(taken, target, name));
-      return name;
+      return key;
     }
-    owners.set(name, target);
-    nodes.set(name, { name, kind: info.kind, use, label: labelOf(target) });
-    return name;
+    owners.set(key, target);
+    nodes.set(key, { key, name, kind: info.kind, use, label: labelOf(target) });
+    return key;
   };
 
   const resolve = (target: FlowNode): string | undefined => {
@@ -131,6 +141,6 @@ export function collectFlow(flow: Flow): CollectedFlow {
     nodes: resolver.nodes,
     transitions,
     violations: resolver.violations,
-    nameOf: resolver.lookup,
+    keyOf: resolver.lookup,
   };
 }

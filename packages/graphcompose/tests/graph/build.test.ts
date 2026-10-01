@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { assembleFlowGraph, graphNodeId, UnknownEntryError } from "../../src/graph/build.js";
+import {
+  assembleFlowGraph,
+  graphNodeId,
+  UnknownWorkflowStartError,
+} from "../../src/graph/build.js";
 import { from, Self, type Flow } from "../../src/graph/flow.js";
 import { route } from "../../src/graph/route.js";
 import { Router } from "../../src/graph/router.decorator.js";
@@ -7,8 +11,8 @@ import { codeReviewFlow } from "./fixtures/code-review.js";
 import { scriptedRouter, testNode, testRuntime } from "./fixtures/nodes.js";
 import { A, B, Done, Start } from "./fixtures/rule-nodes.js";
 
-@testNode("entry", "webhook")
-class WebhookEntry {}
+@testNode("workflow-start", "webhook")
+class WebhookWorkflowStart {}
 
 @Router({
   name: "spin",
@@ -29,13 +33,13 @@ class Spin {}
 })
 class Star {}
 
-/** The job-scout shape: entry → router star → agent → router again → … → conclusion. */
+/** The job-scout shape: workflow start → router star → agent → router again → … → workflow finish. */
 const starFlow: Flow = [from(Start).to(Star), from(Star).choose(A, B, Done), from(A, B).to(Star)];
 
-const twoEntries: Flow = [from(Start, WebhookEntry).to(A), from(A).to(Done)];
+const twoStarts: Flow = [from(Start, WebhookWorkflowStart).to(A), from(A).to(Done)];
 
 describe("AC1: the flow runs as a LangGraph graph", () => {
-  it("runs the code-review shape from entry to conclusion, through the gate-router cycle", async () => {
+  it("runs the code-review shape from workflow start to workflow finish, through the gate-router cycle", async () => {
     const routers = {
       main: scriptedRouter("main", ["coder"]),
       "review-gate": scriptedRouter("review-gate", ["coder", "pull-request"]),
@@ -45,7 +49,7 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
     const state = await graph.invoke({ task: "add a feature" });
 
     expect(state.path).toEqual([
-      "chat",
+      "workflow-start.chat",
       "main",
       "coder",
       "reviewer",
@@ -57,7 +61,12 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
     ]);
     expect(state.answer).toBe("reviewer answered");
     expect(state.steps).toBe(7);
-    expect(state.visits).toMatchObject({ coder: 2, "review-gate": 2, chat: 1, "pull-request": 1 });
+    expect(state.visits).toMatchObject({
+      coder: 2,
+      "review-gate": 2,
+      "workflow-start.chat": 1,
+      "pull-request": 1,
+    });
   });
 
   it("runs a star: the router sends to agents and back until it sends the answer", async () => {
@@ -66,7 +75,7 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
 
     const state = await graph.invoke({ task: "find jobs" });
 
-    expect(state.path).toEqual(["start", "star", "a", "star", "b", "star", "done"]);
+    expect(state.path).toEqual(["workflow-start.start", "star", "a", "star", "b", "star", "done"]);
     expect(state.answer).toBe("b answered");
     expect(star.requests.map((request) => request.input.includes("[a]\na answered"))).toEqual([
       false,
@@ -75,7 +84,7 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
     ]);
   });
 
-  it("one graph node per flow node, named <kind>.<name>", async () => {
+  it("#141 AC2: one graph node per flow node, named <kind>.<name>", async () => {
     const routers = { main: scriptedRouter("main", []), "review-gate": scriptedRouter("g", []) };
     const { graph } = await assembleFlowGraph(codeReviewFlow, testRuntime(routers));
 
@@ -85,28 +94,28 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
       "agent.coder",
       "agent.explainer",
       "agent.reviewer",
-      "conclusion.answer",
-      "conclusion.pull-request",
-      "entry.chat",
       "router.main",
       "router.review-gate",
+      "workflow-finish.answer",
+      "workflow-finish.pull-request",
+      "workflow-start.chat",
     ]);
     expect(graphNodeId({ kind: "router", name: "main" })).toBe("router.main");
   });
 
-  it("starts at the entry named in the input when the flow has several", async () => {
-    const { graph } = await assembleFlowGraph(twoEntries, testRuntime({}));
+  it("starts at the workflow start named in the input when the flow has several", async () => {
+    const { graph } = await assembleFlowGraph(twoStarts, testRuntime({}));
 
-    const state = await graph.invoke({ task: "event", entry: "webhook" });
+    const state = await graph.invoke({ task: "event", start: "webhook" });
 
-    expect(state.path).toEqual(["webhook", "a", "done"]);
+    expect(state.path).toEqual(["workflow-start.webhook", "a", "done"]);
   });
 
-  it("fails on an entry the flow does not have", async () => {
-    const { graph } = await assembleFlowGraph(twoEntries, testRuntime({}));
+  it("fails on a workflow start the flow does not have", async () => {
+    const { graph } = await assembleFlowGraph(twoStarts, testRuntime({}));
 
-    await expect(graph.invoke({ task: "event", entry: "ghost" })).rejects.toBeInstanceOf(
-      UnknownEntryError,
+    await expect(graph.invoke({ task: "event", start: "ghost" })).rejects.toBeInstanceOf(
+      UnknownWorkflowStartError,
     );
   });
 

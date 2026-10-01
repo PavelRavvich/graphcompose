@@ -3,7 +3,7 @@ import type { UsageRecord } from "../finops/usage.js";
 import type { FlowGraph } from "../graph/build.js";
 import { flowGraphOf } from "../graph/flow-runtime.js";
 import type { AgentStateType } from "../graph/state.js";
-import type { ApprovalDecision } from "../pause/index.js";
+import type { ToolCallApprovalDecision } from "../dto/standard/framework.js";
 import {
   drainRun,
   failedOutcome,
@@ -50,7 +50,7 @@ async function pausedRun<TName extends string>(
  */
 export async function resumeAgent<TName extends string>(
   paused: AgentRunResult,
-  decision: ApprovalDecision,
+  decision: ToolCallApprovalDecision,
   deps: RunDeps<TName>,
   options: { readonly signal?: AbortSignal | undefined } = {},
 ): Promise<AgentRunResult> {

@@ -4,14 +4,14 @@
  */
 import { describe, expect, it } from "vitest";
 import { Agent, Rag } from "../../src/components/index.js";
-import type { Retrieval } from "../../src/rag/index.js";
+import type { RagRetrieval } from "../../src/rag/index.js";
 import { testConfig } from "../helpers.js";
 
 // @ts-expect-error — k is required
 @Rag({ name: "no_k", description: "d" })
 class NoK {
-  retrieve(): Promise<Retrieval> {
-    return Promise.resolve({ passages: [] });
+  retrieve(): Promise<RagRetrieval> {
+    return Promise.resolve({ results: [] });
   }
 }
 

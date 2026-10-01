@@ -54,7 +54,7 @@ describe("AC1: limits fail the run with their key, path and spend", () => {
     );
 
     expect(error).toMatchObject({ key: "limits.perRun.steps", limit: 12, actual: 13 });
-    expect(error.path.slice(0, 5)).toEqual(["start", "pick", "b", "gate", "b"]);
+    expect(error.path.slice(0, 5)).toEqual(["workflow-start.start", "pick", "b", "gate", "b"]);
     expect(error.path).toHaveLength(14);
   });
 
@@ -72,14 +72,17 @@ describe("AC1: limits fail the run with their key, path and spend", () => {
         over,
         testRuntime({ pick: scriptedRouter("pick", ["a"]) }, { limits: { perRun: { steps: 1 } } }),
       ),
-    ).resolves.toMatchObject({ key: "limits.perRun.steps", path: ["start", "pick", "a"] });
+    ).resolves.toMatchObject({
+      key: "limits.perRun.steps",
+      path: ["workflow-start.start", "pick", "a"],
+    });
   });
 
   it("routers.<name>.maxVisits is reached inside a cycle while steps remain", async () => {
     const error = await failureOf(loopFlow, testRuntime({ loop: forever("loop") }));
 
     expect(error).toMatchObject({ key: "routers.loop.maxVisits", limit: 2, actual: 3 });
-    expect(error.path).toEqual(["start", "a", "loop", "a", "loop", "a", "loop"]);
+    expect(error.path).toEqual(["workflow-start.start", "a", "loop", "a", "loop", "a", "loop"]);
   });
 
   it("limits.perRun.cost fails before the next working node once the run has spent it", async () => {

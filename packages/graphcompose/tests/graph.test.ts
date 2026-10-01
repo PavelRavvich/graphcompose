@@ -20,7 +20,15 @@ describe("the workflow's flow graph (existing nodes in the new graph)", () => {
     expect(state.contributions.map((item) => item.agent)).toEqual(["alpha", "beta"]);
     expect(state.answer).toBe("code");
     expect(state.routeReason).toBe("done");
-    expect(state.path).toEqual(["chat", "main", "alpha", "main", "beta", "main", "answer"]);
+    expect(state.path).toEqual([
+      "workflow-start.chat",
+      "main",
+      "alpha",
+      "main",
+      "beta",
+      "main",
+      "answer",
+    ]);
     expect(state.usage.map((record) => record.caller)).toEqual([
       "router:main",
       "alpha",

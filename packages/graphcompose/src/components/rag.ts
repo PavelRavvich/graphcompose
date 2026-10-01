@@ -35,7 +35,7 @@ export const ragSettings = (agent: AgentMeta): { name: string; mode: RagMode; k:
   });
 
 const Output = z.object({
-  passages: z.array(
+  results: z.array(
     z.object({ source: z.string(), text: z.string(), score: z.number().optional() }),
   ),
 });
@@ -51,10 +51,10 @@ export function searchTool(meta: RagMeta, connector: RagConnector): AnyTool {
       const retrieval = await connector.retrieve(query, { k: meta.k, signal: ctx.signal });
       ctx.reportCost(retrieval.costUsd ?? 0);
       return {
-        passages: retrieval.passages.map((p) => ({
-          source: p.source,
-          text: p.text,
-          ...(p.score === undefined ? {} : { score: p.score }),
+        results: retrieval.results.map((result) => ({
+          source: result.source,
+          text: result.text,
+          ...(result.score === undefined ? {} : { score: result.score }),
         })),
       };
     },

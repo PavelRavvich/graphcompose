@@ -7,7 +7,7 @@ import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { describe, expect, it, vi } from "vitest";
 import { createAppDeps } from "../src/app.js";
 import type { ModelGateway } from "../src/llm/gateway.js";
-import { runEntry } from "../src/run/run-entry.js";
+import { runWorkflowStart } from "../src/run/run-workflow-start.js";
 import { TestChat } from "./fixtures/test-flow/test.flow.js";
 import { MODEL_MAX, type ResolvedModelSettings } from "../src/config/types.js";
 import {
@@ -123,7 +123,7 @@ describe("AC12: createAppDeps on an injected model gateway", () => {
       decide,
     });
 
-    const result = await runEntry(deps, TestChat, { text: "What time is it?" });
+    const result = await runWorkflowStart(deps, TestChat, { text: "What time is it?" });
     await deps.close();
 
     expect(result.status).toBe("answered");

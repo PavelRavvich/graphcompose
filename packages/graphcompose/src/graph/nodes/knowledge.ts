@@ -5,8 +5,8 @@ import type { KnowledgeSource } from "../../rag/types.js";
 
 /**
  * Context mode: before the agent's loop, each knowledge base is asked for the task's top-k
- * passages. Each retrieval is a named runnable (`rag:<name>`), so it is a span in the trace; its
- * cost is billed to `rag:<name>` (category retrieval). A failure leaves those passages out — the
+ * search results. Each retrieval is a named runnable (`rag:<name>`), so it is a span in the trace; its
+ * cost is billed to `rag:<name>` (category retrieval). A failure leaves those results out — the
  * turn goes on (fail-open), the error stays on the span.
  */
 export async function gatherKnowledge(
@@ -28,8 +28,7 @@ export async function gatherKnowledge(
           retrieval.costUsd ?? 0,
         ),
       );
-      if (retrieval.passages.length > 0)
-        blocks.push(knowledgeBlock(source.name, retrieval.passages));
+      if (retrieval.results.length > 0) blocks.push(knowledgeBlock(source.name, retrieval.results));
     } catch {
       // fail-open: knowledge is an aid, not a gate
     }

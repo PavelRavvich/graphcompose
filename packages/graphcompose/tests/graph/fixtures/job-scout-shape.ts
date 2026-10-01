@@ -2,9 +2,9 @@ import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { MemorySaver } from "@langchain/langgraph";
 import { z } from "zod";
 import type { AgentsConfigOf } from "../../../src/config/types.js";
-import { ChatMessage, TextAnswer } from "../../../src/dto/index.js";
-import { Conclusion } from "../../../src/graph/conclusion.decorator.js";
-import { Entry } from "../../../src/graph/entry.decorator.js";
+import { WorkflowStartText, WorkflowFinishText } from "../../../src/dto/index.js";
+import { WorkflowFinish } from "../../../src/graph/workflow-finish.decorator.js";
+import { WorkflowStart } from "../../../src/graph/workflow-start.decorator.js";
 import { from, type Flow } from "../../../src/graph/flow.js";
 import { route } from "../../../src/graph/route.js";
 import { Router } from "../../../src/graph/router.decorator.js";
@@ -21,8 +21,12 @@ import { ScriptedChatModel, type Reply } from "../../fakes/scripted-model.js";
 import { fakeGateway, memoryLedger, testConfig } from "../../helpers.js";
 import { testNode } from "./nodes.js";
 
-@Entry({ name: "chat-message", description: "A message from the job seeker", input: ChatMessage })
-class ChatEntry {}
+@WorkflowStart({
+  name: "chat",
+  description: "A message from the job seeker",
+  input: WorkflowStartText,
+})
+class ChatWorkflowStart {}
 
 @testNode("agent", "profiler")
 class Profiler {}
@@ -33,8 +37,8 @@ class Scout {}
 @testNode("agent", "shortlist")
 class Shortlist {}
 
-@Conclusion({ name: "answer", description: "The answer", output: TextAnswer })
-class AnswerConclusion {}
+@WorkflowFinish({ name: "chat", description: "The answer", output: WorkflowFinishText })
+class ChatWorkflowFinish {}
 
 /** job-scout's router, on a scripted chat model ("test/router") instead of Jev. */
 @Router({
@@ -47,15 +51,15 @@ class AnswerConclusion {}
     route(Profiler, "Reading the resume and proposing a search brief"),
     route(Scout, "Finding and ranking jobs"),
     route(Shortlist, "Saving chosen jobs to the shortlist, or showing it"),
-    route(AnswerConclusion, "The last answer fully covers the message"),
+    route(ChatWorkflowFinish, "The last answer fully covers the message"),
   ],
 })
 class MainRouter {}
 
 /** The job-scout flow (#116 approved shape) over test nodes. */
 export const jobScoutFlow: Flow = [
-  from(ChatEntry).to(MainRouter),
-  from(MainRouter).choose(Profiler, Scout, Shortlist, AnswerConclusion),
+  from(ChatWorkflowStart).to(MainRouter),
+  from(MainRouter).choose(Profiler, Scout, Shortlist, ChatWorkflowFinish),
   from(Profiler, Scout, Shortlist).to(MainRouter),
 ];
 

@@ -3,8 +3,8 @@ import { route } from "../../../src/graph/route.js";
 import { Router } from "../../../src/graph/router.decorator.js";
 import { testNode } from "./nodes.js";
 
-@testNode("entry", "chat")
-export class ChatEntry {}
+@testNode("workflow-start", "chat")
+export class ChatWorkflowStart {}
 
 @testNode("agent", "explainer")
 export class ExplainerAgent {}
@@ -15,11 +15,11 @@ export class CoderAgent {}
 @testNode("agent", "reviewer")
 export class ReviewerAgent {}
 
-@testNode("conclusion", "answer")
-export class AnswerConclusion {}
+@testNode("workflow-finish", "answer")
+export class AnswerWorkflowFinish {}
 
-@testNode("conclusion", "pull-request")
-export class PullRequestConclusion {}
+@testNode("workflow-finish", "pull-request")
+export class PullRequestWorkflowFinish {}
 
 @Router({
   name: "main",
@@ -37,16 +37,16 @@ export class MainRouter {}
   model: "typesafe/jev-1.13",
   routes: [
     route(CoderAgent, "The review asks for changes"),
-    route(PullRequestConclusion, "The review is clean"),
+    route(PullRequestWorkflowFinish, "The review is clean"),
   ],
 })
 export class ReviewGateRouter {}
 
-/** The code-review shape: entry → router → agents → gate router cycle → conclusions. */
+/** The code-review shape: workflow start → router → agents → gate router cycle → workflow finishes. */
 export const codeReviewFlow: Flow = [
-  from(ChatEntry).to(MainRouter),
+  from(ChatWorkflowStart).to(MainRouter),
   from(MainRouter).choose(ExplainerAgent, CoderAgent),
-  from(ExplainerAgent).to(AnswerConclusion),
+  from(ExplainerAgent).to(AnswerWorkflowFinish),
   chain(CoderAgent, ReviewerAgent, ReviewGateRouter),
-  from(ReviewGateRouter).choose(CoderAgent, PullRequestConclusion),
+  from(ReviewGateRouter).choose(CoderAgent, PullRequestWorkflowFinish),
 ];

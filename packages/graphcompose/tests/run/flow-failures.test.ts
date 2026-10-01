@@ -20,7 +20,16 @@ describe("AC1: a limit or a router failure fails the run and is a failed Tern", 
     await expect(failure).rejects.toMatchObject({
       key: "routers.main.maxVisits",
       limit: 3,
-      path: ["chat-message", "main", "profiler", "main", "scout", "main", "shortlist", "main"],
+      path: [
+        "workflow-start.chat",
+        "main",
+        "profiler",
+        "main",
+        "scout",
+        "main",
+        "shortlist",
+        "main",
+      ],
     });
     const [tern] = await deps.terns.lastTerns(threadId, 1);
     expect(tern).toMatchObject({ status: "failed", task: "everything at once" });

@@ -1,6 +1,7 @@
 import { interrupt } from "@langchain/langgraph";
 import type { UsageRecord } from "../../finops/usage.js";
-import { ApprovalDecisionSchema } from "../../pause/index.js";
+import { validate } from "../../dto/schema.js";
+import { ToolCallApprovalDecision } from "../../dto/standard/framework.js";
 import { rejectionMessage } from "../../prompts/agents.js";
 import { renderToolResult, type AnyTool, type ToolContext } from "../../tools/index.js";
 import { recordToolCost } from "../../finops/usage.js";
@@ -23,7 +24,7 @@ export function makeApprovalNode(
   return async (state) => {
     const pending = state.pending;
     if (pending === null) return {};
-    const decision = ApprovalDecisionSchema.parse(interrupt(pending));
+    const decision = validate(ToolCallApprovalDecision, interrupt(pending));
     const usage: UsageRecord[] = [];
     const ctx: ToolContext = {
       runId: state.runId,
@@ -34,13 +35,13 @@ export function makeApprovalNode(
         usage.push(recordToolCost(pending.tool, usd));
       },
     };
-    const result = decision.approve
+    const result = decision.approved
       ? renderToolResult(await deps.tools(pending.tool).invoke(pending.args, ctx))
-      : rejectionMessage(decision.note);
+      : rejectionMessage(decision.reason);
     return {
       pending: null,
       usage,
-      approvals: [{ ...pending, approved: decision.approve, result }],
+      approvals: [{ ...pending, approved: decision.approved, result }],
     };
   };
 }

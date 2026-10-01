@@ -1,3 +1,5 @@
+import { userInfo } from "node:os";
+import type { ToolCallApprovalDecision } from "../dto/standard/framework.js";
 import { resumeAgent, type AgentRunResult, type RunDeps } from "../index.js";
 
 /** Asks the human a question; undefined when input ended (Ctrl+D). */
@@ -8,7 +10,13 @@ export type Busy = <T>(work: (signal: AbortSignal | undefined) => Promise<T>) =>
 
 const idle: Busy = (work) => work(undefined);
 
-/** A paused run asks the human in the terminal, then continues in the same process. */
+/** The terminal's decision on a call: `by` is the OS user who answered. */
+export function terminalDecision(approved: boolean): ToolCallApprovalDecision {
+  const by = userInfo().username;
+  return approved ? { approved, by } : { approved, by, reason: "declined in the terminal" };
+}
+
+/** A paused run asks in the terminal, then continues in the same process. */
 export async function untilDone(
   first: AgentRunResult,
   deps: RunDeps<string>,
@@ -21,9 +29,9 @@ export async function untilDone(
     const reply = await ask(
       `${agent} wants to call ${tool} ${JSON.stringify(args)} — approve? [y/N] `,
     );
-    const approve = /^y(es)?$/i.test((reply ?? "").trim());
+    const approved = /^y(es)?$/i.test((reply ?? "").trim());
     const paused = result;
-    const decision = approve ? { approve } : { approve, note: "declined by the user" };
+    const decision = terminalDecision(approved);
     result = await busy((signal) => resumeAgent(paused, decision, deps, { signal }));
   }
   return result;

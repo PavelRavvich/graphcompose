@@ -8,13 +8,13 @@ import { A, Done, Gate, SomeTool, Start } from "./fixtures/rule-nodes.js";
 import { testConfig } from "../helpers.js";
 
 describe("AC1: describe lists the flow as transitions (text)", () => {
-  it("one line per declared step: to, choose, chain — nodes by name", () => {
+  it("#141 AC2: one line per declared step: to, choose, chain — nodes by name, starts and finishes marked", () => {
     expect(flowLines(codeReviewFlow)).toEqual([
-      "chat → main",
+      "chat (workflow start) → main",
       "main → explainer | coder",
-      "explainer → answer",
+      "explainer → answer (workflow finish)",
       "coder → reviewer → review-gate",
-      "review-gate → coder | pull-request",
+      "review-gate → coder | pull-request (workflow finish)",
     ]);
   });
 
@@ -26,7 +26,12 @@ describe("AC1: describe lists the flow as transitions (text)", () => {
         from(Gate).choose(Self, Done),
         from(A).to(SomeTool),
       ]),
-    ).toEqual(["start → a", "a → gate", "gate → Self | done", "a → SomeTool"]);
+    ).toEqual([
+      "start (workflow start) → a",
+      "a → gate",
+      "gate → Self | done (workflow finish)",
+      "a → SomeTool",
+    ]);
   });
 });
 

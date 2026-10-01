@@ -118,8 +118,8 @@ crossFieldRule(ContactInfo, ({ email, phone }) =>
     : { field: "email", reason: "give an email, a phone or both" },
 );
 
-/** A source an answer relies on. */
-export class Citation {
+/** Where a statement in an answer comes from, in a knowledge base. */
+export class RagSourceReference {
   @Text({ prompt: "what the source is: a document title, a page name" })
   title!: string;
 

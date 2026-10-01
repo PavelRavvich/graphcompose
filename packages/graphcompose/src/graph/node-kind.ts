@@ -2,7 +2,7 @@ import type { Class } from "../components/injection.js";
 import { componentOf } from "../components/metadata.js";
 
 /** What a flow node is. Agents and routers are working nodes: their visits are steps. */
-export type NodeKind = "entry" | "router" | "agent" | "conclusion";
+export type NodeKind = "workflow-start" | "router" | "agent" | "workflow-finish";
 
 /** What the flow knows about a node class: its kind and its name (the graph node's name). */
 export interface NodeInfo {
@@ -12,7 +12,7 @@ export interface NodeInfo {
 
 const nodes = new WeakMap<Class, NodeInfo>();
 
-/** Called by node decorators (`@Router`, and `@Entry` / `@Conclusion`): marks a class as a flow node. */
+/** Called by node decorators (`@Router`, and `@WorkflowStart` / `@WorkflowFinish`): marks a class as a flow node. */
 export function recordNode(target: Class, info: NodeInfo): void {
   nodes.set(target, info);
 }

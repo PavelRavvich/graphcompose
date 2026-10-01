@@ -79,7 +79,7 @@ function breachOf(state: FlowStateType, check: VisitCheck): LimitBreach | undefi
   const steps = state.steps + 1;
   if (steps > limits.steps)
     return { key: "limits.perRun.steps", limit: limits.steps, actual: steps };
-  const visits = (state.visits[node.name] ?? 0) + 1;
+  const visits = (state.visits[node.key] ?? 0) + 1;
   if (check.maxVisits !== undefined && visits > check.maxVisits) {
     return { key: `routers.${node.name}.maxVisits`, limit: check.maxVisits, actual: visits };
   }
@@ -98,5 +98,5 @@ function breachOf(state: FlowStateType, check: VisitCheck): LimitBreach | undefi
 export function checkVisit(state: FlowStateType, check: VisitCheck): void {
   const breach = breachOf(state, check);
   if (breach === undefined) return;
-  throw new LimitExceededError(breach, [...state.path, check.node.name], totalCost(state.usage));
+  throw new LimitExceededError(breach, [...state.path, check.node.key], totalCost(state.usage));
 }

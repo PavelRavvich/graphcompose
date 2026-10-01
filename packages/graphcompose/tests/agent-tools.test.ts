@@ -151,7 +151,7 @@ describe("agents with tools", () => {
 
     await expect(failure).rejects.toMatchObject({
       key: "limits.perRun.cost",
-      path: ["chat", "main", "alpha", "main"],
+      path: ["workflow-start.chat", "main", "alpha", "main"],
     });
     expect(model.sent).toHaveLength(1);
     expect(ledger.recorded.map((record) => record.caller)).toContain("alpha");

@@ -78,7 +78,7 @@ describe("guards in a run", () => {
       route: [],
     });
     expect(requests).toEqual([]);
-    expect(result.conclusion).toBeUndefined();
+    expect(result.finish).toBeUndefined();
     expect((await deps.terns.byIds([result.ternId]))[0]?.status).toBe("guarded");
   });
 
