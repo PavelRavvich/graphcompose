@@ -7,12 +7,29 @@ import { TestWorkflow } from "./fixtures/test-workflow/test.workflow.js";
 import { workflowOf } from "../src/components/index.js";
 import { runAgent } from "../src/index.js";
 import { createSqliteTernStore } from "../src/terns/index.js";
+import { runVersions } from "../src/run/versions.js";
+import { usd } from "../src/units/index.js";
 import { decide, fakeDeps } from "./helpers.js";
 
 describe("config versions", () => {
+  it("#116: the flow's routers, their texts and the limits are part of the versions", () => {
+    const deps = fakeDeps({});
+    const [main] = deps.routers;
+    if (main === undefined) throw new Error("test router missing");
+    const base = runVersions(deps);
+
+    const reworded = runVersions({ ...deps, routers: [{ ...main, instructions: "Choose well." }] });
+    const otherModel = runVersions({ ...deps, routers: [{ ...main, model: "typesafe/jev-2" }] });
+    const limited = runVersions({ ...deps, limits: { perRun: { steps: 3, cost: usd(1) } } });
+
+    expect(reworded.promptVersion).not.toBe(base.promptVersion);
+    expect(otherModel.modelVersion).not.toBe(base.modelVersion);
+    expect(limited.configHash).not.toBe(base.configHash);
+  });
+
   it("AC2: every run is labelled with the declared version and the config hash", async () => {
     const deps = fakeDeps({
-      "test/router": [decide("alpha"), decide("finish")],
+      "test/router": [decide("alpha"), decide("answer")],
       "test/alpha": ["ok"],
     });
 

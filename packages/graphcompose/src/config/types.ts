@@ -139,16 +139,6 @@ export const RouterModelSchema = z.discriminatedUnion("kind", [
   LlmRouterModelSchema,
 ]);
 
-export const RouterSettingsSchema = z.object({
-  maxHops: z.number().int().positive(),
-  /** How many latest summaries the router sees (compaction). Default: defaults.history.summaries. */
-  historySummaries: z.number().int().nonnegative().optional(),
-  /** How many previous Terns of the thread the router sees. Default: defaults.history.limit. */
-  historyLimit: z.number().int().nonnegative().optional(),
-  /** Omit to use defaults.router (Jev). */
-  model: RouterModelSchema.optional(),
-});
-
 /** MCP server connection. Secrets are never here: only names of env variables. */
 export const McpServerConfigSchema = z.discriminatedUnion("transport", [
   z.object({
@@ -190,15 +180,6 @@ export const AgentsConfigSchema = z.object({
       summaries: z.number().int().nonnegative().optional(),
     }),
   }),
-  budget: z.object({
-    /** USD one run may spend. */
-    runBudgetCap: z.number().positive(),
-    /** USD this workflow may spend per UTC day; resets at 00:00 UTC. */
-    dailyBudgetCap: z.number().positive(),
-    /** USD per UTC day for eval and replay, kept apart from production spend. */
-    evalBudgetCap: z.number().positive(),
-  }),
-  routers: z.object({ main: RouterSettingsSchema }).catchall(RouterSettingsSchema),
   mcpServers: z.record(z.string(), McpServerConfigSchema).optional(),
   /** Conversation memory (off when absent). */
   compaction: CompactionSettingsSchema.optional(),
@@ -222,7 +203,6 @@ export type ProviderPreferences = z.infer<typeof ProviderPreferencesSchema>;
 export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
 export type AgentSettings = z.infer<typeof AgentSettingsSchema>;
 export type RouterModel = z.infer<typeof RouterModelSchema>;
-export type RouterSettings = z.infer<typeof RouterSettingsSchema>;
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 export type GuardSettings = z.infer<typeof GuardSettingsSchema>;
 export type ReasoningSettings = z.input<typeof ReasoningSettingsSchema>;
@@ -261,14 +241,6 @@ export interface ResolvedModelSettings {
   readonly maxRetries: number;
   readonly provider?: ProviderPreferences | undefined;
   readonly price: Price;
-}
-
-/** A router's model: its own override or the default (Jev). */
-export function resolveRouterModel(
-  router: RouterSettings,
-  defaults: AgentsConfig["defaults"],
-): RouterModel {
-  return router.model ?? defaults.router;
 }
 
 /** Validates at startup and keeps the literal type of the config; checks tool names if given. */

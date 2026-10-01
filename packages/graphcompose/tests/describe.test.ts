@@ -18,13 +18,13 @@ const after = (lines: readonly string[], start: string): string[] => {
 
 describe("describe a workflow", () => {
   it("AC1: which agent can use which tool, with its kind and constructor dependencies — no keys, no network", () => {
-    const lines = after(describeWorkflow(greetings), "  greeter");
+    const lines = after(describeWorkflow(greetings), "  greeter  ");
 
     expect(
       lines.some((l) => l.includes("· greet (read, local) ← Greeter (GREETING, ROUTER_FACTORY)")),
     ).toBe(true);
     expect(lines.some((l) => l.includes("· read_file (read, MCP files)"))).toBe(true);
-    expect(after(describeWorkflow(test), "  coder")).toContain("    tools: none");
+    expect(after(describeWorkflow(test), "  coder  ")).toContain("    tools: none");
   });
 
   it("AC1: marks tools that wait for a human when the pause seam is on", () => {
@@ -53,7 +53,7 @@ describe("describe a workflow", () => {
       ),
     ).toBe(true);
     expect(
-      after(lines, "  coder").some((l) =>
+      after(lines, "  coder  ").some((l) =>
         l.includes("reasoning: threshold 0.8 · 3 attempts [low, medium, high] · best"),
       ),
     ).toBe(true);
@@ -84,7 +84,7 @@ describe("describe a workflow", () => {
     const lines = describeWorkflow(workflow);
 
     expect(lines.at(-1)).toBe("unassigned tools: extra");
-    expect(after(lines, "  coder")).toContain("    · ghost (not in the catalog)");
+    expect(after(lines, "  coder  ")).toContain("    · ghost (not in the catalog)");
   });
   it("AC3 (#97): each agent shows its output ceiling and provider preference", () => {
     const coder = test.config.agents.coder;

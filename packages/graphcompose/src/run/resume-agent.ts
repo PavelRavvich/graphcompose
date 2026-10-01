@@ -1,17 +1,19 @@
 import { Command } from "@langchain/langgraph";
 import type { UsageRecord } from "../finops/usage.js";
-import { buildGraph } from "../graph/graph.js";
+import type { FlowGraph } from "../graph/build.js";
+import { flowGraphOf } from "../graph/flow-runtime.js";
 import type { AgentStateType } from "../graph/state.js";
 import type { ApprovalDecision } from "../pause/index.js";
 import {
   drainRun,
   failedOutcome,
   outcomeError,
-  finishRun,
   recorder,
-  runConfig,
   streamConfig,
+  workflowAccount,
 } from "./execute.js";
+import { finishRun } from "./finish.js";
+import { isWaiting, pausedLoopState } from "./paused.js";
 import type { AgentRunResult, RunDeps } from "./types.js";
 import { runVersions } from "./versions.js";
 
@@ -19,21 +21,27 @@ export class NotPausedError extends Error {
   override name = "NotPausedError";
 }
 
-/** The graph and the checkpointed state of a run that is really waiting for a human. */
+/** The flow graph and the paused agent loop's state of a run that is really waiting for a human. */
 async function pausedRun<TName extends string>(
   paused: AgentRunResult,
   deps: RunDeps<TName>,
-): Promise<{ graph: ReturnType<typeof buildGraph>; before: AgentStateType }> {
-  if (paused.status !== "paused" || deps.pause === undefined) {
+): Promise<{ flow: FlowGraph; before: AgentStateType }> {
+  const pause = deps.pause;
+  if (paused.status !== "paused" || pause === undefined) {
     throw new NotPausedError(`Run ${paused.runId} was not paused or the pause seam is off`);
   }
-  const graph = buildGraph(deps);
-  const snapshot = await graph.getState(runConfig(paused.runId));
-  if (snapshot.next.length === 0) {
+  const account = workflowAccount(deps);
+  const flow = await flowGraphOf(deps, {
+    limits: deps.limits,
+    spentToday: () => deps.ledger.spentToday(account.key),
+  });
+  const before = (await isWaiting(flow.graph, paused.runId))
+    ? await pausedLoopState(flow.graph, pause.checkpointer, paused.runId)
+    : undefined;
+  if (before === undefined) {
     throw new NotPausedError(`Run ${paused.runId} is not waiting for a human`);
   }
-  // LangGraph boundary: checkpoint values are untyped; they are this graph's own state.
-  return { graph, before: snapshot.values as AgentStateType };
+  return { flow, before };
 }
 
 /**
@@ -46,13 +54,9 @@ export async function resumeAgent<TName extends string>(
   deps: RunDeps<TName>,
   options: { readonly signal?: AbortSignal | undefined } = {},
 ): Promise<AgentRunResult> {
-  const { graph, before } = await pausedRun(paused, deps);
+  const { flow, before } = await pausedRun(paused, deps);
   const spent: UsageRecord[] = [];
-  const record = recorder(
-    deps,
-    { key: deps.config.name, dailyCap: deps.config.budget.dailyBudgetCap },
-    spent,
-  );
+  const record = recorder(deps, workflowAccount(deps), spent);
   const base = {
     threadId: paused.threadId,
     bundle: deps.config.name,
@@ -66,15 +70,16 @@ export async function resumeAgent<TName extends string>(
       { threadId: paused.threadId, runId: paused.runId },
       options.signal,
     );
-    const states = await graph.stream(new Command({ resume: decision }), streaming);
+    const states = await flow.graph.stream(new Command({ resume: decision }), streaming);
     const state = await drainRun(states, record, before.usage.length);
     const context = {
       deps,
-      graph,
+      flow,
       base,
       runId: paused.runId,
       budgetUsd: paused.budgetUsd,
       record,
+      recorded: Math.max(before.usage.length, state.usage.length),
       callbacks: streaming.callbacks,
     };
     return await finishRun(context, state, paused.ternId);

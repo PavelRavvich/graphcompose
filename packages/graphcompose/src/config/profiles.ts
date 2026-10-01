@@ -2,12 +2,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
-import {
-  AgentsConfigSchema,
-  AgentSettingsSchema,
-  CompactionSettingsSchema,
-  RouterSettingsSchema,
-} from "./types.js";
+import { AgentsConfigSchema, AgentSettingsSchema, CompactionSettingsSchema } from "./types.js";
 
 /** A profile names a variant of a workflow and lists only what differs (Spring-Boot-like). */
 export class ProfileError extends Error {
@@ -36,8 +31,6 @@ export const ProfileSchema = z.strictObject({
   /** Must differ from the base version, e.g. 1.3.0-low-thinking. */
   version: z.string().min(1),
   defaults: deepPartial(defaultsShape),
-  budget: deepPartial(AgentsConfigSchema.shape.budget),
-  routers: z.record(z.string(), deepPartial(RouterSettingsSchema)).optional(),
   compaction: deepPartial(CompactionSettingsSchema),
   agents: z.record(z.string(), deepPartial(AgentSettingsSchema)).optional(),
   /** Replaces an agent's system prompt: inline text or a file relative to the profile. */

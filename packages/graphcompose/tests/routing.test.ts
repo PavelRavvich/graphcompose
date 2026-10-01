@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
+import { END } from "@langchain/langgraph";
 import { formatContributions, renderRouteInput } from "../src/graph/contributions.js";
-import { finalize, NO_ANSWER } from "../src/graph/nodes/finalize.js";
-import { AGENT_NODE, FINALIZE_NODE, routeAfterRouter } from "../src/graph/routing.js";
-import { FINISH } from "../src/graph/state.js";
+import { afterAgent } from "../src/graph/nodes/agent-loop.js";
+import { lastAnswer, NO_ANSWER } from "../src/graph/nodes/finalize.js";
 import { baseState } from "./helpers.js";
 
-describe("routeAfterRouter", () => {
-  it("goes to finalize on FINISH", () => {
-    expect(routeAfterRouter({ next: FINISH })).toBe(FINALIZE_NODE);
+describe("afterAgent (the agent loop)", () => {
+  it("goes to approval when a tool call waits for a human", () => {
+    expect(afterAgent({ pending: { agent: "alpha", tool: "send", args: {} } })).toBe("approval");
   });
 
-  it("goes to the agent node for an agent name", () => {
-    expect(routeAfterRouter({ next: "alpha" })).toBe(AGENT_NODE);
+  it("ends the loop otherwise", () => {
+    expect(afterAgent({ pending: null })).toBe(END);
   });
 });
 
-describe("finalize", () => {
+describe("lastAnswer (a conclusion's answer)", () => {
   it("answers with the latest contribution", () => {
     const state = baseState({
       contributions: [
@@ -24,11 +24,11 @@ describe("finalize", () => {
       ],
     });
 
-    expect(finalize(state)).toEqual({ answer: "final" });
+    expect(lastAnswer(state)).toBe("final");
   });
 
   it("falls back when no agent contributed", () => {
-    expect(finalize(baseState())).toEqual({ answer: NO_ANSWER });
+    expect(lastAnswer(baseState())).toBe(NO_ANSWER);
   });
 });
 

@@ -15,6 +15,7 @@ import {
   usageRecord,
   type TestAgent,
 } from "./helpers.js";
+import { usd } from "../src/units/index.js";
 
 /** Judge: P(good) per attempt from `scores` (undefined = judge fails); criteria in `misses` fail. */
 function judge(
@@ -64,14 +65,14 @@ function setup(settings: ReasoningSettings, router: Router, runBudgetCap = 1) {
   });
   const config = {
     ...testConfig,
-    budget: { ...testConfig.budget, runBudgetCap },
     agents: { ...testConfig.agents, alpha: { ...testConfig.agents.alpha, reasoning: settings } },
   };
   const ledger = memoryLedger();
-  const base = fakeDeps({ "test/router": [decide("alpha"), decide("finish", "done")] }, ledger);
+  const base = fakeDeps({ "test/router": [decide("alpha"), decide("answer", "done")] }, ledger);
   const deps: RunDeps<TestAgent> = {
     ...base,
     config,
+    limits: { perRun: { cost: usd(runBudgetCap) } },
     registry: createModelRegistry(config, factory),
     judges: new Map([["alpha", router]]),
   };
@@ -173,12 +174,13 @@ describe("reasoning — quality-gated attempts", () => {
     expect(tern?.route).toEqual(["alpha"]);
   });
 
-  it("AC6: respects the run budget — no attempt after it is spent", async () => {
-    const { deps } = setup(reasoning(), judge([0.1, 0.9], [], 0.01), 0.005);
+  it("AC6: respects the run budget — no attempt after it is spent, then the run fails at its limit", async () => {
+    const { deps, models } = setup(reasoning(), judge([0.1, 0.9], [], 0.01), 0.005);
 
-    const result = await runAgent({ task: "T" }, deps);
+    const failure = runAgent({ task: "T" }, deps);
 
-    expect(result.attempts).toHaveLength(1);
-    expect(result.answer).toBe("a1");
+    await expect(failure).rejects.toMatchObject({ key: "limits.perRun.cost" });
+    expect(models.low.sent).toHaveLength(1);
+    expect(models.medium.sent).toHaveLength(0);
   });
 });

@@ -1,30 +1,14 @@
 import { mkdir, mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
-import {
-  BudgetExceededError,
-  createFileLedger,
-  runBudgetUsd,
-  utcDay,
-} from "../src/finops/ledger.js";
-import { makeRouterNode } from "../src/graph/nodes/router.js";
+import { describe, expect, it } from "vitest";
+import { createFileLedger, utcDay } from "../src/finops/ledger.js";
+import { LimitExceededError } from "../src/graph/limits.js";
 import { runAgent } from "../src/index.js";
-import { baseState, decide, fakeDeps, memoryLedger, usageRecord } from "./helpers.js";
+import { decide, fakeDeps, memoryLedger, recordingRouters, usageRecord } from "./helpers.js";
 
-const budget = { runBudgetCap: 0.05, dailyBudgetCap: 2, evalBudgetCap: 1 };
 const tempDir = (): Promise<string> => mkdtemp(join(tmpdir(), "ledger-"));
 const at = (iso: string) => () => new Date(iso);
-
-describe("runBudgetUsd", () => {
-  it("is the run cap while the day is young", () => {
-    expect(runBudgetUsd(budget, 0.5)).toBe(0.05);
-  });
-
-  it("shrinks to what is left of the daily cap", () => {
-    expect(runBudgetUsd(budget, 1.98)).toBeCloseTo(0.02);
-  });
-});
 
 describe("utcDay", () => {
   it("uses the UTC date, not the local one", () => {
@@ -83,17 +67,28 @@ describe("file ledger", () => {
 
 describe("daily cap in a run", () => {
   it("refuses to run without a single call when the bundle's day is spent", async () => {
-    const deps = fakeDeps({}, memoryLedger(10));
-    const route = vi.spyOn(deps.router, "route");
+    const { deps, requests } = recordingRouters(fakeDeps({}, memoryLedger(10)));
 
-    await expect(runAgent({ task: "Anything" }, deps)).rejects.toBeInstanceOf(BudgetExceededError);
-    expect(route).not.toHaveBeenCalled();
+    const failure = runAgent({ task: "Anything" }, deps);
+
+    await expect(failure).rejects.toBeInstanceOf(LimitExceededError);
+    await expect(failure).rejects.toMatchObject({ key: "limits.perDay.cost", limit: 10 });
+    expect(requests).toEqual([]);
+  });
+
+  it("gives the run the run cap while the day is young", async () => {
+    const deps = fakeDeps(
+      { "test/router": [decide("alpha"), decide("answer", "done")], "test/alpha": ["42"] },
+      memoryLedger(0.5),
+    );
+
+    expect((await runAgent({ task: "Anything" }, deps)).budgetUsd).toBe(1);
   });
 
   it("gives the run what is left of the day and records every call", async () => {
     const ledger = memoryLedger(9.75);
     const deps = fakeDeps(
-      { "test/router": [decide("alpha"), decide("finish", "done")], "test/alpha": ["42"] },
+      { "test/router": [decide("alpha"), decide("answer", "done")], "test/alpha": ["42"] },
       ledger,
     );
 
@@ -105,20 +100,5 @@ describe("daily cap in a run", () => {
       "alpha",
       "router:main",
     ]);
-  });
-
-  it("stops routing when the run's share of the day is spent", async () => {
-    const node = makeRouterNode({
-      router: { name: "main", route: vi.fn() },
-      options: [],
-      maxHops: 10,
-      maxCostUsd: 1,
-      historyLimit: 0,
-      summariesLimit: 0,
-    });
-
-    const update = await node(baseState({ budgetUsd: 0.01, usage: [usageRecord("alpha", 0.02)] }));
-
-    expect(update).toEqual({ next: "finish", routeReason: "budget exhausted" });
   });
 });

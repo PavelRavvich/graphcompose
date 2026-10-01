@@ -1,11 +1,8 @@
 import { resolveTools, type AssembledWorkflow, type WorkflowServices } from "../workflow.js";
-import {
-  DEFAULT_MAX_TOKENS,
-  resolveRouterModel,
-  type ProviderPreferences,
-  type RouterModel,
-  type Thinking,
-} from "../config/types.js";
+import { DEFAULT_MAX_TOKENS, type ProviderPreferences, type Thinking } from "../config/types.js";
+import { flowLines } from "../graph/flow-text.js";
+import { STEPS_PER_WORKING_NODE } from "../graph/limits.js";
+import { isJevModel } from "../graph/router-model.js";
 import { configSnapshot } from "../run/versions.js";
 import { shortVersion, versionOf } from "../terns/index.js";
 import { isMcpFacade, type AnyTool } from "../tools/index.js";
@@ -20,8 +17,6 @@ const describeServices: WorkflowServices = {
 
 const thinkingLabel = (thinking: Thinking): string =>
   typeof thinking === "string" ? thinking : `${String(thinking.budgetTokens)} tokens`;
-
-const routerLabel = (model: RouterModel): string => `${model.kind} ${model.model}`;
 
 function toolLine(tool: AnyTool, bundle: AssembledWorkflow): string {
   const kind = isMcpFacade(tool) ? `MCP ${tool.mcp.server}` : "local";
@@ -43,11 +38,36 @@ function bundleLines(bundle: AssembledWorkflow): string[] {
       ? "raw turns only"
       : `compaction every ${String(c.compaction.every)} turns, keep ${String(c.compaction.keep)} summaries · ${c.compaction.model.model}`;
   return [
-    `router    ${routerLabel(resolveRouterModel(c.routers.main, c.defaults))} · maxHops ${String(c.routers.main.maxHops)}`,
     `guards    input: ${inputGuards.join(", ") || "none"} · output: ${outputGuards.join(", ") || "none"}`,
     `memory    ${memory}`,
     `pause     ${bundle.needsApproval === undefined ? "off" : "on — marked tools wait for a human"}`,
-    `budget    run $${String(c.budget.runBudgetCap)} · day $${String(c.budget.dailyBudgetCap)} · eval $${String(c.budget.evalBudgetCap)}`,
+    `limits    ${limitsLabel(bundle)}`,
+  ];
+}
+
+/** `run 12 steps · $0.1 · day $1`; steps default to (agents + routers) × 3. */
+function limitsLabel(bundle: AssembledWorkflow): string {
+  const { perRun, perDay } = bundle.limits;
+  const working = Object.keys(bundle.config.agents).length + bundle.routers.length;
+  const steps =
+    perRun?.steps === undefined
+      ? `${String(working * STEPS_PER_WORKING_NODE)} steps (default)`
+      : `${String(perRun.steps)} steps`;
+  const runCost = perRun?.cost === undefined ? "" : ` · $${String(perRun.cost)}`;
+  const day = perDay?.cost === undefined ? "no daily cap" : `$${String(perDay.cost)}`;
+  return `run ${steps}${runCost} · day ${day}`;
+}
+
+/** The flow as transitions, and each router's model and visit limit. */
+function flowSection(bundle: AssembledWorkflow): string[] {
+  return [
+    "flow",
+    ...flowLines(bundle.flow).map((line) => `  ${line}`),
+    "routers",
+    ...bundle.routers.map(
+      (router) =>
+        `  ${router.name}  ${isJevModel(router.model) ? "jev" : "llm"} ${router.model}${router.maxVisits === undefined ? "" : ` · maxVisits ${String(router.maxVisits)}`} — ${router.description}`,
+    ),
   ];
 }
 
@@ -103,7 +123,7 @@ function agentLines(bundle: AssembledWorkflow, tools: ReadonlyMap<string, AnyToo
   });
 }
 
-/** The workflow at a glance: settings, and which agent can use which tool. */
+/** The workflow at a glance: settings, the flow as transitions, and which agent can use which tool. */
 export function describeWorkflow(bundle: AssembledWorkflow, profile = "base"): string[] {
   const c = bundle.config;
   const tools = new Map(
@@ -114,6 +134,7 @@ export function describeWorkflow(bundle: AssembledWorkflow, profile = "base"): s
   return [
     `${c.name} ${c.version}${profile === "base" ? "" : ` (profile ${profile})`} · config ${shortVersion(versionOf(configSnapshot(bundle)))}`,
     ...bundleLines(bundle),
+    ...flowSection(bundle),
     "agents",
     ...agentLines(bundle, tools),
     `unassigned tools: ${unassigned.join(", ") || "none"}`,

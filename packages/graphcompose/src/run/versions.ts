@@ -3,13 +3,20 @@ import { DEFAULT_COMPACTION_PROMPT } from "../prompts/compaction.js";
 import { ragPromptTexts } from "../prompts/rag.js";
 import { routerPromptTexts } from "../routers/index.js";
 import { versionOf } from "../terns/index.js";
+import { flowLines } from "../graph/flow-text.js";
 import type { RunDeps } from "./types.js";
 
 /** Everything a run's behaviour depends on in config and prompts — what `configHash` hashes. */
 export const configSnapshot = <TName extends string>(
-  deps: Pick<RunDeps<TName>, "config" | "prompts" | "compactionPrompt">,
+  deps: Pick<
+    RunDeps<TName>,
+    "config" | "prompts" | "compactionPrompt" | "flow" | "limits" | "routers"
+  >,
 ): unknown => ({
   config: deps.config,
+  flow: flowLines(deps.flow),
+  limits: deps.limits,
+  routers: deps.routers,
   prompts: deps.prompts,
   compactionPrompt: deps.compactionPrompt ?? null,
 });
@@ -35,6 +42,11 @@ export function runVersions<TName extends string>(
     promptVersion: versionOf({
       agents: deps.prompts,
       routers: routerPromptTexts,
+      flowRouters: deps.routers.map(({ name, instructions, routes }) => ({
+        name,
+        instructions,
+        routes,
+      })),
       reasoning: reasoningPromptTexts,
       rag: ragPromptTexts,
       ...(deps.config.compaction === undefined
@@ -44,7 +56,7 @@ export function runVersions<TName extends string>(
     }),
     modelVersion: versionOf({
       defaults: deps.config.defaults,
-      routers: deps.config.routers,
+      routers: deps.routers.map(({ name, model }) => ({ name, model })),
       agents: deps.config.agents,
     }),
     configVersion: deps.config.version,

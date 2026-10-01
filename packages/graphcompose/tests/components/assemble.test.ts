@@ -21,6 +21,7 @@ import {
   GreetTool,
   GREETING,
 } from "./fixture/components.js";
+import { starOf, TestSettings } from "../fixtures/test-flow/star.js";
 
 const services: WorkflowServices = {
   router: (name) => ({ name, route: () => Promise.reject(new Error("unused")) }),
@@ -37,8 +38,6 @@ const ctx: ToolContext = {
 const baseBundle = {
   version: "1.0.0",
   defaults: testConfig.defaults,
-  budget: testConfig.budget,
-  routers: testConfig.routers,
 };
 
 describe("components — assembly", () => {
@@ -84,8 +83,13 @@ describe("components — assembly", () => {
 
 describe("components — errors at assembly", () => {
   it("AC3: an unregistered provider names the component", async () => {
-    @Workflow({ ...baseBundle, name: "no-providers", agents: [GreeterAgent], mcp: [FilesServer] })
-    class NoProviders {}
+    @Workflow({
+      ...baseBundle,
+      name: "no-providers",
+      flow: starOf(GreeterAgent),
+      mcp: [FilesServer],
+    })
+    class NoProviders extends TestSettings {}
 
     await expect(workflowOf(NoProviders)).rejects.toThrow(
       'GreetTool: "Greeter" is not registered in @Workflow({ providers })',
@@ -124,8 +128,8 @@ describe("components — errors at assembly", () => {
       return A;
     };
     const bundleWith = (agentClass: abstract new () => unknown) => {
-      @Workflow({ ...baseBundle, name: "x", agents: [agentClass] })
-      class B {}
+      @Workflow({ ...baseBundle, name: "x", flow: starOf(agentClass) })
+      class B extends TestSettings {}
       return B;
     };
     const prompt = "./fixture/greeter.prompt.md";

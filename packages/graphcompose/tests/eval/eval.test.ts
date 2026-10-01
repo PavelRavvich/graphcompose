@@ -19,7 +19,7 @@ const adequate = (confidence?: number): RouteOutcome => ({
 async function answeredRuns(count: number) {
   const script: Record<string, string[]> = { "test/router": [], "test/alpha": [] };
   for (let i = 0; i < count; i += 1) {
-    script["test/router"]?.push(decide("alpha"), decide("finish", "done"));
+    script["test/router"]?.push(decide("alpha"), decide("answer", "done"));
     script["test/alpha"]?.push(`answer ${String(i)}`);
   }
   const deps = fakeDeps(script);

@@ -3,7 +3,7 @@ import { ScaffoldError } from "../scaffold/errors.js";
 import { KINDS, planGenerate } from "../scaffold/generate.js";
 import { applyChanges } from "../scaffold/write.js";
 
-// gc generate <workflow|agent|tool|mcp|rag> <name> --workflow <path> [--agent <name>] [--description "…"]
+// gc generate <workflow|agent|router|tool|mcp|rag> <name> --workflow <path> [--agent <name>] [--description "…"]
 //   [--dir <folder> | --command <cmd> --tool <name>] [--folder <dir>]
 const { positionals, values } = parseArgs({
   allowPositionals: true,

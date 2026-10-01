@@ -73,14 +73,16 @@ describe("createChatModel", () => {
 });
 
 describe("createAppDeps", () => {
-  it("wires every configured agent with a prompt and the Jev main router", async () => {
+  it("wires every agent of the flow with a prompt, and its Jev router", async () => {
     const deps = await createAppDeps(await workflowOf(TestWorkflow), {
       OPENROUTER_API_KEY: "k",
       TERN_DB: ":memory:",
     });
 
     expect([...deps.registry.agents.keys()].sort()).toEqual(Object.keys(deps.prompts).sort());
-    expect(deps.router.name).toBe("main");
+    expect(deps.routers.map((router) => [router.name, router.model])).toEqual([
+      ["main", "typesafe/jev-1.13"],
+    ]);
     expect(deps.tools("current_time").name).toBe("current_time");
     await deps.close();
   });

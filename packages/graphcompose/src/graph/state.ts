@@ -4,9 +4,6 @@ import type { ApprovalRecord, PendingApproval } from "../pause/index.js";
 import type { Contribution, HistoryTurn } from "./contributions.js";
 import type { AttemptRecord } from "./nodes/attempts.js";
 
-/** Router decision meaning "stop and produce the answer". */
-export const FINISH = "finish";
-
 const append = <TItem>(left: TItem[], right: TItem[]): TItem[] => left.concat(right);
 
 /** Single source of truth for the graph state. Nodes return only the keys they own. */
@@ -16,11 +13,10 @@ export const AgentState = Annotation.Root({
   history: Annotation<HistoryTurn[]>({ reducer: (_previous, next) => next, default: () => [] }),
   /** Id of this run (tools and logs). */
   runId: Annotation<string>({ reducer: (_previous, next) => next, default: () => "" }),
-  /** Agent chosen by the router, or FINISH. */
+  /** The node the last router chose (an agent's name while it runs). */
   next: Annotation<string>(),
-  routeReason: Annotation<string>(),
-  /** Number of agent invocations so far (bounded by router.maxHops). */
-  hops: Annotation<number>({ reducer: (left, right) => left + right, default: () => 0 }),
+  /** Why the last router chose what it chose ("" before any router decided). */
+  routeReason: Annotation<string>({ reducer: (_previous, next) => next, default: () => "" }),
   contributions: Annotation<Contribution[]>({ reducer: append, default: () => [] }),
   /** FinOps: spend allowed for this run (run cap ∩ what is left of the workflow's daily cap). */
   budgetUsd: Annotation<number>({

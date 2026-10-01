@@ -1,0 +1,10 @@
+import { ChatMessage } from "graphcompose/dto";
+import { Entry } from "graphcompose/graph";
+
+/** Where a conversation turn starts: the user's message. */
+@Entry({
+  name: "chat-message",
+  description: "A message from the user",
+  input: ChatMessage,
+})
+export class ChatEntry {}

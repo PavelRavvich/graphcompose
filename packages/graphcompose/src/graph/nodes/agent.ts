@@ -159,7 +159,6 @@ export function makeAgentNode(deps: AgentNodeDeps): AsyncNode<AgentStateType, Ag
       const pending = pass.pending.value;
       if (pending !== undefined) return { usage: pass.records, pending };
       return {
-        hops: 1,
         contributions: [{ agent: state.next, content }],
         usage: pass.records,
         attempts,

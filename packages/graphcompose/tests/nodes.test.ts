@@ -1,64 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { makeAgentNode, UnknownAgentError } from "../src/graph/nodes/agent.js";
-import {
-  makeRouterNode,
-  type RouterNodeDeps,
-  AFTER_HUMAN_DECISION,
-} from "../src/graph/nodes/router.js";
-import { FINISH } from "../src/graph/state.js";
+import { AFTER_HUMAN_DECISION, makeFlowRouterNode } from "../src/graph/nodes/flow-router.js";
 import type { RouteOutcome, RouteRequest } from "../src/routers/index.js";
-import { baseState, fakeDeps, usageRecord } from "./helpers.js";
-
-const routerDeps = (outcome: RouteOutcome): RouterNodeDeps => ({
-  router: { name: "main", route: vi.fn(() => Promise.resolve(outcome)) },
-  options: [{ name: "alpha", description: "a" }],
-  maxHops: 2,
-  maxCostUsd: 0.01,
-  historyLimit: 0,
-  summariesLimit: 0,
-});
-
-const paid = usageRecord("router:main", 0.001);
-
-describe("router node", () => {
-  it("routes to the decided agent and records usage", async () => {
-    const deps = routerDeps({
-      kind: "decided",
-      decision: { next: "alpha", reason: "r" },
-      usage: paid,
-    });
-
-    const update = await makeRouterNode(deps)(baseState());
-
-    expect(update).toEqual({ next: "alpha", routeReason: "r", usage: [paid] });
-  });
-
-  it("finishes with the failure reason when routing fails", async () => {
-    const deps = routerDeps({ kind: "failed", reason: "router error: down", usage: paid });
-
-    const update = await makeRouterNode(deps)(baseState());
-
-    expect(update).toEqual({ next: FINISH, routeReason: "router error: down", usage: [paid] });
-  });
-
-  it("finishes without routing when max hops is reached", async () => {
-    const deps = routerDeps({ kind: "failed", reason: "x", usage: paid });
-
-    const update = await makeRouterNode(deps)(baseState({ hops: 2 }));
-
-    expect(update).toEqual({ next: FINISH, routeReason: "max hops reached" });
-    expect(deps.router.route).not.toHaveBeenCalled();
-  });
-
-  it("finishes without routing when the budget is exhausted", async () => {
-    const deps = routerDeps({ kind: "failed", reason: "x", usage: paid });
-
-    const update = await makeRouterNode(deps)(baseState({ usage: [usageRecord("alpha", 0.02)] }));
-
-    expect(update).toEqual({ next: FINISH, routeReason: "budget exhausted" });
-    expect(deps.router.route).not.toHaveBeenCalled();
-  });
-});
+import { testRouters } from "./fixtures/test-flow/test.flow.js";
+import { baseState, fakeDeps, flowState } from "./helpers.js";
 
 describe("agent node", () => {
   const agents = () => {
@@ -84,11 +29,10 @@ describe("agent node", () => {
     };
   };
 
-  it("adds a trimmed contribution, one hop and a usage record", async () => {
+  it("adds a trimmed contribution and a usage record", async () => {
     const update = await makeAgentNode(agents())(baseState({ next: "alpha" }));
 
     expect(update.contributions).toEqual([{ agent: "alpha", content: "alpha result" }]);
-    expect(update.hops).toBe(1);
     expect(update.usage).toHaveLength(1);
   });
 
@@ -99,34 +43,21 @@ describe("agent node", () => {
   });
 });
 
-describe("first hop", () => {
-  it("does not offer finish until an agent has answered", async () => {
-    const route = vi.fn<(request: RouteRequest) => Promise<RouteOutcome>>(() =>
-      Promise.resolve({ kind: "decided", decision: { next: "alpha", reason: "r" } }),
-    );
-    const node = makeRouterNode({
-      ...routerDeps({ kind: "failed", reason: "unused" }),
-      router: { name: "main", route },
-      options: [
-        { name: "alpha", description: "a" },
-        { name: FINISH, description: "done" },
-      ],
-    });
-
-    await node(baseState());
-    await node(baseState({ contributions: [{ agent: "alpha", content: "a" }] }));
-
-    const offered = route.mock.calls.map(([request]) => request.options.map((o) => o.name));
-    expect(offered[0]).toEqual(["alpha"]);
-    expect(offered[1]).toEqual(["alpha", FINISH]);
-  });
-});
-
 describe("after a human decision the turn ends (#100)", () => {
-  const route = () =>
-    vi.fn<(request: RouteRequest) => Promise<RouteOutcome>>(() =>
+  const [loaded] = testRouters;
+  if (loaded === undefined) throw new Error("test router missing");
+  const routerNode = () => {
+    const route = vi.fn<(request: RouteRequest) => Promise<RouteOutcome>>(() =>
       Promise.resolve({ kind: "decided", decision: { next: "alpha", reason: "again" } }),
     );
+    const node = makeFlowRouterNode({
+      router: { name: "main", route },
+      loaded,
+      memory: { summaries: 0, turns: 0 },
+      conclusion: "answer",
+    });
+    return { node, route };
+  };
   const decision = (approved: boolean) => ({
     agent: "alpha",
     tool: "note_save",
@@ -136,43 +67,31 @@ describe("after a human decision the turn ends (#100)", () => {
   });
   const answered = [{ agent: "alpha", content: "not saved" }];
 
-  it("AC1 (#100): after a rejected call and the agent's answer — finish, the router is not asked", async () => {
-    const router = route();
-    const node = makeRouterNode({
-      ...routerDeps({ kind: "failed", reason: "unused" }),
-      router: { name: "main", route: router },
-    });
+  it("AC1 (#100): after a rejected call and the agent's answer — the answer, the router is not asked", async () => {
+    const { node, route } = routerNode();
 
-    const update = await node(baseState({ contributions: answered, approvals: [decision(false)] }));
+    const update = await node(flowState({ contributions: answered, approvals: [decision(false)] }));
 
-    expect(update).toMatchObject({ next: FINISH, routeReason: AFTER_HUMAN_DECISION });
-    expect(router).not.toHaveBeenCalled();
+    expect(update).toEqual({ next: "answer", routeReason: AFTER_HUMAN_DECISION });
+    expect(route).not.toHaveBeenCalled();
   });
 
   it("AC2 (#100): after an approved call and the agent's answer — the same", async () => {
-    const router = route();
-    const node = makeRouterNode({
-      ...routerDeps({ kind: "failed", reason: "unused" }),
-      router: { name: "main", route: router },
-    });
+    const { node, route } = routerNode();
 
     expect(
-      await node(baseState({ contributions: answered, approvals: [decision(true)] })),
-    ).toMatchObject({ next: FINISH });
-    expect(router).not.toHaveBeenCalled();
+      await node(flowState({ contributions: answered, approvals: [decision(true)] })),
+    ).toMatchObject({ next: "answer" });
+    expect(route).not.toHaveBeenCalled();
   });
 
   it("AC3 (#100): without human decisions the router decides as before", async () => {
-    const router = route();
-    const node = makeRouterNode({
-      ...routerDeps({ kind: "failed", reason: "unused" }),
-      router: { name: "main", route: router },
-    });
+    const { node, route } = routerNode();
 
-    expect(await node(baseState({ contributions: answered }))).toMatchObject({
+    expect(await node(flowState({ contributions: answered }))).toMatchObject({
       next: "alpha",
       routeReason: "again",
     });
-    expect(router).toHaveBeenCalledTimes(1);
+    expect(route).toHaveBeenCalledTimes(1);
   });
 });

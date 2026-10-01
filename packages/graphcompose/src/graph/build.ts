@@ -35,15 +35,20 @@ type Builder = StateGraph<typeof FlowState.spec, FlowStateType, FlowStateUpdate,
 
 function runnerOf(
   node: FlowNodeRef,
+  model: FlowModel,
   runtime: FlowRuntime,
   routers: ReadonlyMap<string, LoadedRouter>,
 ): { readonly runner: FlowNodeRunner; readonly maxVisits?: number } {
   const loaded = routers.get(node.name);
   if (node.kind !== "router" || loaded === undefined) return { runner: runtime.runnerFor(node) };
+  const conclusion = loaded.routes.find(
+    (item) => model.nodes.get(item.option)?.kind === "conclusion",
+  )?.option;
   const runner = makeFlowRouterNode({
     router: runtime.routerFor(loaded),
     loaded,
     memory: runtime.routerMemory,
+    ...(conclusion === undefined ? {} : { conclusion }),
   });
   return loaded.maxVisits === undefined ? { runner } : { runner, maxVisits: loaded.maxVisits };
 }
@@ -81,6 +86,12 @@ function entryEdges(builder: Builder, model: FlowModel): void {
   builder.addConditionalEdges(START, pick, pathMap(model, names));
 }
 
+/** After an entry: a tripped input guard ends the run before any working node spends money. */
+const afterEntry =
+  (target: string) =>
+  (state: FlowStateType): string =>
+    state.guarded === "" ? target : END;
+
 function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void {
   const next = model.next.get(node.name);
   const id = graphNodeId(node);
@@ -89,7 +100,12 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
     return;
   }
   if (next.kind === "to") {
-    builder.addEdge(id, graphNodeId(nodeNamed(model, next.target)));
+    const target = graphNodeId(nodeNamed(model, next.target));
+    if (node.kind === "entry") {
+      builder.addConditionalEdges(id, afterEntry(target), [target, END]);
+      return;
+    }
+    builder.addEdge(id, target);
     return;
   }
   const self = next.self ? predecessorsOf(model.collected, node.name).map((ref) => ref.name) : [];
@@ -110,7 +126,7 @@ function compileFlow(
     string
   >(FlowState);
   for (const node of model.nodes.values()) {
-    const { runner, maxVisits } = runnerOf(node, runtime, routers);
+    const { runner, maxVisits } = runnerOf(node, model, runtime, routers);
     const deps = {
       limits,
       spentToday: runtime.spentToday,

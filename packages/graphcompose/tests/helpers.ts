@@ -1,12 +1,17 @@
 import { FakeListChatModel } from "@langchain/core/utils/testing";
-import { MODEL_MAX, resolveRouterModel, type AgentsConfigOf } from "../src/config/types.js";
+import { MODEL_MAX, type AgentsConfigOf } from "../src/config/types.js";
 import type { UsageRecord } from "../src/finops/usage.js";
 import type { SpendLedger } from "../src/finops/ledger.js";
 import type { AgentStateType } from "../src/graph/state.js";
+import type { FlowStateType } from "../src/graph/flow-state.js";
 import type { JevClient } from "../src/llm/jev-client.js";
 import { createModelRegistry, type ModelFactory } from "../src/llm/registry.js";
 import type { RunDeps } from "../src/index.js";
-import { createRouter } from "../src/routers/index.js";
+import type { RouteRequest } from "../src/routers/index.js";
+import { flowRouterFactory } from "../src/graph/router-model.js";
+import type { WorkflowLimits } from "../src/graph/settings.js";
+import { usd } from "../src/units/index.js";
+import { testFlow, testRouters } from "./fixtures/test-flow/test.flow.js";
 import { NO_GUARDS } from "../src/guards/index.js";
 import { createSqliteTernStore } from "../src/terns/index.js";
 import { toolOf } from "../src/components/index.js";
@@ -15,7 +20,7 @@ import { Clock } from "./fixtures/test-workflow/test.workflow.js";
 
 export type TestAgent = "alpha" | "beta";
 
-/** Main router overridden to an LLM so graph tests can script routing with fake chat models. */
+/** The test agents' config; their flow (`testFlow`) routes through an LLM router ("test/router"). */
 export const testConfig: AgentsConfigOf<TestAgent> = {
   name: "test-bundle",
   version: "1.0.0",
@@ -24,13 +29,6 @@ export const testConfig: AgentsConfigOf<TestAgent> = {
     router: { kind: "jev", model: "typesafe/jev-test" },
     tools: { maxToolCalls: 3 },
     history: { limit: 2 },
-  },
-  budget: { runBudgetCap: 1, dailyBudgetCap: 10, evalBudgetCap: 5 },
-  routers: {
-    main: {
-      maxHops: 3,
-      model: { kind: "llm", model: "test/router", price: { inputPerMTok: 1, outputPerMTok: 2 } },
-    },
   },
   agents: {
     alpha: {
@@ -45,6 +43,9 @@ export const testConfig: AgentsConfigOf<TestAgent> = {
     },
   },
 };
+
+/** The test workflow's limits: $1 per run, $10 per day; steps by default ((2 + 1) × 3). */
+export const testLimits: WorkflowLimits = { perRun: { cost: usd(1) }, perDay: { cost: usd(10) } };
 
 /** Scripted responses per model slug. */
 export type ModelScript = Readonly<Record<string, string[]>>;
@@ -70,6 +71,23 @@ export function memoryLedger(spentToday = 0): SpendLedger & { readonly recorded:
   };
 }
 
+/** The test flow, its routers on `chatModel` ("test/router" scripts them) and the given limits. */
+export function flowDeps(
+  chatModel: ModelFactory,
+  limits: WorkflowLimits = testLimits,
+): Pick<RunDeps<TestAgent>, "flow" | "limits" | "routers" | "routerFor"> {
+  return {
+    flow: testFlow,
+    limits,
+    routers: testRouters,
+    routerFor: flowRouterFactory({
+      factories: { chatModel, jevClient: unusedJevClient },
+      chatDefaults: testConfig.defaults.chat,
+      chatModelSettings: (model) => ({ model, price: { inputPerMTok: 1, outputPerMTok: 2 } }),
+    }),
+  };
+}
+
 export function fakeDeps(
   script: ModelScript,
   ledger: SpendLedger = memoryLedger(),
@@ -78,12 +96,7 @@ export function fakeDeps(
   return {
     config: testConfig,
     registry: createModelRegistry(testConfig, chatModel),
-    router: createRouter(
-      "main",
-      resolveRouterModel(testConfig.routers.main, testConfig.defaults),
-      testConfig.defaults.chat,
-      { chatModel, jevClient: unusedJevClient },
-    ),
+    ...flowDeps(chatModel),
     prompts: { alpha: "You are alpha.", beta: "You are beta." },
     tools: libraryTool,
     ledger,
@@ -113,7 +126,6 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     runId: "run-test",
     next: "",
     routeReason: "",
-    hops: 0,
     contributions: [],
     usage: [],
     budgetUsd: Number.POSITIVE_INFINITY,
@@ -131,4 +143,36 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
 export function libraryTool(name: string): AnyTool {
   if (name === "current_time") return toolOf(new Clock());
   throw new Error(`Unknown tool "${name}"`);
+}
+
+/** The deps with every router request recorded (what the routers saw, in order). */
+export function recordingRouters<TDeps extends RunDeps<TestAgent>>(
+  deps: TDeps,
+): { readonly deps: TDeps; readonly requests: RouteRequest[] } {
+  const requests: RouteRequest[] = [];
+  const routerFor: TDeps["routerFor"] = (loaded) => {
+    const router = deps.routerFor(loaded);
+    return {
+      name: router.name,
+      route: (request) => {
+        requests.push(request);
+        return router.route(request);
+      },
+    };
+  };
+  return { deps: { ...deps, routerFor }, requests };
+}
+
+/** A flow state: `baseState` plus the engine's fields, before any node ran. */
+export function flowState(overrides: Partial<FlowStateType> = {}): FlowStateType {
+  return {
+    ...baseState(),
+    entry: "",
+    previousAgent: "",
+    visits: {},
+    steps: 0,
+    path: [],
+    daySpentBeforeRunUsd: null,
+    ...overrides,
+  };
 }

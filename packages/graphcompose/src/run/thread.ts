@@ -6,16 +6,12 @@ export class UnknownThreadError extends Error {
   override name = "UnknownThreadError";
 }
 
-/** Deepest history any router or agent of the config may need. */
+/** Deepest history any router (defaults) or agent of the config may need. */
 function historyDepth<TName extends string>(deps: RunDeps<TName>): number {
   const agentLimits = Object.values<{ readonly historyLimit?: number }>(deps.config.agents).map(
     (agent) => agent.historyLimit ?? 0,
   );
-  return Math.max(
-    deps.config.defaults.history.limit,
-    deps.config.routers.main.historyLimit ?? 0,
-    ...agentLimits,
-  );
+  return Math.max(deps.config.defaults.history.limit, ...agentLimits);
 }
 
 /** Deepest summary list any reader needs (compaction). */
@@ -24,7 +20,7 @@ function summariesDepth<TName extends string>(deps: RunDeps<TName>): number {
   const agentLimits = Object.values<{ readonly historySummaries?: number }>(deps.config.agents).map(
     (agent) => agent.historySummaries ?? fallback,
   );
-  return Math.max(fallback, deps.config.routers.main.historySummaries ?? fallback, ...agentLimits);
+  return Math.max(fallback, ...agentLimits);
 }
 
 const toTurns = (terns: readonly Tern[]): HistoryTurn[] =>

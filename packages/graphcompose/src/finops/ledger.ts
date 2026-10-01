@@ -1,7 +1,6 @@
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
-import type { AgentsConfig } from "../config/types.js";
 import type { UsageRecord } from "./usage.js";
 
 /**
@@ -15,17 +14,8 @@ export interface SpendLedger {
 
 export type Clock = () => Date;
 
-export class BudgetExceededError extends Error {
-  override name = "BudgetExceededError";
-}
-
 /** "2026-09-24" for any moment of that UTC day. */
 export const utcDay = (moment: Date): string => moment.toISOString().slice(0, 10);
-
-/** Spend allowed for one run: the run cap ∩ what is left of the workflow's daily cap. */
-export function runBudgetUsd(budget: AgentsConfig["budget"], spentTodayUsd: number): number {
-  return Math.min(budget.runBudgetCap, budget.dailyBudgetCap - spentTodayUsd);
-}
 
 const EntrySchema = z.object({
   at: z.string(),

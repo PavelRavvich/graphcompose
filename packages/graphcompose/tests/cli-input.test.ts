@@ -71,7 +71,7 @@ describe("multi-line messages", () => {
 describe("interrupted runs", () => {
   it("an aborted signal stops the run and stores an interrupted Tern", async () => {
     const deps = fakeDeps({
-      "test/router": [decide("alpha"), decide("finish")],
+      "test/router": [decide("alpha"), decide("answer")],
       "test/alpha": ["ok"],
     });
     const controller = new AbortController();
