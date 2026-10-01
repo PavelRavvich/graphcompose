@@ -18,7 +18,8 @@
     "format:check": "prettier --check .",
     "typecheck": "npm run typecheck --workspaces",
     "coverage": "npm run coverage --workspaces",
-    "check": "npm run build && npm run format:check && npm run lint && npm run typecheck && npm run coverage",
+    "check:rules": "scripts/check-rules-files.sh",
+    "check": "npm run check:rules && npm run build && npm run format:check && npm run lint && npm run typecheck && npm run coverage",
     "smoke": "npm run smoke -w graphcompose",
     "studio": "npm run build && langgraphjs dev"
   },

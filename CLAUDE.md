@@ -7,16 +7,18 @@ Multi-agent project on LangGraph + LangChain (TypeScript). Built with a three-ph
 
 - Node 22+, TypeScript (strict, fully typed — see `QUALITY.md` → Types), ESM
 - `@langchain/langgraph` (graph), `@langchain/core` (messages, prompts, tools, test fakes),
-  `langchain` (`createAgent` for tool-using agents), `zod`
+  `langchain` (`createAgent` for tool-using agents), `zod` (inside the framework only — workflows use
+  DTO classes, `graphcompose/dto`)
 - LLM access: **OpenRouter** only. Env: `OPENROUTER_API_KEY` (+ optional `OPENROUTER_BASE_URL`).
-  - Routers: default model **Jev** (`defaults.router`, Decisions API — probabilities, exact
-    cost); any router can override its model in config (e.g. `kind: "llm"`).
+  - Routers: each `@Router` names its own `model` — **Jev** (`typesafe/jev-*`, Decisions API —
+    probabilities, exact cost) or any chat model. Guards use `defaults.router` (Jev).
   - Agents: cheap chat models (default `moonshotai/kimi-k2.6`) via `@langchain/openai`, each with
     `maxTokens` (`MODEL_MAX` = model's maximum), `thinking`, `cache`.
-  - Everything is set in the workflow's components (`@Agent`, `@Workflow`) — reference: Wiki →
-    Components, Configuration.
+  - Everything is set in the workflow's components (`@Workflow` with its `flow` and `settings()`,
+    `@Router`, `@Agent`) — reference: Wiki → Workflow, Routers, Components, Configuration.
 - Observability: `langsmith` tracing via env (`LANGSMITH_TRACING=true`). FinOps: built-in cost
-  accounting, `runBudgetCap` per run and `dailyBudgetCap` per workflow (resets 00:00 UTC) (`QUALITY.md` → FinOps).
+  accounting; limits in the workflow's `settings().limits(...)` — per run (steps, cost) and per day
+  (cost, resets 00:00 UTC); hitting any limit fails the run (`QUALITY.md` → FinOps).
 - Vitest (+ v8 coverage), ESLint (`typescript-eslint` strict), Prettier,
   `@langchain/langgraph-cli` for LangGraph Studio
 
@@ -40,34 +42,96 @@ takes `--profile <name>` (`profiles/<workflow>/<name>.yaml`) and `--thread <id>`
 
 ## Architecture
 
-`START → input_guards → router ⇄ agent (→ approval, pause seam) → finalize → output_guards → END`
+**The workflow file is the graph** (Wiki → Workflow): `@Workflow({ flow: [...] })` lists the
+transitions with a small DSL from `graphcompose/graph`, checked at assembly and built into LangGraph.
+job-scout is a star:
 
-- `router` — graph adapter around an isolated `Router` (Jev by default) that picks the next agent
-  or `finish` (answered, waiting for the user, or impossible); stops on `maxHops` or budget before
-  spending. The first hop always goes to an agent.
-- `agent` — the chosen agent's loop (`createAgent`): own model, prompt, tools, optional `reasoning` (quality-gated attempts judged by Jev).
-- `input_guards` / `output_guards` — Jev yes/no checks; a trip returns the guard's refusal.
-- `approval` — only with a pause seam: a write tool waits for a human (`resumeAgent`).
+```ts
+flow: [
+  from(ChatEntry).to(MainRouter),
+  from(MainRouter).choose(Profiler, Scout, Shortlist, AnswerConclusion),
+  from(Profiler, Scout, Shortlist).to(MainRouter),
+],
+```
+
+- DSL: `from(A, B).to(C)` (unconditional, several sources = fan-in), `from(Router).choose(X, Y)`
+  (the router picks one), `chain(A, B, C)` (a straight line; a router only last), `node(Class, "name")`
+  (a second place for a class, declared once as a constant), `Self` (back to the node the router was
+  called after).
+- Node kinds: `@Entry` (where a run starts: input DTO, runs the input guards), `@Router` (picks the
+  next node), `@Agent` (its loop), `@Conclusion` (where a run ends: output DTO, the last answer,
+  runs the output guards).
+- **Assembly rules** fail at assembly, before any model call, with **all** violations at once
+  (`GraphRuleError`, stable codes `graph.*` / `router.*`): every node is a decorated class, one next
+  step per node, `choose` only from a router, a cycle needs a router, an entry exists, no unreachable
+  node or dead end, nothing after a conclusion, a router's `routes` equal its `choose(...)`.
+- `@Router` (Wiki → Routers): `prompt` / `promptUrls` say **how** to choose; `routes` say **what**
+  each choice means (`route(Profiler, "Reading the resume …")`) — route text is required; a route
+  **to a conclusion** is worded as a stop instruction ("Stop and send the answer: …"), never as "the
+  answer is ready". `maxVisits` bounds visits of one router. A router that fails or picks an unknown
+  route **fails the run** (`RouterDecisionError`) — no guessing.
+- `@Agent` — the agent's loop (`createAgent`): own model, prompt, tools, optional `reasoning`
+  (quality-gated attempts judged by Jev); `approval` — only with a pause seam: a write tool waits for
+  a human (`resumeAgent`).
+- Guards — Jev yes/no checks; an input guard trip ends the run at the entry with the guard's
+  refusal, an output guard checks the answer at the conclusion.
+- **Limits** in `settings()`: `WorkflowSettings.builder().limits({ perRun, perDay }).build()`,
+  e.g. `perRun: { steps: 12, cost: usd(0.1) }`, `perDay: { cost: usd(1) }`. Steps = visits of
+  agents and routers (default (agents + routers) × 3). Hitting any limit **fails the run** with
+  `LimitExceededError` naming the boundary key (`limits.perRun.steps`, `limits.perRun.cost`,
+  `limits.perDay.cost`, `routers.<name>.maxVisits`). LangGraph `recursionLimit` is only a safety
+  net far above the steps.
 - Every turn: spend to the daily ledger, a Tern to SQLite, financials in the result, optional
   tracing (Langfuse) and conversation compaction (summaries queue).
 - Components, Angular style (Wiki → Components): annotated classes, one per file, folders by kind
-  (`agents/`, `tools/`, `mcp/`, `rag/`); a `@Workflow` module lists them by class reference; dependencies
-  through the constructor, declared in `deps` (compiler-checked); prompts in `*.prompt.md`.
+  (`entries/`, `routers/`, `agents/`, `conclusions/`, `tools/`, `mcp/`, `rag/`, `services/`); the
+  `@Workflow` module places nodes in its `flow` and lists `mcp` servers and `providers` by class
+  reference; dependencies through the constructor, declared in `deps` (compiler-checked); prompts in
+  `*.prompt.md`. `@Injectable` services stay until #121 renames them.
+- **Data are DTO classes** (`graphcompose/dto`, Wiki → Standard DTOs): one field decorator per field
+  (`@Text`, `@Integer`, `@Flag`, `@OneOf`, `@ListOf`, `@Nested`, …), plain data, no methods. Tool
+  `input` / `output`, MCP server tools (`tools: { name: { input, output } }`), entry inputs and
+  conclusion outputs are DTOs; standard ones (`ChatMessage`, `TextAnswer`, …) come from the framework.
+  zod lives only inside the framework (external input it parses is still validated there).
 - Knowledge bases: a `@Rag` class implementing `RagConnector` in `rag/`, bound by agents with
   `rag: [{ use, mode: "tool" | "context" }]` (Wiki → Knowledge bases).
-- Add a tool: a `@Tool` class in `tools/`, referenced from an agent. Add an agent: `agents/<name>.ts`
-  - `<name>.prompt.md`, listed in `@Workflow`. A workflow = related agents under one directory with a
-    `*.workflow.ts`; commands find it by path (`--workflow`). Test tools with `toolOf(new Tool(fakes))`.
+- Add a tool: a `@Tool` class in `tools/` with `input` / `output` DTOs in `*.dto.ts`, referenced
+  from an agent. Add an agent: `agents/<name>.agent.ts` + `<name>.prompt.md`, placed in the `flow`
+  and in its router's `choose(...)` and `routes`. A workflow = its components under one directory
+  with a `*.workflow.ts`; commands find it by path (`--workflow`). Test tools with
+  `toolOf(new Tool(fakes))`.
 - **Component rules** (Wiki → Components): decorator = metadata (one option per line), constructor =
   dependencies (`private readonly`, one per line), methods = a contract — `implements` for your own
   (`ToolHandler<In, Out>`, `RagConnector`), `extends` + `override` for a standard implementation
-  (`SqliteFtsConnector`, `McpServerClient`); a schema and its type share one name; services do I/O, helpers
-  are pure. An `@McpTool` is a tool with its `*.server.ts` server injected.
-- **File conventions** (Wiki → Components): `*.agent.ts` + `*.prompt.md` (found by convention), `*.tool.ts`
-  - `*.tool.test.ts`, `*.server.ts` + `*.mcp.ts`, `*.rag.ts`, `*.service.ts` (`@Injectable`), `*.helper.ts`; tools keep `run`,
-    bulky helpers go to `*.helper.ts`.
+  (`SqliteFtsConnector`, `McpServerClient`); services do I/O, helpers are pure. An `@McpTool` is a
+  tool with its `*.server.ts` server injected.
+- **File conventions** (Wiki → Components): `*.entry.ts`, `*.router.ts`, `*.conclusion.ts`,
+  `*.agent.ts` + `*.prompt.md` (found by convention), `*.tool.ts` + `*.tool.test.ts`, `*.dto.ts`,
+  `*.server.ts` + `*.mcp.ts`, `*.rag.ts`, `*.service.ts` (`@Injectable`), `*.helper.ts`; tools keep
+  `run`, bulky helpers go to `*.helper.ts`.
 - **Framework and examples apart** (ESLint-enforced both ways): `packages/graphcompose` never imports
-  `examples/`; an example imports only `graphcompose` (its public `src/index.ts`), like an outside project.
+  `examples/`; an example imports only the public `graphcompose` entry points (`graphcompose`,
+  `graphcompose/graph`, `graphcompose/dto`, `graphcompose/units`), like an outside project.
+
+## Naming grammar (#127)
+
+Names repeat the same patterns everywhere, so one name lets you guess the others (Wiki →
+Components):
+
+- **Kind as the suffix, qualifier in front**: `MainRouter`, `CoderAgent`, `AnswerConclusion`.
+  DTOs are the exception: noun pairs from one root (`FileRead` → `FileContent`, `FileWrite` →
+  `FileWritten`); a DTO that belongs to a component kind starts with that kind.
+- **When + what** for things tied to a moment: `BeforeCallJudge`, `AfterCallJudge`.
+- **One limit → flat `max…`** (`maxVisits`); **several related → an object** named by what they
+  are, the scope stated once (`limits: { perRun: { steps, cost } }`).
+- **Closed sets are enums**, not string unions, in the public API.
+- **One field name per meaning** across variants (`reason` for every verdict).
+- **Full words.** Kept abbreviations: DTO, PII, MCP, RAG, JSON, CSV, CLI, URL, ID, API and the
+  command `gc`.
+- Getting something for a component is `…Of` (`schemaOf`, `modelOf`); attaching is
+  `<verb>(what).on(target)`; storage contracts are `…Repository` with Spring Data method names.
+- **Values with units** — `usd(0.5)`, `seconds(30)`, `minutes(5)` (`graphcompose/units`), no `Ms` /
+  `Usd` in names. `override…` only for replacing what is inherited.
 
 ## Conveyor
 
@@ -97,6 +161,9 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
   stdin). Docs → GitHub Wiki via `scripts/wiki.sh`, updated right after the merge; decisions →
   wiki pages `ADR-NNNN-Title`.
 - Routers never import graph/agents/prompts; import routers only via `src/routers/index.ts`.
+- **Example code before spec**: a new decorator or a new parameter enters a spec only after example
+  code using it is agreed.
+- New names follow the naming grammar (above, #127).
 - Screenshots and scratch output go to `.artifacts/` (git-ignored).
 
 ## Layout
@@ -106,21 +173,27 @@ packages/graphcompose/        the framework (npm package `graphcompose`; builds 
   src/
     index.ts        public API (components, runAgent / resumeAgent, createAppDeps, RAG, tools, types)
     components/     @Tool @Agent @McpServer @McpTool @Rag @Injectable @Workflow, DI container, workflowOf
+    dto/            `graphcompose/dto`: field decorators, DTO schemas and validation, standard/ DTOs
+    units/          `graphcompose/units`: usd(), seconds(), minutes()
     workflow.ts     the assembled workflow type; app.ts — production wiring (OpenRouter, MCP, ledger, Terns, tracing)
     cli/            main.ts (graphcompose <command>), load-workflow.ts, usage, terminal helpers
     config/         typed config schema, profiles (YAML overlays), defaults resolution
     rag/            knowledge-base contract (RagConnector) + reference SQLite FTS5 connector
-    graph/          state, routing, assembly, middleware, errors; nodes/ (guards, router, agent, approval, knowledge, finalize)
+    graph/          `graphcompose/graph`: flow.ts (DSL), route.ts, entry / router / conclusion decorators,
+                    rules.ts + check-flow.ts + router-rules.ts (assembly rules, rule-error.ts), build.ts
+                    (LangGraph), limits.ts, settings.ts, flow-state.ts, visit.ts; nodes/ (flow-router,
+                    agent loop, approval, guards, knowledge, finalize)
     llm/  routers/  tools/  guards/  terns/  run/  pause/  finops/  eval/  tracing/  prompts/  types/
     chat.ts, cli.ts, describe.ts, rag-index.ts, studio.ts   command entry points
   tests/            unit tests (helpers.ts = fakes; fixtures/ = test workflows); routers/ alone; smoke/ = real
   schema/           profile.schema.json (YAML autocomplete)
   bin/              graphcompose launcher
 examples/job-scout/          the example (package job-scout-example; depends on graphcompose)
-  src/              job-scout.workflow.ts, studio.ts; agents/ (*.agent.ts + *.prompt.md), tools/ (*.tool.ts),
-                    services/ (*.service.ts), mcp/ (*.mcp.ts), rag/ (*.rag.ts), helpers/ (*.helper.ts),
-                    config/, scripts/, data/
+  src/              job-scout.workflow.ts, studio.ts; entries/ (*.entry.ts), routers/ (*.router.ts),
+                    agents/ (*.agent.ts + *.prompt.md), conclusions/ (*.conclusion.ts), tools/ (*.tool.ts +
+                    *.dto.ts), services/ (*.service.ts), mcp/ (*.server.ts, *.mcp.ts, *.dto.ts),
+                    rag/ (*.rag.ts), helpers/ (*.helper.ts), config/, scripts/, data/
   tests/  profiles/  golden/
-scripts/        bootstrap-repo, bootstrap-labels, ticket, wiki, langfuse, coverage-badge
+scripts/        bootstrap-repo, bootstrap-labels, ticket, wiki, langfuse, coverage-badge, check-rules-files
 ../<repo>.wiki  GitHub Wiki working copy (separate git repo, never inside this repo)
 ```
