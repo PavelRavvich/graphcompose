@@ -16,7 +16,16 @@ self-review before every PR.
 - **Pure core, effectful edges.** Business logic is pure; I/O (LLM, network, fs) sits at the
   boundary behind a small interface.
 - **Names say intent.** `routeToolCall`, not `handle`. Booleans read as questions: `isFinal`,
-  `hasToolCalls`. No abbreviations except well-known ones (`id`, `url`, `llm`).
+  `hasToolCalls`. Full words; kept abbreviations: DTO, PII, MCP, RAG, JSON, CSV, CLI, URL, ID, API
+  (and `id`, `url`, `llm` in code).
+- **Naming grammar (#127)** for every public name: kind as the suffix (`MainRouter`,
+  `CoderAgent`; DTOs are noun pairs — `FileRead` → `FileContent`), when + what for moments
+  (`BeforeCallJudge`), `max…` for one limit and a `limits` object for several, enums for closed
+  sets, one field name per meaning, `…Of` for getting something for a component,
+  `<verb>(what).on(target)` for attaching, `…Repository` for storage contracts, values with units
+  (`usd()`, `seconds()`), `override…` only for replacing what is inherited.
+- **Example code before spec.** A new decorator or parameter enters a spec only after example code
+  using it is agreed.
 - **Refactor while green.** Only after tests pass; never mix refactor and behaviour change in
   one commit.
 
@@ -40,23 +49,32 @@ holds from its type**, not guess it from the name.
 - **Discriminated unions for variants and outcomes**:
   `type ToolResult<T> = { kind: "ok"; value: T } | { kind: "error"; error: ToolError }`.
   `switch` over `kind` is exhaustive (default branch assigns to `never`).
-- **One source per shape — derive, don't duplicate**: `z.infer<typeof Schema>`,
-  `typeof AgentState.State`, `ReturnType`, `Parameters`, `Pick` / `Omit`.
+- **One source per shape — derive, don't duplicate**: a DTO class is its own type; inside the
+  framework `z.infer<typeof Schema>`, `typeof FlowState.State`, `ReturnType`, `Parameters`,
+  `Pick` / `Omit`.
 - **Immutable by default**: `readonly` fields and `ReadonlyArray` for data; `as const` for
   literal tables.
 - **Compiler settings are the floor**: `strict` + `noUncheckedIndexedAccess`. No `any`, no
   non-null `!`, no `as` except at a validated boundary (parsing / branding). Exported functions
   have explicit return types.
-- External input (CLI, HTTP, tool arguments, model JSON output) is parsed with **zod** at the
-  boundary; inside the system, types are trusted.
+- **Data crossing a tool or MCP boundary are DTO classes** (`graphcompose/dto`): one field
+  decorator per field, plain data, validated by the framework at the boundary (tool arguments and
+  results, MCP server tools, entry input). Workflows never write zod.
+- External input the framework parses itself (CLI, config, settings, model JSON output) is
+  validated with **zod inside the framework**; inside the system, types are trusted.
 - Errors: throw typed `Error` subclasses with context; never swallow. No `console.log` in `src/`.
 
 ## Agents (LangGraph)
 
-- **Config-driven.** Agents, routers, models, thinking, caching, hop limit and budget live in
-  the workflow's components (`@Agent`, `@Workflow`), assembled into the config and zod-validated at startup.
-  Every chat model inherits `defaults.chat`; every router inherits `defaults.router` (Jev). Model
-  choice is config, never code. Reference: Wiki → Configuration.
+- **The workflow file is the graph.** `@Workflow({ flow: [...] })` with `from / to / choose /
+chain / node / Self` (Wiki → Workflow); nodes are `@Entry`, `@Router`, `@Agent`, `@Conclusion`.
+  Assembly rules run at assembly, before any model call, and report **all** violations at once
+  (`GraphRuleError` with stable codes). A new rule gets a code and a test.
+- **Config-driven.** Agents, models, thinking and caching live in the workflow's components
+  (`@Agent`, `@Router`, `@Workflow`), assembled into the config and validated at startup; limits
+  live in the workflow's `settings()` (`WorkflowSettings.builder().limits(...)`), not in config.
+  Every chat model inherits `defaults.chat`; each router names its own `model`; guards use
+  `defaults.router` (Jev). Model choice is config, never code. Reference: Wiki → Configuration.
 - **`MODEL_MAX` is the only way to say "no output cap"** — never a magic large number.
 - **Thinking and caching are per model**: `thinking` (`"default"`, effort level or
   `{ budgetTokens }`) and `cache`. Explicit cache breakpoints go through `withCacheBreakpoint`;
@@ -65,19 +83,25 @@ holds from its type**, not guess it from the name.
   `RouteOutcome` union (`decided` | `failed`); they import only `config`, `finops`, `llm`, and the
   rest of the code imports them only via `src/routers/index.ts` — ESLint-enforced. Routers are
   tested on their own (`npm run test:routers`), the graph adapter separately.
-- **Routing is built in, not a framework**: the router node wraps a `Router`; a pure
-  `routeAfterRouter` on a conditional edge switches on the state. Failures end the run safely.
+- **`@Router` = how + what.** `prompt` / `promptUrls` say how to choose; `routes` say what each
+  choice means (`route(Target, text)`, text required, the targets equal the router's `choose`). A route
+  **to a conclusion** is worded as a stop instruction ("Stop and send the answer: …") — worded as
+  "the answer is ready", Jev kept sending the turn back to the last agent (#116).
+- **A router failure fails the run** (`RouterDecisionError`: `router.failed`,
+  `router.unknown-route`) — no guessing, no fallback route; its spend is kept.
 - **Classification is not generation**: routing, guards and detection use a decision model
   (Jev) — calibrated probabilities over fixed options; chat models produce content.
-- State is declared once in `src/graph/state.ts` (`Annotation.Root`). Nodes are typed with
+- State is declared once (`src/graph/flow-state.ts`, `Annotation.Root`). Nodes are typed with
   `SyncNode` / `AsyncNode<TState, TUpdate>` and return only the keys they own.
 - Models are created only through the registry (`src/llm/registry.ts`) with the OpenRouter
   factory (`src/llm/model.ts`) and injected; tests inject fakes through the same registry.
 - Prompts live in `src/prompts/` (agents, graph) and `src/routers/prompts.ts` (routers own their
   prompts to stay isolated). No prompt strings inside nodes.
-- Tools: zod schema for arguments, tested standalone before being wired into a graph. For a
-  tool-using agent use `createAgent` from `langchain`.
-- Bound every loop: `router.maxHops` plus LangGraph `recursionLimit`.
+- Tools: `input` / `output` DTO classes (`*.dto.ts`), tested standalone (`toolOf(new Tool(fakes))`)
+  before being wired into a graph. For a tool-using agent use `createAgent` from `langchain`.
+- **Bound every loop**: a router's `maxVisits`, the run's steps limit (`limits.perRun.steps` —
+  visits of agents and routers, default (agents + routers) × 3), and LangGraph `recursionLimit` only
+  as a safety net far above the steps.
 
 ## FinOps
 
@@ -86,17 +110,21 @@ holds from its type**, not guess it from the name.
 - **Prefer reported cost over estimates**: Jev returns the exact cost per call
   (`costSource: "api"`); chat models are priced from the table (`costSource: "price-table"`,
   USD per 1M tokens in `agents.config.ts`, verified on openrouter.ai/models).
-- **Budget per workflow** (`config.name`, `budget` in config):
-  - `dailyBudgetCap` — USD the workflow may spend per UTC day; the counter resets at 00:00 UTC.
-    Spend is kept in a ledger outside the repo (`SPEND_LEDGER_DIR`, default
+- **Limits per workflow** in its `settings()`:
+  `.limits({ perRun: { steps: 12, cost: usd(0.1) }, perDay: { cost: usd(1) } })` (values with
+  units, `graphcompose/units`).
+  - `perDay.cost` — USD the workflow (`config.name`) may spend per UTC day; the counter resets at
+    00:00 UTC. Spend is kept in a ledger outside the repo (`SPEND_LEDGER_DIR`, default
     `~/.langgraph-agents/spend/<workflow>/<YYYY-MM-DD>.jsonl`) and written call by call while the
     run streams, so a crashed run's spend still counts.
-  - `runBudgetCap` — USD one run may spend. A run gets `min(runBudgetCap, dailyBudgetCap − spent
-today)`; nothing left → `BudgetExceededError` before any call.
-  - The router node checks the run budget before every paid routing call. Both caps are soft by
-    one call (a call in flight cannot be stopped); parallel runs of one workflow can overshoot the
-    daily cap by their in-flight calls. With `MODEL_MAX` one call is bounded only by the model.
-  - Only `runAgent` enforces the daily cap; `npm run studio` runs the graph without it.
+  - `perRun.cost` — USD one run may spend; `perRun.steps` — visits of agents and routers.
+  - Every limit is checked before each agent or router visit. Hitting one **fails the run** —
+    never a quiet stop — with `LimitExceededError` naming the boundary key
+    (`limits.perRun.steps`, `limits.perRun.cost`, `limits.perDay.cost`,
+    `routers.<name>.maxVisits`), the path and the spend so far.
+  - Cost limits are soft by one call (a call in flight cannot be stopped); parallel runs of one
+    workflow can overshoot the daily limit by their in-flight calls. With `MODEL_MAX` one call is
+    bounded only by the model.
 - **Caching is accounted**: cached input is priced at `cacheReadPerMTok` / `cacheWritePerMTok`
   (fallback: input price); `CostReport.cacheReadTokens` shows how much caching saved.
 - **Right-size models**: the cheapest capable model for routing/classification; expensive
@@ -124,7 +152,7 @@ today)`; nothing left → `BudgetExceededError` before any call.
 - [ ] No duplicated logic introduced
 - [ ] Every new concept has a named type; no anonymous object types in exported signatures
 - [ ] Reusable code is generic, not duplicated per type; confusable primitives are branded
-- [ ] New external input is zod-validated
+- [ ] Tool and MCP data are DTOs; external input the framework parses is validated
 - [ ] No prompt strings in nodes, no real LLM in tests
 - [ ] Every new model call records usage; new agents have a price and a prompt
 - [ ] Names are intention-revealing; no dead code, no commented-out code
