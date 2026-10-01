@@ -25,12 +25,12 @@ const readTool: FakeTool = {
 describe("MCP tools: a tool with its server's client injected (#109)", () => {
   it("AC1: one class — metadata, the server through the constructor, behaviour in run (tested with a stub)", async () => {
     const files = mcpServerStub(FilesServer, {
-      read: ({ path }) => Promise.resolve(`stub ${path}`),
+      read: ({ path }) => Promise.resolve({ text: `stub ${path}` }),
     });
 
     expect(await toolOf(new ReadFile(files)).invoke({ path: "a.md" }, ctx)).toEqual({
       kind: "ok",
-      value: "stub a.md",
+      value: { text: "stub a.md" },
     });
   });
 
@@ -49,7 +49,7 @@ describe("MCP tools: a tool with its server's client injected (#109)", () => {
     expect(workflow.serverTools?.map((tool) => tool.name)).toEqual(["files__read"]);
     expect(await read?.invoke({ path: "notes.md" }, ctx)).toEqual({
       kind: "ok",
-      value: "contents of notes.md",
+      value: { text: "contents of notes.md" },
     });
   });
 

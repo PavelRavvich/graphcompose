@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { pathOf } from "../dto/errors.js";
 import type { Tool, ToolContext, ToolEffect, ToolResult } from "./types.js";
 
 export const DEFAULT_TOOL_TIMEOUT_MS = 30_000;
@@ -29,7 +30,7 @@ export interface ToolDefinition<TName extends string, TInput, TOutput> {
 }
 
 const describeIssues = (error: z.ZodError): string =>
-  error.issues.map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`).join("; ");
+  error.issues.map((issue) => `${pathOf(issue.path)}: ${issue.message}`).join("; ");
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);

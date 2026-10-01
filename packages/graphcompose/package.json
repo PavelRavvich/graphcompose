@@ -21,6 +21,10 @@
     "./units": {
       "types": "./dist/units/index.d.ts",
       "import": "./dist/units/index.js"
+    },
+    "./dto": {
+      "types": "./dist/dto/index.d.ts",
+      "import": "./dist/dto/index.js"
     }
   },
   "bin": {

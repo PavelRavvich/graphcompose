@@ -1,24 +1,30 @@
-import { z } from "zod";
 import { Agent, MODEL_MAX, Tool, Workflow, type ToolHandler } from "../../../src/index.js";
+import { DateTime, TimeZone } from "../../../src/dto/index.js";
 
 const price = { inputPerMTok: 0.5, outputPerMTok: 3, cacheReadPerMTok: 0.1 };
-const In = z.object({
-  timeZone: z.string().default("UTC").describe("IANA time zone, e.g. Asia/Tokyo"),
-});
-const Out = z.object({ iso: z.string(), timeZone: z.string() });
-type ClockQuery = z.infer<typeof In>;
-type ClockTime = z.infer<typeof Out>;
+class ClockQuery {
+  @TimeZone({ prompt: "IANA time zone, e.g. Asia/Tokyo", default: "UTC" })
+  timeZone!: string;
+}
+
+class ClockTime {
+  @DateTime()
+  iso!: string;
+
+  @TimeZone()
+  timeZone!: string;
+}
 
 /** A test tool: the time, from an injected clock. */
 @Tool({
   name: "current_time",
   description: "Current date and time in an IANA time zone (default UTC).",
-  input: In,
-  output: Out,
+  input: ClockQuery,
+  output: ClockTime,
 })
 export class Clock implements ToolHandler<ClockQuery, ClockTime> {
   constructor(private readonly now: () => Date = () => new Date("2026-09-25T10:00:00Z")) {}
-  run({ timeZone }: z.output<typeof In>): Promise<z.output<typeof Out>> {
+  run({ timeZone }: ClockQuery): Promise<ClockTime> {
     // an unknown time zone throws — the model sees it as a tool error
     new Intl.DateTimeFormat("en-GB", { timeZone }).format(this.now());
     return Promise.resolve({ iso: this.now().toISOString(), timeZone });

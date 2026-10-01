@@ -1,6 +1,6 @@
 import type { McpServerConfig } from "../config/types.js";
 import type { ToolEffect } from "../tools/index.js";
-import type { z } from "zod";
+import type { DtoClass } from "../dto/types.js";
 import type { ServerTools } from "./mcp-client.js";
 import type { Class, Token } from "./injection.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
@@ -10,8 +10,8 @@ export interface ToolMeta {
   readonly description: string;
   readonly effect?: ToolEffect;
   readonly timeoutMs?: number;
-  readonly input: z.ZodType;
-  readonly output: z.ZodType;
+  readonly input: DtoClass;
+  readonly output: DtoClass;
   readonly deps: readonly Token[];
 }
 

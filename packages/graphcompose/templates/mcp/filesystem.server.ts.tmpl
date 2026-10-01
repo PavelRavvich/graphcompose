@@ -1,7 +1,7 @@
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
 import { McpServer, McpServerClient } from "graphcompose";
-import { z } from "zod";
+import { Text } from "graphcompose/dto";
 
 /** The official filesystem MCP server (a dependency of this project). */
 const FILESYSTEM_SERVER = join(
@@ -10,14 +10,21 @@ const FILESYSTEM_SERVER = join(
   "index.js",
 );
 
-export const FilePath = z.object({ path: z.string().describe("absolute path of a file in {{dir}}") });
-export type FilePath = z.infer<typeof FilePath>;
-export const FileText = z.object({ content: z.string() });
-export type FileText = z.infer<typeof FileText>;
+/** `read_text_file`: which file. */
+export class FileRead {
+  @Text({ prompt: "absolute path of a file in {{dir}}" })
+  path!: string;
+}
+
+/** `read_text_file`: the file's text. */
+export class FileContent {
+  @Text({ prompt: "the file's text" })
+  content!: string;
+}
 
 /** The server tools this workflow uses — checked against the server at startup. */
 const tools = {
-  read_text_file: { input: FilePath, output: FileText },
+  read_text_file: { input: FileRead, output: FileContent },
 };
 
 /** Files in {{dir}}, through the filesystem MCP server. */

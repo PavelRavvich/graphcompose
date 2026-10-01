@@ -20,7 +20,7 @@ export function mcpFiles(dir: string, mcp: Exclude<McpSpec, { kind: "none" }>): 
   const serverTool = filesystem ? "read_text_file" : mcp.tool;
   const typeName = filesystem ? "" : namesOf(mcp.tool).pascal;
   const types = filesystem
-    ? { input: "FilePath", output: "FileText" }
+    ? { input: "FileRead", output: "FileContent" }
     : { input: `${typeName}Args`, output: `${typeName}Reply` };
   const serverFile = filesystem
     ? render("mcp/filesystem.server.ts.tmpl", { ...vars(n), dir: mcp.dir })

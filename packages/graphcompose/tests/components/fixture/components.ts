@@ -1,4 +1,3 @@
-import { z } from "zod";
 import {
   Agent,
   Workflow,
@@ -11,6 +10,7 @@ import {
   Tool,
   type ToolHandler,
 } from "../../../src/components/index.js";
+import { Text } from "../../../src/dto/index.js";
 import type { Router } from "../../../src/routers/index.js";
 import { testConfig } from "../../helpers.js";
 
@@ -27,28 +27,41 @@ export class Greeter {
   }
 }
 
-const GreetInput = z.object({ name: z.string() });
-const GreetOutput = z.string();
+class Person {
+  @Text({ prompt: "who to greet" })
+  name!: string;
+}
+
+class Greeting {
+  @Text()
+  text!: string;
+}
 
 @Tool({
   name: "greet",
   description: "Greets a person.",
-  input: GreetInput,
-  output: GreetOutput,
+  input: Person,
+  output: Greeting,
   deps: [Greeter],
 })
-export class GreetTool implements ToolHandler<z.infer<typeof GreetInput>, string> {
+export class GreetTool implements ToolHandler<Person, Greeting> {
   constructor(private readonly greeter: Greeter) {}
-  run(input: { name: string }): Promise<string> {
-    return Promise.resolve(this.greeter.greet(input.name));
+  run(input: Person): Promise<Greeting> {
+    return Promise.resolve({ text: this.greeter.greet(input.name) });
   }
 }
 
-const FilePath = z.object({ path: z.string() });
-type FilePath = z.infer<typeof FilePath>;
-const FileText = z.string();
-type FileText = z.infer<typeof FileText>;
-const filesTools = { read: { input: FilePath, output: FileText } };
+class FileRead {
+  @Text()
+  path!: string;
+}
+
+class FileContent {
+  @Text()
+  text!: string;
+}
+
+const filesTools = { read: { input: FileRead, output: FileContent } };
 
 @McpServer({
   name: "files",
@@ -62,14 +75,14 @@ export class FilesServer extends McpServerClient<typeof filesTools> {}
   server: FilesServer,
   name: "read_file",
   description: "Read a file.",
-  input: FilePath,
-  output: FileText,
+  input: FileRead,
+  output: FileContent,
   deps: [FilesServer],
 })
-export class ReadFile implements ToolHandler<FilePath, FileText> {
+export class ReadFile implements ToolHandler<FileRead, FileContent> {
   constructor(private readonly files: FilesServer) {}
 
-  run(file: FilePath): Promise<FileText> {
+  run(file: FileRead): Promise<FileContent> {
     return this.files.call("read", file);
   }
 }

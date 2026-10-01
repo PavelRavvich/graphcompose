@@ -34,7 +34,7 @@ export interface McpFacadeDefinition<
   readonly tool: TTool;
   readonly description: string;
   readonly input: z.ZodType<TInput>;
-  /** Required. Use `z.string()` for text only the model reads. */
+  /** Required. `z.string()` or an object of one field `text` for text only the model reads. */
   readonly output: z.ZodType<TOutput>;
   readonly effect?: ToolEffect;
   readonly timeoutMs?: number;
@@ -58,13 +58,21 @@ const CallResultSchema = z.object({
 const textOf = (content: z.infer<typeof CallResultSchema>["content"]): string =>
   content.map((part) => part.text ?? "").join("");
 
-/** Maps an MCP call result to the facade's output value; errors become thrown messages. */
+/** An output of one field `text` (e.g. `TextAnswer`): the server's text as is. */
+const isTextOutput = (output: z.ZodType): boolean =>
+  output instanceof z.ZodObject && Object.keys(output.shape).join() === "text";
+
+/**
+ * Maps an MCP call result to the facade's output value; errors become thrown messages. Structured
+ * content wins; text goes as is to a string or a `{ text }` output, otherwise it is parsed as JSON.
+ */
 export function mcpResultValue(raw: unknown, output: z.ZodType): unknown {
   const result = CallResultSchema.parse(raw);
   const text = textOf(result.content);
   if (result.isError === true) throw new Error(text || "MCP tool reported an error");
   if (result.structuredContent !== undefined) return result.structuredContent;
   if (output instanceof z.ZodString) return text;
+  if (isTextOutput(output)) return { text };
   const value: unknown = JSON.parse(text);
   return value;
 }
