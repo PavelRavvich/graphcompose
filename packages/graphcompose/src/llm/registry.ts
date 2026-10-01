@@ -1,5 +1,6 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { DEFAULT_MAX_RETRIES, DEFAULT_MAX_TOKENS, DEFAULT_TIMEOUT_MS } from "../config/types.js";
+import type { ChatModelUser, ModelGateway } from "./gateway.js";
 import type {
   AgentsConfigOf,
   ChatDefaults,
@@ -52,32 +53,27 @@ export function resolveSettings(
   };
 }
 
-/** Builds one binding per agent; identical settings share one client. */
+/** Builds one binding per agent; each model comes from the gateway (which shares identical ones). */
 export function createModelRegistry(
   config: AgentsConfigOf<string>,
-  factory: ModelFactory,
+  gateway: Pick<ModelGateway, "chatModel">,
 ): ModelRegistry {
-  const cache = new Map<string, BaseChatModel>();
-  const bind = (settings: ModelSettings): ModelBinding => {
-    const resolved = resolveSettings(settings, config.defaults.chat);
-    const key = JSON.stringify([
-      resolved.model,
-      resolved.temperature,
-      resolved.maxTokens,
-      resolved.thinking,
-      resolved.cache,
-    ]);
-    const model = cache.get(key) ?? factory(resolved);
-    cache.set(key, model);
-    return { model, settings: resolved };
-  };
+  const bindFor =
+    (user: ChatModelUser) =>
+    (settings: ModelSettings): ModelBinding => {
+      const resolved = resolveSettings(settings, config.defaults.chat);
+      return { model: gateway.chatModel({ user, settings: resolved }), settings: resolved };
+    };
   const agents = new Map(
-    Object.entries(config.agents).map(([name, settings]) => [name, bind(settings)] as const),
+    Object.entries(config.agents).map(
+      ([name, settings]) => [name, bindFor({ kind: "agent", agent: name })(settings)] as const,
+    ),
   );
   const attempts = new Map(
     Object.entries(config.agents).flatMap(([name, settings]) => {
       const reasoning = settings.reasoning;
       if (reasoning === undefined) return [];
+      const bind = bindFor({ kind: "agent", agent: name });
       const levels = Array.from(
         { length: reasoning.maxAttempts },
         (_, i) => reasoning.thinking[Math.min(i, reasoning.thinking.length - 1)] ?? "default",
@@ -90,6 +86,9 @@ export function createModelRegistry(
       return [[name, levels.map((level) => byLevel.get(level) ?? bind(settings))] as const];
     }),
   );
-  const compaction = config.compaction === undefined ? undefined : bind(config.compaction.model);
+  const compaction =
+    config.compaction === undefined
+      ? undefined
+      : bindFor({ kind: "compaction" })(config.compaction.model);
   return { agents, attempts, compaction };
 }

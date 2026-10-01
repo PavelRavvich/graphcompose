@@ -1,7 +1,7 @@
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { describe, expect, it, vi } from "vitest";
 import { createModelRegistry, resolveSettings } from "../src/llm/registry.js";
-import { testConfig } from "./helpers.js";
+import { fakeGateway, testConfig } from "./helpers.js";
 
 describe("resolveSettings", () => {
   it("fills missing temperature, maxTokens, thinking, cache, timeout and retries from defaults", () => {
@@ -42,7 +42,7 @@ describe("createModelRegistry", () => {
   it("binds every configured agent", () => {
     const registry = createModelRegistry(
       testConfig,
-      () => new FakeListChatModel({ responses: [] }),
+      fakeGateway(() => new FakeListChatModel({ responses: [] })),
     );
 
     expect([...registry.agents.keys()]).toEqual(["alpha", "beta"]);
@@ -58,7 +58,7 @@ describe("createModelRegistry", () => {
       },
     };
 
-    const registry = createModelRegistry(config, factory);
+    const registry = createModelRegistry(config, fakeGateway(factory));
 
     expect(factory).toHaveBeenCalledTimes(1);
     expect(registry.agents.get("alpha")?.model).toBe(registry.agents.get("beta")?.model);

@@ -4,7 +4,14 @@ import { formatHistory } from "../src/graph/contributions.js";
 import { runAgent, UnknownThreadError, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
 import { ScriptedChatModel } from "./fakes/scripted-model.js";
-import { decide, fakeDeps, recordingRouters, testConfig, type TestAgent } from "./helpers.js";
+import {
+  decide,
+  fakeDeps,
+  recordingRouters,
+  testConfig,
+  type TestAgent,
+  fakeGateway,
+} from "./helpers.js";
 
 /** Router: alpha then the answer, for `runs` runs; alpha answers from `answers`. */
 function setup(
@@ -28,8 +35,11 @@ function setup(
   const { deps, requests: routed } = recordingRouters<RunDeps<TestAgent>>({
     ...base,
     config,
-    registry: createModelRegistry(config, (settings) =>
-      settings.model === "test/alpha" ? alpha : new FakeListChatModel({ responses: ["x"] }),
+    registry: createModelRegistry(
+      config,
+      fakeGateway((settings) =>
+        settings.model === "test/alpha" ? alpha : new FakeListChatModel({ responses: ["x"] }),
+      ),
     ),
   });
   return { deps, alpha, routed };

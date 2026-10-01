@@ -18,6 +18,7 @@ import {
   testConfig,
   type TestAgent,
   libraryTool,
+  fakeGateway,
 } from "./helpers.js";
 
 interface Setup {
@@ -54,8 +55,11 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd 
   const router = new FakeListChatModel({ responses: routes });
   const deps: RunDeps<TestAgent> = {
     config,
-    registry: createModelRegistry(config, (settings) =>
-      settings.model === "test/alpha" ? model : new FakeListChatModel({ responses: ["beta"] }),
+    registry: createModelRegistry(
+      config,
+      fakeGateway((settings) =>
+        settings.model === "test/alpha" ? model : new FakeListChatModel({ responses: ["beta"] }),
+      ),
     ),
     ...flowDeps(() => router, {
       perRun: { cost: usd(runBudgetCap) },

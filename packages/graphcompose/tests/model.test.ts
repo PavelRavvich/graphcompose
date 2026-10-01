@@ -1,7 +1,14 @@
 import { TestWorkflow } from "./fixtures/test-workflow/test.workflow.js";
 import { workflowOf } from "../src/components/index.js";
-import { describe, expect, it } from "vitest";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { FakeListChatModel } from "@langchain/core/utils/testing";
+import { describe, expect, it, vi } from "vitest";
 import { createAppDeps } from "../src/app.js";
+import type { ModelGateway } from "../src/llm/gateway.js";
+import { runEntry } from "../src/run/run-entry.js";
+import { TestChat } from "./fixtures/test-flow/test.flow.js";
 import { MODEL_MAX, type ResolvedModelSettings } from "../src/config/types.js";
 import {
   createChatModel,
@@ -85,5 +92,49 @@ describe("createAppDeps", () => {
     ]);
     expect(deps.tools("current_time").name).toBe("current_time");
     await deps.close();
+  });
+});
+
+/** Decides by router: guards pass, "main" sends the message to the researcher once, then answers. */
+function scriptedDecisions(): ModelGateway["decide"] {
+  let mainVisits = 0;
+  return ({ router }) => {
+    const next = router.startsWith("guard:")
+      ? "pass"
+      : mainVisits++ === 0
+        ? "researcher"
+        : "answer";
+    return Promise.resolve({
+      kind: "decided",
+      decision: { next, reason: "scripted", confidence: 1 },
+    });
+  };
+}
+
+describe("AC12: createAppDeps on an injected model gateway", () => {
+  it("AC12: needs no OpenRouter credentials, and every model call of a run goes through the gateway", async () => {
+    const chatModel = vi.fn<ModelGateway["chatModel"]>(
+      () => new FakeListChatModel({ responses: ["Found it."] }),
+    );
+    const decide = vi.fn(scriptedDecisions());
+    const env = { TERN_DB: ":memory:", SPEND_LEDGER_DIR: mkdtempSync(join(tmpdir(), "gc-135-")) };
+    const deps = await createAppDeps(await workflowOf(TestWorkflow), env, undefined, {
+      chatModel,
+      decide,
+    });
+
+    const result = await runEntry(deps, TestChat, { text: "What time is it?" });
+    await deps.close();
+
+    expect(result.status).toBe("answered");
+    expect(decide.mock.calls.map(([spec]) => spec.router)).toEqual([
+      "guard:prompt_injection",
+      "main",
+      "main",
+      "guard:pii",
+    ]);
+    expect(chatModel).toHaveBeenCalledWith(
+      expect.objectContaining({ user: { kind: "agent", agent: "researcher" } }),
+    );
   });
 });

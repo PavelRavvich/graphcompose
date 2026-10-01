@@ -10,7 +10,7 @@ import { route } from "../../src/graph/route.js";
 import { Router } from "../../src/graph/router.decorator.js";
 import { flowRouterFactory, routerModelOf } from "../../src/graph/router-model.js";
 import type { Router as RoutingStrategy } from "../../src/routers/index.js";
-import { fakeChatFactory, unusedJevClient, usageRecord } from "../helpers.js";
+import { fakeChatFactory, fakeGateway, usageRecord } from "../helpers.js";
 import { codeReviewFlow } from "./fixtures/code-review.js";
 import { scriptedRouter, testRuntime } from "./fixtures/nodes.js";
 import { A, B, Done, Gate, Only, Pick, Start } from "./fixtures/rule-nodes.js";
@@ -145,10 +145,7 @@ class Chatty {}
 
 describe("AC1: routers through the existing routing strategies", () => {
   const deps = {
-    factories: {
-      chatModel: fakeChatFactory({ "test/router": ['{"next":"done","reason":"ok"}'] }),
-      jevClient: unusedJevClient,
-    },
+    gateway: fakeGateway(fakeChatFactory({ "test/router": ['{"next":"done","reason":"ok"}'] })),
     chatDefaults: { temperature: 0, thinking: "default" as const, cache: false },
     chatModelSettings: (model: string) => ({
       model,

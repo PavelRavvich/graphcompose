@@ -1,0 +1,181 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
+import { FakeListChatModel } from "@langchain/core/utils/testing";
+import { describe, expect, it, vi } from "vitest";
+import type { ResolvedModelSettings } from "../../src/config/types.js";
+import {
+  createModelGateway,
+  createOpenRouterGateway,
+  type ModelGateway,
+} from "../../src/llm/gateway.js";
+import type { JevClient } from "../../src/llm/jev-client.js";
+import { ModelConfigError } from "../../src/llm/model.js";
+import { createModelRegistry } from "../../src/llm/registry.js";
+import { createRouter, type RouteOutcome } from "../../src/routers/index.js";
+import { decide, fakeChatFactory, testConfig, unusedJevClient } from "../helpers.js";
+import { jevAnswer, request } from "../routers/fixtures.js";
+
+const settings: ResolvedModelSettings = {
+  model: "test/router",
+  temperature: 0,
+  maxTokens: 10,
+  thinking: "default",
+  cache: false,
+  timeoutMs: 1000,
+  maxRetries: 0,
+  price: { inputPerMTok: 1, outputPerMTok: 2 },
+};
+
+/** A gateway that answers every decision with `next` and hands out one fake chat model. */
+function recordingGateway(next = "alpha") {
+  const model = new FakeListChatModel({ responses: ["fake"] });
+  const chatModel = vi.fn<ModelGateway["chatModel"]>(() => model);
+  const outcome: RouteOutcome = { kind: "decided", decision: { next, reason: "stub" } };
+  const decideFn = vi.fn<ModelGateway["decide"]>(() => Promise.resolve(outcome));
+  return { gateway: { chatModel, decide: decideFn }, chatModel, decide: decideFn, model };
+}
+
+describe("AC12: the default model gateway", () => {
+  it("AC12: creates a chat model per settings and shares it between identical settings", () => {
+    const factory = vi.fn(fakeChatFactory({}));
+    const gateway = createModelGateway({ chatModel: factory, jevClient: unusedJevClient });
+
+    const first = gateway.chatModel({ user: { kind: "agent", agent: "alpha" }, settings });
+    const second = gateway.chatModel({ user: { kind: "compaction" }, settings });
+
+    expect(first).toBe(second);
+    expect(factory).toHaveBeenCalledOnce();
+  });
+
+  it("AC12: decides on Jev through the Jev client, with the routes as criteria", async () => {
+    const jev = vi.fn<JevClient>(() => Promise.resolve(jevAnswer({ choice: "finish" })));
+    const gateway = createModelGateway({ chatModel: fakeChatFactory({}), jevClient: jev });
+
+    const outcome = await gateway.decide({
+      router: "main",
+      model: { kind: "jev", model: "typesafe/jev-test" },
+      request,
+    });
+
+    expect(outcome).toMatchObject({ kind: "decided", decision: { next: "finish" } });
+    expect(jev.mock.calls[0]?.[0]).toMatchObject({
+      model: "typesafe/jev-test",
+      questions: { route: { criteria: { alpha: "facts", finish: "done" } } },
+    });
+  });
+
+  it("AC12: decides on a chat model it creates for the router, priced from its settings", async () => {
+    const factory = vi.fn(fakeChatFactory({ "test/router": [decide("alpha")] }));
+    const gateway = createModelGateway({ chatModel: factory, jevClient: unusedJevClient });
+
+    const outcome = await gateway.decide({
+      router: "main",
+      model: { kind: "llm", settings },
+      request,
+    });
+
+    expect(outcome).toMatchObject({
+      kind: "decided",
+      decision: { next: "alpha" },
+      usage: { caller: "router:main", model: "test/router", costSource: "price-table" },
+    });
+    expect(factory).toHaveBeenCalledWith(settings);
+  });
+
+  it("AC12: the OpenRouter gateway needs the API key before any call", () => {
+    expect(() => createOpenRouterGateway({})).toThrow(ModelConfigError);
+    expect(Object.keys(createOpenRouterGateway({ OPENROUTER_API_KEY: "k" }))).toEqual([
+      "chatModel",
+      "decide",
+    ]);
+  });
+});
+
+describe("AC12: model clients are asked for through the gateway", () => {
+  it("AC12: the registry asks the gateway for every agent, attempt and compaction model", () => {
+    const { gateway, chatModel, model } = recordingGateway();
+    const config = {
+      ...testConfig,
+      agents: {
+        ...testConfig.agents,
+        beta: {
+          ...testConfig.agents.beta,
+          reasoning: {
+            threshold: 0.8,
+            maxAttempts: 2,
+            thinking: ["low" as const, "high" as const],
+          },
+        },
+      },
+      compaction: {
+        every: 4,
+        keep: 2,
+        model: { model: "test/compact", price: { inputPerMTok: 1, outputPerMTok: 1 } },
+      },
+    };
+
+    const registry = createModelRegistry(config, gateway);
+
+    expect(registry.agents.get("alpha")?.model).toBe(model);
+    expect(chatModel.mock.calls.map(([spec]) => [spec.user, spec.settings.model])).toEqual([
+      [{ kind: "agent", agent: "alpha" }, "test/alpha"],
+      [{ kind: "agent", agent: "beta" }, "test/beta"],
+      [{ kind: "agent", agent: "beta" }, "test/beta"],
+      [{ kind: "agent", agent: "beta" }, "test/beta"],
+      [{ kind: "compaction" }, "test/compact"],
+    ]);
+  });
+
+  it("AC12: a router decides through gateway.decide with its name, model and request", async () => {
+    const { gateway, decide: decideFn } = recordingGateway("finish");
+    const router = createRouter(
+      "main",
+      testConfig.defaults.router,
+      testConfig.defaults.chat,
+      gateway,
+    );
+
+    const outcome = await router.route(request);
+
+    expect(outcome).toEqual({ kind: "decided", decision: { next: "finish", reason: "stub" } });
+    expect(decideFn).toHaveBeenCalledWith({
+      router: "main",
+      model: { kind: "jev", model: "typesafe/jev-test" },
+      request,
+    });
+  });
+
+  it("AC12: a router on a chat model passes its settings over the chat defaults", async () => {
+    const { gateway, decide: decideFn } = recordingGateway();
+    const model = { kind: "llm", model: "test/router", price: settings.price } as const;
+
+    await createRouter("main", model, testConfig.defaults.chat, gateway).route(request);
+
+    expect(decideFn.mock.calls[0]?.[0].model).toMatchObject({
+      kind: "llm",
+      settings: { model: "test/router", maxTokens: "max", cache: true },
+    });
+  });
+});
+
+const SRC = join(import.meta.dirname, "../../src");
+const MODEL_CLIENT_IMPORT = /from\s+["'](@langchain\/openai|[./]+llm\/(model|jev-client)\.js)["']/;
+const SEAM_DIRS = ["llm/", "routers/"];
+
+const sourceFiles = (dir: string): string[] =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return sourceFiles(path);
+    return entry.name.endsWith(".ts") ? [path] : [];
+  });
+
+describe("AC12: nothing outside src/llm and src/routers creates model clients", () => {
+  it("AC12: no source file outside the seam imports a model client", () => {
+    const offenders = sourceFiles(SRC)
+      .map((path) => relative(SRC, path))
+      .filter((path) => !SEAM_DIRS.some((dir) => path.startsWith(dir)))
+      .filter((path) => MODEL_CLIENT_IMPORT.test(readFileSync(join(SRC, path), "utf8")));
+
+    expect(offenders).toEqual([]);
+  });
+});
