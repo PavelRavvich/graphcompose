@@ -22,7 +22,7 @@ const ctx: ToolContext = {
 };
 
 describe("knowledge bases — contract", () => {
-  it("AC1, AC5: any class implementing the contract, annotated @Rag and bound by an agent, is a knowledge base", async () => {
+  it("AC1, AC5, #141 AC4: any class implementing the contract (RagRetrieval { results }), annotated @Rag and bound by an agent, is a knowledge base", async () => {
     const bundle = await workflowOf(bundleWith(Handbook, "tool"));
     const search = resolveTools(bundle, services).find((tool) => tool.name === "search_handbook");
 
@@ -34,7 +34,7 @@ describe("knowledge bases — contract", () => {
     expect(await search?.invoke({ query: "on-call" }, ctx)).toEqual({
       kind: "ok",
       value: {
-        passages: [
+        results: [
           { source: "oncall.md", text: "On-call starts after the third month." },
           { source: "leave.md", text: "Leave is 25 days a year." },
         ],
@@ -50,7 +50,7 @@ describe("knowledge bases — contract", () => {
 
     expect(bundle.config.agents.helper?.tools).toEqual([]);
     expect(source?.k).toBe(2);
-    expect((await source?.retrieve("q", { k: 1, signal: ctx.signal }))?.passages).toHaveLength(1);
+    expect((await source?.retrieve("q", { k: 1, signal: ctx.signal }))?.results).toHaveLength(1);
     expect(bundle.knowledgeBases?.(services).map((kb) => kb.name)).toEqual(["handbook"]);
   });
 
@@ -62,7 +62,7 @@ describe("knowledge bases — contract", () => {
     expect(b.config.agents).toEqual(a.config.agents);
     expect(await searchB?.invoke({ query: "on-call" }, ctx)).toEqual({
       kind: "ok",
-      value: { passages: [{ source: "api:handbook/42", text: "On-call: month 3." }] },
+      value: { results: [{ source: "api:handbook/42", text: "On-call: month 3." }] },
     });
   });
   it("AC5: a class in an agent's rag that is not a @Rag fails assembly with its name", async () => {

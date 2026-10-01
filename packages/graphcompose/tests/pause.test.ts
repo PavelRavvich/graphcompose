@@ -2,7 +2,9 @@ import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { MemorySaver } from "@langchain/langgraph";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { summaryLine, untilDone } from "../src/cli/approve.js";
+import { userInfo } from "node:os";
+import { summaryLine, terminalDecision, untilDone } from "../src/cli/approve.js";
+import { DtoValidationError } from "../src/dto/index.js";
 import { NotPausedError, resumeAgent, runAgent, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
 import { writeToolsNeedApproval } from "../src/pause/index.js";
@@ -87,7 +89,7 @@ describe("pause seam", () => {
     const { deps, sent } = setup([callSend, "Sent it to your boss."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);
 
-    const done = await resumeAgent(paused, { approve: true }, deps);
+    const done = await resumeAgent(paused, { approved: true, by: "tester" }, deps);
 
     expect(done).toMatchObject({
       status: "answered",
@@ -99,11 +101,15 @@ describe("pause seam", () => {
     expect((await deps.terns.byIds([paused.ternId]))[0]?.status).toBe("answered");
   });
 
-  it("reports rejection to the model when it calls the tool again", async () => {
+  it("#141 AC5: resumes with { approved, by, reason }; the rejection's reason reaches the agent", async () => {
     const { deps, sent, alpha } = setup([callSend, callSend, "Understood, not sending."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);
 
-    const done = await resumeAgent(paused, { approve: false, note: "not now" }, deps);
+    const done = await resumeAgent(
+      paused,
+      { approved: false, by: "tester", reason: "not now" },
+      deps,
+    );
 
     expect(done.answer).toBe("Understood, not sending.");
     expect(sent).toEqual([]);
@@ -116,17 +122,17 @@ describe("pause seam", () => {
     const { deps, sent } = setup([first, again, "Not sent."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);
 
-    const done = await resumeAgent(paused, { approve: false }, deps);
+    const done = await resumeAgent(paused, { approved: false, by: "tester" }, deps);
 
     expect(done).toMatchObject({ status: "answered", answer: "Not sent." });
     expect(sent).toEqual([]);
   });
 
-  it("reports a rejection without a note plainly", async () => {
+  it("reports a rejection without a reason plainly", async () => {
     const { deps, alpha } = setup([callSend, callSend, "Ok."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);
 
-    await resumeAgent(paused, { approve: false }, deps);
+    await resumeAgent(paused, { approved: false, by: "tester" }, deps);
 
     expect(alpha.sent[2]?.at(-1)?.text).toBe("Tool error: rejected by human");
   });
@@ -135,7 +141,7 @@ describe("pause seam", () => {
     const { deps, ledger } = setup([callSend, "Done."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);
 
-    const done = await resumeAgent(paused, { approve: true }, deps);
+    const done = await resumeAgent(paused, { approved: true, by: "tester" }, deps);
 
     expect(ledger.recorded).toHaveLength(done.cost.calls);
     expect(done.budgetUsd).toBe(paused.budgetUsd);
@@ -144,12 +150,14 @@ describe("pause seam", () => {
   it("refuses to resume twice or to resume a finished run", async () => {
     const { deps } = setup([callSend, "Done."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);
-    const done = await resumeAgent(paused, { approve: true }, deps);
+    const done = await resumeAgent(paused, { approved: true, by: "tester" }, deps);
 
-    await expect(resumeAgent(paused, { approve: true }, deps)).rejects.toBeInstanceOf(
+    await expect(
+      resumeAgent(paused, { approved: true, by: "tester" }, deps),
+    ).rejects.toBeInstanceOf(NotPausedError);
+    await expect(resumeAgent(done, { approved: true, by: "tester" }, deps)).rejects.toBeInstanceOf(
       NotPausedError,
     );
-    await expect(resumeAgent(done, { approve: true }, deps)).rejects.toBeInstanceOf(NotPausedError);
   });
 
   it("records a failure after resume on the same Tern", async () => {
@@ -160,7 +168,7 @@ describe("pause seam", () => {
       routerFor: () => ({ name: "main", route: () => Promise.reject(new Error("router down")) }),
     };
 
-    await expect(resumeAgent(paused, { approve: true }, deps)).rejects.toThrow();
+    await expect(resumeAgent(paused, { approved: true, by: "tester" }, deps)).rejects.toThrow();
 
     expect((await deps.terns.byIds([paused.ternId]))[0]).toMatchObject({ status: "failed" });
   });
@@ -191,6 +199,28 @@ describe("terminal approval (CLI and chat)", () => {
       expect(done.answer).toBe("Ok, not sent.");
       expect(sent).toEqual([]);
     }
+  });
+
+  it("#141 AC5: the terminal fills `by` with the OS user and gives a reason when declined", () => {
+    const by = userInfo().username;
+
+    expect(terminalDecision(true)).toEqual({ approved: true, by });
+    expect(terminalDecision(false)).toEqual({
+      approved: false,
+      by,
+      reason: "declined in the terminal",
+    });
+  });
+
+  it("#141 AC5: a decision without `by` (the old { approve } shape) is refused", async () => {
+    const { deps, sent } = setup([callSend, "Sent."]);
+    const paused = await runAgent({ task: "Email the boss" }, deps);
+    const old: unknown = { approve: true };
+
+    await expect(
+      resumeAgent(paused, old as Parameters<typeof resumeAgent>[1], deps),
+    ).rejects.toBeInstanceOf(DtoValidationError);
+    expect(sent).toEqual([]);
   });
 
   it("summarises a result in one line", async () => {

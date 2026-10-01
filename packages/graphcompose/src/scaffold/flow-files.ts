@@ -9,10 +9,10 @@ export interface RouteSpec {
   readonly text: string;
 }
 
-/** The answer route every generated router has (relative to `routers/`). */
-export const ANSWER_ROUTE: RouteSpec = {
-  target: "AnswerConclusion",
-  from: "../conclusions/answer.conclusion.js",
+/** The finish route every generated router has (relative to `routers/`). */
+export const FINISH_ROUTE: RouteSpec = {
+  target: "TextWorkflowFinish",
+  from: "../workflow-finishes/text.workflow-finish.js",
   text: "Stop and send the answer: the contributions so far answer the message, or the last agent asked the user a question and waits for the reply, or it cannot be done",
 };
 
@@ -29,13 +29,16 @@ export const agentRoute = (agent: Names, description: string): RouteSpec => ({
   text: description,
 });
 
-/** The chat entry and the answer conclusion of a new workflow. */
+/** The text workflow start and the text workflow finish of a new workflow. */
 export function endpointFiles(dir: string): FileToWrite[] {
   return [
-    { path: `${dir}/entries/chat.entry.ts`, content: render("entry/chat.entry.ts.tmpl", {}) },
     {
-      path: `${dir}/conclusions/answer.conclusion.ts`,
-      content: render("conclusion/answer.conclusion.ts.tmpl", {}),
+      path: `${dir}/workflow-starts/text.workflow-start.ts`,
+      content: render("workflow-start/text.workflow-start.ts.tmpl", {}),
+    },
+    {
+      path: `${dir}/workflow-finishes/text.workflow-finish.ts`,
+      content: render("workflow-finish/text.workflow-finish.ts.tmpl", {}),
     },
   ];
 }

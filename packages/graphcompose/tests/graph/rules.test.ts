@@ -3,6 +3,7 @@ import { checkFlow } from "../../src/graph/check-flow.js";
 import { chain, from, node, Self, type Flow } from "../../src/graph/flow.js";
 import { GraphRuleError, type RuleCode } from "../../src/graph/rule-error.js";
 import { codeReviewFlow } from "./fixtures/code-review.js";
+import { testNode } from "./fixtures/nodes.js";
 import {
   A,
   AlsoNamedA,
@@ -36,7 +37,7 @@ describe("AC1: assembly rules", () => {
     expect(checkFlow(codeReviewFlow).nodes.size).toBe(8);
   });
 
-  it("a router with one route and a conclusion reached from two routers assemble", () => {
+  it("a router with one route and a workflow finish reached from two routers assemble", () => {
     const flow: Flow = [
       from(Start).to(Second),
       from(Second).choose(A, Done),
@@ -61,10 +62,10 @@ describe("AC1: assembly rules", () => {
       "graph.duplicate-node",
       [from(Start).to(A), from(A).to(AlsoNamedA), from(AlsoNamedA).to(Done)],
     ],
-    ["graph.no-entry", [from(A).to(Done)]],
+    ["graph.no-workflow-start", [from(A).to(Done)]],
     ["graph.unreachable-node", [from(Start).to(Done), from(A).to(Done)]],
     ["graph.dead-end", [from(Start).to(A)]],
-    ["graph.next-after-conclusion", [from(Start).to(Done), from(Done).to(OtherDone)]],
+    ["graph.next-after-workflow-finish", [from(Start).to(Done), from(Done).to(OtherDone)]],
     [
       "router.routes-mismatch",
       [from(Start).to(Pick), from(Pick).choose(A, Done), from(A).to(Done)],
@@ -130,5 +131,46 @@ describe("AC1: assembly rules", () => {
     const flow: Flow = [from(Start).to(Second), from(Second).choose(Done)];
 
     expect(violationsOf(flow).violations[0]?.message).toContain("routes not in its choose(...): A");
+  });
+});
+
+@testNode("workflow-start", "done")
+class StartNamedDone {}
+
+@testNode("workflow-start", "start")
+class AlsoNamedStart {}
+
+describe("#141 AC2: workflow start and workflow finish rules", () => {
+  it("a flow without a workflow start fails with graph.no-workflow-start", () => {
+    const error = violationsOf([from(A).to(Done)]);
+
+    expect(error.violations[0]).toMatchObject({
+      code: "graph.no-workflow-start",
+      message: "the flow has no workflow start (@WorkflowStart)",
+    });
+  });
+
+  it("a node after a workflow finish fails with graph.next-after-workflow-finish", () => {
+    const error = violationsOf([from(Start).to(Done), from(Done).to(OtherDone)]);
+
+    expect(error.violations[0]).toMatchObject({
+      code: "graph.next-after-workflow-finish",
+      message: "workflow finish Done has a next step — a workflow finish ends the run",
+    });
+  });
+
+  it("a path that never reaches a workflow finish is a dead end", () => {
+    expect(violationsOf([from(Start).to(A)]).violations[0]?.message).toBe(
+      "A has no next step and is not a workflow finish",
+    );
+  });
+
+  it("a workflow start and a workflow finish may share a name; two starts may not", () => {
+    const model = checkFlow([from(StartNamedDone).to(A), from(A).to(Done)]);
+
+    expect([...model.nodes.keys()]).toEqual(["workflow-start.done", "a", "done"]);
+    expect(codesOf([from(Start, AlsoNamedStart).to(A), from(A).to(Done)])).toContain(
+      "graph.duplicate-node",
+    );
   });
 });

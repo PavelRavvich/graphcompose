@@ -174,7 +174,7 @@ export function recordingRouters<TDeps extends RunDeps<TestAgent>>(
 export function flowState(overrides: Partial<FlowStateType> = {}): FlowStateType {
   return {
     ...baseState(),
-    entry: "",
+    start: "",
     previousAgent: "",
     visits: {},
     steps: 0,

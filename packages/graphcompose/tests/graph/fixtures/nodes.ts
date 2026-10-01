@@ -7,7 +7,7 @@ import type { FlowNodeRunner } from "../../../src/graph/visit.js";
 import type { RouteRequest, Router } from "../../../src/routers/index.js";
 import { usageRecord } from "../../helpers.js";
 
-/** Test-only node decorator: marks a class as a flow node of a kind (entries and conclusions come in branch B). */
+/** Test-only node decorator: marks a class as a flow node of a kind (workflow starts and workflow finishes come in branch B). */
 export const testNode =
   (kind: NodeKind, name: string) =>
   <C extends Class>(value: C): C => {
@@ -54,12 +54,12 @@ export const fixedAnswer =
       usage: [usageRecord(name, costUsd)],
     });
 
-/** Entries do nothing; conclusions copy the last contribution into `answer`; agents answer. */
+/** Workflow starts do nothing; workflow finishes copy the last contribution into `answer`; agents answer. */
 export function testRunner(node: FlowNodeRef, agentCostUsd = 0): FlowNodeRunner {
   switch (node.kind) {
     case "agent":
       return fixedAnswer(node.name, agentCostUsd);
-    case "conclusion":
+    case "workflow-finish":
       return (state) => Promise.resolve({ answer: state.contributions.at(-1)?.content ?? "" });
     default:
       return () => Promise.resolve({});

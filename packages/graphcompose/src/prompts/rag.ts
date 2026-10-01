@@ -1,4 +1,4 @@
-import type { Passage } from "../rag/types.js";
+import type { RagSearchResult } from "../dto/standard/framework.js";
 
 /** Asked of the model in both modes. Part of the prompt version. */
 export const CITE_INSTRUCTION =
@@ -8,9 +8,9 @@ export const CITE_INSTRUCTION =
 export const SEARCH_TOOL_SUFFIX =
   "Returns the most relevant passages with their source; cite them as [source].";
 
-/** Context mode: passages put before the task. */
-export const knowledgeBlock = (name: string, passages: readonly Passage[]): string =>
-  `Knowledge (${name}):\n${passages.map((p) => `[${p.source}] ${p.text}`).join("\n\n")}`;
+/** Context mode: search results put before the task. */
+export const knowledgeBlock = (name: string, results: readonly RagSearchResult[]): string =>
+  `Knowledge (${name}):\n${results.map((r) => `[${r.source}] ${r.text}`).join("\n\n")}`;
 
 export const ragPromptTexts: readonly string[] = [
   CITE_INSTRUCTION,

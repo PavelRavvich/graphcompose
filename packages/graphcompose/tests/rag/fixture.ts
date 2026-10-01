@@ -1,29 +1,29 @@
 import { Agent, Workflow, Rag, type Class } from "../../src/components/index.js";
-import type { RagConnector, Retrieval } from "../../src/rag/index.js";
+import type { RagConnector, RagRetrieval } from "../../src/rag/index.js";
 import { testConfig } from "../helpers.js";
 import { starOf, TestSettings } from "../fixtures/test-flow/star.js";
 
-/** A connector with fixed passages — any class implementing the contract is a knowledge base. */
+/** A connector with fixed results — any class implementing the contract is a knowledge base. */
 @Rag({ name: "handbook", description: "The team handbook", k: 2 })
 export class Handbook implements RagConnector {
   readonly queries: string[] = [];
-  retrieve(query: string, options: { readonly k: number }): Promise<Retrieval> {
+  retrieve(query: string, options: { readonly k: number }): Promise<RagRetrieval> {
     this.queries.push(query);
-    const passages = [
+    const results = [
       { source: "oncall.md", text: "On-call starts after the third month." },
       { source: "leave.md", text: "Leave is 25 days a year." },
       { source: "tools.md", text: "Use the #help channel." },
     ];
-    return Promise.resolve({ passages: passages.slice(0, options.k), costUsd: 0.0002 });
+    return Promise.resolve({ results: results.slice(0, options.k), costUsd: 0.0002 });
   }
 }
 
 /** Another implementation of the same knowledge base — swapping needs no change elsewhere. */
 @Rag({ name: "handbook", description: "The team handbook", k: 2 })
 export class HandbookFromApi implements RagConnector {
-  retrieve(): Promise<Retrieval> {
+  retrieve(): Promise<RagRetrieval> {
     return Promise.resolve({
-      passages: [{ source: "api:handbook/42", text: "On-call: month 3." }],
+      results: [{ source: "api:handbook/42", text: "On-call: month 3." }],
     });
   }
 }

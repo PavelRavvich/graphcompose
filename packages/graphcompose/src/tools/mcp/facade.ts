@@ -58,7 +58,7 @@ const CallResultSchema = z.object({
 const textOf = (content: z.infer<typeof CallResultSchema>["content"]): string =>
   content.map((part) => part.text ?? "").join("");
 
-/** An output of one field `text` (e.g. `TextAnswer`): the server's text as is. */
+/** An output of one field `text` (e.g. `PlainText`): the server's text as is. */
 const isTextOutput = (output: z.ZodType): boolean =>
   output instanceof z.ZodObject && Object.keys(output.shape).join() === "text";
 

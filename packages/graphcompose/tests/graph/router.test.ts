@@ -92,7 +92,7 @@ describe("AC1: routers", () => {
       gate: scriptedRouter("gate", ["self", "done"]),
     });
 
-    expect(state.path).toEqual(["start", "pick", "b", "gate", "b", "gate", "done"]);
+    expect(state.path).toEqual(["workflow-start.start", "pick", "b", "gate", "b", "gate", "done"]);
   });
 
   it("a returned option that is not a route fails the run with router.unknown-route", async () => {
@@ -168,7 +168,7 @@ describe("AC1: routers through the existing routing strategies", () => {
 
     const state = await graph.invoke({ task: "go" });
 
-    expect(state.path).toEqual(["start", "a", "only", "done"]);
+    expect(state.path).toEqual(["workflow-start.start", "a", "only", "done"]);
     expect(state.routeReason).toBe("single option");
   });
 
@@ -178,7 +178,7 @@ describe("AC1: routers through the existing routing strategies", () => {
 
     const state = await graph.invoke({ task: "go" });
 
-    expect(state.path).toEqual(["start", "chatty", "done"]);
+    expect(state.path).toEqual(["workflow-start.start", "chatty", "done"]);
     expect(state.usage.map((record) => record.caller)).toEqual(["router:chatty"]);
   });
 });

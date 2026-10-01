@@ -17,7 +17,7 @@ export interface SelfTarget {
 
 export const Self: SelfTarget = Object.freeze({ kind: "self" });
 
-/** A node of the flow: a decorated class (`@Entry`, `@Router`, `@Agent`, `@Conclusion`) or a named node. */
+/** A node of the flow: a decorated class (`@WorkflowStart`, `@Router`, `@Agent`, `@WorkflowFinish`) or a named node. */
 export type FlowNode = Class | NamedNode;
 
 /** What a router may choose: a node or `Self`. */

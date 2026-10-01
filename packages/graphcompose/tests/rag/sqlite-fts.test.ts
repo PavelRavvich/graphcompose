@@ -37,24 +37,24 @@ describe("SQLite FTS5 connector (reference implementation)", () => {
     expect(third).toMatchObject({ documents: 2, skipped: 1 });
   });
 
-  it("AC2: top-k passages by BM25 with the file as source; builds the index on first use", async () => {
+  it("AC2: top-k results by BM25 with the file as source; builds the index on first use", async () => {
     const { connector } = await docs();
 
     const retrieval = await connector.retrieve("When does on-call start?", { k: 1, signal });
 
-    expect(retrieval.passages).toHaveLength(1);
-    expect(retrieval.passages[0]).toMatchObject({ source: "onboarding.md" });
-    expect(retrieval.passages[0]?.text).toContain("On-call starts after your third month.");
+    expect(retrieval.results).toHaveLength(1);
+    expect(retrieval.results[0]).toMatchObject({ source: "onboarding.md" });
+    expect(retrieval.results[0]?.text).toContain("On-call starts after your third month.");
     expect(retrieval.costUsd).toBe(0);
   });
 
-  it("no terms or no match → no passages; k larger than the corpus returns what there is", async () => {
+  it("no terms or no match → no results; k larger than the corpus returns what there is", async () => {
     const { connector } = await docs();
 
-    expect((await connector.retrieve("?!", { k: 3, signal })).passages).toEqual([]);
-    expect((await connector.retrieve("kubernetes", { k: 3, signal })).passages).toEqual([]);
+    expect((await connector.retrieve("?!", { k: 3, signal })).results).toEqual([]);
+    expect((await connector.retrieve("kubernetes", { k: 3, signal })).results).toEqual([]);
     expect(
-      (await connector.retrieve("Nimbus frost on-call", { k: 50, signal })).passages.length,
+      (await connector.retrieve("Nimbus frost on-call", { k: 50, signal })).results.length,
     ).toBeLessThanOrEqual(3);
   });
 

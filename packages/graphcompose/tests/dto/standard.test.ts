@@ -1,33 +1,34 @@
-/** #118 AC5: the 16 standard DTOs accept their examples and reject cross-field violations. */
+/** #118 AC5 / #141: the 17 standard DTOs accept their examples and reject cross-field violations. */
 import { describe, expect, it } from "vitest";
 import {
   Address,
-  ApprovalDecision,
-  ApprovalRequest,
   Attachment,
-  ChatMessage,
-  Citation,
-  Clarification,
   ContactInfo,
   DateRange,
   DateTimeRange,
   type DtoClass,
   Money,
   NoInput,
-  Passage,
   PersonName,
-  Question,
-  TextAnswer,
+  PlainText,
+  RagSearchResult,
+  RagSourceReference,
+  ToolCallApprovalAsk,
+  ToolCallApprovalDecision,
+  WorkflowFinishText,
+  WorkflowPauseAnswer,
+  WorkflowPauseQuestion,
+  WorkflowStartText,
 } from "../../src/dto/index.js";
 import { jsonSchemaOf, validate } from "../../src/dto/schema.js";
 
 const examples: readonly (readonly [DtoClass, object])[] = [
-  [ChatMessage, { text: "find TypeScript jobs", author: "pavel" }],
-  [TextAnswer, { text: "Done." }],
-  [Question, { question: "Which city?", options: ["Tel Aviv", "Haifa"] }],
-  [Clarification, { answer: "Haifa" }],
+  [WorkflowStartText, { text: "find TypeScript jobs", author: "pavel" }],
+  [WorkflowFinishText, { text: "Done." }],
+  [WorkflowPauseQuestion, { question: "Which city?", options: ["Tel Aviv", "Haifa"] }],
+  [WorkflowPauseAnswer, { answer: "Haifa" }],
   [
-    ApprovalRequest,
+    ToolCallApprovalAsk,
     {
       callId: "call_1",
       tool: "save_shortlist",
@@ -35,9 +36,9 @@ const examples: readonly (readonly [DtoClass, object])[] = [
       summary: "Adds one job to the shortlist",
     },
   ],
-  [ApprovalDecision, { approved: true, by: "pavel" }],
+  [ToolCallApprovalDecision, { approved: true, by: "pavel" }],
   [NoInput, {}],
-  [Passage, { text: "Remote friendly", source: "notes/acme.md", score: 0.82 }],
+  [RagSearchResult, { text: "Remote friendly", source: "notes/acme.md", score: 0.82 }],
   [Money, { amount: "19.99", currency: "USD" }],
   [DateRange, { from: "2026-09-01", to: "2026-09-30", timeZone: "Asia/Jerusalem" }],
   [DateTimeRange, { from: "2026-09-01T09:00:00+03:00", to: "2026-09-01T18:00:00+03:00" }],
@@ -45,7 +46,8 @@ const examples: readonly (readonly [DtoClass, object])[] = [
   [Address, { street: "Herzl 1", city: "Haifa", country: "IL" }],
   [PersonName, { given: "Pavel" }],
   [ContactInfo, { phone: "+972521234567" }],
-  [Citation, { title: "Acme notes", quote: "Remote friendly" }],
+  [RagSourceReference, { title: "Acme notes", quote: "Remote friendly" }],
+  [PlainText, { text: "3 jobs saved" }],
 ];
 
 const rejects = (dto: DtoClass, raw: object): boolean => {
@@ -58,8 +60,8 @@ const rejects = (dto: DtoClass, raw: object): boolean => {
 };
 
 describe("standard DTOs (#118)", () => {
-  it("AC5: all 16 accept their example as is", () => {
-    expect(examples).toHaveLength(16);
+  it("AC5: all 17 accept their example as is", () => {
+    expect(examples).toHaveLength(17);
     for (const [dto, example] of examples) expect(validate(dto, example)).toEqual(example);
   });
 
@@ -102,18 +104,58 @@ describe("standard DTOs (#118)", () => {
     expect(() => validate(ContactInfo, {})).toThrow(/email: give an email, a phone or both/);
   });
 
-  it("AC5: Passage.score is from 0 to 1; Question has at most 6 options; Citation.quote ≤ 300", () => {
-    expect(rejects(Passage, { text: "t", source: "s", score: 1.2 })).toBe(true);
-    expect(rejects(Question, { question: "q", options: ["1", "2", "3", "4", "5", "6", "7"] })).toBe(
-      true,
-    );
-    expect(rejects(Citation, { title: "t", quote: "x".repeat(301) })).toBe(true);
-    expect(rejects(ChatMessage, { text: "" })).toBe(true);
+  it("AC5: RagSearchResult.score is from 0 to 1; WorkflowPauseQuestion has at most 6 options; RagSourceReference.quote ≤ 300", () => {
+    expect(rejects(RagSearchResult, { text: "t", source: "s", score: 1.2 })).toBe(true);
+    expect(
+      rejects(WorkflowPauseQuestion, {
+        question: "q",
+        options: ["1", "2", "3", "4", "5", "6", "7"],
+      }),
+    ).toBe(true);
+    expect(rejects(RagSourceReference, { title: "t", quote: "x".repeat(301) })).toBe(true);
+    expect(rejects(WorkflowStartText, { text: "" })).toBe(true);
   });
 
-  it("AC5: ApprovalRequest.arguments is any JSON object — not a string", () => {
+  it("AC5: ToolCallApprovalAsk.arguments is any JSON object — not a string", () => {
     const request = { callId: "c", tool: "t", summary: "s" };
-    expect(rejects(ApprovalRequest, { ...request, arguments: {} })).toBe(false);
-    expect(rejects(ApprovalRequest, { ...request, arguments: "x" })).toBe(true);
+    expect(rejects(ToolCallApprovalAsk, { ...request, arguments: {} })).toBe(false);
+    expect(rejects(ToolCallApprovalAsk, { ...request, arguments: "x" })).toBe(true);
+  });
+});
+
+describe("#141 AC3: standard DTOs named by the hierarchy rule", () => {
+  it("names start with their component kind; nothing says chat, user or person", () => {
+    const names = examples.map(([dto]) => dto.name);
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "WorkflowStartText",
+        "WorkflowFinishText",
+        "WorkflowPauseQuestion",
+        "WorkflowPauseAnswer",
+        "ToolCallApprovalAsk",
+        "ToolCallApprovalDecision",
+        "RagSearchResult",
+        "RagSourceReference",
+        "PlainText",
+      ]),
+    );
+    const prompts = JSON.stringify(examples.map(([dto]) => jsonSchemaOf(dto)));
+    expect(prompts).not.toMatch(/\b(chat|user|person)\b/i);
+  });
+
+  it("RagSearchResult is valid without a score", () => {
+    expect(rejects(RagSearchResult, { text: "Remote friendly", source: "notes/acme.md" })).toBe(
+      false,
+    );
+  });
+
+  it("ToolCallApprovalDecision takes a reason; it needs who decided", () => {
+    const refusal = { approved: false, by: "ci-bot", reason: "outside the change window" };
+    expect(validate(ToolCallApprovalDecision, refusal)).toEqual(refusal);
+    expect(rejects(ToolCallApprovalDecision, { approved: true })).toBe(true);
+  });
+
+  it("PlainText needs its text", () => {
+    expect(rejects(PlainText, {})).toBe(true);
   });
 });

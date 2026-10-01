@@ -4,7 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { dirname, extname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
-import type { IndexReport, RagConnector, Retrieval } from "./types.js";
+import type { IndexReport, RagConnector, RagRetrieval } from "./types.js";
 
 /** Where the documents are and where the index lives. */
 export interface FtsOptions {
@@ -100,12 +100,12 @@ export class SqliteFtsConnector implements RagConnector {
   async retrieve(
     query: string,
     options: { readonly k: number; readonly signal: AbortSignal },
-  ): Promise<Retrieval> {
+  ): Promise<RagRetrieval> {
     const db = this.open();
     if (Count.parse(db.prepare("SELECT COUNT(*) AS n FROM files").get()).n === 0)
       await this.index();
     const match = ftsQuery(query);
-    if (match === undefined) return { passages: [], costUsd: 0 };
+    if (match === undefined) return { results: [], costUsd: 0 };
     const hits = db
       .prepare(
         "SELECT source, text, bm25(chunks) AS rank FROM chunks WHERE chunks MATCH ? ORDER BY rank LIMIT ?",
@@ -113,7 +113,7 @@ export class SqliteFtsConnector implements RagConnector {
       .all(match, options.k)
       .map((row) => Hit.parse(row));
     return {
-      passages: hits.map((hit) => ({ source: hit.source, text: hit.text, score: -hit.rank })),
+      results: hits.map((hit) => ({ source: hit.source, text: hit.text, score: -hit.rank })),
       costUsd: 0,
     };
   }

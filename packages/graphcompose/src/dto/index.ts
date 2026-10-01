@@ -37,22 +37,23 @@ export type {
   Sensitivity,
 } from "./types.js";
 export {
-  ApprovalDecision,
-  ApprovalRequest,
-  ChatMessage,
-  Clarification,
   NoInput,
-  Passage,
-  Question,
-  TextAnswer,
+  PlainText,
+  RagSearchResult,
+  ToolCallApprovalAsk,
+  ToolCallApprovalDecision,
+  WorkflowFinishText,
+  WorkflowPauseAnswer,
+  WorkflowPauseQuestion,
+  WorkflowStartText,
 } from "./standard/framework.js";
 export {
   Address,
   Attachment,
-  Citation,
   ContactInfo,
   DateRange,
   DateTimeRange,
   Money,
   PersonName,
+  RagSourceReference,
 } from "./standard/domain.js";

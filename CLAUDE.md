@@ -48,8 +48,8 @@ job-scout is a star:
 
 ```ts
 flow: [
-  from(ChatEntry).to(MainRouter),
-  from(MainRouter).choose(Profiler, Scout, Shortlist, AnswerConclusion),
+  from(ChatWorkflowStart).to(MainRouter),
+  from(MainRouter).choose(Profiler, Scout, Shortlist, ChatWorkflowFinish),
   from(Profiler, Scout, Shortlist).to(MainRouter),
 ],
 ```
@@ -58,23 +58,25 @@ flow: [
   (the router picks one), `chain(A, B, C)` (a straight line; a router only last), `node(Class, "name")`
   (a second place for a class, declared once as a constant), `Self` (back to the node the router was
   called after).
-- Node kinds: `@Entry` (where a run starts: input DTO, runs the input guards), `@Router` (picks the
-  next node), `@Agent` (its loop), `@Conclusion` (where a run ends: output DTO, the last answer,
-  runs the output guards).
+- Node kinds: `@WorkflowStart` (where a run starts: input DTO, runs the input guards), `@Router`
+  (picks the next node), `@Agent` (its loop), `@WorkflowFinish` (where a run finishes: output DTO,
+  the last answer, runs the output guards). A start and a finish may share a name (`chat` / `chat`);
+  LangGraph node ids are `<kind>.<name>` (`workflow-start.chat`).
+  `@WorkflowPause` (#117) completes the trio.
 - **Assembly rules** fail at assembly, before any model call, with **all** violations at once
   (`GraphRuleError`, stable codes `graph.*` / `router.*`): every node is a decorated class, one next
-  step per node, `choose` only from a router, a cycle needs a router, an entry exists, no unreachable
-  node or dead end, nothing after a conclusion, a router's `routes` equal its `choose(...)`.
+  step per node, `choose` only from a router, a cycle needs a router, a workflow start exists, no
+  unreachable node or dead end, nothing after a workflow finish, a router's `routes` equal its `choose(...)`.
 - `@Router` (Wiki → Routers): `prompt` / `promptUrls` say **how** to choose; `routes` say **what**
   each choice means (`route(Profiler, "Reading the resume …")`) — route text is required; a route
-  **to a conclusion** is worded as a stop instruction ("Stop and send the answer: …"), never as "the
+  **to a workflow finish** is worded as a stop instruction ("Stop and send the answer: …"), never as "the
   answer is ready". `maxVisits` bounds visits of one router. A router that fails or picks an unknown
   route **fails the run** (`RouterDecisionError`) — no guessing.
 - `@Agent` — the agent's loop (`createAgent`): own model, prompt, tools, optional `reasoning`
   (quality-gated attempts judged by Jev); `approval` — only with a pause seam: a write tool waits for
   a human (`resumeAgent`).
-- Guards — Jev yes/no checks; an input guard trip ends the run at the entry with the guard's
-  refusal, an output guard checks the answer at the conclusion.
+- Guards — Jev yes/no checks; an input guard trip ends the run at the workflow start with the
+  guard's refusal, an output guard checks the answer at the workflow finish.
 - **Limits** in `settings()`: `WorkflowSettings.builder().limits({ perRun, perDay }).build()`,
   e.g. `perRun: { steps: 12, cost: usd(0.1) }`, `perDay: { cost: usd(1) }`. Steps = visits of
   agents and routers (default (agents + routers) × 3). Hitting any limit **fails the run** with
@@ -84,14 +86,16 @@ flow: [
 - Every turn: spend to the daily ledger, a Tern to SQLite, financials in the result, optional
   tracing (Langfuse) and conversation compaction (summaries queue).
 - Components, Angular style (Wiki → Components): annotated classes, one per file, folders by kind
-  (`entries/`, `routers/`, `agents/`, `conclusions/`, `tools/`, `mcp/`, `rag/`, `services/`); the
+  (`workflow-starts/`, `routers/`, `agents/`, `workflow-finishes/`, `tools/`, `mcp/`, `rag/`, `services/`); the
   `@Workflow` module places nodes in its `flow` and lists `mcp` servers and `providers` by class
   reference; dependencies through the constructor, declared in `deps` (compiler-checked); prompts in
   `*.prompt.md`. `@Injectable` services stay until #121 renames them.
 - **Data are DTO classes** (`graphcompose/dto`, Wiki → Standard DTOs): one field decorator per field
   (`@Text`, `@Integer`, `@Flag`, `@OneOf`, `@ListOf`, `@Nested`, …), plain data, no methods. Tool
-  `input` / `output`, MCP server tools (`tools: { name: { input, output } }`), entry inputs and
-  conclusion outputs are DTOs; standard ones (`ChatMessage`, `TextAnswer`, …) come from the framework.
+  `input` / `output`, MCP server tools (`tools: { name: { input, output } }`), workflow start
+  inputs and workflow finish outputs are DTOs; standard ones (`WorkflowStartText`,
+  `WorkflowFinishText`, `ToolCallApprovalDecision`, `RagSearchResult`, `PlainText`, …) come from the
+  framework.
   zod lives only inside the framework (external input it parses is still validated there).
 - Knowledge bases: a `@Rag` class implementing `RagConnector` in `rag/`, bound by agents with
   `rag: [{ use, mode: "tool" | "context" }]` (Wiki → Knowledge bases).
@@ -105,7 +109,8 @@ flow: [
   (`ToolHandler<In, Out>`, `RagConnector`), `extends` + `override` for a standard implementation
   (`SqliteFtsConnector`, `McpServerClient`); services do I/O, helpers are pure. An `@McpTool` is a
   tool with its `*.server.ts` server injected.
-- **File conventions** (Wiki → Components): `*.entry.ts`, `*.router.ts`, `*.conclusion.ts`,
+- **File conventions** (Wiki → Components): `*.workflow-start.ts`, `*.router.ts`,
+  `*.workflow-finish.ts`,
   `*.agent.ts` + `*.prompt.md` (found by convention), `*.tool.ts` + `*.tool.test.ts`, `*.dto.ts`,
   `*.server.ts` + `*.mcp.ts`, `*.rag.ts`, `*.service.ts` (`@Injectable`), `*.helper.ts`; tools keep
   `run`, bulky helpers go to `*.helper.ts`.
@@ -118,9 +123,15 @@ flow: [
 Names repeat the same patterns everywhere, so one name lets you guess the others (Wiki →
 Components):
 
-- **Kind as the suffix, qualifier in front**: `MainRouter`, `CoderAgent`, `AnswerConclusion`.
+- **Kind as the suffix, qualifier in front**: `MainRouter`, `CoderAgent`, `ChatWorkflowFinish`.
   DTOs are the exception: noun pairs from one root (`FileRead` → `FileContent`, `FileWrite` →
   `FileWritten`); a DTO that belongs to a component kind starts with that kind.
+- **Hierarchy rule (#141)**: a DTO that belongs to a component kind starts with that kind
+  (`WorkflowStartText`, `ToolCallApprovalDecision`, `RagSearchResult`); paired concepts get paired
+  names (`@WorkflowStart` / `@WorkflowFinish`, `WorkflowPauseQuestion` / `WorkflowPauseAnswer`);
+  nothing "chat", "user", "human" or "person" in framework names — a run may be a CI pipeline, an
+  approval may come from a system. `scripts/check-old-names.sh` (in `make check`) keeps the retired
+  names out.
 - **When + what** for things tied to a moment: `BeforeCallJudge`, `AfterCallJudge`.
 - **One limit → flat `max…`** (`maxVisits`); **several related → an object** named by what they
   are, the scope stated once (`limits: { perRun: { steps, cost } }`).
@@ -179,7 +190,7 @@ packages/graphcompose/        the framework (npm package `graphcompose`; builds 
     cli/            main.ts (graphcompose <command>), load-workflow.ts, usage, terminal helpers
     config/         typed config schema, profiles (YAML overlays), defaults resolution
     rag/            knowledge-base contract (RagConnector) + reference SQLite FTS5 connector
-    graph/          `graphcompose/graph`: flow.ts (DSL), route.ts, entry / router / conclusion decorators,
+    graph/          `graphcompose/graph`: flow.ts (DSL), route.ts, workflow-start / router / workflow-finish decorators,
                     rules.ts + check-flow.ts + router-rules.ts (assembly rules, rule-error.ts), build.ts
                     (LangGraph), limits.ts, settings.ts, flow-state.ts, visit.ts; nodes/ (flow-router,
                     agent loop, approval, guards, knowledge, finalize)
@@ -189,8 +200,9 @@ packages/graphcompose/        the framework (npm package `graphcompose`; builds 
   schema/           profile.schema.json (YAML autocomplete)
   bin/              graphcompose launcher
 examples/job-scout/          the example (package job-scout-example; depends on graphcompose)
-  src/              job-scout.workflow.ts, studio.ts; entries/ (*.entry.ts), routers/ (*.router.ts),
-                    agents/ (*.agent.ts + *.prompt.md), conclusions/ (*.conclusion.ts), tools/ (*.tool.ts +
+  src/              job-scout.workflow.ts, studio.ts; workflow-starts/ (*.workflow-start.ts), routers/
+                    (*.router.ts), agents/ (*.agent.ts + *.prompt.md), workflow-finishes/
+                    (*.workflow-finish.ts), tools/ (*.tool.ts +
                     *.dto.ts), services/ (*.service.ts), mcp/ (*.server.ts, *.mcp.ts, *.dto.ts),
                     rag/ (*.rag.ts), helpers/ (*.helper.ts), config/, scripts/, data/
   tests/  profiles/  golden/

@@ -63,7 +63,7 @@ describe("tracing", () => {
       { bundle: "test-bundle", threadId: result.threadId, runId: result.runId },
     ]);
     expect(recorder.started).toEqual(
-      expect.arrayContaining(["router.main", "agent.alpha", "conclusion.answer"]),
+      expect.arrayContaining(["router.main", "agent.alpha", "workflow-finish.answer"]),
     );
     expect(result.traceUrl).toBe(`http://traces/sessions/${result.threadId}`);
     expect(threadLine(result)).toBe(

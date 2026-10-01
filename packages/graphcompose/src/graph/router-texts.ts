@@ -10,7 +10,7 @@ import { joinPromptParts } from "./text.js";
 
 /** One route as the router's model sees it: the option name and what choosing it means. */
 export interface LoadedRoute {
-  /** The target node's name, or `SELF_OPTION`. */
+  /** The target node's key (its name — a route never leads to a workflow start), or `SELF_OPTION`. */
   readonly option: string;
   readonly text: string;
 }
@@ -43,7 +43,7 @@ async function textOf(meta: RouterMeta, source: string | PromptSource): Promise<
 function optionOf(model: FlowModel, declaration: RouteDeclaration): string {
   return isSelf(declaration.target)
     ? SELF_OPTION
-    : (model.collected.nameOf(declaration.target) ?? labelOf(declaration.target));
+    : (model.collected.keyOf(declaration.target) ?? labelOf(declaration.target));
 }
 
 const byOption = (left: LoadedRoute, right: LoadedRoute): number =>
@@ -68,7 +68,7 @@ async function loadRouter(model: FlowModel, ref: FlowNodeRef): Promise<LoadedRou
   };
 }
 
-/** Every router of the flow with its texts loaded, by node name. */
+/** Every router of the flow with its texts loaded, by node key. */
 export async function loadRouters(model: FlowModel): Promise<ReadonlyMap<string, LoadedRouter>> {
   const routers = [...model.nodes.values()].filter((ref) => ref.kind === "router");
   const loaded = await Promise.all(routers.map((ref) => loadRouter(model, ref)));

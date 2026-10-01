@@ -59,7 +59,7 @@ holds from its type**, not guess it from the name.
   have explicit return types.
 - **Data crossing a tool or MCP boundary are DTO classes** (`graphcompose/dto`): one field
   decorator per field, plain data, validated by the framework at the boundary (tool arguments and
-  results, MCP server tools, entry input). Workflows never write zod.
+  results, MCP server tools, workflow start input). Workflows never write zod.
 - External input the framework parses itself (CLI, config, settings, model JSON output) is
   validated with **zod inside the framework**; inside the system, types are trusted.
 - Errors: throw typed `Error` subclasses with context; never swallow. No `console.log` in `src/`.
@@ -67,7 +67,8 @@ holds from its type**, not guess it from the name.
 ## Agents (LangGraph)
 
 - **The workflow file is the graph.** `@Workflow({ flow: [...] })` with `from / to / choose /
-chain / node / Self` (Wiki → Workflow); nodes are `@Entry`, `@Router`, `@Agent`, `@Conclusion`.
+chain / node / Self` (Wiki → Workflow); nodes are `@WorkflowStart`, `@Router`, `@Agent`,
+  `@WorkflowFinish`.
   Assembly rules run at assembly, before any model call, and report **all** violations at once
   (`GraphRuleError` with stable codes). A new rule gets a code and a test.
 - **Config-driven.** Agents, models, thinking and caching live in the workflow's components
@@ -85,7 +86,7 @@ chain / node / Self` (Wiki → Workflow); nodes are `@Entry`, `@Router`, `@Agent
   tested on their own (`npm run test:routers`), the graph adapter separately.
 - **`@Router` = how + what.** `prompt` / `promptUrls` say how to choose; `routes` say what each
   choice means (`route(Target, text)`, text required, the targets equal the router's `choose`). A route
-  **to a conclusion** is worded as a stop instruction ("Stop and send the answer: …") — worded as
+  **to a workflow finish** is worded as a stop instruction ("Stop and send the answer: …") — worded as
   "the answer is ready", Jev kept sending the turn back to the last agent (#116).
 - **A router failure fails the run** (`RouterDecisionError`: `router.failed`,
   `router.unknown-route`) — no guessing, no fallback route; its spend is kept.

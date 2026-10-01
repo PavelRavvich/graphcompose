@@ -31,7 +31,7 @@ export function visitNode(
   runner: FlowNodeRunner,
   deps: VisitDeps,
 ): FlowNodeRunner {
-  const visited = { visits: { [node.name]: 1 }, path: [node.name] };
+  const visited = { visits: { [node.key]: 1 }, path: [node.key] };
   if (!isWorkingKind(node.kind)) {
     return async (state, config) => ({ ...(await runner(state, config)), ...visited });
   }
@@ -49,7 +49,7 @@ export function visitNode(
       ...visited,
       steps: 1,
       daySpentBeforeRunUsd: daySpent,
-      ...(node.kind === "agent" ? { previousAgent: node.name } : {}),
+      ...(node.kind === "agent" ? { previousAgent: node.key } : {}),
     };
   };
 }

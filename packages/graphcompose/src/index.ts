@@ -19,7 +19,11 @@ export { describeWorkflow } from "./cli/describe.js";
 export type { GraphDeps } from "./graph/deps.js";
 export { resumeAgent, NotPausedError } from "./run/resume-agent.js";
 export { runAgent } from "./run/run-agent.js";
-export { runEntry, NotAnEntryError, type EntryRunOptions } from "./run/run-entry.js";
+export {
+  runWorkflowStart,
+  NotAWorkflowStartError,
+  type WorkflowStartRunOptions,
+} from "./run/run-workflow-start.js";
 export { UnknownThreadError } from "./run/thread.js";
 export type { AgentRunResult, RunDeps, RunOptions, RunStatus, SpendAccount } from "./run/types.js";
 export { runVersions } from "./run/versions.js";

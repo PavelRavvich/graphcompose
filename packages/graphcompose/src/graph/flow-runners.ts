@@ -10,8 +10,8 @@ export class NotARunnerNodeError extends Error {
   override name = "NotARunnerNodeError";
 }
 
-/** A conclusion: the answer is the last contribution, checked by the output guards. */
-function conclusionRunner<TName extends string>(deps: GraphDeps<TName>): FlowNodeRunner {
+/** A workflow finish: the answer is the last contribution, checked by the output guards. */
+function finishRunner<TName extends string>(deps: GraphDeps<TName>): FlowNodeRunner {
   const outputGuards = makeGuardNode(deps.guards.output, "output");
   return async (state, config) => {
     const answer = lastAnswer(state);
@@ -20,8 +20,8 @@ function conclusionRunner<TName extends string>(deps: GraphDeps<TName>): FlowNod
 }
 
 /**
- * The runners of the existing nodes in the flow (until #119 / #120 replace them): an entry runs the
- * input guards, an agent runs its loop (approval pause, knowledge), a conclusion takes the last answer
+ * The runners of the existing nodes in the flow (until #119 / #120 replace them): a workflow start runs
+ * the input guards, an agent runs its loop (approval pause, knowledge), a workflow finish takes the last answer
  * and runs the output guards. Routers are the engine's own.
  */
 export function flowRunners<TName extends string>(
@@ -37,15 +37,15 @@ export function flowRunners<TName extends string>(
     { tools: deps.tools, bundle: deps.config.name },
   );
   const inputGuards = makeGuardNode(deps.guards.input, "input");
-  const conclusion = conclusionRunner(deps);
+  const finish = finishRunner(deps);
   return (node) => {
     switch (node.kind) {
-      case "entry":
+      case "workflow-start":
         return inputGuards;
       case "agent":
         return agentRunner(loop, node.name);
-      case "conclusion":
-        return conclusion;
+      case "workflow-finish":
+        return finish;
       case "router":
         throw new NotARunnerNodeError(`Router "${node.name}" is run by the flow engine`);
     }

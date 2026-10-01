@@ -1,23 +1,23 @@
 import { Decimal, Flag, ListOf, Nested, Text } from "../decorators.js";
 import { markOpen } from "../metadata.js";
 
-/** What a user writes into a chat entry. */
-export class ChatMessage {
-  @Text({ prompt: "what the user wrote", minLength: 1 })
+/** The text a workflow run starts with (the input of a text `@WorkflowStart`). */
+export class WorkflowStartText {
+  @Text({ prompt: "the text the run starts with", minLength: 1 })
   text!: string;
 
-  @Text({ prompt: "who wrote it, if the caller knows", optional: true, sensitive: true })
+  @Text({ prompt: "who or what sent it, if the caller knows", optional: true, sensitive: true })
   author?: string;
 }
 
-/** A plain text answer — the output of an answer conclusion. */
-export class TextAnswer {
-  @Text({ prompt: "the answer, in plain words" })
+/** The text a workflow run finishes with (the output of a text `@WorkflowFinish`). */
+export class WorkflowFinishText {
+  @Text({ prompt: "the text the run finishes with, in plain words" })
   text!: string;
 }
 
-/** What an interrupt asks a person. */
-export class Question {
+/** What a workflow pause asks outside the run — a person or a system. */
+export class WorkflowPauseQuestion {
   @Text({ prompt: "the question to ask, in one sentence" })
   question!: string;
 
@@ -29,9 +29,9 @@ export class Question {
   options?: string[];
 }
 
-/** A person's answer to a question. */
-export class Clarification {
-  @Text({ prompt: "the person's answer" })
+/** The answer to a workflow pause's question. */
+export class WorkflowPauseAnswer {
+  @Text({ prompt: "the answer" })
   answer!: string;
 }
 
@@ -41,8 +41,8 @@ export class ToolArguments {
 }
 markOpen(ToolArguments);
 
-/** A tool call waiting for a person's approval — one call per pause. */
-export class ApprovalRequest {
+/** A tool call waiting for approval — one call per pause. */
+export class ToolCallApprovalAsk {
   @Text({ prompt: "the id of the call being approved" })
   callId!: string;
 
@@ -52,19 +52,19 @@ export class ApprovalRequest {
   @Nested(ToolArguments, { prompt: "the arguments the tool would get" })
   arguments!: ToolArguments;
 
-  @Text({ prompt: "what the call will do, in one sentence a person understands" })
+  @Text({ prompt: "what the call will do, in one sentence" })
   summary!: string;
 }
 
-/** The person's decision on one call. */
-export class ApprovalDecision {
+/** The decision on one tool call waiting for approval. */
+export class ToolCallApprovalDecision {
   @Flag({ prompt: "true to run the call, false to refuse it" })
   approved!: boolean;
 
-  @Text({ prompt: "who decided" })
+  @Text({ prompt: "who or what decided" })
   by!: string;
 
-  @Text({ prompt: "why, if the person said", optional: true })
+  @Text({ prompt: "why, if a reason was given", optional: true })
   reason?: string;
 }
 
@@ -74,14 +74,20 @@ export class ApprovalDecision {
  */
 export class NoInput extends Object {}
 
-/** A piece of knowledge found for an agent. */
-export class Passage {
+/** Plain text, e.g. the result of an MCP server tool that returns text only. */
+export class PlainText {
+  @Text({ prompt: "the text" })
+  text!: string;
+}
+
+/** A piece of text a knowledge base (`@Rag`) found for a query. */
+export class RagSearchResult {
   @Text({ prompt: "the found text" })
   text!: string;
 
   @Text({ prompt: "where it comes from: a document, a page, a file" })
   source!: string;
 
-  @Decimal({ prompt: "how well it matches the query, from 0 to 1", min: 0, max: 1 })
-  score!: number;
+  @Decimal({ prompt: "how well it matches the query, from 0 to 1", optional: true, min: 0, max: 1 })
+  score?: number;
 }

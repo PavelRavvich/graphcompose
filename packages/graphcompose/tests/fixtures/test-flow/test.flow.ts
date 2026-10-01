@@ -1,6 +1,6 @@
-import { ChatMessage, TextAnswer } from "../../../src/dto/index.js";
-import { Conclusion } from "../../../src/graph/conclusion.decorator.js";
-import { Entry } from "../../../src/graph/entry.decorator.js";
+import { WorkflowStartText, WorkflowFinishText } from "../../../src/dto/index.js";
+import { WorkflowFinish } from "../../../src/graph/workflow-finish.decorator.js";
+import { WorkflowStart } from "../../../src/graph/workflow-start.decorator.js";
 import { from, type Flow } from "../../../src/graph/flow.js";
 import { route } from "../../../src/graph/route.js";
 import { Router } from "../../../src/graph/router.decorator.js";
@@ -16,7 +16,7 @@ const agentNode =
     return value;
   };
 
-@Entry({ name: "chat", description: "A message from the user", input: ChatMessage })
+@WorkflowStart({ name: "chat", description: "A message from the user", input: WorkflowStartText })
 export class TestChat {}
 
 @agentNode("alpha")
@@ -25,7 +25,11 @@ export class Alpha {}
 @agentNode("beta")
 export class Beta {}
 
-@Conclusion({ name: "answer", description: "The answer to the user", output: TextAnswer })
+@WorkflowFinish({
+  name: "answer",
+  description: "The answer to the user",
+  output: WorkflowFinishText,
+})
 export class TestAnswer {}
 
 const ROUTES = {
@@ -44,7 +48,7 @@ const ROUTES = {
 })
 export class TestMain {}
 
-/** The star: entry → main router → alpha / beta → main again → … → answer. */
+/** The star: workflow start → main router → alpha / beta → main again → … → answer. */
 export const testFlow: Flow = [
   from(TestChat).to(TestMain),
   from(TestMain).choose(Alpha, Beta, TestAnswer),

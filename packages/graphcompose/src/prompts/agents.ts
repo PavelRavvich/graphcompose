@@ -39,8 +39,8 @@ export const PENDING_APPROVAL_MESSAGE = "Waiting for human approval of this tool
 export const PAUSED_MESSAGE = "paused: waiting for human approval";
 
 /** What the model reads when a human rejected a call. */
-export const rejectionMessage = (note: string | undefined): string =>
-  `Tool error: rejected by human${note === undefined ? "" : `: ${note}`}`;
+export const rejectionMessage = (reason: string | undefined): string =>
+  `Tool error: rejected by human${reason === undefined ? "" : `: ${reason}`}`;
 
 /** Final message of an agent whose loop was stopped by the run budget. */
 export const BUDGET_STOP_MESSAGE = "stopped: run budget exhausted";

@@ -14,7 +14,7 @@ import { visitNode, type FlowNodeRunner, type SpentToday } from "./visit.js";
 
 /** What the engine needs from the outside to run a flow. */
 export interface FlowRuntime {
-  /** The runner of an entry, agent or conclusion (routers are the engine's own). */
+  /** The runner of a workflow start, agent or workflow finish (routers are the engine's own). */
   readonly runnerFor: (node: FlowNodeRef) => FlowNodeRunner;
   /** The routing strategy of a router (its own model). */
   readonly routerFor: (router: LoadedRouter) => Router;
@@ -27,8 +27,8 @@ export interface FlowRuntime {
 /** LangGraph's `recursionLimit` is a safety net far above the steps limit, never the limit a user sees. */
 export const RECURSION_SAFETY_FACTOR = 10;
 
-export class UnknownEntryError extends Error {
-  override name = "UnknownEntryError";
+export class UnknownWorkflowStartError extends Error {
+  override name = "UnknownWorkflowStartError";
 }
 
 type Builder = StateGraph<typeof FlowState.spec, FlowStateType, FlowStateUpdate, string>;
@@ -39,76 +39,82 @@ function runnerOf(
   runtime: FlowRuntime,
   routers: ReadonlyMap<string, LoadedRouter>,
 ): { readonly runner: FlowNodeRunner; readonly maxVisits?: number } {
-  const loaded = routers.get(node.name);
+  const loaded = routers.get(node.key);
   if (node.kind !== "router" || loaded === undefined) return { runner: runtime.runnerFor(node) };
-  const conclusion = loaded.routes.find(
-    (item) => model.nodes.get(item.option)?.kind === "conclusion",
+  const finish = loaded.routes.find(
+    (item) => model.nodes.get(item.option)?.kind === "workflow-finish",
   )?.option;
   const runner = makeFlowRouterNode({
     router: runtime.routerFor(loaded),
     loaded,
     memory: runtime.routerMemory,
-    ...(conclusion === undefined ? {} : { conclusion }),
+    ...(finish === undefined ? {} : { finish }),
   });
   return loaded.maxVisits === undefined ? { runner } : { runner, maxVisits: loaded.maxVisits };
 }
 
 /**
- * The LangGraph node of a flow node: `<kind>.<name>` (e.g. `conclusion.answer`) — flow names may
+ * The LangGraph node of a flow node: `<kind>.<name>` (e.g. `workflow-finish.chat`) — flow names may
  * equal state keys (`answer`), which LangGraph does not allow as node names.
  */
 export const graphNodeId = (node: Pick<FlowNodeRef, "kind" | "name">): string =>
   `${node.kind}.${node.name}`;
 
-/** A node of a checked flow by name (every transition target is a node once the rules pass). */
-function nodeNamed(model: FlowModel, name: string): FlowNodeRef {
-  const ref = model.nodes.get(name);
-  if (ref === undefined) throw new Error(`Flow node "${name}" is missing after the rules passed`);
+/** A node of a checked flow by key (every transition target is a node once the rules pass). */
+function nodeKeyed(model: FlowModel, key: string): FlowNodeRef {
+  const ref = model.nodes.get(key);
+  if (ref === undefined) throw new Error(`Flow node "${key}" is missing after the rules passed`);
   return ref;
 }
 
-/** Node name → graph node id, for the given names (a conditional edge's path map). */
-const pathMap = (model: FlowModel, names: readonly string[]): Record<string, string> =>
-  Object.fromEntries(names.map((name) => [name, graphNodeId(nodeNamed(model, name))]));
+/** Node key → graph node id, for the given keys (a conditional edge's path map). */
+const pathMap = (model: FlowModel, keys: readonly string[]): Record<string, string> =>
+  Object.fromEntries(keys.map((key) => [key, graphNodeId(nodeKeyed(model, key))]));
 
-function entryEdges(builder: Builder, model: FlowModel): void {
-  const entries = [...model.nodes.values()].filter((ref) => ref.kind === "entry");
-  const [only] = entries;
-  if (entries.length === 1 && only !== undefined) {
+function startEdges(builder: Builder, model: FlowModel): void {
+  const starts = [...model.nodes.values()].filter((ref) => ref.kind === "workflow-start");
+  const [only] = starts;
+  if (starts.length === 1 && only !== undefined) {
     builder.addEdge(START, graphNodeId(only));
     return;
   }
-  const names = entries.map((ref) => ref.name);
+  const names = starts.map((ref) => ref.name);
   const pick = (state: FlowStateType): string => {
-    if (names.includes(state.entry)) return state.entry;
-    throw new UnknownEntryError(`Unknown entry "${state.entry}"; entries: ${names.join(", ")}`);
+    if (names.includes(state.start)) return state.start;
+    throw new UnknownWorkflowStartError(
+      `Unknown workflow start "${state.start}"; workflow starts: ${names.join(", ")}`,
+    );
   };
-  builder.addConditionalEdges(START, pick, pathMap(model, names));
+  builder.addConditionalEdges(
+    START,
+    pick,
+    Object.fromEntries(starts.map((ref) => [ref.name, graphNodeId(ref)])),
+  );
 }
 
-/** After an entry: a tripped input guard ends the run before any working node spends money. */
-const afterEntry =
+/** After a workflow start: a tripped input guard ends the run before any working node spends money. */
+const afterStart =
   (target: string) =>
   (state: FlowStateType): string =>
     state.guarded === "" ? target : END;
 
 function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void {
-  const next = model.next.get(node.name);
+  const next = model.next.get(node.key);
   const id = graphNodeId(node);
-  if (node.kind === "conclusion" || next === undefined) {
+  if (node.kind === "workflow-finish" || next === undefined) {
     builder.addEdge(id, END);
     return;
   }
   if (next.kind === "to") {
-    const target = graphNodeId(nodeNamed(model, next.target));
-    if (node.kind === "entry") {
-      builder.addConditionalEdges(id, afterEntry(target), [target, END]);
+    const target = graphNodeId(nodeKeyed(model, next.target));
+    if (node.kind === "workflow-start") {
+      builder.addConditionalEdges(id, afterStart(target), [target, END]);
       return;
     }
     builder.addEdge(id, target);
     return;
   }
-  const self = next.self ? predecessorsOf(model.collected, node.name).map((ref) => ref.name) : [];
+  const self = next.self ? predecessorsOf(model.collected, node.key).map((ref) => ref.key) : [];
   const targets = [...new Set([...next.targets, ...self])];
   builder.addConditionalEdges(id, (state: FlowStateType) => state.next, pathMap(model, targets));
 }
@@ -134,7 +140,7 @@ function compileFlow(
     };
     builder.addNode(graphNodeId(node), visitNode(node, runner, deps));
   }
-  entryEdges(builder, model);
+  startEdges(builder, model);
   for (const node of model.nodes.values()) nodeEdges(builder, model, node);
   const recursionLimit = (limits.steps + model.nodes.size) * RECURSION_SAFETY_FACTOR;
   const compiled = builder.compile(
@@ -156,7 +162,7 @@ export interface FlowGraph {
 /**
  * Checks the flow (all rules, before any model call), loads router texts and builds the LangGraph
  * graph: one graph node per flow node; `to` → edges; `choose` → a conditional edge on the router's
- * decision; entries from `START`, conclusions to `END`.
+ * decision; workflow starts from `START`, workflow finishes to `END`.
  */
 export async function assembleFlowGraph(flow: Flow, runtime: FlowRuntime): Promise<FlowGraph> {
   const model = checkFlow(flow);

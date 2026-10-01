@@ -17,7 +17,7 @@ const handbook = (retrieve: KnowledgeSource["retrieve"]): KnowledgeSource => ({
 });
 const found: KnowledgeSource["retrieve"] = () =>
   Promise.resolve({
-    passages: [{ source: "oncall.md", text: "On-call starts after the third month." }],
+    results: [{ source: "oncall.md", text: "On-call starts after the third month." }],
     costUsd: 0.0002,
   });
 
@@ -39,7 +39,7 @@ const agentInput = (model: ScriptedChatModel): string =>
   model.sent[0]?.findLast((m) => m.type === "human")?.text ?? "";
 
 describe("knowledge bases — context mode", () => {
-  it("AC2, AC3: passages with sources come before the task, with the cite instruction; cost in retrieval", async () => {
+  it("AC2, AC3, #141 AC4: { results } with sources come before the task, with the cite instruction; cost in retrieval", async () => {
     const retrieve = vi.fn(found);
     const { deps, alpha } = setup(handbook(retrieve));
 

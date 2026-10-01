@@ -1,12 +1,8 @@
-/** One retrieved passage: its text and where it came from (cited as `[source]`). */
-export interface Passage {
-  readonly text: string;
-  readonly source: string;
-  readonly score?: number;
-}
+import type { RagSearchResult } from "../dto/standard/framework.js";
 
-export interface Retrieval {
-  readonly passages: readonly Passage[];
+/** What a knowledge base found for a query: its search results (each cited as `[source]`). */
+export interface RagRetrieval {
+  readonly results: readonly RagSearchResult[];
   /** What this retrieval cost (embeddings, a search API); 0 or absent when free. */
   readonly costUsd?: number;
 }
@@ -27,7 +23,7 @@ export interface RagConnector {
   retrieve(
     query: string,
     options: { readonly k: number; readonly signal: AbortSignal },
-  ): Promise<Retrieval>;
+  ): Promise<RagRetrieval>;
   /** Optional: build or update the index (`npm run rag:index`). */
   index?(): Promise<IndexReport>;
 }
@@ -39,5 +35,5 @@ export interface KnowledgeSource {
   readonly retrieve: RagConnector["retrieve"];
 }
 
-/** How an agent gets the passages: it calls `search_<name>` itself, or they come before the task. */
+/** How an agent gets the search results: it calls `search_<name>` itself, or they come before the task. */
 export type RagMode = "tool" | "context";

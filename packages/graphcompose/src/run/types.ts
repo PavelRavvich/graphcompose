@@ -39,8 +39,8 @@ export interface AgentRunResult {
   readonly answer: string;
   /** Agents in the order they ran. */
   readonly route: readonly string[];
-  /** The conclusion the run reached (absent when a guard stopped it or it is paused). */
-  readonly conclusion?: string;
+  /** The workflow finish the run reached (absent when a guard stopped it or it is paused). */
+  readonly finish?: string;
   readonly stopReason: string;
   readonly budgetUsd: number;
   readonly cost: CostReport;

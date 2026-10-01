@@ -19,7 +19,8 @@
     "typecheck": "npm run typecheck --workspaces",
     "coverage": "npm run coverage --workspaces",
     "check:rules": "scripts/check-rules-files.sh",
-    "check": "npm run check:rules && npm run build && npm run format:check && npm run lint && npm run typecheck && npm run coverage",
+    "check:names": "scripts/check-old-names.sh",
+    "check": "npm run check:rules && npm run check:names && npm run build && npm run format:check && npm run lint && npm run typecheck && npm run coverage",
     "smoke": "npm run smoke -w graphcompose",
     "studio": "npm run build && langgraphjs dev"
   },
