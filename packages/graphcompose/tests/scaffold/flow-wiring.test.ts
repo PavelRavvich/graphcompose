@@ -57,5 +57,7 @@ describe("#116: gc g agent joins the star; gc g router", () => {
     expect(router?.content).toContain(
       'route(TextWorkflowFinish, "Stop and send the answer: the contributions so far answer',
     );
+    // #142 AC3: a new router is bounded on any cycle it is later put on
+    expect(router?.content).toContain("  maxVisits: 1,\n");
   });
 });

@@ -14,7 +14,8 @@ export type RuleCode =
   | "router.routes-mismatch"
   | "router.self-without-agent-before"
   | "router.no-prompt"
-  | "router.empty-route-text";
+  | "router.empty-route-text"
+  | "router.unbounded-cycle";
 
 /** One broken rule: its code, what is wrong, and the nodes (classes) involved. */
 export interface RuleViolation {

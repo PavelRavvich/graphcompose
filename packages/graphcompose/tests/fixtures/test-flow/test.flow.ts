@@ -44,6 +44,7 @@ const ROUTES = {
   description: "Sends the task to an agent, or sends the answer",
   prompt: "Pick who handles the task.",
   model: "test/router",
+  maxVisits: 10,
   routes: [route(Alpha, ROUTES.alpha), route(Beta, ROUTES.beta), route(TestAnswer, ROUTES.answer)],
 })
 export class TestMain {}

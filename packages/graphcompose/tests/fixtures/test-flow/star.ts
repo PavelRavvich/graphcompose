@@ -15,6 +15,7 @@ export function starOf(...agents: readonly [Class, ...Class[]]): Flow {
     description: "Sends the message to an agent, or sends the answer",
     prompt: "Pick who handles the message.",
     model: "typesafe/jev-1.13",
+    maxVisits: 10,
     routes: [
       route(TestAnswer, "The answer covers the message"),
       ...agents.map((agent) => route(agent, `${agent.name} work`)),
