@@ -1,5 +1,5 @@
 import { tool as langChainTool, type StructuredToolInterface } from "@langchain/core/tools";
-import { z } from "zod";
+import { inputJsonSchema } from "../dto/schema.js";
 import type { AnyTool, ToolContext, ToolResult } from "./types.js";
 
 /** What the model reads back: JSON of the value, or a readable error. */
@@ -16,6 +16,6 @@ export function toLangChainTool(tool: AnyTool, ctx: ToolContext): StructuredTool
   return langChainTool(async (input: unknown) => renderToolResult(await tool.invoke(input, ctx)), {
     name: tool.name,
     description: tool.description,
-    schema: z.toJSONSchema(tool.input, { io: "input" }),
+    schema: inputJsonSchema(tool.input),
   });
 }

@@ -1,10 +1,17 @@
 import { Tool, type ToolHandler } from "graphcompose";
-import { z } from "zod";
+import { Text } from "graphcompose/dto";
 
-export const {{pascal}}Query = z.object({ query: z.string().describe("what to look up") });
-export type {{pascal}}Query = z.infer<typeof {{pascal}}Query>;
-export const {{pascal}}Result = z.object({ result: z.string() });
-export type {{pascal}}Result = z.infer<typeof {{pascal}}Result>;
+/** What the model asks {{snake}} for. */
+export class {{pascal}}Query {
+  @Text({ prompt: "what to look up" })
+  query!: string;
+}
+
+/** What {{snake}} answers. */
+export class {{pascal}}Result {
+  @Text({ prompt: "the answer" })
+  result!: string;
+}
 
 /** {{title}}. TODO: implement — it returns a placeholder so the workflow runs end to end. */
 @Tool({

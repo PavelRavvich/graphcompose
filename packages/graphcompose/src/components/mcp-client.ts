@@ -1,11 +1,15 @@
-import type { z } from "zod";
+import type { DtoClass } from "../dto/types.js";
 import type { ToolContext, ToolResult } from "../tools/index.js";
 
-/** A server tool as a workflow uses it: the schemas of its arguments and its result. */
+/** A server tool as a workflow uses it: the DTOs of its arguments and its result. */
 export interface ServerTool {
-  readonly input: z.ZodType<Record<string, unknown>>;
-  readonly output: z.ZodType;
+  readonly input: DtoClass;
+  readonly output: DtoClass;
 }
+
+/** The arguments / the result of a declared server tool. */
+type ArgumentsOf<TTool extends ServerTool> = InstanceType<TTool["input"]>;
+type ResultOf<TTool extends ServerTool> = InstanceType<TTool["output"]>;
 export type ServerTools = Readonly<Record<string, ServerTool>>;
 
 /** What `call` goes through: the framework's facade of one server tool (validation, connection). */
@@ -18,7 +22,7 @@ const noCost = (): void => undefined;
 /**
  * Standard implementation of an MCP server's client: `extends McpServerClient<Tools>` gives the class a
  * typed `call` — the tool name and its arguments are checked by the compiler, validated and parsed by
- * the declared schemas. The framework creates the instance and connects it; inject it like any dependency.
+ * the declared DTOs. The framework creates the instance and connects it; inject it like any dependency.
  */
 export abstract class McpServerClient<TTools extends ServerTools> {
   /** Type only (not emitted): the declared tools, so `ToolsOf<Server>` can read them. */
@@ -33,9 +37,9 @@ export abstract class McpServerClient<TTools extends ServerTools> {
 
   async call<K extends keyof TTools & string>(
     name: K,
-    args: z.input<TTools[K]["input"]>,
+    args: ArgumentsOf<TTools[K]>,
     signal: AbortSignal = new AbortController().signal,
-  ): Promise<z.output<TTools[K]["output"]>> {
+  ): Promise<ResultOf<TTools[K]>> {
     const tool = this.#tools.get(name);
     if (tool === undefined) throw new Error(`MCP tool "${name}" is not declared on this server`);
     const result = await tool.invoke(args, {
@@ -46,14 +50,13 @@ export abstract class McpServerClient<TTools extends ServerTools> {
       reportCost: noCost,
     });
     if (result.kind === "error") throw new Error(result.message);
-    return result.value as z.output<TTools[K]["output"]>;
+    // the facade validated the value against the declared output DTO
+    return result.value as ResultOf<TTools[K]>;
   }
 }
 
 type Handlers<TTools extends ServerTools> = {
-  readonly [K in keyof TTools]?: (
-    args: z.output<TTools[K]["input"]>,
-  ) => Promise<z.input<TTools[K]["output"]>>;
+  readonly [K in keyof TTools]?: (args: ArgumentsOf<TTools[K]>) => Promise<ResultOf<TTools[K]>>;
 };
 
 /** The tools a server class declares (`extends McpServerClient<Tools>`). */

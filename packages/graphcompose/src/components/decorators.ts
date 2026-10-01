@@ -1,6 +1,6 @@
-import type { z } from "zod";
 import type { McpServerConfig } from "../config/types.js";
 import type { RagConnector } from "../rag/types.js";
+import type { DtoClass } from "../dto/types.js";
 import type { ToolContext, ToolEffect } from "../tools/index.js";
 import type { Class, ResolvedAll, Token } from "./injection.js";
 import { callerFile } from "./call-site.js";
@@ -9,14 +9,14 @@ import { recordComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 
 /**
- * The contract of a tool (`@Tool`, `@McpTool`): `implements ToolHandler<OrderQuery, OrderStatus>` — the
- * types of its input and output data (a schema and its type share one name).
+ * The contract of a tool (`@Tool`, `@McpTool`): `implements ToolHandler<OrderQuery, OrderStatus>` — its
+ * input and output DTOs (classes from `graphcompose/dto`).
  */
 export interface ToolHandler<TInput, TOutput> {
   run(input: TInput, ctx: ToolContext): Promise<TOutput>;
 }
 
-interface ToolOptions<In extends z.ZodType, Out extends z.ZodType, D extends readonly Token[]> {
+interface ToolOptions<In extends DtoClass, Out extends DtoClass, D extends readonly Token[]> {
   readonly name: string;
   readonly description: string;
   readonly effect?: ToolEffect;
@@ -29,11 +29,13 @@ interface ToolOptions<In extends z.ZodType, Out extends z.ZodType, D extends rea
 
 /** A tool: one class implementing `ToolHandler`, dependencies through the constructor. */
 export function Tool<
-  In extends z.ZodType,
-  Out extends z.ZodType,
+  In extends DtoClass,
+  Out extends DtoClass,
   const D extends readonly Token[] = [],
 >(options: ToolOptions<In, Out, D>) {
-  return <C extends new (...args: ResolvedAll<D>) => ToolHandler<z.output<In>, z.input<Out>>>(
+  return <
+    C extends new (...args: ResolvedAll<D>) => ToolHandler<InstanceType<In>, InstanceType<Out>>,
+  >(
     value: C,
   ): C => {
     recordComponent(value, { kind: "tool", meta: { ...options, deps: options.deps ?? [] } });
@@ -70,11 +72,13 @@ export function McpServer<const TTools extends ServerTools>(
  * constructor) with its server's client among `deps`; `run` calls the server's tools through it.
  */
 export function McpTool<
-  In extends z.ZodType,
-  Out extends z.ZodType,
+  In extends DtoClass,
+  Out extends DtoClass,
   const D extends readonly Token[] = [],
 >(options: ToolOptions<In, Out, D> & { readonly server: Class }) {
-  return <C extends new (...args: ResolvedAll<D>) => ToolHandler<z.output<In>, z.input<Out>>>(
+  return <
+    C extends new (...args: ResolvedAll<D>) => ToolHandler<InstanceType<In>, InstanceType<Out>>,
+  >(
     value: C,
   ): C => {
     const { server, ...tool } = options;

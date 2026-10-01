@@ -50,14 +50,17 @@ describe("components — assembly", () => {
     expect(bundle.config.agents.greeter?.tools).toEqual(["greet", "read_file"]);
     expect(await greet?.invoke({ name: "Pavel" }, ctx)).toEqual({
       kind: "ok",
-      value: "Shalom, Pavel",
+      value: { text: "Shalom, Pavel" },
     });
   });
 
   it("AC1: a tool is testable with plain `new` and fakes — no container", async () => {
     const tool = toolOf(new GreetTool(new Greeter("Hi", services.router)));
 
-    expect(await tool.invoke({ name: "you" }, ctx)).toEqual({ kind: "ok", value: "Hi, you" });
+    expect(await tool.invoke({ name: "you" }, ctx)).toEqual({
+      kind: "ok",
+      value: { text: "Hi, you" },
+    });
     expect((await tool.invoke({ nope: 1 }, ctx)).kind).toBe("error");
   });
 

@@ -1,6 +1,7 @@
 import type { AssembledWorkflow, WorkflowServices } from "../workflow.js";
 import type { RagConnector } from "../rag/types.js";
 import type { Router } from "../routers/index.js";
+import { schemaOf } from "../dto/schema.js";
 import { defineTool, type AnyTool, type Tool, type ToolContext } from "../tools/index.js";
 import { createContainer, type Container } from "./container.js";
 import type { ToolHandler } from "./decorators.js";
@@ -28,16 +29,23 @@ export function toolOf<TInput, TOutput>(instance: {
     componentOf(cls)?.kind === "mcp-tool"
       ? requireComponent(cls, "mcp-tool", "toolOf")
       : requireComponent(cls, "tool", "toolOf");
-  // The decorator's schemas are erased in metadata; `run` is what they validate for.
+  // The decorator's DTOs are erased in metadata; `run` is what they validate for.
   return adapt(instance, meta) as unknown as Tool<string, TInput, TOutput>;
 }
+
+/** The startup check of a tool's DTOs (undecorated fields, behaviour) — before any run. */
+export const checkToolData = (cls: Class, kind: "tool" | "mcp-tool"): void => {
+  const { meta } = requireComponent(cls, kind, "workflowOf");
+  schemaOf(meta.input);
+  schemaOf(meta.output);
+};
 
 export const adapt = (handler: ToolHandler<unknown, unknown>, meta: ToolMeta): AnyTool =>
   defineTool({
     name: meta.name,
     description: meta.description,
-    input: meta.input,
-    output: meta.output,
+    input: schemaOf(meta.input),
+    output: schemaOf(meta.output),
     ...(meta.effect === undefined ? {} : { effect: meta.effect }),
     ...(meta.timeoutMs === undefined ? {} : { timeoutMs: meta.timeoutMs }),
     run: (input, ctx) => handler.run(input, ctx),

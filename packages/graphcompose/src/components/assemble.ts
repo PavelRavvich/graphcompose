@@ -3,9 +3,10 @@ import { basename, dirname, join, resolve } from "node:path";
 import type { AssembledWorkflow } from "../workflow.js";
 import { validateAgentsConfig, type AgentsConfigOf } from "../config/types.js";
 import { mcpServer, type McpFacade } from "../tools/index.js";
+import { objectSchemaOf } from "../dto/schema.js";
 import { renderTemplate } from "../scaffold/render.js";
 import { checkGraph, dependencyTree } from "./container.js";
-import { CORE_TOKENS, ragParts, rememberServers, toolBuilder } from "./runtime.js";
+import { checkToolData, CORE_TOKENS, ragParts, rememberServers, toolBuilder } from "./runtime.js";
 import type { McpServerClient, ServerTools } from "./mcp-client.js";
 import type { Token } from "./injection.js";
 import { ragClassesOf, ragMeta, ragSettings, searchToolName } from "./rag.js";
@@ -76,6 +77,7 @@ function toolsOf(bundle: WorkflowMeta, agents: readonly AgentMeta[]) {
         `@Workflow "${bundle.name}": ${cls.name} in an agent's tools is not a @Tool or @McpTool`,
       );
     }
+    checkToolData(cls, kind);
   }
   return {
     local: classes.filter((cls) => componentOf(cls)?.kind === "tool"),
@@ -100,8 +102,8 @@ function mcpOf(bundle: WorkflowMeta, mcpTools: readonly Class[]) {
         handle.tool({
           tool,
           description: `${server.name}: ${tool}`,
-          input: schemas.input,
-          output: schemas.output,
+          input: objectSchemaOf(schemas.input),
+          output: objectSchemaOf(schemas.output),
         }),
       ]),
     );

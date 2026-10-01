@@ -3,8 +3,8 @@
  * line compiles would itself fail the build — so every line below must stay an error.
  */
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
 import { Agent, InjectionToken, Tool, type ToolHandler } from "../../src/components/index.js";
+import { Text } from "../../src/dto/index.js";
 import { testConfig } from "../helpers.js";
 import type { FilesServer } from "./fixture/components.js";
 
@@ -12,46 +12,54 @@ class Judge {
   readonly judge = true;
 }
 const SEARCH = new InjectionToken<{ boards: string[] }>("SEARCH");
-const In = z.object({ q: z.string() });
-const Out = z.string();
-type Query = z.infer<typeof In>;
+class Query {
+  @Text()
+  q!: string;
+}
+
+class Answer {
+  @Text()
+  text!: string;
+}
+const In = Query;
+const Out = Answer;
 
 @Tool({ name: "ok", description: "d", input: In, output: Out, deps: [Judge, SEARCH] })
-class Ok implements ToolHandler<Query, string> {
+class Ok implements ToolHandler<Query, Answer> {
   constructor(
     readonly judge: Judge,
     readonly search: { boards: string[] },
   ) {}
-  run(): Promise<string> {
-    return Promise.resolve("");
+  run(): Promise<Answer> {
+    return Promise.resolve({ text: "" });
   }
 }
 
 // @ts-expect-error — deps in the wrong order
 @Tool({ name: "swapped", description: "d", input: In, output: Out, deps: [SEARCH, Judge] })
-class Swapped implements ToolHandler<Query, string> {
+class Swapped implements ToolHandler<Query, Answer> {
   constructor(
     readonly judge: Judge,
     readonly search: { boards: string[] },
   ) {}
-  run(): Promise<string> {
-    return Promise.resolve("");
+  run(): Promise<Answer> {
+    return Promise.resolve({ text: "" });
   }
 }
 
 // @ts-expect-error — a dependency missing from deps
 @Tool({ name: "missing", description: "d", input: In, output: Out, deps: [Judge] })
-class Missing implements ToolHandler<Query, string> {
+class Missing implements ToolHandler<Query, Answer> {
   constructor(
     readonly judge: Judge,
     readonly search: { boards: string[] },
   ) {}
-  run(): Promise<string> {
-    return Promise.resolve("");
+  run(): Promise<Answer> {
+    return Promise.resolve({ text: "" });
   }
 }
 
-// @ts-expect-error — run returns what the output schema does not allow
+// @ts-expect-error — run returns what the output DTO does not allow
 @Tool({ name: "wrong-output", description: "d", input: In, output: Out })
 class WrongOutput {
   run(): Promise<number> {
@@ -78,7 +86,7 @@ function usesMissing(): unknown {
 function wrongServerCall(files: FilesServer): unknown {
   // @ts-expect-error — the server declares no tool "write"
   void files.call("write", { path: "x" });
-  // @ts-expect-error — "read" takes { path }
+  // @ts-expect-error — "read" takes a FileRead: { path }
   return files.call("read", { file: "x" });
 }
 
