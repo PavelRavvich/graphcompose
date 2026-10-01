@@ -13,12 +13,20 @@ function parseJson(text: string): unknown {
   }
 }
 
-/** Validates raw LLM router output. Returns undefined for anything not a known option. */
-export function parseRouterDecision(
+/** Raw LLM router output, read: a valid decision, a decision for an unknown option, or garbage. */
+export type ParsedDecision =
+  | { readonly kind: "valid"; readonly decision: RouterDecision }
+  | { readonly kind: "unknown-option"; readonly option: string }
+  | { readonly kind: "invalid" };
+
+/** Reads raw LLM router output; only a known option is a valid decision. */
+export function readRouterDecision(
   text: string,
   allowedOptions: ReadonlySet<string>,
-): RouterDecision | undefined {
+): ParsedDecision {
   const parsed = DecisionSchema.safeParse(parseJson(text.trim().replace(CODE_FENCE, "")));
-  if (!parsed.success || !allowedOptions.has(parsed.data.next)) return undefined;
-  return parsed.data;
+  if (!parsed.success) return { kind: "invalid" };
+  if (!allowedOptions.has(parsed.data.next))
+    return { kind: "unknown-option", option: parsed.data.next };
+  return { kind: "valid", decision: parsed.data };
 }

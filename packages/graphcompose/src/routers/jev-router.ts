@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ZERO_USAGE, type UsageRecord } from "../finops/usage.js";
 import type { JevClient } from "../llm/jev-client.js";
-import { decided, errorReason, failed } from "./outcome.js";
+import { decided, errorReason, failed, unknownOption } from "./outcome.js";
 import { jevRouteInstructions } from "./prompts.js";
 import { routerCaller, type RouteOutcome, type RouteRequest, type Router } from "./types.js";
 
@@ -42,7 +42,7 @@ function toOutcome(raw: unknown, request: RouteRequest, usageOf: UsageFactory): 
   const record = usageOf(model, reportedCost(usage));
   const { route } = answers;
   if (!request.options.some((option) => option.name === route.choice)) {
-    return failed(`unknown route: ${route.choice}`, record);
+    return unknownOption(route.choice, record);
   }
   const score = scoreOf(route);
   const decision = { next: route.choice, reason: reasonFor(score) };
