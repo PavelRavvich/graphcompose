@@ -43,11 +43,19 @@ export function endpointFiles(dir: string): FileToWrite[] {
   ];
 }
 
+/** What a generated router says, and how many times one run may pass through it. */
+export interface RouterFileSpec {
+  readonly description: string;
+  readonly prompt: string;
+  /** Required: a router on a cycle without it breaks `router.unbounded-cycle`. */
+  readonly maxVisits: number;
+}
+
 /** A router file (`routers/<name>.router.ts`) with its routes and their imports. */
 export function routerFile(
   dir: string,
   router: Names,
-  text: { readonly description: string; readonly prompt: string },
+  spec: RouterFileSpec,
   routes: readonly RouteSpec[],
 ): FileToWrite {
   const imports = routes.map((r) => `import { ${r.target} } from "${r.from}";`).join("\n");
@@ -55,17 +63,19 @@ export function routerFile(
     path: `${dir}/routers/${router.kebab}.router.ts`,
     content: render("router/router.ts.tmpl", {
       ...vars(router),
-      description: quoted(text.description),
-      prompt: quoted(text.prompt),
+      description: quoted(spec.description),
+      prompt: quoted(spec.prompt),
+      maxVisits: String(spec.maxVisits),
       imports,
       routes: routes.map((r) => `    ${routeLine(r.target, r.text)},`).join("\n"),
     }),
   };
 }
 
-/** What the main router of a generated workflow says. */
-export const MAIN_ROUTER = {
+/** What the main router of a generated workflow says; the star around it is a cycle. */
+export const MAIN_ROUTER: RouterFileSpec = {
   description: "Sends the message to the right agent, or sends the answer",
   prompt:
     "Pick who handles the message next. Send the answer when the contributions so far already cover the message.",
-} as const;
+  maxVisits: 3,
+};

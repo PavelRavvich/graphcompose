@@ -1,4 +1,10 @@
-import { agentRoute, FINISH_ROUTE, routeLine, routerFile } from "./flow-files.js";
+import {
+  agentRoute,
+  FINISH_ROUTE,
+  routeLine,
+  routerFile,
+  type RouterFileSpec,
+} from "./flow-files.js";
 import type { GenerateOptions } from "./generate.js";
 import { namesOf } from "./names.js";
 import { agentFiles } from "./plan.js";
@@ -43,9 +49,10 @@ export function planRouter(root: string, name: string, o: GenerateOptions): Chan
   const { dir } = targetWorkflow(root, o.workflow ?? "", "router");
   read(root, `${dir}/workflow-finishes/text.workflow-finish.ts`);
   const n = namesOf(name);
-  const text = {
+  const text: RouterFileSpec = {
     description: o.description ?? `${n.title} (TODO: say what it decides)`,
     prompt: "TODO: say how to choose between the routes.",
+    maxVisits: 1,
   };
   return { create: [routerFile(dir, n, text, [FINISH_ROUTE])], modify: [] };
 }

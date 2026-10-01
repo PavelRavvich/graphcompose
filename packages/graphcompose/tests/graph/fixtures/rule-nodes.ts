@@ -46,6 +46,7 @@ export class Pick {}
   description: "Back or done",
   prompt: "Gate.",
   model: jev,
+  maxVisits: 10,
   routes: [route(Self, "Again"), route(Done, "Finished")],
 })
 export class Gate {}
@@ -75,3 +76,42 @@ export class Second {}
   routes: [route(Done, ""), route(A, {})],
 })
 export class Mute {}
+
+/** A router that sends the turn back to A or finishes — no `maxVisits`. */
+@Router({
+  name: "loop",
+  description: "A again or done",
+  prompt: "Loop.",
+  model: jev,
+  routes: [route(A, "A"), route(Done, "Finished")],
+})
+export class Loop {}
+
+/** Two routers for one cycle (`Ping → A → Pong → B → Ping`) — no `maxVisits` on either. */
+@Router({
+  name: "ping",
+  description: "A or done",
+  prompt: "Ping.",
+  model: jev,
+  routes: [route(A, "A"), route(Done, "Finished")],
+})
+export class Ping {}
+
+@Router({
+  name: "pong",
+  description: "B or done",
+  prompt: "Pong.",
+  model: jev,
+  routes: [route(B, "B"), route(Done, "Finished")],
+})
+export class Pong {}
+
+/** `Gate` without `maxVisits`: `Self` makes it a cycle with the agent before it. */
+@Router({
+  name: "unbounded-gate",
+  description: "Back or done",
+  prompt: "Gate.",
+  model: jev,
+  routes: [route(Self, "Again"), route(Done, "Finished")],
+})
+export class UnboundedGate {}

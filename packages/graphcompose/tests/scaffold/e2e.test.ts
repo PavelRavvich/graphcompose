@@ -105,6 +105,8 @@ describe("gc create / gc generate end to end", () => {
     expect(desk("workflow-finishes/text.workflow-finish.ts")).toContain(
       "export class TextWorkflowFinish {}",
     );
+    // #142: the main router of a new workflow is on the star's cycle, so it declares maxVisits
+    expect(desk("routers/main.router.ts")).toContain("maxVisits: 3,");
     expect(readFileSync(join(project, "src/desk/agents/answerer.agent.ts"), "utf8")).not.toContain(
       "prompt:",
     );
@@ -148,7 +150,10 @@ describe("gc create / gc generate end to end", () => {
     expect(readFileSync(join(project, "src/desk/routers/main.router.ts"), "utf8")).toContain(
       'route(BillingAgent, "Handles invoices")',
     );
-    expect(existsSync(join(project, "src/desk/routers/escalation.router.ts"))).toBe(true);
+    // #142 AC3: `gc g router` writes maxVisits: 1, and the workflow still assembles (check above)
+    expect(readFileSync(join(project, "src/desk/routers/escalation.router.ts"), "utf8")).toContain(
+      "maxVisits: 1,",
+    );
     expect(out).toContain("rag: policies (tool, k 3)");
     expect(out).toContain("· refund (read, local)");
     expect(out).toContain("· tickets_search (read, MCP tickets)");

@@ -35,6 +35,7 @@ export class MainRouter {}
   description: "Sends the code back or opens the pull request",
   prompt: "Is the review clean?",
   model: "typesafe/jev-1.13",
+  maxVisits: 3,
   routes: [
     route(CoderAgent, "The review asks for changes"),
     route(PullRequestWorkflowFinish, "The review is clean"),

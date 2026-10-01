@@ -19,6 +19,7 @@ class WebhookWorkflowStart {}
   description: "Loops back to the agent",
   prompt: "Again?",
   model: "typesafe/jev-1.13",
+  maxVisits: 25,
   routes: [route(Self, "Once more"), route(Done, "Enough")],
 })
 class Spin {}

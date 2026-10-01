@@ -25,6 +25,7 @@ class Scout {}
   description: "Picks an agent",
   prompt: "Pick one.",
   model: "typesafe/jev-1.13",
+  maxVisits: 3,
   routes: [route(Profiler, "Profiling"), route(TestAnswer, "Done")],
 })
 class Main {}
