@@ -27,7 +27,13 @@ export interface RouterDecision {
 /** `usage` is absent only when no model was called (single or no option). */
 export type RouteOutcome =
   | { readonly kind: "decided"; readonly decision: RouterDecision; readonly usage?: UsageRecord }
-  | { readonly kind: "failed"; readonly reason: string; readonly usage?: UsageRecord };
+  | {
+      readonly kind: "failed";
+      readonly reason: string;
+      readonly usage?: UsageRecord;
+      /** The model answered with an option that is not among the request's options. */
+      readonly unknownOption?: string;
+    };
 
 /** A routing strategy (Jev, LLM, …). Pure input → outcome; testable on its own. */
 export interface Router {

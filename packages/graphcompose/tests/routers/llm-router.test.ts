@@ -47,10 +47,11 @@ describe("LLM router", () => {
     });
   });
 
-  it("fails on an unknown option", async () => {
+  it("AC1: fails on an unknown option and names it", async () => {
     expect(await llm([decide("ghost")]).route(request)).toMatchObject({
       kind: "failed",
-      reason: "invalid router output",
+      reason: "unknown route: ghost",
+      unknownOption: "ghost",
     });
   });
 

@@ -1,0 +1,37 @@
+import { Annotation } from "@langchain/langgraph";
+import { AgentState } from "./state.js";
+
+const replace = <TValue>(_previous: TValue, next: TValue): TValue => next;
+
+const addCounts = (
+  left: Readonly<Record<string, number>>,
+  right: Readonly<Record<string, number>>,
+): Record<string, number> => {
+  const sum: Record<string, number> = { ...left };
+  for (const [name, count] of Object.entries(right)) sum[name] = (sum[name] ?? 0) + count;
+  return sum;
+};
+
+/**
+ * The state of a flow graph: the agent state the existing nodes work on, plus what the flow engine
+ * keeps — the entry the run starts at, the previous working node (for `Self`), visits per node,
+ * steps per run, the path, and the day's spend when the run started (for `limits.perDay.cost`).
+ */
+export const FlowState = Annotation.Root({
+  ...AgentState.spec,
+  /** The entry node this run starts at (name); may be empty when the flow has one entry. */
+  entry: Annotation<string>({ reducer: replace, default: () => "" }),
+  /** The last agent that ran ("" before any) — where `Self` leads. */
+  previousAgent: Annotation<string>({ reducer: replace, default: () => "" }),
+  /** Visits per node name in this run. */
+  visits: Annotation<Record<string, number>>({ reducer: addCounts, default: () => ({}) }),
+  /** Visits of agents and routers in this run (`limits.perRun.steps`). */
+  steps: Annotation<number>({ reducer: (left, right) => left + right, default: () => 0 }),
+  /** Every node visited in this run, in order. */
+  path: Annotation<string[]>({ reducer: (left, right) => left.concat(right), default: () => [] }),
+  /** The workflow's spend today before this run (read once, at the first working node). */
+  daySpentBeforeRunUsd: Annotation<number | null>({ reducer: replace, default: () => null }),
+});
+
+export type FlowStateType = typeof FlowState.State;
+export type FlowStateUpdate = typeof FlowState.Update;

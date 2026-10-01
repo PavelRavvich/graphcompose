@@ -68,12 +68,13 @@ describe("Jev router", () => {
     });
   });
 
-  it("fails on a choice outside the options", async () => {
+  it("AC1: fails on a choice outside the options and names it", async () => {
     const { router } = jevWith(jevAnswer({ choice: "ghost" }));
 
     expect(await router.route(request)).toMatchObject({
       kind: "failed",
       reason: "unknown route: ghost",
+      unknownOption: "ghost",
     });
   });
 
