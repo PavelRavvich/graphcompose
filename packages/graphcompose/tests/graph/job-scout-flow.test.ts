@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { checkFlow } from "../../src/graph/check-flow.js";
-import { AFTER_HUMAN_DECISION } from "../../src/graph/nodes/flow-router.js";
+import { AFTER_APPROVAL_DECISION } from "../../src/graph/nodes/flow-router.js";
 import { resumeAgent, runAgent } from "../../src/index.js";
 import type { Guard } from "../../src/guards/index.js";
 import type { RouteOutcome } from "../../src/routers/index.js";
@@ -130,7 +130,7 @@ describe("AC1: job-scout on the flow graph — the existing nodes keep working",
       status: "answered",
       answer: "Saved Acme and Globex.",
       finish: "chat",
-      stopReason: AFTER_HUMAN_DECISION,
+      stopReason: AFTER_APPROVAL_DECISION,
     });
     expect(saved).toEqual(["Acme", "Globex"]);
     expect(ledger.recorded).toHaveLength(done.cost.calls);

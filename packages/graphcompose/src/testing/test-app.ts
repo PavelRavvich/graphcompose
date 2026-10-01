@@ -3,6 +3,7 @@ import type { App, RunResult } from "../app/types.js";
 import type { FlowNode } from "../graph/flow.js";
 import type { TestClock } from "./clock.js";
 import type { TestEnvironment } from "./environment.js";
+import { TestFailure } from "./errors.js";
 import {
   agentSlice,
   routerSlice,
@@ -16,7 +17,8 @@ import {
 /**
  * The app of a test: the same `run` / `resume` as in production, built on first use (so `mockOf`
  * in the test body still takes effect), plus the test's clock and slices of single components.
- * A blocked live call or a script problem fails the call, even when the run swallowed it.
+ * A blocked live call or a script problem fails the call, even when the run swallowed it; any call
+ * after `close()` (or `restartApp()`) fails with `test.app-closed`.
  */
 export interface TestApp extends Pick<App, "run" | "resume" | "close"> {
   readonly clock: TestClock;
@@ -40,7 +42,14 @@ async function checked<T>(environment: TestEnvironment, work: () => Promise<T>):
 
 export function createTestApp(environment: TestEnvironment): TestApp {
   let building: Promise<BuiltApp> | undefined;
-  const built = (): Promise<BuiltApp> => (building ??= environment.openApp());
+  let closed = false;
+  const built = (): Promise<BuiltApp> => {
+    if (closed) {
+      const message = "this app is closed — after restartApp() use the app it returned";
+      return Promise.reject(new TestFailure("test.app-closed", message));
+    }
+    return (building ??= environment.newApp());
+  };
   return {
     clock: environment.clock,
     run: (start, input, options) =>
@@ -48,6 +57,7 @@ export function createTestApp(environment: TestEnvironment): TestApp {
     resume: (thread, decision, options): Promise<RunResult> =>
       checked(environment, async () => (await built()).app.resume(thread, decision, options)),
     close: async () => {
+      closed = true;
       if (building !== undefined) await (await building).app.close();
     },
     agent: (agent) => ({

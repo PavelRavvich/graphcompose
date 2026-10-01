@@ -12,7 +12,7 @@ export type AgentLoopGraph = InvokableGraph<AgentStateType, AgentStateType>;
 const AGENT = "agent";
 const APPROVAL = "approval";
 
-/** After the agent: a tool call waiting for a human goes to approval, otherwise the loop ends. */
+/** After the agent: a tool call waiting for a decision goes to approval, otherwise the loop ends. */
 export const afterAgent = (state: Pick<AgentStateType, "pending">): typeof APPROVAL | typeof END =>
   state.pending === null ? END : APPROVAL;
 

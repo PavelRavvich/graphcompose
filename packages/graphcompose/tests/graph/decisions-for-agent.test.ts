@@ -7,6 +7,7 @@ const write = {
   tool: "shortlist__write_file",
   args: { path: "/s.md", content: "x".repeat(500) },
   approved: true,
+  by: "dana",
   result: "Successfully wrote to /s.md",
 };
 const rejected = {
@@ -14,18 +15,22 @@ const rejected = {
   tool: "shortlist__write_file",
   args: { path: "/s.md" },
   approved: false,
-  result: "Rejected by a human",
+  by: "ci-policy",
+  result: "Tool error: the call was rejected by ci-policy",
 };
 
-describe("an agent after a pause sees the human decisions on its own tool calls (#92)", () => {
+describe("an agent after a pause sees the decisions on its own tool calls (#92, #148 AC2)", () => {
   it("approved: done, with the tool's result; rejected: not done; other agents' calls left out", () => {
     const text = formatDecisionsForAgent(
       [write, rejected, { ...write, agent: "scout" }],
       "shortlist",
     );
 
-    expect(text).toContain("approved by a human and DONE — result: Successfully wrote to /s.md");
-    expect(text).toContain("rejected by a human, NOT done — Rejected by a human");
+    expect(text).toContain("approved by dana and DONE — result: Successfully wrote to /s.md");
+    expect(text).toContain(
+      "rejected by ci-policy, NOT done — Tool error: the call was rejected by ci-policy",
+    );
+    expect(text).not.toMatch(/human/);
     expect(text.match(/shortlist__write_file/g)).toHaveLength(2);
     expect(text.length).toBeLessThan(900);
     expect(formatDecisionsForAgent([], "shortlist")).toBe("");

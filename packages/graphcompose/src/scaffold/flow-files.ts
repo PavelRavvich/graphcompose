@@ -13,7 +13,7 @@ export interface RouteSpec {
 export const FINISH_ROUTE: RouteSpec = {
   target: "TextWorkflowFinish",
   from: "../workflow-finishes/text.workflow-finish.js",
-  text: "Stop and send the answer: the contributions so far answer the message, or the last agent asked the user a question and waits for the reply, or it cannot be done",
+  text: "Stop and send the answer: the contributions so far answer the message, or the last agent asked a question and waits for the reply, or it cannot be done",
 };
 
 const quoted = (text: string): string => text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');

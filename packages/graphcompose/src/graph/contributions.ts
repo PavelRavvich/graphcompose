@@ -46,8 +46,8 @@ const clip = (text: string, max: number): string =>
   text.length <= max ? text : `${text.slice(0, max)}…`;
 
 /**
- * For an agent after a pause: its own tool calls a human decided in this turn, with what the tool
- * returned — so it does not redo a write that is already done, or report it as not done.
+ * For an agent after a pause: its own tool calls decided in this turn, who decided and what the
+ * tool returned — so it does not redo a write that is already done, or report it as not done.
  */
 export function formatDecisionsForAgent(
   approvals: readonly ApprovalRecord[],
@@ -58,10 +58,10 @@ export function formatDecisionsForAgent(
   const lines = own.map((record) => {
     const call = `${record.tool} ${clip(JSON.stringify(record.args), 200)}`;
     return record.approved
-      ? `- ${call}: approved by a human and DONE — result: ${clip(record.result, 300)}`
-      : `- ${call}: rejected by a human, NOT done — ${record.result}`;
+      ? `- ${call}: approved by ${record.by} and DONE — result: ${clip(record.result, 300)}`
+      : `- ${call}: rejected by ${record.by}, NOT done — ${record.result}`;
   });
-  return `\n\nYour tool calls decided by a human in this turn (already settled — do not repeat them):\n${lines.join("\n")}`;
+  return `\n\nYour tool calls decided in this turn (already settled — do not repeat them):\n${lines.join("\n")}`;
 }
 
 /** Adapter: graph state → the plain text a router sees. */

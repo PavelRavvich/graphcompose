@@ -132,7 +132,8 @@ Components):
   nothing "chat", "user", "human" or "person" in framework names — a run may be a CI pipeline, an
   approval may come from a system. `scripts/check-old-names.sh` (in `make check`) keeps the retired
   names out.
-- **When + what** for things tied to a moment: `BeforeCallJudge`, `AfterCallJudge`.
+- **When + what** for things tied to a moment: `BeforeToolCallJudge`, `AfterToolCallJudge`,
+  `BeforeAgentAnswerJudge`.
 - **One limit → flat `max…`** (`maxVisits`); **several related → an object** named by what they
   are, the scope stated once (`limits: { perRun: { steps, cost } }`).
 - **Closed sets are enums**, not string unions, in the public API.

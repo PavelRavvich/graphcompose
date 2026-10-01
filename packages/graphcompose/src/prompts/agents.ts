@@ -34,13 +34,13 @@ export const reasoningPromptTexts: readonly string[] = [
   IMPROVE_INSTRUCTION,
 ];
 
-/** Tool result shown to the model while a human decides; the loop then stops. */
-export const PENDING_APPROVAL_MESSAGE = "Waiting for human approval of this tool call.";
-export const PAUSED_MESSAGE = "paused: waiting for human approval";
+/** Tool result shown to the model while the call waits for a decision; the loop then stops. */
+export const PENDING_APPROVAL_MESSAGE = "Waiting for approval of this tool call.";
+export const PAUSED_MESSAGE = "paused: waiting for approval";
 
-/** What the model reads when a human rejected a call. */
-export const rejectionMessage = (reason: string | undefined): string =>
-  `Tool error: rejected by human${reason === undefined ? "" : `: ${reason}`}`;
+/** What the model reads when a call was rejected — `by` and `reason` from the decision. */
+export const rejectionMessage = (by: string, reason: string | undefined): string =>
+  `Tool error: the call was rejected by ${by}${reason === undefined ? "" : `: ${reason}`}`;
 
 /** Final message of an agent whose loop was stopped by the run budget. */
 export const BUDGET_STOP_MESSAGE = "stopped: run budget exhausted";

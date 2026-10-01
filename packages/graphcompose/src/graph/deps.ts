@@ -21,7 +21,7 @@ export interface GraphDeps<TName extends string> {
   readonly judges: ReadonlyMap<string, Router>;
   /** Context-mode knowledge bases per agent (knowledge bases, #88). */
   readonly knowledge?: (agent: string) => readonly KnowledgeSource[];
-  /** Optional pause seam (human approval). Off by default. */
+  /** Optional pause seam (approval of tool calls). Off by default. */
   readonly pause?: PauseSeam | undefined;
   /** The workflow's graph: its transitions (`@Workflow({ flow })`). */
   readonly flow: Flow;

@@ -11,6 +11,7 @@ import { usd } from "../../src/units/index.js";
 import {
   ChatStart,
   Desk,
+  lifecycle,
   MainRouter,
   NotesServer,
   OrderStatus,
@@ -128,9 +129,9 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
 });
 
 describe("AC12: scripts are picked by position, so a resumed run continues the script", () => {
-  test("a run paused in one app and resumed through a new app continues the same script", async ({
+  test("a run paused in one app and resumed after restartApp() continues the same script", async ({
     app,
-    openApp,
+    restartApp,
     modelOf,
     mcpOf,
   }) => {
@@ -144,13 +145,62 @@ describe("AC12: scripts are picked by position, so a resumed run continues the s
     });
 
     const paused = await app.run(ChatStart, { text: "note: call back" });
-    const other = await openApp();
-    const done = await other.resume(paused.thread, approve);
+    const restarted = await restartApp();
+    const done = await restarted.resume(paused.thread, approve);
 
     expect(paused).toHavePausedAt(Support);
     expect(done).toFinishWith(Reply, { text: "Saved." });
     expect(done).toFollowPath([ChatStart, MainRouter, Support, MainRouter, Reply]);
     expect(notes.calls.map((call) => call.tool)).toEqual(["write_file"]);
     expect(modelOf(MainRouter).requests).toHaveLength(1);
+  });
+});
+
+describe("#148 AC4: restartApp() closes the current app and returns a new one over the same state", () => {
+  test("onStop runs on restart; the new app keeps the ids and the ledger going", async ({
+    app,
+    restartApp,
+    modelOf,
+  }) => {
+    modelOf(MainRouter).respond(decide(Writer, { cost: usd(0.001) }), decide(Reply));
+    modelOf(MainRouter).respond(decide(Writer), decide(Reply));
+    modelOf(Writer).respond(answer("one"), answer("two"));
+    await app.tool(OrderStatus).invoke({ orderId: "1" });
+    const first = await app.run(ChatStart, { text: "1" });
+    lifecycle.length = 0;
+
+    const restarted = await restartApp();
+    const second = await restarted.run(ChatStart, { text: "2" });
+
+    expect(lifecycle).toEqual(["OrderBook.onStop", "OrderBook.onStart"]);
+    expect([first.thread, second.thread]).toEqual(["thread-1", "thread-2"]);
+    expect(second.output).toEqual({ text: "two" });
+  });
+
+  test("the old app fails with test.app-closed after a restart", async ({ app, restartApp }) => {
+    await restartApp();
+
+    await expect(app.run(ChatStart, { text: "hi" })).rejects.toFailWith({
+      code: "test.app-closed",
+    });
+    await expect(app.tool(OrderStatus).invoke({ orderId: "1" })).rejects.toThrow(
+      /test.app-closed: this app is closed/,
+    );
+  });
+
+  test("restartApp() twice: each restart closes the app returned before", async ({
+    restartApp,
+    modelOf,
+  }) => {
+    modelOf(MainRouter).respond(decide(Writer), decide(Reply));
+    modelOf(Writer).respond(answer("third"));
+
+    const second = await restartApp();
+    const third = await restartApp();
+
+    await expect(second.run(ChatStart, { text: "hi" })).rejects.toFailWith({
+      code: "test.app-closed",
+    });
+    expect((await third.run(ChatStart, { text: "hi" })).output).toEqual({ text: "third" });
   });
 });

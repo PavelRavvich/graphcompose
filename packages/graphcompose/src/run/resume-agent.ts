@@ -21,7 +21,7 @@ export class NotPausedError extends Error {
   override name = "NotPausedError";
 }
 
-/** The flow graph and the paused agent loop's state of a run that is really waiting for a human. */
+/** The flow graph and the paused agent loop's state of a run that is really waiting for an approval. */
 async function pausedRun<TName extends string>(
   paused: AgentRunResult,
   deps: RunDeps<TName>,
@@ -39,13 +39,13 @@ async function pausedRun<TName extends string>(
     ? await pausedLoopState(flow.graph, pause.checkpointer, paused.runId)
     : undefined;
   if (before === undefined) {
-    throw new NotPausedError(`Run ${paused.runId} is not waiting for a human`);
+    throw new NotPausedError(`Run ${paused.runId} is not waiting for an approval`);
   }
   return { flow, before };
 }
 
 /**
- * Continues a paused run with a human's decision — same run id, same Tern, same budget. Spend
+ * Continues a paused run with the approver's decision — same run id, same Tern, same budget. Spend
  * recorded before the pause is not recorded again.
  */
 export async function resumeAgent<TName extends string>(

@@ -63,7 +63,7 @@ export function knowledgeFor(
   return byAgent === undefined ? {} : { knowledge: (agent) => byAgent.get(agent) ?? [] };
 }
 
-/** The pause seam, when the workflow has tools that wait for a human; on the app's checkpointer. */
+/** The pause seam, when the workflow has tools that wait for an approval; on the app's checkpointer. */
 export const pauseFor = (
   bundle: AssembledWorkflow,
   checkpointer: BaseCheckpointSaver,

@@ -44,6 +44,16 @@ describe("knowledge bases — contract", () => {
     expect(describeWorkflow(bundle)).toContain("    rag: handbook (tool, k 2)");
   });
 
+  it("#148 AC3: the search tool's description speaks of search results, not passages", async () => {
+    const bundle = await workflowOf(bundleWith(Handbook, "tool"));
+    const search = resolveTools(bundle, services).find((tool) => tool.name === "search_handbook");
+
+    expect(search?.description).toContain(
+      "Returns the most relevant search results with their source; cite them as [source].",
+    );
+    expect(search?.description).not.toContain("passages");
+  });
+
   it("AC1: context mode gives the agent a source retrieving top-k; the index list has every base", async () => {
     const bundle = await workflowOf(bundleWith(Handbook, "context"));
     const [source] = bundle.knowledge?.(services).get("helper") ?? [];

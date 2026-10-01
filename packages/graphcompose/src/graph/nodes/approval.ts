@@ -37,11 +37,11 @@ export function makeApprovalNode(
     };
     const result = decision.approved
       ? renderToolResult(await deps.tools(pending.tool).invoke(pending.args, ctx))
-      : rejectionMessage(decision.reason);
+      : rejectionMessage(decision.by, decision.reason);
     return {
       pending: null,
       usage,
-      approvals: [{ ...pending, approved: decision.approved, result }],
+      approvals: [{ ...pending, approved: decision.approved, by: decision.by, result }],
     };
   };
 }

@@ -39,7 +39,7 @@ const agentInput = (model: ScriptedChatModel): string =>
   model.sent[0]?.findLast((m) => m.type === "human")?.text ?? "";
 
 describe("knowledge bases — context mode", () => {
-  it("AC2, AC3, #141 AC4: { results } with sources come before the task, with the cite instruction; cost in retrieval", async () => {
+  it("AC2, AC3, #141 AC4, #148 AC3: { results } with sources come before the task, with the cite instruction; cost in retrieval", async () => {
     const retrieve = vi.fn(found);
     const { deps, alpha } = setup(handbook(retrieve));
 
@@ -53,6 +53,8 @@ describe("knowledge bases — context mode", () => {
       "Knowledge (handbook):\n[oncall.md] On-call starts after the third month.",
     );
     expect(agentInput(alpha)).toContain(CITE_INSTRUCTION);
+    expect(agentInput(alpha)).toContain("Answer from these search results when they are relevant");
+    expect(agentInput(alpha)).not.toContain("passages");
     expect(result.cost.byCategory.retrieval).toBeCloseTo(0.0002);
     expect(result.answer).toContain("[oncall.md]");
   });

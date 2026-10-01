@@ -26,7 +26,7 @@ export const AgentState = Annotation.Root({
   /** FinOps: every LLM call appends one record. */
   usage: Annotation<UsageRecord[]>({ reducer: append, default: () => [] }),
   answer: Annotation<string>(),
-  /** A tool call waiting for a human (pause seam), null otherwise. */
+  /** A tool call waiting for the approver (pause seam), null otherwise. */
   pending: Annotation<PendingApproval | null>({
     reducer: (_previous, next) => next,
     default: () => null,
@@ -35,7 +35,7 @@ export const AgentState = Annotation.Root({
   summaries: Annotation<string[]>({ reducer: (_previous, next) => next, default: () => [] }),
   /** Quality-gated attempts of agents with `reasoning`. */
   attempts: Annotation<AttemptRecord[]>({ reducer: append, default: () => [] }),
-  /** Human decisions on tool calls in this run. */
+  /** The approval decisions on tool calls in this run. */
   approvals: Annotation<ApprovalRecord[]>({ reducer: append, default: () => [] }),
   /** Name of the guard that stopped the run, "" if none. */
   guarded: Annotation<string>({ reducer: (_previous, next) => next, default: () => "" }),

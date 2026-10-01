@@ -27,7 +27,7 @@ describe("describe a workflow", () => {
     expect(after(describeWorkflow(test), "  coder  ")).toContain("    tools: none");
   });
 
-  it("AC1: marks tools that wait for a human when the pause seam is on", () => {
+  it("AC1: marks tools that wait for an approval when the pause seam is on", () => {
     const paused: AssembledWorkflow = {
       ...greetings,
       needsApproval: (tool) => tool.name === "greet",
@@ -36,7 +36,7 @@ describe("describe a workflow", () => {
     expect(
       describeWorkflow(paused).some((l) => l.includes("· greet (read, local, waits for approval)")),
     ).toBe(true);
-    expect(describeWorkflow(paused)).toContain("pause     on — marked tools wait for a human");
+    expect(describeWorkflow(paused)).toContain("pause     on — marked tools wait for an approval");
   });
 
   it("AC2: settings of the workflow and of each agent; the profile in the header", () => {

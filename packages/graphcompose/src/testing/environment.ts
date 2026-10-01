@@ -54,8 +54,8 @@ function realServers(servers: ReadonlyMap<Class, string>, real: readonly Class[]
 
 /**
  * Everything one test owns: scripts, mocks, MCP stubs, a controllable clock, deterministic ids and
- * memory stores (checkpoints, spend, Terns, paused runs) — shared by every app the test opens, so a
- * run resumed in a new app continues; never shared between tests.
+ * memory stores (checkpoints, spend, Terns, paused runs) — shared by every app of the test, so a
+ * run resumed after `restartApp()` continues; never shared between tests.
  */
 export class TestEnvironment {
   readonly book = new ScriptBook();
@@ -111,7 +111,7 @@ export class TestEnvironment {
   }
 
   /** A new app over this test's state (the real container and graph, everything external replaced). */
-  async openApp(): Promise<BuiltApp> {
+  async newApp(): Promise<BuiltApp> {
     const built = await buildApp(await workflowOf(this.workflow), this.#options);
     this.#apps.push(built);
     return built;
