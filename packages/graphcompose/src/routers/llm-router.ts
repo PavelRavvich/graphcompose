@@ -1,7 +1,6 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { ResolvedModelSettings } from "../config/types.js";
 import { recordUsage } from "../finops/usage.js";
-import { withCacheBreakpoint } from "../llm/cache.js";
 import { readRouterDecision, type ParsedDecision } from "./decision.js";
 import { decided, errorReason, failed, unknownOption } from "./outcome.js";
 import { llmRouterPrompt } from "./prompts.js";
@@ -29,6 +28,9 @@ function outcomeOf(read: ParsedDecision, usage: UsageRecord): RouteOutcome {
 }
 
 /** Chat model asked for JSON; output validated with zod; priced from the config table. */
+/** A call that failed before an answer is recorded at no cost. */
+const NO_CALL_COST = { response_metadata: { usage: { cost: 0 } } };
+
 export function createLlmRouter(deps: LlmRouterDeps): Router {
   const caller = routerCaller(deps.name);
   return {
@@ -36,18 +38,21 @@ export function createLlmRouter(deps: LlmRouterDeps): Router {
     route: async (request) => {
       try {
         const prompt = await llmRouterPrompt.formatMessages({
-          options: describeOptions(request.options),
+          // routes in a canonical order (by name): declaration order changes neither request nor fingerprint
+          options: describeOptions(
+            [...request.options].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)),
+          ),
           input:
             request.instructions === undefined
               ? request.input
               : `${request.instructions}\n\n${request.input}`,
         });
-        const response = await deps.model.invoke(withCacheBreakpoint(prompt, deps.settings));
+        const response = await deps.model.invoke(prompt);
         const usage = recordUsage(caller, deps.settings, response);
         const allowed = new Set(request.options.map((option) => option.name));
         return outcomeOf(readRouterDecision(response.text, allowed), usage);
       } catch (error) {
-        return failed(errorReason(error), recordUsage(caller, deps.settings, {}));
+        return failed(errorReason(error), recordUsage(caller, deps.settings, NO_CALL_COST));
       }
     },
   };

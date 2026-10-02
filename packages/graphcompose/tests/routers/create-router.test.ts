@@ -33,7 +33,7 @@ describe("createRouter", () => {
     );
 
     expect(chatModel).toHaveBeenCalledWith(
-      expect.objectContaining({ model: "test/router", maxTokens: "max", cache: true }),
+      expect.objectContaining({ model: "test/router", maxTokens: "max", price: model.price }),
     );
   });
 });

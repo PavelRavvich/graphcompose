@@ -5,12 +5,10 @@ import type { ToolContext } from "../tools/index.js";
 import type { Usd } from "../units/index.js";
 import { TestSetupError } from "./errors.js";
 
-/** How a scripted model call fails. */
-export enum ModelFailure {
-  Timeout = "timeout",
-  RateLimit = "rate-limit",
-  Unavailable = "unavailable",
-}
+import { ModelFailure } from "../models/model-failure.js";
+
+/** How a scripted model call fails — the failures a provider's retry policy knows. */
+export { ModelFailure };
 
 /** Optional parts of a scripted text answer. */
 export interface AnswerDetails {

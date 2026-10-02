@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MODEL_MAX, type AgentsConfigOf } from "../../src/config/types.js";
 import { flowLines } from "../../src/graph/flow-text.js";
-import { chatModelSettingsOf, UnknownRouterModelError } from "../../src/graph/router-model.js";
+import { chatModelSettingsOf } from "../../src/graph/router-model.js";
 import { codeReviewFlow } from "./fixtures/code-review.js";
 import { from, Self } from "../../src/graph/flow.js";
 import { A, Done, Gate, SomeTool, Start } from "./fixtures/rule-nodes.js";
@@ -56,10 +56,10 @@ describe("a router on a chat model is priced like the agent using that model", (
       model: "test/alpha",
       price: testConfig.agents.alpha.price,
     });
-    expect(settingsOf("test/compactor").price.inputPerMTok).toBe(9);
+    expect(settingsOf("test/compactor").price?.inputPerMTok).toBe(9);
   });
 
-  it("refuses a model nobody prices", () => {
-    expect(() => chatModelSettingsOf(testConfig)("test/unknown")).toThrow(UnknownRouterModelError);
+  it("a model nobody prices is priced by its provider (#151)", () => {
+    expect(chatModelSettingsOf(testConfig)("test/unknown")).toEqual({ model: "test/unknown" });
   });
 });

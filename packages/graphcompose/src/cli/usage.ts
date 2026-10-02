@@ -31,6 +31,15 @@ export const COMMANDS: Readonly<Record<string, CommandHelp>> = {
     usage: "gc describe --workflow <path> [--profile <name>]",
     options: [WORKFLOW, PROFILE],
   },
+  check: {
+    summary: "every model setting against what its model supports (no API key needed)",
+    usage: "gc check --models --workflow <path> [--profile <name>]",
+    options: [
+      ["--models", "check models: providers, reasoning, caching, prices — all problems at once"],
+      WORKFLOW,
+      PROFILE,
+    ],
+  },
   eval: {
     summary: "score recent runs with Jev",
     usage: "gc eval --workflow <path> [--version <v>] [--limit N] [--profile <name>]",

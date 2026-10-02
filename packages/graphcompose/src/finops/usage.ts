@@ -2,6 +2,8 @@ import type { Price, ResolvedModelSettings } from "../config/types.js";
 
 /** Anything a chat model returns that may carry token usage (AIMessage, AIMessageChunk). */
 export interface UsageCarrier {
+  /** The provider's raw answer metadata; OpenRouter's `usage.cost` is the call's cost in USD. */
+  readonly response_metadata?: Readonly<Record<string, unknown>>;
   readonly usage_metadata?: {
     readonly input_tokens: number;
     readonly output_tokens: number;
@@ -116,12 +118,37 @@ export function costOf(usage: TokenUsage, price: Price): number {
   return micro / 1_000_000;
 }
 
+export class ModelCostError extends Error {
+  override name = "ModelCostError";
+}
+
+/** The cost the provider reported in its answer (`usage.cost`), when it did. */
+export function reportedCostOf(message: UsageCarrier): number | undefined {
+  const usage = message.response_metadata?.usage;
+  const cost =
+    typeof usage === "object" && usage !== null && "cost" in usage ? usage.cost : undefined;
+  return typeof cost === "number" && Number.isFinite(cost) && cost >= 0 ? cost : undefined;
+}
+
+/**
+ * One model call's record: the provider's reported cost first (`api`), else tokens × the model's
+ * price (`price-table`). A call that has neither cannot be accounted and fails.
+ */
 export function recordUsage(
   caller: string,
-  settings: ResolvedModelSettings,
+  settings: Pick<ResolvedModelSettings, "model" | "price">,
   message: UsageCarrier,
 ): UsageRecord {
   const usage = extractTokenUsage(message);
+  const reported = reportedCostOf(message);
+  if (reported !== undefined) {
+    return { caller, model: settings.model, ...usage, costUsd: reported, costSource: "api" };
+  }
+  if (settings.price === undefined) {
+    throw new ModelCostError(
+      `${caller}: model ${settings.model} — its provider reported no cost and it has no price`,
+    );
+  }
   return {
     caller,
     model: settings.model,

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { ReasoningEffort, type Reasoning } from "../models/reasoning.js";
+import { CachedPart, CacheRetention, type PromptCaching } from "../models/prompt-caching.js";
 
 /** Sentinel for maxTokens: do not cap output — the model may use its own maximum. */
 export const MODEL_MAX = "max";
@@ -16,47 +18,55 @@ export const PriceSchema = z.object({
 
 export const MaxTokensSchema = z.union([z.number().int().positive(), z.literal(MODEL_MAX)]);
 
-/** "default" = don't send anything, the model decides; effort level; or an explicit budget. */
+/** A `Reasoning` value (`graphcompose/models`): `Reasoning.on({ effort, budget })`, `off()`, `modelDecides()`. */
+export const ReasoningValueSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("model-decides") }),
+  z.object({
+    kind: z.literal("on"),
+    effort: z.enum(ReasoningEffort).optional(),
+    budget: z.object({ tokens: z.number().int().positive() }).optional(),
+  }),
+  z.object({ kind: z.literal("off") }),
+]);
+
+/**
+ * A component's reasoning until #152 brings `reasoning` to the decorators: "default" = the model
+ * decides, an effort level ("none" = off), `{ budgetTokens }`, or a `Reasoning` value.
+ */
 export const ThinkingSchema = z.union([
   z.literal("default"),
   z.enum(THINKING_EFFORTS),
   z.object({ budgetTokens: z.number().int().positive() }),
+  ReasoningValueSchema,
 ]);
 
-/** Defaults for every chat model (agents and LLM routers). */
-/** Chat-model requests: LangChain ChatOpenAI's own `timeout` (per request) and `maxRetries` (backoff). */
-export const DEFAULT_TIMEOUT_MS = 120_000;
-export const DEFAULT_MAX_RETRIES = 2;
-const TimeoutMsSchema = z.number().int().positive();
+/** A `PromptCaching` value (`graphcompose/models`). */
+export const PromptCachingValueSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("where-supported"),
+    retention: z.enum(CacheRetention),
+    cachedParts: z.array(z.enum(CachedPart)).min(1).readonly(),
+    key: z.string().min(1).optional(),
+  }),
+  z.object({ kind: z.literal("off") }),
+]);
+
+/** A component's prompt caching until #152: true = the provider's, false = off, or a `PromptCaching`. */
+export const CacheSettingSchema = z.union([z.boolean(), PromptCachingValueSchema]);
 
 /** Output ceiling when a workflow sets none — a model stuck in a loop stops here. `MODEL_MAX` = no ceiling. */
 export const DEFAULT_MAX_TOKENS = 8192;
 
 /**
- * OpenRouter's provider routing (its own `provider` field): prefer, sort or exclude the providers
- * that serve a model — e.g. `{ ignore: ["Inceptron"] }` or `{ sort: "latency" }`.
+ * Defaults for every chat model (agents and LLM routers). Reasoning and caching default to the
+ * model provider's (`@ModelProvider`); timeouts, retries and request fields live on the provider.
  */
-export const ProviderPreferencesSchema = z.strictObject({
-  order: z.array(z.string().min(1)).readonly().optional(),
-  only: z.array(z.string().min(1)).readonly().optional(),
-  ignore: z.array(z.string().min(1)).readonly().optional(),
-  sort: z.enum(["price", "throughput", "latency"]).optional(),
-  allowFallbacks: z.boolean().optional(),
-});
-const MaxRetriesSchema = z.number().int().nonnegative();
-
 export const ChatDefaultsSchema = z.object({
   temperature: z.number().min(0).max(2),
   /** Default 8 192 (`DEFAULT_MAX_TOKENS`); `MODEL_MAX` for no ceiling. */
   maxTokens: MaxTokensSchema.optional(),
-  thinking: ThinkingSchema,
-  /** Prompt caching where the model supports it. */
-  cache: z.boolean(),
-  /** Per request; default 120 000. A request that gets no answer fails instead of hanging the turn. */
-  timeoutMs: TimeoutMsSchema.optional(),
-  /** Automatic retries of a failed request (with backoff); default 2. */
-  maxRetries: MaxRetriesSchema.optional(),
-  provider: ProviderPreferencesSchema.optional(),
+  thinking: ThinkingSchema.optional(),
+  cache: CacheSettingSchema.optional(),
 });
 
 export const ModelSettingsSchema = z.object({
@@ -64,11 +74,9 @@ export const ModelSettingsSchema = z.object({
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: MaxTokensSchema.optional(),
   thinking: ThinkingSchema.optional(),
-  cache: z.boolean().optional(),
-  timeoutMs: TimeoutMsSchema.optional(),
-  maxRetries: MaxRetriesSchema.optional(),
-  provider: ProviderPreferencesSchema.optional(),
-  price: PriceSchema,
+  cache: CacheSettingSchema.optional(),
+  /** Overrides the provider's price table; the provider's own cost comes first. */
+  price: PriceSchema.optional(),
 });
 
 /**
@@ -178,7 +186,7 @@ export type Price = z.infer<typeof PriceSchema>;
 export type MaxTokens = z.infer<typeof MaxTokensSchema>;
 export type Thinking = z.infer<typeof ThinkingSchema>;
 export type ChatDefaults = z.infer<typeof ChatDefaultsSchema>;
-export type ProviderPreferences = z.infer<typeof ProviderPreferencesSchema>;
+export type CacheSetting = z.infer<typeof CacheSettingSchema>;
 export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
 export type AgentSettings = z.infer<typeof AgentSettingsSchema>;
 export type RouterModel = z.infer<typeof RouterModelSchema>;
@@ -207,17 +215,18 @@ export class UnknownAgentToolError extends Error {
 /** One system prompt per configured agent; a missing prompt is a compile error. */
 export type AgentPrompts<TName extends string> = Readonly<Record<TName, string>>;
 
-/** Chat model settings after defaults are applied — what a model factory receives. */
+/**
+ * Chat model settings after defaults are applied — what a model provider receives. Reasoning and
+ * caching left unset are the provider's own.
+ */
 export interface ResolvedModelSettings {
   readonly model: string;
   readonly temperature: number;
   readonly maxTokens: MaxTokens;
-  readonly thinking: Thinking;
-  readonly cache: boolean;
-  readonly timeoutMs: number;
-  readonly maxRetries: number;
-  readonly provider?: ProviderPreferences | undefined;
-  readonly price: Price;
+  readonly reasoning?: Reasoning | undefined;
+  readonly promptCaching?: PromptCaching | undefined;
+  /** The price table entry (the component's, else the provider's); none = the provider reports the cost. */
+  readonly price?: Price | undefined;
 }
 
 /** Validates at startup and keeps the literal type of the config; checks tool names if given. */

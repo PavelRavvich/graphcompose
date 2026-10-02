@@ -154,6 +154,10 @@ export function planWorkflow(spec: WorkflowSpec): FileToWrite[] {
   ]);
   return [
     { path: `${dir}/models.ts`, content: render("workflow/models.ts.tmpl", {}) },
+    {
+      path: `${dir}/model-providers/openrouter.model-provider.ts`,
+      content: render("workflow/openrouter.model-provider.ts.tmpl", {}),
+    },
     ...endpointFiles(dir),
     router,
     ...agents.flatMap((a) => a.tools.flatMap((t) => toolFiles(dir, t))),

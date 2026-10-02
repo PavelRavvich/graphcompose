@@ -7,6 +7,7 @@ const ENTRIES: Readonly<Record<string, { readonly module: string; readonly keepN
   chat: { module: "../chat.js", keepName: false },
   run: { module: "../cli.js", keepName: false },
   describe: { module: "../describe.js", keepName: false },
+  check: { module: "../check.js", keepName: false },
   "rag:index": { module: "../rag-index.js", keepName: false },
   eval: { module: "../eval/cli.js", keepName: true },
   replay: { module: "../eval/cli.js", keepName: true },

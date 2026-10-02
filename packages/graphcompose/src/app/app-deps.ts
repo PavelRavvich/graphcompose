@@ -17,8 +17,10 @@ import {
   type TernStore,
 } from "../terns/index.js";
 import { langfuseTracing } from "../tracing/index.js";
-import { createOpenRouterGateway, type ModelGateway } from "../llm/gateway.js";
+import type { ModelGateway } from "../llm/gateway.js";
 import { createModelRegistry } from "../llm/registry.js";
+import type { ProviderFetch } from "../models/resilient-fetch.js";
+import { modelsFor, providerClientsOf } from "./models.js";
 import {
   connectMcpServers,
   type AnyTool,
@@ -46,6 +48,8 @@ export interface AppDeps extends RunDeps<string> {
   readonly evaluation: EvalDeps;
   /** Startup warnings, e.g. a config changed without a version bump. */
   readonly warnings: readonly string[];
+  /** One line per model use: its provider, reasoning and caching (the startup log). */
+  readonly models: readonly string[];
   /** Runs `onStop` of the components, closes MCP connections, tracing and the stores it opened. */
   readonly close: () => Promise<void>;
 }
@@ -68,8 +72,13 @@ export type McpConnect = (
 export interface AppDepsOptions {
   /** Default: process.env. */
   readonly env?: NodeJS.ProcessEnv;
-  /** Every model call goes through it. Default: OpenRouter, credentials from `env`. */
+  /**
+   * Every model call goes through it. Default: the workflow's model providers, credentials from
+   * `env`, each model's settings checked against what its provider says it supports.
+   */
   readonly gateway?: ModelGateway;
+  /** The raw HTTP client under every model provider (default: global fetch; tests: a local stub). */
+  readonly providerFetch?: ProviderFetch;
   /** MCP transports by server (default: stdio / streamable HTTP from the server's config). */
   readonly transport?: TransportFactory;
   /** Replaces how MCP servers are connected (test stubs). */
@@ -138,7 +147,8 @@ function lifecycleOf(container: ContainerOptions | undefined) {
 }
 
 /**
- * Production wiring of a workflow: OpenRouter (chat + Jev) behind the model gateway, MCP servers, file
+ * Production wiring of a workflow: its model providers behind the model gateway (every model setting
+ * checked against its model first), MCP servers, file
  * spend ledger, Tern store; every part can be given instead (`options`, e.g. by `graphcompose/testing`).
  * Fails fast when an MCP server is unavailable or drifted. Components' `onStart` runs at the end.
  */
@@ -147,14 +157,13 @@ export async function createAppDeps(
   options: AppDepsOptions = {},
 ): Promise<AppDeps> {
   const env = options.env ?? process.env;
-  const gateway = options.gateway ?? createOpenRouterGateway(env);
+  const models = await modelsFor(bundle, options.gateway, providerClientsOf(options, env));
+  const gateway = models.gateway;
   const lifecycle = lifecycleOf(options.container);
   const services = servicesFor(bundle, gateway, env, lifecycle.options);
   const tools: readonly AnyTool[] = resolveTools(bundle, services);
-  const config = validateAgentsConfig(
-    bundle.config,
-    tools.map((tool) => tool.name),
-  );
+  const toolNames = tools.map((tool) => tool.name);
+  const config = models.priced(validateAgentsConfig(bundle.config, toolNames));
   const mcp = await (options.connectMcp ?? connectConfigured(options.transport))(
     bundle,
     config,
@@ -188,5 +197,5 @@ export async function createAppDeps(
     },
   };
   await startAll(lifecycle.created);
-  return { ...deps, warnings: await versionWarnings(deps) };
+  return { ...deps, models: models.summary, warnings: await versionWarnings(deps) };
 }

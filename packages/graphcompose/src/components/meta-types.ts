@@ -17,7 +17,8 @@ export interface AgentMeta {
   readonly name: string;
   readonly description: string;
   readonly model: string;
-  readonly price: AgentSettings["price"];
+  /** Overrides the model provider's price table; the provider's own reported cost comes first. */
+  readonly price?: AgentSettings["price"];
   readonly thinking?: AgentSettings["thinking"];
   readonly temperature?: number;
   readonly maxTokens?: AgentSettings["maxTokens"];

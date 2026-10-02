@@ -73,6 +73,7 @@ export async function buildApp(
     name: deps.config.name,
     version: deps.config.version,
     warnings: deps.warnings,
+    models: deps.models,
     textStart: textStartOf(nodes),
     run: async (start, input, call = {}) => {
       const meta = startMetaOf(start, nodes, deps.config.name);

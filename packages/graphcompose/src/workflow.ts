@@ -4,7 +4,7 @@ import type { AnyTool, McpFacade, McpServerHandle } from "./tools/index.js";
 import type { Router } from "./routers/index.js";
 import type { Flow } from "./graph/flow.js";
 import type { LoadedRouter } from "./graph/router-texts.js";
-import type { WorkflowLimits } from "./graph/settings.js";
+import type { ModelProviderSettings, WorkflowLimits } from "./graph/settings.js";
 import type { ContainerOptions } from "./components/container.js";
 
 /** What the core offers the tools of a workflow. */
@@ -31,6 +31,8 @@ export interface AssembledWorkflow<TName extends string = string> {
   readonly flow: Flow;
   /** From the workflow's `settings()`. */
   readonly limits: WorkflowLimits;
+  /** From the workflow's `settings()`; absent = OpenRouter and Jev. */
+  readonly models?: ModelProviderSettings;
   /** Every router of the flow with its texts loaded. */
   readonly routers: readonly LoadedRouter[];
   readonly prompts: AgentPrompts<TName>;

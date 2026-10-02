@@ -3,13 +3,14 @@ import type { ModelGateway } from "../llm/gateway.js";
 import { createRouter, type Router } from "../routers/index.js";
 import type { LoadedRouter } from "./router-texts.js";
 
-/** Jev (`typesafe/jev-1.13`, …) decides through the Decisions API; anything else is a chat model. */
-export const isJevModel = (model: string): boolean => /(^|\/)jev-/.test(model);
+import { isJevModel } from "../models/uses.js";
+
+export { isJevModel };
 
 export interface FlowRouterFactoryDeps {
   readonly gateway: ModelGateway;
   readonly chatDefaults: ChatDefaults;
-  /** Settings (price, …) of a chat model used as a router, by model id. */
+  /** Settings (price) of a chat model used as a router, by model id. */
   readonly chatModelSettings: (model: string) => ModelSettings;
 }
 
@@ -26,11 +27,10 @@ export function flowRouterFactory(deps: FlowRouterFactoryDeps): (router: LoadedR
     createRouter(router.name, routerModelOf(router.model, deps), deps.chatDefaults, deps.gateway);
 }
 
-export class UnknownRouterModelError extends Error {
-  override name = "UnknownRouterModelError";
-}
-
-/** A router on a chat model is priced like the agent (or compaction) that uses the same model. */
+/**
+ * A router on a chat model: priced like the agent (or compaction) that uses the same model when one
+ * has a price; otherwise its provider reports the cost (or prices it from its table).
+ */
 export function chatModelSettingsOf(
   config: AgentsConfigOf<string>,
 ): (model: string) => ModelSettings {
@@ -39,12 +39,7 @@ export function chatModelSettingsOf(
     ...(config.compaction === undefined ? [] : [config.compaction.model]),
   ];
   return (model) => {
-    const settings = known.find((candidate) => candidate.model === model);
-    if (settings === undefined) {
-      throw new UnknownRouterModelError(
-        `Router model "${model}" has no price: use Jev (typesafe/jev-*) or a model an agent uses`,
-      );
-    }
-    return { model, price: settings.price };
+    const price = known.find((candidate) => candidate.model === model)?.price;
+    return price === undefined ? { model } : { model, price };
   };
 }

@@ -13,7 +13,7 @@ import { ragClassesOf, ragMeta, ragSettings, searchToolName } from "./rag.js";
 import { type Class } from "./injection.js";
 import { ComponentError, componentOf, requireComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
-import { flowOf, limitsOf } from "./flow-parts.js";
+import { flowOf, settingsOf } from "./flow-parts.js";
 
 /** The agent's prompt file: `prompt` relative to the agent's file, or `<name>.prompt.md` next to it. */
 function promptPath(agent: AgentMeta): string {
@@ -53,6 +53,7 @@ function agentSettings(
     historyLimit: agent.historyLimit,
     historySummaries: agent.historySummaries,
     maxToolCalls: agent.maxToolCalls,
+    price: agent.price,
   };
   const search = (agent.rag ?? [])
     .filter((b) => b.mode === "tool")
@@ -60,7 +61,7 @@ function agentSettings(
   const rag = ragSettings(agent);
   return {
     model: agent.model,
-    price: agent.price,
+
     description: agent.description,
     tools: [...(agent.tools ?? []).map((cls) => names.get(cls) ?? cls.name), ...search],
     ...(rag.length === 0 ? {} : { rag }),
@@ -186,6 +187,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     ),
   );
   const config = configOf(bundle, agents, names, mcp);
+  const settings = settingsOf(bundleClass, bundle);
   validateAgentsConfig(config, [
     ...names.values(),
     ...rags.map((cls) => searchToolName(ragMeta(cls))),
@@ -193,7 +195,8 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   return {
     config,
     flow: bundle.flow,
-    limits: limitsOf(bundleClass, bundle),
+    limits: settings.limits,
+    models: settings.models,
     routers: graph.routers,
     prompts,
     tools: toolBuilder(bundle, agents, tools.local, tools.mcp, mcp.names),
