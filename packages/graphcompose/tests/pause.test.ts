@@ -103,7 +103,7 @@ describe("pause seam", () => {
   });
 
   it("#141 AC5, #148 AC2: resumes with { approved, by, reason }; who rejected and why reach the agent", async () => {
-    const { deps, sent, alpha } = setup([callSend, callSend, "Understood, not sending."]);
+    const { deps, sent, alpha } = setup([callSend, "Understood, not sending."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);
 
     const done = await resumeAgent(
@@ -114,30 +114,30 @@ describe("pause seam", () => {
 
     expect(done.answer).toBe("Understood, not sending.");
     expect(sent).toEqual([]);
-    expect(alpha.sent[2]?.at(-1)?.text).toBe(
+    expect(alpha.sent[1]?.at(-1)?.text).toBe(
       "Tool error: the call was rejected by tester: not now",
     );
   });
 
-  it("AC6: recognises the decided call when the model repeats it with keys in another order", async () => {
-    const first: Reply = [{ tool: "send_email", args: { to: "boss@example.com", cc: "me" } }];
-    const again: Reply = [{ tool: "send_email", args: { cc: "me", to: "boss@example.com" } }];
-    const { deps, sent } = setup([first, again, "Not sent."]);
+  it("#150 AC6: the turn that asked for the call is not asked again; the model continues after the decision", async () => {
+    const { deps, sent, alpha } = setup([callSend, "Sent."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);
 
-    const done = await resumeAgent(paused, { approved: false, by: "tester" }, deps);
+    const done = await resumeAgent(paused, { approved: true, by: "tester" }, deps);
 
-    expect(done).toMatchObject({ status: "answered", answer: "Not sent." });
-    expect(sent).toEqual([]);
+    expect(done).toMatchObject({ status: "answered", answer: "Sent." });
+    expect(sent).toEqual(["boss@example.com"]);
+    expect(alpha.sent).toHaveLength(2);
+    expect(alpha.sent[1]?.at(-1)?.text).toBe("sent to boss@example.com");
   });
 
   it("#148 AC2: reports a rejection without a reason plainly, naming who rejected", async () => {
-    const { deps, alpha } = setup([callSend, callSend, "Ok."]);
+    const { deps, alpha } = setup([callSend, "Ok."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);
 
     await resumeAgent(paused, { approved: false, by: "tester" }, deps);
 
-    expect(alpha.sent[2]?.at(-1)?.text).toBe("Tool error: the call was rejected by tester");
+    expect(alpha.sent[1]?.at(-1)?.text).toBe("Tool error: the call was rejected by tester");
   });
 
   it("keeps FinOps consistent: no spend recorded twice across pause and resume", async () => {

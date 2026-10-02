@@ -38,6 +38,8 @@ export default defineConfig({
         // the app and the testing toolkit (#135)
         "src/app/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
         "src/testing/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
+        // the agent's own loop (#150)
+        "src/graph/agent-loop/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
       },
     },
   },

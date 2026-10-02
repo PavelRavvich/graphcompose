@@ -9,6 +9,7 @@ const ctx: ToolContext = {
   runId: "r",
   workflow: "w",
   agent: "a",
+  callId: "call-1",
   signal: new AbortController().signal,
   reportCost: () => undefined,
 };

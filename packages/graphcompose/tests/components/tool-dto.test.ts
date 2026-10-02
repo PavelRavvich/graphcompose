@@ -12,7 +12,7 @@ import {
   type ToolHandler,
 } from "../../src/components/index.js";
 import { DtoError, Integer, ListOf, Nested, Text, Url } from "../../src/dto/index.js";
-import { toLangChainTool, type ToolContext } from "../../src/tools/index.js";
+import { toolDefinitionOf, type ToolContext } from "../../src/tools/index.js";
 import { testConfig } from "../helpers.js";
 import { starOf, TestSettings } from "../fixtures/test-flow/star.js";
 
@@ -20,6 +20,7 @@ const ctx: ToolContext = {
   runId: "r",
   workflow: "w",
   agent: "a",
+  callId: "call-1",
   signal: new AbortController().signal,
   reportCost: () => undefined,
 };
@@ -72,9 +73,9 @@ describe("tools on DTOs (#118)", () => {
   });
 
   it("AC5: the model sees the DTO's JSON Schema — prompts as descriptions, no $schema", () => {
-    const exposed = toLangChainTool(toolOf(new KeepJobs()), ctx);
+    const exposed = toolDefinitionOf(toolOf(new KeepJobs())).function.parameters;
 
-    expect(exposed.schema).toMatchObject({
+    expect(exposed).toMatchObject({
       type: "object",
       properties: {
         jobs: { description: "the jobs to keep", minItems: 1 },
@@ -82,7 +83,7 @@ describe("tools on DTOs (#118)", () => {
       },
       required: ["jobs"],
     });
-    expect(exposed.schema).not.toHaveProperty("$schema");
+    expect(exposed).not.toHaveProperty("$schema");
   });
 
   it("AC5: a tool whose DTO has an undecorated field stops the workflow's assembly", async () => {

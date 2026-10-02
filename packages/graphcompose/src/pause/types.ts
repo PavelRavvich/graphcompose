@@ -14,15 +14,21 @@ export interface PauseSeam {
 /** Default policy: tools that change the outside world need an approval. */
 export const writeToolsNeedApproval = (tool: AnyTool): boolean => tool.effect === "write";
 
-/** A tool call waiting for an approval. */
-export interface PendingApproval {
+/** A tool call: which agent asked for which tool with which arguments. */
+export interface AgentToolCall {
   readonly agent: string;
   readonly tool: string;
   readonly args: unknown;
 }
 
+/** A tool call waiting for an approval — one call per pause. */
+export interface PendingApproval extends AgentToolCall {
+  /** The call's id (the idempotency key its tool gets). */
+  readonly callId: string;
+}
+
 /** A decided call: approved (with the tool's result) or rejected (with the decision's reason). */
-export interface ApprovalRecord extends PendingApproval {
+export interface ApprovalRecord extends AgentToolCall {
   readonly approved: boolean;
   /** Who or what decided (`ToolCallApprovalDecision.by`). */
   readonly by: string;

@@ -1,4 +1,4 @@
-import type { AgentsConfig, ReasoningSettings } from "../config/types.js";
+import type { AgentsConfig } from "../config/types.js";
 import type { AnyTool } from "../tools/index.js";
 import type { RagMode } from "../rag/types.js";
 import type { Flow } from "../graph/flow.js";
@@ -24,8 +24,8 @@ export interface AgentMeta {
   readonly cache?: boolean;
   readonly historyLimit?: number;
   readonly historySummaries?: number;
+  /** Tool calls per call of the agent (`agents.<name>.limits.toolCalls`); default 20. */
   readonly maxToolCalls?: number;
-  readonly reasoning?: ReasoningSettings;
   /** `@Tool` or `@McpTool` classes. */
   readonly tools?: readonly Class[];
   /** Knowledge bases: `{ use: CompanyDocs, mode: "tool" | "context" }` — `mode` is required. */

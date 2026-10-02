@@ -29,6 +29,8 @@ const MIGRATIONS: readonly string[] = [
    ALTER TABLE terns ADD COLUMN config_hash TEXT;
    CREATE TABLE config_versions (bundle TEXT NOT NULL, version TEXT NOT NULL, hash TEXT NOT NULL,
      snapshot TEXT NOT NULL, first_seen TEXT NOT NULL, PRIMARY KEY (bundle, version, hash));`,
+  // 5 — the reasoning attempts are gone (#150): their column is dropped, old rows stay readable
+  `ALTER TABLE terns DROP COLUMN attempts;`,
 ];
 
 const TernRow = z.object({
@@ -46,22 +48,11 @@ const TernRow = z.object({
   prompt_version: z.string(),
   model_version: z.string(),
   replay_of: z.string().nullable(),
-  attempts: z.string(),
   config_version: z.string().nullable(),
   config_hash: z.string().nullable(),
 });
 
 const Route = z.array(z.string());
-const Attempts = z.array(
-  z.object({
-    agent: z.string(),
-    attempt: z.number(),
-    thinking: z.string(),
-    score: z.number().nullable(),
-    returned: z.boolean(),
-    reason: z.enum(["threshold", "best", "last"]).optional(),
-  }),
-);
 const Steps = z.array(z.object({ agent: z.string(), content: z.string() }));
 
 const SummaryRow = z.object({
@@ -90,7 +81,6 @@ export function toTern(row: unknown): Tern {
     promptVersion: r.prompt_version,
     modelVersion: r.model_version,
     replayOf: r.replay_of,
-    attempts: Attempts.parse(JSON.parse(r.attempts)),
     configVersion: r.config_version,
     configHash: r.config_hash,
   };

@@ -15,6 +15,7 @@ const ctx = {
   runId: "r",
   workflow: "b",
   agent: "a",
+  callId: "call-1",
   signal: new AbortController().signal,
   reportCost: vi.fn(),
 };

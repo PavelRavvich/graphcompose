@@ -2,9 +2,9 @@ import type { BuiltApp } from "../app/create-app.js";
 import type { Class } from "../components/injection.js";
 import { agentDefinitions } from "../graph/agent-definitions.js";
 import { labelOf, Self, type FlowNode, type SelfTarget } from "../graph/flow.js";
-import { makeAgentNode } from "../graph/nodes/agent.js";
+import { agentLoopGraph, loopInputOf, noJudges } from "../graph/agent-loop/index.js";
 import { RouterDecisionError } from "../graph/nodes/flow-router.js";
-import type { AgentStateType } from "../graph/state.js";
+import type { FlowStateType } from "../graph/flow-state.js";
 import type { ToolContext, ToolResult } from "../tools/index.js";
 import { TestSetupError } from "./errors.js";
 import { nodeNameOf } from "./failure-facts.js";
@@ -39,6 +39,7 @@ export function toolSlice<TInput, TOutput>(
     runId: "tool-slice",
     workflow: built.deps.config.name,
     agent: "",
+    callId: "tool-slice",
     signal: new AbortController().signal,
     reportCost: () => undefined,
   };
@@ -68,39 +69,44 @@ export function routerSlice(built: BuiltApp, target: FlowNode): RouterSlice {
   };
 }
 
-const freshState = (task: string, agent: string, runId: string): AgentStateType => ({
+/** A run's state before anything ran: one task, nothing contributed or spent yet. */
+const freshState = (task: string, runId: string): FlowStateType => ({
   task,
   history: [],
   runId,
-  next: agent,
+  next: "",
   routeReason: "",
   contributions: [],
   usage: [],
   budgetUsd: Number.POSITIVE_INFINITY,
   answer: "",
   guarded: "",
-  pending: null,
   approvals: [],
-  attempts: [],
   summaries: [],
+  start: "",
+  previousAgent: "",
+  visits: {},
+  steps: 0,
+  path: [],
+  daySpentBeforeRunUsd: null,
 });
 
 export function agentSlice(built: BuiltApp, target: FlowNode): AgentSlice {
   const name = nodeNameOf(target);
-  const agents = agentDefinitions(built.deps);
-  if (!agents.has(name)) {
+  const agent = agentDefinitions(built.deps).get(name);
+  if (agent === undefined) {
     throw new TestSetupError(`app.agent(${labelOf(target)}): not an agent of this workflow`);
   }
-  const node = makeAgentNode({
-    agents,
+  const loop = agentLoopGraph({
+    agent,
     bundle: built.deps.config.name,
     runBudgetCap: Number.POSITIVE_INFINITY,
+    judges: noJudges,
   });
   return {
     answer: async (task) => {
-      const update = await node(freshState(task, name, "agent-slice"));
-      const added = Array.isArray(update.contributions) ? update.contributions : [];
-      return added[0]?.content ?? "";
+      const after = await loop.invoke(loopInputOf(freshState(task, "agent-slice"), name));
+      return after.reply ?? "";
     },
   };
 }

@@ -4,7 +4,7 @@ import { createInterface } from "node:readline";
 import { parseArgs, styleText } from "node:util";
 import { createApp } from "./app/create-app.js";
 import { loadWorkflowClass } from "./cli/load-workflow.js";
-import { attemptsLines, memoryLine, summaryLine, threadLine, untilDone } from "./cli/approve.js";
+import { memoryLine, summaryLine, threadLine, untilDone } from "./cli/approve.js";
 import { costSummary, costTotal, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
 import { onInterruptKey } from "./cli/keys.js";
@@ -73,9 +73,6 @@ try {
       say(`${styleText("cyan", "agent ›")} ${result.answer}`);
       say(styleText("dim", `  ${threadLine(result)}`));
       say(styleText("dim", `  ${summaryLine(result)}`));
-      attemptsLines(result).forEach((line) => {
-        say(styleText("dim", `  ${line}`));
-      });
       const memory = memoryLine(result);
       if (memory !== undefined) say(styleText("dim", `  ${memory}`));
       say(styleText("dim", `  ${costSummary(result.spend)}`));

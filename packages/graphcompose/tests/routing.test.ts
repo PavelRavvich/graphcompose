@@ -1,19 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { END } from "@langchain/langgraph";
 import { formatContributions, renderRouteInput } from "../src/graph/contributions.js";
-import { afterAgent } from "../src/graph/nodes/agent-loop.js";
 import { lastAnswer, NO_ANSWER } from "../src/graph/nodes/finalize.js";
 import { baseState } from "./helpers.js";
-
-describe("afterAgent (the agent loop)", () => {
-  it("goes to approval when a tool call waits for a human", () => {
-    expect(afterAgent({ pending: { agent: "alpha", tool: "send", args: {} } })).toBe("approval");
-  });
-
-  it("ends the loop otherwise", () => {
-    expect(afterAgent({ pending: null })).toBe(END);
-  });
-});
 
 describe("lastAnswer (a workflow finish's answer)", () => {
   it("answers with the latest contribution", () => {

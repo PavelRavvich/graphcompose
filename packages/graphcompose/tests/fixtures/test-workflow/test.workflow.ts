@@ -48,7 +48,6 @@ export class Researcher {}
   model: "test/coder",
   price,
   thinking: "low",
-  reasoning: { threshold: 0.8, maxAttempts: 3, thinking: ["low", "medium", "high"] },
   prompt: "./coder.prompt.md",
 })
 export class Coder {}

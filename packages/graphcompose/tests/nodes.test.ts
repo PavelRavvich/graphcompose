@@ -1,47 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { makeAgentNode, UnknownAgentError } from "../src/graph/nodes/agent.js";
 import { AFTER_APPROVAL_DECISION, makeFlowRouterNode } from "../src/graph/nodes/flow-router.js";
 import type { RouteOutcome, RouteRequest } from "../src/routers/index.js";
 import { testRouters } from "./fixtures/test-flow/test.flow.js";
-import { baseState, fakeDeps, flowState } from "./helpers.js";
-
-describe("agent node", () => {
-  const agents = () => {
-    const { registry, prompts } = fakeDeps({ "test/alpha": ["  alpha result  "] });
-    const binding = registry.agents.get("alpha");
-    if (binding === undefined) throw new Error("alpha binding missing");
-    return {
-      agents: new Map([
-        [
-          "alpha",
-          {
-            binding,
-            systemPrompt: prompts.alpha,
-            tools: [],
-            maxToolCalls: 3,
-            historyLimit: 0,
-            summariesLimit: 0,
-          },
-        ],
-      ]),
-      bundle: "test-bundle",
-      runBudgetCap: 1,
-    };
-  };
-
-  it("adds a trimmed contribution and a usage record", async () => {
-    const update = await makeAgentNode(agents())(baseState({ next: "alpha" }));
-
-    expect(update.contributions).toEqual([{ agent: "alpha", content: "alpha result" }]);
-    expect(update.usage).toHaveLength(1);
-  });
-
-  it("throws for an agent that is not configured", async () => {
-    await expect(makeAgentNode(agents())(baseState({ next: "ghost" }))).rejects.toBeInstanceOf(
-      UnknownAgentError,
-    );
-  });
-});
+import { flowState } from "./helpers.js";
 
 describe("after a human decision the turn ends (#100)", () => {
   const [loaded] = testRouters;

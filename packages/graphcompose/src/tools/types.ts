@@ -8,6 +8,11 @@ export interface ToolContext {
   readonly runId: string;
   readonly workflow: string;
   readonly agent: string;
+  /**
+   * The id of this tool call — unique within the run, the same when the call runs again after a
+   * crash (at-least-once). Tools with side effects use it as their idempotency key.
+   */
+  readonly callId: string;
   readonly signal: AbortSignal;
   /** Paid tools report their own cost in USD; it counts against the budgets. */
   readonly reportCost: (usd: number) => void;

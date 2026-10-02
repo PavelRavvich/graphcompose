@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attemptsLines, memoryLine } from "../src/cli/approve.js";
+import { memoryLine } from "../src/cli/approve.js";
 import { costSummary, costTotal, costTrace } from "../src/cli/finops.js";
 import { buildCostReport, recordToolCost } from "../src/finops/usage.js";
 import { usageRecord } from "./helpers.js";
@@ -36,34 +36,6 @@ describe("CLI cost output", () => {
     );
   });
 
-  it("AC5: shows attempts per agent with more than one, and which was returned", () => {
-    const result = {
-      attempts: [
-        { agent: "coder", attempt: 1, thinking: "low", score: 0.62, returned: false },
-        { agent: "coder", attempt: 2, thinking: "medium", score: null, returned: false },
-        {
-          agent: "coder",
-          attempt: 3,
-          thinking: "high",
-          score: 0.79,
-          returned: true,
-          reason: "best" as const,
-        },
-        {
-          agent: "researcher",
-          attempt: 1,
-          thinking: "low",
-          score: 0.9,
-          returned: true,
-          reason: "threshold" as const,
-        },
-      ],
-    };
-
-    expect(attemptsLines(result as never)).toEqual([
-      "coder attempts: 0.62 → ? → 0.79 · returned #3 (best)",
-    ]);
-  });
   it("AC2 (#77): says when a turn compacted the conversation", () => {
     expect(memoryLine({ compacted: { fromTurn: 1, toTurn: 5, summaries: 1, keep: 10 } })).toBe(
       "memory: turns 1–5 → summary 1/10",

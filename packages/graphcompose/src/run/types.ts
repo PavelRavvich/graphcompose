@@ -1,7 +1,6 @@
 import type { SpendLedger } from "../finops/ledger.js";
 import type { CostReport } from "../finops/usage.js";
 import type { GraphDeps } from "../graph/deps.js";
-import type { AttemptRecord } from "../graph/nodes/attempts.js";
 import type { Compacted } from "./compaction.js";
 import type { PendingApproval } from "../pause/index.js";
 import type { TernStore } from "../terns/index.js";
@@ -50,8 +49,6 @@ export interface AgentRunResult {
   readonly cost: CostReport;
   readonly threadId: string;
   readonly ternId: string;
-  /** Quality-gated attempts (agents with `reasoning`), when any were made. */
-  readonly attempts?: readonly AttemptRecord[];
   /** Conversation memory: what this turn compacted, when it did. */
   readonly compacted?: Compacted;
   /** The conversation in the tracing UI (session = thread), when tracing is on. */

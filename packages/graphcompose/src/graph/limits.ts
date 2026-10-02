@@ -1,4 +1,4 @@
-import { totalCost } from "../finops/usage.js";
+import { totalCost, type UsageRecord } from "../finops/usage.js";
 import type { FlowModel } from "./check-flow.js";
 import type { FlowNodeRef } from "./flow-nodes.js";
 import type { FlowStateType } from "./flow-state.js";
@@ -10,7 +10,9 @@ export type LimitKey =
   | "limits.perRun.steps"
   | "limits.perRun.cost"
   | "limits.perDay.cost"
-  | `routers.${string}.maxVisits`;
+  | `routers.${string}.maxVisits`
+  | `agents.${string}.limits.modelCalls`
+  | `agents.${string}.limits.toolCalls`;
 
 /** What hit a limit: the key, the limit and the value that crossed it. */
 export interface LimitBreach {
@@ -19,7 +21,10 @@ export interface LimitBreach {
   readonly actual: number;
 }
 
-/** A limit was hit — the run **fails** (never a quiet stop), with its path and its spend. */
+/**
+ * A limit was hit — the run **fails** (never a quiet stop), with its path and its spend. `usage` is
+ * spend the run's state does not hold yet (an agent's loop stopped midway), so the ledger still sees it.
+ */
 export class LimitExceededError extends Error {
   override name = "LimitExceededError";
   readonly key: LimitKey;
@@ -27,8 +32,14 @@ export class LimitExceededError extends Error {
   readonly actual: number;
   readonly path: readonly string[];
   readonly spentUsd: number;
+  readonly usage: readonly UsageRecord[];
 
-  constructor(breach: LimitBreach, path: readonly string[], spentUsd: number) {
+  constructor(
+    breach: LimitBreach,
+    path: readonly string[],
+    spentUsd: number,
+    usage: readonly UsageRecord[] = [],
+  ) {
     super(
       `Limit ${breach.key} = ${String(breach.limit)} exceeded (${String(breach.actual)}); ` +
         `path: ${path.join(" → ")}; spent $${spentUsd.toFixed(4)}`,
@@ -38,6 +49,7 @@ export class LimitExceededError extends Error {
     this.actual = breach.actual;
     this.path = path;
     this.spentUsd = spentUsd;
+    this.usage = usage;
   }
 }
 

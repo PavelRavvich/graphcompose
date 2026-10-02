@@ -17,7 +17,6 @@ const tern = (overrides: Partial<NewTern> = {}): NewTern => ({
   promptVersion: "p1",
   modelVersion: "m1",
   replayOf: null,
-  attempts: [],
   configVersion: null,
   configHash: null,
   ...overrides,
@@ -93,7 +92,30 @@ describe("SQLite Tern store", () => {
     second.close();
   });
 
-  it("AC5 (#79), AC6 (#77): migrations 2 and 3 upgrade an old database — existing Terns get no attempts, new ones keep theirs", async () => {
+  it("AC9 (#150): migration 5 drops the attempts column — Terns written with it stay readable", async () => {
+    const path = join(await mkdtemp(join(tmpdir(), "terns-")), "with-attempts.sqlite");
+    const { DatabaseSync } = await import("node:sqlite");
+    const first = createSqliteTernStore(path);
+    const thread = await first.createThread("b");
+    first.close();
+    const old = new DatabaseSync(path);
+    old.exec(`ALTER TABLE terns ADD COLUMN attempts TEXT NOT NULL DEFAULT '[]';
+      INSERT INTO terns (id, thread_id, bundle, created_at, task, answer, status, stop_reason, route,
+        steps, cost_usd, prompt_version, model_version, replay_of, attempts)
+      VALUES ('old', '${thread}', 'b', '2026-01-01', 'q', 'a', 'answered', 'done', '[]', '[]', 0, 'p',
+        'm', NULL, '[{"agent":"alpha","attempt":1}]');
+      PRAGMA user_version = 4;`);
+    old.close();
+
+    const store = createSqliteTernStore(path);
+    const fresh = await store.append(tern({ threadId: thread }));
+
+    expect((await store.byIds(["old"]))[0]).toMatchObject({ id: "old", task: "q", answer: "a" });
+    expect((await store.byIds([fresh.id]))[0]).not.toHaveProperty("attempts");
+    store.close();
+  });
+
+  it("AC5 (#79), AC6 (#77): migrations 2 and 3 upgrade an old database — existing Terns stay readable", async () => {
     const path = join(await mkdtemp(join(tmpdir(), "terns-")), "old.sqlite");
     const { DatabaseSync } = await import("node:sqlite");
     const old = new DatabaseSync(path);
@@ -109,25 +131,11 @@ describe("SQLite Tern store", () => {
     old.close();
 
     const store = createSqliteTernStore(path);
-    const fresh = await store.append(
-      tern({
-        threadId: "t",
-        attempts: [
-          {
-            agent: "alpha",
-            attempt: 1,
-            thinking: "low",
-            score: 0.9,
-            returned: true,
-            reason: "threshold",
-          },
-        ],
-      }),
-    );
+    const fresh = await store.append(tern({ threadId: "t" }));
 
-    expect((await store.byIds(["old"]))[0]?.attempts).toEqual([]);
+    expect((await store.byIds(["old"]))[0]).toMatchObject({ task: "q", configVersion: null });
     expect(await store.summaryCount("t")).toBe(0);
-    expect((await store.byIds([fresh.id]))[0]?.attempts).toHaveLength(1);
+    expect((await store.byIds([fresh.id]))[0]?.task).toBe("task");
     store.close();
   });
 });

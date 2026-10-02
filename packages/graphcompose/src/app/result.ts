@@ -46,7 +46,6 @@ export function runResultOf(run: AgentRunResult, nodes: FlowNodesByKey): RunResu
     spend: run.cost,
     ...(run.finish === undefined ? {} : { finish: run.finish, output: { text: run.answer } }),
     ...(run.pending === undefined ? {} : { pause: run.pending }),
-    ...(run.attempts === undefined ? {} : { attempts: run.attempts }),
     ...(run.compacted === undefined ? {} : { compacted: run.compacted }),
     ...(run.traceUrl === undefined ? {} : { traceUrl: run.traceUrl }),
   };

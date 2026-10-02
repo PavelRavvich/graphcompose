@@ -4,7 +4,7 @@ import { createInterface } from "node:readline";
 import { parseArgs } from "node:util";
 import { createApp } from "./app/create-app.js";
 import { loadWorkflowClass } from "./cli/load-workflow.js";
-import { attemptsLines, memoryLine, summaryLine, threadLine, untilDone } from "./cli/approve.js";
+import { memoryLine, summaryLine, threadLine, untilDone } from "./cli/approve.js";
 import { costSummary, costTotal, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
 import { withSpinner } from "./cli/spinner.js";
@@ -46,7 +46,6 @@ const result = await busy(() =>
 process.stdout.write(`${result.answer}\n`);
 process.stderr.write(`${threadLine(result)}  (continue with --thread ${result.thread})\n`);
 process.stderr.write(`config: ${app.name} | ${summaryLine(result)}\n`);
-attemptsLines(result).forEach((line) => process.stderr.write(`${line}\n`));
 const memory = memoryLine(result);
 if (memory !== undefined) process.stderr.write(`${memory}\n`);
 process.stderr.write(`cost: ${costSummary(result.spend)}\n`);

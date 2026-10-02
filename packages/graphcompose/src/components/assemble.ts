@@ -53,7 +53,6 @@ function agentSettings(
     historyLimit: agent.historyLimit,
     historySummaries: agent.historySummaries,
     maxToolCalls: agent.maxToolCalls,
-    reasoning: agent.reasoning,
   };
   const search = (agent.rag ?? [])
     .filter((b) => b.mode === "tool")

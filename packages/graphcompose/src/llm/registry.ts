@@ -19,8 +19,6 @@ export type ModelFactory = (settings: ResolvedModelSettings) => BaseChatModel;
 /** Chat models of the agents. The router is built separately (see src/routing). */
 export interface ModelRegistry {
   readonly agents: ReadonlyMap<string, ModelBinding>;
-  /** For agents with `reasoning`: the model per attempt (thinking from the attempt's level). */
-  readonly attempts: ReadonlyMap<string, readonly ModelBinding[]>;
   /** The conversation-compaction model, when the workflow compacts. */
   readonly compaction?: ModelBinding | undefined;
 }
@@ -69,26 +67,9 @@ export function createModelRegistry(
       ([name, settings]) => [name, bindFor({ kind: "agent", agent: name })(settings)] as const,
     ),
   );
-  const attempts = new Map(
-    Object.entries(config.agents).flatMap(([name, settings]) => {
-      const reasoning = settings.reasoning;
-      if (reasoning === undefined) return [];
-      const bind = bindFor({ kind: "agent", agent: name });
-      const levels = Array.from(
-        { length: reasoning.maxAttempts },
-        (_, i) => reasoning.thinking[Math.min(i, reasoning.thinking.length - 1)] ?? "default",
-      );
-      const byLevel = new Map(
-        [...new Set(levels)].map(
-          (level) => [level, bind({ ...settings, thinking: level })] as const,
-        ),
-      );
-      return [[name, levels.map((level) => byLevel.get(level) ?? bind(settings))] as const];
-    }),
-  );
   const compaction =
     config.compaction === undefined
       ? undefined
       : bindFor({ kind: "compaction" })(config.compaction.model);
-  return { agents, attempts, compaction };
+  return { agents, compaction };
 }

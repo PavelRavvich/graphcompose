@@ -55,7 +55,7 @@ describe("AC12: the app's parts", () => {
     expect(() => toolLookup([])("nope")).toThrow(UnknownToolError);
   });
 
-  it("a run's result keeps attempts, memory and trace link; unknown path keys are skipped", async () => {
+  it("a run's result keeps memory and trace link; unknown path keys are skipped", async () => {
     const nodes = flowNodesByKey((await workflowOf(CodeReview)).flow);
     const result = runResultOf(
       {
@@ -69,7 +69,6 @@ describe("AC12: the app's parts", () => {
         threadId: "t",
         ternId: "tern",
         runId: "r",
-        attempts: [{ agent: "coder", attempt: 1, thinking: "low", score: 0.9, returned: true }],
         compacted: { fromTurn: 1, toTurn: 5, summaries: 1, keep: 10 },
         traceUrl: "http://traces/t",
       },
@@ -78,7 +77,6 @@ describe("AC12: the app's parts", () => {
 
     expect(result.path).toEqual([TaskStart, Coder]);
     expect(result).toMatchObject({ traceUrl: "http://traces/t", compacted: { keep: 10 } });
-    expect(result.attempts).toHaveLength(1);
   });
 
   it("with no text start, a plain text goes to the first start", async () => {

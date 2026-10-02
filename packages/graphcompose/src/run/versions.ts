@@ -1,4 +1,4 @@
-import { reasoningPromptTexts } from "../prompts/agents.js";
+import { agentLoopPromptTexts } from "../prompts/agents.js";
 import { DEFAULT_COMPACTION_PROMPT } from "../prompts/compaction.js";
 import { ragPromptTexts } from "../prompts/rag.js";
 import { routerPromptTexts } from "../routers/index.js";
@@ -47,7 +47,7 @@ export function runVersions<TName extends string>(
         instructions,
         routes,
       })),
-      reasoning: reasoningPromptTexts,
+      agentLoop: agentLoopPromptTexts,
       rag: ragPromptTexts,
       ...(deps.config.compaction === undefined
         ? {}

@@ -17,7 +17,7 @@ export type ChatModelUser =
   | { readonly kind: "compaction" }
   | { readonly kind: "router"; readonly router: string };
 
-/** A chat model request: its user and complete settings (agents, attempts, compaction, LLM routers). */
+/** A chat model request: its user and complete settings (agents, compaction, LLM routers). */
 export interface ChatModelSpec {
   readonly user: ChatModelUser;
   readonly settings: ResolvedModelSettings;
@@ -36,8 +36,8 @@ export interface DecisionSpec {
 }
 
 /**
- * The one seam every model call goes through. Agents, compaction and the reasoning attempts get
- * their chat model from `chatModel`; routers, guards and quality judges decide through `decide`.
+ * The one seam every model call goes through. Agents and compaction get their chat model from
+ * `chatModel`; routers and guards decide through `decide`.
  * Model providers, scripted and replayed models replace the gateway, nothing behind it.
  */
 export interface ModelGateway {

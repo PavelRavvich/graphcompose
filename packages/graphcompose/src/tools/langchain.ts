@@ -1,6 +1,6 @@
-import { tool as langChainTool, type StructuredToolInterface } from "@langchain/core/tools";
+import type { ToolDefinition } from "@langchain/core/language_models/base";
 import { inputJsonSchema } from "../dto/schema.js";
-import type { AnyTool, ToolContext, ToolResult } from "./types.js";
+import type { AnyTool, ToolResult } from "./types.js";
 
 /** What the model reads back: JSON of the value, or a readable error. */
 export function renderToolResult(result: ToolResult<unknown>): string {
@@ -9,13 +9,16 @@ export function renderToolResult(result: ToolResult<unknown>): string {
 }
 
 /**
- * Exposes a tool to LangChain agents. The model sees the JSON Schema of the input; validation,
- * timeouts and error mapping stay in `tool.invoke`.
+ * A tool as the model sees it (bound to the agent's chat model): name, description and the JSON
+ * Schema of its input. Running it — validation, timeouts, errors as results — stays in `tool.invoke`.
  */
-export function toLangChainTool(tool: AnyTool, ctx: ToolContext): StructuredToolInterface {
-  return langChainTool(async (input: unknown) => renderToolResult(await tool.invoke(input, ctx)), {
-    name: tool.name,
-    description: tool.description,
-    schema: inputJsonSchema(tool.input),
-  });
+export function toolDefinitionOf(tool: AnyTool): ToolDefinition {
+  return {
+    type: "function",
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: inputJsonSchema(tool.input),
+    },
+  };
 }

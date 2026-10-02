@@ -1,8 +1,6 @@
 import type { AgentSettingsOf, AgentsConfigOf } from "../config/types.js";
-import { DEFAULT_CRITERIA } from "../prompts/agents.js";
+import { resolveAgentLimits, type AgentDefinition } from "./agent-loop/index.js";
 import type { GraphDeps } from "./deps.js";
-import type { AgentDefinition } from "./nodes/agent.js";
-import type { AgentReasoning } from "./nodes/attempts.js";
 
 export class MissingAgentPromptError extends Error {
   override name = "MissingAgentPromptError";
@@ -12,35 +10,17 @@ export class MissingAgentPromptError extends Error {
 export const defaultSummaries = <TName extends string>(config: AgentsConfigOf<TName>): number =>
   config.defaults.history.summaries ?? config.compaction?.keep ?? 0;
 
-/** An agent's limits with defaults applied. */
+/** An agent's limits and memory with defaults applied. */
 const limitsOf = <TName extends string>(
   agent: AgentSettingsOf<string> | undefined,
   config: AgentsConfigOf<TName>,
-): { maxToolCalls: number; historyLimit: number; summariesLimit: number } => ({
-  maxToolCalls: agent?.maxToolCalls ?? config.defaults.tools.maxToolCalls,
+): Pick<AgentDefinition, "limits" | "historyLimit" | "summariesLimit"> => ({
+  limits: resolveAgentLimits(agent?.maxToolCalls, config.defaults.tools?.maxToolCalls).limits,
   historyLimit: agent?.historyLimit ?? config.defaults.history.limit,
   summariesLimit: agent?.historySummaries ?? defaultSummaries(config),
 });
 
-function reasoningOf<TName extends string>(
-  name: string,
-  agent: AgentSettingsOf<string> | undefined,
-  deps: GraphDeps<TName>,
-): AgentReasoning | undefined {
-  const judge = deps.judges.get(name);
-  const models = deps.registry.attempts.get(name);
-  const reasoning = agent?.reasoning;
-  if (reasoning === undefined || judge === undefined || models === undefined) return undefined;
-  return {
-    judge,
-    models,
-    threshold: reasoning.threshold,
-    onExhausted: reasoning.onExhausted ?? "best",
-    criteria: reasoning.criteria ?? DEFAULT_CRITERIA,
-  };
-}
-
-/** Every configured agent with its model, prompt, tools, limits, reasoning and knowledge. */
+/** Every configured agent with its model, prompt, tools, limits and knowledge. */
 export function agentDefinitions<TName extends string>(
   deps: GraphDeps<TName>,
 ): ReadonlyMap<string, AgentDefinition> {
@@ -52,11 +32,11 @@ export function agentDefinitions<TName extends string>(
     if (systemPrompt === undefined) throw new MissingAgentPromptError(`No prompt for ${name}`);
     const agent = settings.get(name);
     definitions.set(name, {
+      name,
       binding,
       systemPrompt,
       tools: (agent?.tools ?? []).map(deps.tools),
       ...limitsOf(agent, deps.config),
-      reasoning: reasoningOf(name, agent, deps),
       knowledge: deps.knowledge?.(name) ?? [],
     });
   }
