@@ -5,11 +5,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { ResolvedModelSettings } from "../../src/config/types.js";
 import {
   createModelGateway,
-  createOpenRouterGateway,
+  createProviderGateway,
   type ModelGateway,
 } from "../../src/llm/gateway.js";
 import type { JevClient } from "../../src/llm/jev-client.js";
-import { ModelConfigError } from "../../src/llm/model.js";
+import { MissingEnvironmentVariableError } from "../../src/models/index.js";
+import { directoryOf } from "../../src/models/workflow-models.js";
 import { createModelRegistry } from "../../src/llm/registry.js";
 import { createRouter, type RouteOutcome } from "../../src/routers/index.js";
 import { decide, fakeChatFactory, testConfig, unusedJevClient } from "../helpers.js";
@@ -19,10 +20,6 @@ const settings: ResolvedModelSettings = {
   model: "test/router",
   temperature: 0,
   maxTokens: 10,
-  thinking: "default",
-  cache: false,
-  timeoutMs: 1000,
-  maxRetries: 0,
   price: { inputPerMTok: 1, outputPerMTok: 2 },
 };
 
@@ -82,12 +79,15 @@ describe("AC12: the default model gateway", () => {
     expect(factory).toHaveBeenCalledWith(settings);
   });
 
-  it("AC12: the OpenRouter gateway needs the API key before any call", () => {
-    expect(() => createOpenRouterGateway({})).toThrow(ModelConfigError);
-    expect(Object.keys(createOpenRouterGateway({ OPENROUTER_API_KEY: "k" }))).toEqual([
-      "chatModel",
-      "decide",
-    ]);
+  it("AC12: the provider gateway needs every provider's API key before any call", () => {
+    expect(() => createProviderGateway(directoryOf(undefined), { env: {} })).toThrow(
+      MissingEnvironmentVariableError,
+    );
+    expect(
+      Object.keys(
+        createProviderGateway(directoryOf(undefined), { env: { OPENROUTER_API_KEY: "k" } }),
+      ),
+    ).toEqual(["chatModel", "decide"]);
   });
 });
 
@@ -140,14 +140,14 @@ describe("AC12: model clients are asked for through the gateway", () => {
 
     expect(decideFn.mock.calls[0]?.[0].model).toMatchObject({
       kind: "llm",
-      settings: { model: "test/router", maxTokens: "max", cache: true },
+      settings: { model: "test/router", maxTokens: "max" },
     });
   });
 });
 
 const SRC = join(import.meta.dirname, "../../src");
 const MODEL_CLIENT_IMPORT = /from\s+["'](@langchain\/openai|[./]+llm\/(model|jev-client)\.js)["']/;
-const SEAM_DIRS = ["llm/", "routers/"];
+const SEAM_DIRS = ["llm/", "routers/", "models/"];
 
 const sourceFiles = (dir: string): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -156,7 +156,7 @@ const sourceFiles = (dir: string): string[] =>
     return entry.name.endsWith(".ts") ? [path] : [];
   });
 
-describe("AC12: nothing outside src/llm and src/routers creates model clients", () => {
+describe("AC12: nothing outside src/llm, src/routers and src/models creates model clients", () => {
   it("AC12: no source file outside the seam imports a model client", () => {
     const offenders = sourceFiles(SRC)
       .map((path) => relative(SRC, path))

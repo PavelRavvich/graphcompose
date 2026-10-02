@@ -45,6 +45,8 @@ export interface App {
   readonly version: string;
   /** Startup warnings, e.g. a config changed without a version bump. */
   readonly warnings: readonly string[];
+  /** One line per model use: its provider, reasoning and caching (the startup log). */
+  readonly models: readonly string[];
   /** The workflow start a plain text goes to (input `WorkflowStartText`), if the flow has one. */
   readonly textStart: Class | undefined;
   run(start: Class, input: WorkflowStartText, options?: RunCallOptions): Promise<RunResult>;

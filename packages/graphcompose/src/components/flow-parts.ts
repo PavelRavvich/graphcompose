@@ -1,6 +1,6 @@
 import { checkFlow } from "../graph/check-flow.js";
 import { loadRouters, type LoadedRouter } from "../graph/router-texts.js";
-import type { WorkflowDefinition, WorkflowLimits } from "../graph/settings.js";
+import type { WorkflowDefinition, WorkflowSettings } from "../graph/settings.js";
 import type { Class } from "./injection.js";
 import { ComponentError, requireComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
@@ -33,8 +33,8 @@ const isDefinition = (value: unknown): value is WorkflowDefinition =>
   "settings" in value &&
   typeof value.settings === "function";
 
-/** The workflow's limits from its `settings()` (`implements WorkflowDefinition`). */
-export function limitsOf(bundleClass: Class, bundle: WorkflowMeta): WorkflowLimits {
+/** The workflow's `settings()` (`implements WorkflowDefinition`): limits, model providers. */
+export function settingsOf(bundleClass: Class, bundle: WorkflowMeta): WorkflowSettings {
   // a @Workflow class is constructed with no arguments (the decorator's type requires it)
   const instance: unknown = new (bundleClass as unknown as new () => unknown)();
   if (!isDefinition(instance)) {
@@ -42,5 +42,5 @@ export function limitsOf(bundleClass: Class, bundle: WorkflowMeta): WorkflowLimi
       `@Workflow "${bundle.name}": the class must implement WorkflowDefinition (settings())`,
     );
   }
-  return instance.settings().limits;
+  return instance.settings();
 }

@@ -1,4 +1,8 @@
-import type { OpenRouterConnection } from "./model.js";
+/** Where the Decisions API is: OpenRouter's base URL and key. */
+export interface JevConnection {
+  readonly apiKey: string;
+  readonly baseUrl: string;
+}
 
 /** Jev "choice" primitive: probability distribution over named criteria. */
 export interface JevChoiceQuestion {
@@ -30,7 +34,7 @@ export function jevDecisionsUrl(baseUrl: string): string {
 export const JEV_TIMEOUT_MS = 30_000;
 
 export function createJevClient(
-  connection: OpenRouterConnection,
+  connection: JevConnection,
   fetchImpl: typeof fetch = fetch,
   timeoutMs: number = JEV_TIMEOUT_MS,
 ): JevClient {

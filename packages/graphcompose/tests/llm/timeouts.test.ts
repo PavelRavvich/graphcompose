@@ -1,104 +1,83 @@
-import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
-import { afterEach, describe, expect, it } from "vitest";
-import {
-  DEFAULT_MAX_RETRIES,
-  DEFAULT_TIMEOUT_MS,
-  MODEL_MAX,
-  type ResolvedModelSettings,
-} from "../../src/config/types.js";
-import type { ChatDefaults } from "../../src/config/types.js";
+import { describe, expect, it } from "vitest";
 import { createJevClient } from "../../src/llm/jev-client.js";
-import { createChatModel } from "../../src/llm/model.js";
-import { resolveSettings } from "../../src/llm/registry.js";
+import {
+  CircuitBreaker,
+  ModelFailure,
+  OpenRouterModelProvider,
+  RetryPolicy,
+} from "../../src/models/index.js";
+import { modelProviderOf } from "../../src/models/model-provider.decorator.js";
+import { resilientFetch } from "../../src/models/resilient-fetch.js";
+import { milliseconds } from "../models/time.js";
+import { minutes, seconds } from "../../src/units/index.js";
 
-const price = { inputPerMTok: 0, outputPerMTok: 0 };
-const settings = (timeoutMs: number, maxRetries: number): ResolvedModelSettings => ({
-  model: "a/b",
-  temperature: 0,
-  maxTokens: 10,
-  thinking: "default",
-  cache: false,
-  timeoutMs,
-  maxRetries,
-  price,
-});
-
-let server: Server | undefined;
-afterEach(() => {
-  server?.closeAllConnections();
-  server?.close();
-  server = undefined;
-});
-
-/** A local OpenAI-compatible endpoint: `hang` never answers; otherwise every request gets a 500. */
-async function endpoint(
-  mode: "hang" | "fail",
-): Promise<{ baseUrl: string; requests: () => number }> {
-  let count = 0;
-  server = createServer((_req, res) => {
-    count += 1;
-    if (mode === "fail")
-      res
-        .writeHead(500, { "content-type": "application/json" })
-        .end('{"error":{"message":"boom"}}');
+/** A fetch that never answers until its signal aborts. */
+const neverAnswers: typeof fetch = (_url, init) =>
+  new Promise((_resolve, reject) => {
+    init?.signal?.addEventListener("abort", () => {
+      reject(init.signal?.reason as Error);
+    });
   });
-  await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
-  const { port } = server.address() as AddressInfo;
-  return { baseUrl: `http://127.0.0.1:${String(port)}/v1`, requests: () => count };
-}
 
-describe("model calls: LangChain's own timeout and retries (#95)", () => {
-  it("AC1: a request that gets no answer fails within the timeout instead of hanging", async () => {
-    const { baseUrl } = await endpoint("hang");
-    const model = createChatModel(settings(200, 0), { apiKey: "k", baseUrl });
+const breaker = () =>
+  new CircuitBreaker({ failureThreshold: 10, window: minutes(1), openFor: seconds(1) });
+
+describe("model calls: the provider's timeout and retries (#95, now on the provider #151)", () => {
+  it("AC1: a request that gets no answer fails within the provider's timeout instead of hanging", async () => {
+    const send = resilientFetch(
+      {
+        provider: "p",
+        baseUrl: "http://p.test",
+        timeout: milliseconds(50),
+        retryPolicy: RetryPolicy.none(),
+        breaker: breaker(),
+      },
+      neverAnswers,
+    );
     const started = Date.now();
 
-    await expect(model.invoke("hi")).rejects.toThrow();
-    expect(Date.now() - started).toBeLessThan(3000);
+    await expect(send("http://p.test/chat/completions")).rejects.toThrow();
+    expect(Date.now() - started).toBeLessThan(2000);
   });
 
-  it("AC2: a failed request is retried automatically before giving up", async () => {
-    const { baseUrl, requests } = await endpoint("fail");
-    const model = createChatModel(settings(5000, 2), { apiKey: "k", baseUrl });
-
-    await expect(model.invoke("hi")).rejects.toThrow();
-    expect(requests()).toBe(3);
-  }, 20_000);
-
-  it("AC3: sensible defaults for every model; the workflow or one agent can change them", () => {
-    const defaults: ChatDefaults = {
-      temperature: 0,
-      maxTokens: MODEL_MAX,
-      thinking: "default",
-      cache: true,
+  it("AC2: a request that timed out is retried by the policy before giving up", async () => {
+    let calls = 0;
+    const counting: typeof fetch = (url, init) => {
+      calls += 1;
+      return neverAnswers(url, init);
     };
+    const send = resilientFetch(
+      {
+        provider: "p",
+        baseUrl: "http://p.test",
+        timeout: milliseconds(20),
+        retryPolicy: RetryPolicy.fixed({
+          maxAttempts: 3,
+          delay: milliseconds(0),
+          retryOn: [ModelFailure.Timeout],
+        }),
+        breaker: breaker(),
+      },
+      counting,
+    );
 
-    expect(resolveSettings({ model: "a/b", price }, defaults)).toMatchObject({
-      timeoutMs: DEFAULT_TIMEOUT_MS,
-      maxRetries: DEFAULT_MAX_RETRIES,
+    await expect(send("http://p.test/chat/completions")).rejects.toThrow();
+    expect(calls).toBe(3);
+  });
+
+  it("AC3: sensible defaults on the built-in provider: a 2-minute timeout, 3 attempts on transient failures", () => {
+    const options = modelProviderOf(OpenRouterModelProvider);
+
+    expect(options.timeout).toBe(minutes(2));
+    expect(options.retryPolicy).toMatchObject({
+      maxAttempts: 3,
+      retryOn: [ModelFailure.Timeout, ModelFailure.RateLimited, ModelFailure.ServerError],
     });
-    expect(
-      resolveSettings({ model: "a/b", price }, { ...defaults, timeoutMs: 30_000, maxRetries: 0 }),
-    ).toMatchObject({
-      timeoutMs: 30_000,
-      maxRetries: 0,
-    });
-    expect(
-      resolveSettings({ model: "a/b", price, timeoutMs: 5000 }, { ...defaults, timeoutMs: 30_000 })
-        .timeoutMs,
-    ).toBe(5000);
   });
 });
 
 describe("Jev calls: the standard fetch abort signal (#95)", () => {
   it("AC4: a decision that gets no answer fails in time (the router then falls back as for any failure)", async () => {
-    const neverAnswers: typeof fetch = (_url, init) =>
-      new Promise((_resolve, reject) => {
-        init?.signal?.addEventListener("abort", () => {
-          reject(init.signal?.reason as Error);
-        });
-      });
     const jev = createJevClient(
       { apiKey: "k", baseUrl: "https://example.test/api/v1" },
       neverAnswers,

@@ -1,7 +1,6 @@
-import { AIMessage, type AIMessageChunk } from "@langchain/core/messages";
+import { AIMessage, SystemMessage, type AIMessageChunk } from "@langchain/core/messages";
 import type { RunnableConfig } from "@langchain/core/runnables";
 import { recordUsage, totalCost } from "../../finops/usage.js";
-import { systemMessageFor } from "../../llm/cache.js";
 import { BUDGET_STOP_MESSAGE } from "../../prompts/agents.js";
 import { toolDefinitionOf } from "../../tools/index.js";
 import { AgentFailedError } from "../errors.js";
@@ -34,7 +33,8 @@ async function callModel(
   config: RunnableConfig | undefined,
 ): Promise<AIMessageChunk> {
   const { binding, systemPrompt, tools, name } = deps.agent;
-  const messages = [systemMessageFor(systemPrompt, binding.settings), ...state.messages];
+  // cache markers, where the model needs them, are placed by its provider on the wire (#151)
+  const messages = [new SystemMessage(systemPrompt), ...state.messages];
   if (tools.length === 0) return binding.model.invoke(messages, config);
   if (binding.model.bindTools === undefined) {
     throw new ToolCallingUnsupportedError(`The model of agent "${name}" cannot call tools`);

@@ -1,5 +1,7 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { DEFAULT_MAX_RETRIES, DEFAULT_MAX_TOKENS, DEFAULT_TIMEOUT_MS } from "../config/types.js";
+import { DEFAULT_MAX_TOKENS } from "../config/types.js";
+import { promptCachingOfSetting } from "../models/prompt-caching.js";
+import { reasoningOfThinking } from "../models/reasoning.js";
 import type { ChatModelUser, ModelGateway } from "./gateway.js";
 import type {
   AgentsConfigOf,
@@ -23,31 +25,23 @@ export interface ModelRegistry {
   readonly compaction?: ModelBinding | undefined;
 }
 
-/** The workflow's chat defaults with the framework's own filled in. */
-const completeDefaults = (defaults: ChatDefaults) => ({
-  ...defaults,
-  maxTokens: defaults.maxTokens ?? DEFAULT_MAX_TOKENS,
-  timeoutMs: defaults.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-  maxRetries: defaults.maxRetries ?? DEFAULT_MAX_RETRIES,
-});
-
-/** An agent's (or LLM router's) model settings over the chat defaults. */
+/**
+ * An agent's (or LLM router's) model settings over the chat defaults. Reasoning and caching set
+ * nowhere stay unset: the model provider's own apply.
+ */
 export function resolveSettings(
   settings: ModelSettings,
   defaults: ChatDefaults,
 ): ResolvedModelSettings {
-  const d = completeDefaults(defaults);
-  const provider = settings.provider ?? d.provider;
+  const thinking = settings.thinking ?? defaults.thinking;
+  const promptCaching = promptCachingOfSetting(settings.cache ?? defaults.cache);
   return {
     model: settings.model,
-    temperature: settings.temperature ?? d.temperature,
-    maxTokens: settings.maxTokens ?? d.maxTokens,
-    thinking: settings.thinking ?? d.thinking,
-    cache: settings.cache ?? d.cache,
-    timeoutMs: settings.timeoutMs ?? d.timeoutMs,
-    maxRetries: settings.maxRetries ?? d.maxRetries,
-    ...(provider === undefined ? {} : { provider }),
-    price: settings.price,
+    temperature: settings.temperature ?? defaults.temperature,
+    maxTokens: settings.maxTokens ?? defaults.maxTokens ?? DEFAULT_MAX_TOKENS,
+    ...(thinking === undefined ? {} : { reasoning: reasoningOfThinking(thinking) }),
+    ...(promptCaching === undefined ? {} : { promptCaching }),
+    ...(settings.price === undefined ? {} : { price: settings.price }),
   };
 }
 

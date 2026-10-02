@@ -88,7 +88,7 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
 
   test("failWith: an agent's failed call fails the run at the agent", async ({ app, modelOf }) => {
     modelOf(MainRouter).respond(decide(Writer));
-    modelOf(Writer).respond(failWith(ModelFailure.RateLimit));
+    modelOf(Writer).respond(failWith(ModelFailure.RateLimited));
 
     await expect(app.run(ChatStart, { text: "hi" })).rejects.toFailWith({ node: Writer });
   });

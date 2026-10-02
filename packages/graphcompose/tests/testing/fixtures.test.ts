@@ -129,7 +129,7 @@ describe("AC12: slices — one component of the real app on its own", () => {
   });
 
   test("app.router(X) fails like the flow when its model fails", async ({ app, modelOf }) => {
-    modelOf(MainRouter).respond(failWith(ModelFailure.Unavailable));
+    modelOf(MainRouter).respond(failWith(ModelFailure.ServerError));
 
     await expect(app.router(MainRouter).decide("x")).rejects.toFailWith({
       code: "router.failed",

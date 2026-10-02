@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createJevClient, JevApiError, jevDecisionsUrl } from "../src/llm/jev-client.js";
-import { OPENROUTER_BASE_URL } from "../src/llm/model.js";
+import { OPENROUTER_BASE_URL } from "../src/models/index.js";
 
 const request = {
   model: "typesafe/jev-1.13",

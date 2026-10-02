@@ -1,6 +1,7 @@
 import { resolveTools, type AssembledWorkflow, type WorkflowServices } from "../workflow.js";
-import { DEFAULT_MAX_TOKENS, type ProviderPreferences, type Thinking } from "../config/types.js";
+import { DEFAULT_MAX_TOKENS, type Thinking } from "../config/types.js";
 import { resolveAgentLimits, type AgentLimit } from "../graph/agent-loop/index.js";
+import { reasoningLabel, reasoningOfThinking } from "../models/reasoning.js";
 import { flowLines } from "../graph/flow-text.js";
 import { STEPS_PER_WORKING_NODE } from "../graph/limits.js";
 import { isJevModel } from "../graph/router-model.js";
@@ -16,8 +17,9 @@ const describeServices: WorkflowServices = {
   }),
 };
 
-const thinkingLabel = (thinking: Thinking): string =>
-  typeof thinking === "string" ? thinking : `${String(thinking.budgetTokens)} tokens`;
+/** A component's reasoning; unset = its model provider's. */
+const thinkingLabel = (thinking: Thinking | undefined): string =>
+  thinking === undefined ? "the provider's" : reasoningLabel(reasoningOfThinking(thinking));
 
 function toolLine(tool: AnyTool, bundle: AssembledWorkflow): string {
   const kind = isMcpFacade(tool) ? `MCP ${tool.mcp.server}` : "local";
@@ -77,17 +79,6 @@ const ceilingLabel = (maxTokens: number | "max" | undefined): string =>
     ? "no output ceiling"
     : `max ${String(maxTokens ?? DEFAULT_MAX_TOKENS)} tokens`;
 
-const providerLabel = (provider: ProviderPreferences | undefined): string => {
-  if (provider === undefined) return "";
-  const parts = [
-    provider.only === undefined ? "" : `only ${provider.only.join(", ")}`,
-    provider.order === undefined ? "" : `order ${provider.order.join(" > ")}`,
-    provider.ignore === undefined ? "" : `ignore ${provider.ignore.join(", ")}`,
-    provider.sort === undefined ? "" : `sort by ${provider.sort}`,
-  ].filter((part) => part !== "");
-  return parts.length === 0 ? "" : ` · providers: ${parts.join("; ")}`;
-};
-
 /** `limits: modelCalls 12 (default) · toolCalls 8` — what one call of the agent may do. */
 function limitsLine(
   agent: AssembledWorkflow["config"]["agents"][string],
@@ -121,7 +112,7 @@ function agentLines(bundle: AssembledWorkflow, tools: ReadonlyMap<string, AnyToo
     const history = `history ${String(agent.historyLimit ?? c.defaults.history.limit)} turns${summaries > 0 ? ` + ${String(summaries)} summaries` : ""}`;
     const own = (agent.tools ?? []).map((t) => tools.get(t));
     return [
-      `  ${name}  ${agent.model} · thinking ${thinkingLabel(agent.thinking ?? c.defaults.chat.thinking)} · ${ceilingLabel(agent.maxTokens ?? c.defaults.chat.maxTokens)} · ${history}${providerLabel(agent.provider ?? c.defaults.chat.provider)}`,
+      `  ${name}  ${agent.model} · reasoning ${thinkingLabel(agent.thinking ?? c.defaults.chat.thinking)} · ${ceilingLabel(agent.maxTokens ?? c.defaults.chat.maxTokens)} · ${history}`,
       `    ${agent.description}`,
       ...settingsLines(agent, c),
       ...(own.length === 0

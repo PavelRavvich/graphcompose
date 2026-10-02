@@ -6,9 +6,15 @@ import { asError, TestFailure } from "./errors.js";
 import { ModelCallFailedError, type ScriptedTurn } from "./script.js";
 import type { ChatLine, ComponentScript, ModelRequest, ScriptBook } from "./script-book.js";
 
-/** Output tokens that cost `usd` at the model's output price (no price → free). */
+/** Output tokens that cost `usd` at the model's output price (no price or a free model → none). */
 const tokensFor = (usd: number, settings: ResolvedModelSettings): number =>
-  settings.price.outputPerMTok === 0 ? 0 : (usd * 1_000_000) / settings.price.outputPerMTok;
+  settings.price === undefined || settings.price.outputPerMTok === 0
+    ? 0
+    : (usd * 1_000_000) / settings.price.outputPerMTok;
+
+/** A model without a price reports its cost in the answer, as the provider would. */
+const costMetadataOf = (usd: number, settings: ResolvedModelSettings) =>
+  settings.price === undefined ? { usage: { cost: usd } } : {};
 
 const usageOf = (outputTokens: number) => ({
   input_tokens: 0,
@@ -44,13 +50,17 @@ function replyOf(
       return new AIMessage({
         content: turn.text,
         usage_metadata: usageOf(tokensFor(turn.details.cost ?? 0, settings)),
-        response_metadata: turn.details.truncated === true ? { finish_reason: "length" } : {},
+        response_metadata: {
+          ...costMetadataOf(turn.details.cost ?? 0, settings),
+          ...(turn.details.truncated === true ? { finish_reason: "length" } : {}),
+        },
       });
     case "tool-call":
       script.toolCalls.push(turn.tool);
       return new AIMessage({
         content: "",
         usage_metadata: usageOf(0),
+        response_metadata: costMetadataOf(0, settings),
         tool_calls: [{ id: book.nextToolCallId(), name: turn.tool, args: { ...turn.args } }],
       });
     case "failure":

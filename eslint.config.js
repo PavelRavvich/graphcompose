@@ -128,6 +128,7 @@ export default tseslint.config(
     files: ["packages/graphcompose/src/**/*.ts"],
     ignores: [
       "packages/graphcompose/src/llm/**",
+      "packages/graphcompose/src/models/**",
       "packages/graphcompose/src/routers/**",
       "packages/graphcompose/src/tools/**",
       "packages/graphcompose/src/terns/**",
@@ -142,8 +143,8 @@ export default tseslint.config(
     },
   },
   {
-    // the model-call seam itself (#135): src/llm creates the clients behind ModelGateway
-    files: ["packages/graphcompose/src/llm/**/*.ts"],
+    // the model-call seam itself (#135): src/llm and the model providers (#151) create the clients
+    files: ["packages/graphcompose/src/llm/**/*.ts", "packages/graphcompose/src/models/**/*.ts"],
     rules: {
       "no-restricted-imports": ["error", { patterns: frameworkImportPatterns }],
     },
@@ -161,9 +162,9 @@ export default tseslint.config(
               message: 'Examples import only from "graphcompose" (its public API).',
             },
             {
-              regex: "^graphcompose/(?!(dto|graph|units|testing|testing/setup)$)",
+              regex: "^graphcompose/(?!(dto|graph|models|units|testing|testing/setup)$)",
               message:
-                'No deep imports: use "graphcompose", "graphcompose/graph", "graphcompose/units", "graphcompose/dto" or "graphcompose/testing" (its public API).',
+                'No deep imports: use "graphcompose", "graphcompose/graph", "graphcompose/models", "graphcompose/units", "graphcompose/dto" or "graphcompose/testing" (its public API).',
             },
           ],
         },

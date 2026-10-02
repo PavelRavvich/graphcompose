@@ -77,9 +77,13 @@ chain / node / Self` (Wiki → Workflow); nodes are `@WorkflowStart`, `@Router`,
   Every chat model inherits `defaults.chat`; each router names its own `model`; guards use
   `defaults.router` (Jev). Model choice is config, never code. Reference: Wiki → Configuration.
 - **`MODEL_MAX` is the only way to say "no output cap"** — never a magic large number.
-- **Thinking and caching are per model**: `thinking` (`"default"`, effort level or
-  `{ budgetTokens }`) and `cache`. Explicit cache breakpoints go through `withCacheBreakpoint`;
-  no provider-specific request code outside `src/llm`.
+- **Models come from model providers** (`@ModelProvider`, `graphcompose/models`, #151): each model
+  is served by exactly one registered provider (`serves`); reasoning and caching are the
+  provider's, a component may override them (`thinking`, `cache` until #152). Cache markers and
+  every other provider-specific request field are set in one place, the provider's wire form
+  (`toWireRequest`) — no provider-specific request code outside `src/models` / `src/llm`.
+- **Settings must fit their models**: checked against the provider's capabilities at startup and
+  by `gc check --models` (in `make check`), all problems at once; nothing is silently substituted.
 - **Routers are isolated** (`src/routers`): input is plain text + options, output is a
   `RouteOutcome` union (`decided` | `failed`); they import only `config`, `finops`, `llm`, and the
   rest of the code imports them only via `src/routers/index.ts` — ESLint-enforced. Routers are
@@ -94,8 +98,8 @@ chain / node / Self` (Wiki → Workflow); nodes are `@WorkflowStart`, `@Router`,
   (Jev) — calibrated probabilities over fixed options; chat models produce content.
 - State is declared once (`src/graph/flow-state.ts`, `Annotation.Root`). Nodes are typed with
   `SyncNode` / `AsyncNode<TState, TUpdate>` and return only the keys they own.
-- Models are created only through the registry (`src/llm/registry.ts`) with the OpenRouter
-  factory (`src/llm/model.ts`) and injected; tests inject fakes through the same registry.
+- Models are created only behind `ModelGateway` (the registry asks it; the default gateway asks the
+  model providers) and injected; tests inject scripted models or fakes through the same gateway.
 - Prompts live in `src/prompts/` (agents, graph) and `src/routers/prompts.ts` (routers own their
   prompts to stay isolated). No prompt strings inside nodes.
 - Tools: `input` / `output` DTO classes (`*.dto.ts`), tested standalone (`toolOf(new Tool(fakes))`)
@@ -110,9 +114,9 @@ chain / node / Self` (Wiki → Workflow); nodes are `@WorkflowStart`, `@Router`,
 
 - **Every LLM call is accounted.** Each node that calls a model appends a `UsageRecord`
   (caller, model, tokens, USD) via `recordUsage`. An untracked model call is a defect.
-- **Prefer reported cost over estimates**: Jev returns the exact cost per call
-  (`costSource: "api"`); chat models are priced from the table (`costSource: "price-table"`,
-  USD per 1M tokens in `agents.config.ts`, verified on openrouter.ai/models).
+- **Prefer reported cost over estimates**: a provider with `ModelCost.fromResponse()` (OpenRouter,
+  Jev) reports each call's exact cost (`costSource: "api"`); otherwise tokens × its price table
+  (`ModelCost.fromPrices`, `costSource: "price-table"`). A call with neither fails.
 - **Limits per workflow** in its `settings()`:
   `.limits({ perRun: { steps: 12, cost: usd(0.1) }, perDay: { cost: usd(1) } })` (values with
   units, `graphcompose/units`).

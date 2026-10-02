@@ -54,58 +54,105 @@
                     }
                   },
                   "required": ["budgetTokens"]
+                },
+                {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "model-decides"
+                        }
+                      },
+                      "required": ["kind"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "on"
+                        },
+                        "effort": {
+                          "type": "string",
+                          "enum": ["minimal", "low", "medium", "high", "xhigh"]
+                        },
+                        "budget": {
+                          "type": "object",
+                          "properties": {
+                            "tokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": ["tokens"]
+                        }
+                      },
+                      "required": ["kind"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "off"
+                        }
+                      },
+                      "required": ["kind"]
+                    }
+                  ]
                 }
               ]
             },
             "cache": {
-              "type": "boolean"
-            },
-            "timeoutMs": {
-              "type": "integer",
-              "exclusiveMinimum": 0,
-              "maximum": 9007199254740991
-            },
-            "maxRetries": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "provider": {
-              "type": "object",
-              "properties": {
-                "order": {
-                  "readOnly": true,
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "only": {
-                  "readOnly": true,
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "ignore": {
-                  "readOnly": true,
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "sort": {
-                  "type": "string",
-                  "enum": ["price", "throughput", "latency"]
-                },
-                "allowFallbacks": {
+              "anyOf": [
+                {
                   "type": "boolean"
+                },
+                {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "where-supported"
+                        },
+                        "retention": {
+                          "type": "string",
+                          "enum": ["5m", "1h", "24h"]
+                        },
+                        "cachedParts": {
+                          "readOnly": true,
+                          "minItems": 1,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": ["system-prompt", "tools", "history"]
+                          }
+                        },
+                        "key": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": ["kind", "retention", "cachedParts"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "off"
+                        }
+                      },
+                      "required": ["kind"]
+                    }
+                  ]
                 }
-              },
-              "additionalProperties": false
+              ]
             }
           },
           "additionalProperties": false
@@ -171,58 +218,105 @@
                         }
                       },
                       "required": ["budgetTokens"]
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "model-decides"
+                            }
+                          },
+                          "required": ["kind"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "on"
+                            },
+                            "effort": {
+                              "type": "string",
+                              "enum": ["minimal", "low", "medium", "high", "xhigh"]
+                            },
+                            "budget": {
+                              "type": "object",
+                              "properties": {
+                                "tokens": {
+                                  "type": "integer",
+                                  "exclusiveMinimum": 0,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": ["tokens"]
+                            }
+                          },
+                          "required": ["kind"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "off"
+                            }
+                          },
+                          "required": ["kind"]
+                        }
+                      ]
                     }
                   ]
                 },
                 "cache": {
-                  "type": "boolean"
-                },
-                "timeoutMs": {
-                  "type": "integer",
-                  "exclusiveMinimum": 0,
-                  "maximum": 9007199254740991
-                },
-                "maxRetries": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 9007199254740991
-                },
-                "provider": {
-                  "type": "object",
-                  "properties": {
-                    "order": {
-                      "readOnly": true,
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "only": {
-                      "readOnly": true,
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "ignore": {
-                      "readOnly": true,
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "sort": {
-                      "type": "string",
-                      "enum": ["price", "throughput", "latency"]
-                    },
-                    "allowFallbacks": {
+                  "anyOf": [
+                    {
                       "type": "boolean"
+                    },
+                    {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "where-supported"
+                            },
+                            "retention": {
+                              "type": "string",
+                              "enum": ["5m", "1h", "24h"]
+                            },
+                            "cachedParts": {
+                              "readOnly": true,
+                              "minItems": 1,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": ["system-prompt", "tools", "history"]
+                              }
+                            },
+                            "key": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["kind", "retention", "cachedParts"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "off"
+                            }
+                          },
+                          "required": ["kind"]
+                        }
+                      ]
                     }
-                  },
-                  "additionalProperties": false
+                  ]
                 },
                 "price": {
                   "type": "object",
@@ -251,7 +345,7 @@
                   "const": "llm"
                 }
               },
-              "required": ["model", "price", "kind"]
+              "required": ["model", "kind"]
             }
           ]
         },
@@ -343,58 +437,105 @@
                     }
                   },
                   "required": ["budgetTokens"]
+                },
+                {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "model-decides"
+                        }
+                      },
+                      "required": ["kind"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "on"
+                        },
+                        "effort": {
+                          "type": "string",
+                          "enum": ["minimal", "low", "medium", "high", "xhigh"]
+                        },
+                        "budget": {
+                          "type": "object",
+                          "properties": {
+                            "tokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": ["tokens"]
+                        }
+                      },
+                      "required": ["kind"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "off"
+                        }
+                      },
+                      "required": ["kind"]
+                    }
+                  ]
                 }
               ]
             },
             "cache": {
-              "type": "boolean"
-            },
-            "timeoutMs": {
-              "type": "integer",
-              "exclusiveMinimum": 0,
-              "maximum": 9007199254740991
-            },
-            "maxRetries": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 9007199254740991
-            },
-            "provider": {
-              "type": "object",
-              "properties": {
-                "order": {
-                  "readOnly": true,
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "only": {
-                  "readOnly": true,
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "ignore": {
-                  "readOnly": true,
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "sort": {
-                  "type": "string",
-                  "enum": ["price", "throughput", "latency"]
-                },
-                "allowFallbacks": {
+              "anyOf": [
+                {
                   "type": "boolean"
+                },
+                {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "where-supported"
+                        },
+                        "retention": {
+                          "type": "string",
+                          "enum": ["5m", "1h", "24h"]
+                        },
+                        "cachedParts": {
+                          "readOnly": true,
+                          "minItems": 1,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": ["system-prompt", "tools", "history"]
+                          }
+                        },
+                        "key": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": ["kind", "retention", "cachedParts"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "off"
+                        }
+                      },
+                      "required": ["kind"]
+                    }
+                  ]
                 }
-              },
-              "additionalProperties": false
+              ]
             },
             "price": {
               "type": "object",
@@ -474,58 +615,105 @@
                   }
                 },
                 "required": ["budgetTokens"]
+              },
+              {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "model-decides"
+                      }
+                    },
+                    "required": ["kind"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "on"
+                      },
+                      "effort": {
+                        "type": "string",
+                        "enum": ["minimal", "low", "medium", "high", "xhigh"]
+                      },
+                      "budget": {
+                        "type": "object",
+                        "properties": {
+                          "tokens": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": ["tokens"]
+                      }
+                    },
+                    "required": ["kind"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "off"
+                      }
+                    },
+                    "required": ["kind"]
+                  }
+                ]
               }
             ]
           },
           "cache": {
-            "type": "boolean"
-          },
-          "timeoutMs": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
-          },
-          "maxRetries": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          },
-          "provider": {
-            "type": "object",
-            "properties": {
-              "order": {
-                "readOnly": true,
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              },
-              "only": {
-                "readOnly": true,
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              },
-              "ignore": {
-                "readOnly": true,
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              },
-              "sort": {
-                "type": "string",
-                "enum": ["price", "throughput", "latency"]
-              },
-              "allowFallbacks": {
+            "anyOf": [
+              {
                 "type": "boolean"
+              },
+              {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "where-supported"
+                      },
+                      "retention": {
+                        "type": "string",
+                        "enum": ["5m", "1h", "24h"]
+                      },
+                      "cachedParts": {
+                        "readOnly": true,
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["system-prompt", "tools", "history"]
+                        }
+                      },
+                      "key": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": ["kind", "retention", "cachedParts"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "off"
+                      }
+                    },
+                    "required": ["kind"]
+                  }
+                ]
               }
-            },
-            "additionalProperties": false
+            ]
           },
           "price": {
             "type": "object",

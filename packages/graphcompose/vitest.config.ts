@@ -18,6 +18,7 @@ export default defineConfig({
         "src/scaffold/questions.ts",
         "src/studio.ts",
         "src/describe.ts",
+        "src/check.ts",
         "src/rag-index.ts",
         "src/chat.ts",
         "src/cli/ask.ts",
@@ -35,6 +36,8 @@ export default defineConfig({
         "src/dto/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
         // the model-call seam (#135): every model call goes through it
         "src/llm/gateway.ts": { lines: 90, branches: 90, functions: 90, statements: 90 },
+        // model providers (#151): every model call's provider, retries, breaker, wire form
+        "src/models/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
         // the app and the testing toolkit (#135)
         "src/app/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
         "src/testing/**": { lines: 90, branches: 90, functions: 90, statements: 90 },

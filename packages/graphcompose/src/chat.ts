@@ -22,6 +22,9 @@ const { values } = parseArgs({
 });
 const app = await createApp(await loadWorkflowClass(values.workflow), { profile: values.profile });
 const start = textStartOrFail(app);
+app.models.forEach((line) => {
+  stdout.write(`${styleText("dim", `model ${line}`)}\n`);
+});
 app.warnings.forEach((warning) => {
   stdout.write(`warning: ${warning}\n`);
 });

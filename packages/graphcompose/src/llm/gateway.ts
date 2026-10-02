@@ -7,9 +7,10 @@ import {
   type RouteRequest,
   type Router,
 } from "../routers/index.js";
-import { createJevClient, type JevClient } from "./jev-client.js";
-import { createChatModel, readOpenRouterEnv } from "./model.js";
+import type { JevClient } from "./jev-client.js";
 import type { ModelFactory } from "./registry.js";
+import { providerClients, type ProviderClientOptions } from "./provider-clients.js";
+import type { ModelProviderDirectory } from "../models/resolve.js";
 
 /** Who a chat model is for: what a substitute gateway (scripted, replayed) keys its answers on. */
 export type ChatModelUser =
@@ -57,8 +58,8 @@ const clientKey = (settings: ResolvedModelSettings): string =>
     settings.model,
     settings.temperature,
     settings.maxTokens,
-    settings.thinking,
-    settings.cache,
+    settings.reasoning,
+    settings.promptCaching,
   ]);
 
 /** The default gateway over raw clients: one chat client per settings, Jev or LLM decisions. */
@@ -81,11 +82,13 @@ export function createModelGateway(clients: ModelClients): ModelGateway {
   return { chatModel, decide: (spec) => strategyOf(spec).route(spec.request) };
 }
 
-/** Production: OpenRouter chat models and the Jev Decisions API, credentials from the env. */
-export function createOpenRouterGateway(env: NodeJS.ProcessEnv): ModelGateway {
-  const connection = readOpenRouterEnv(env);
-  return createModelGateway({
-    chatModel: (settings) => createChatModel(settings, connection),
-    jevClient: createJevClient(connection),
-  });
+/**
+ * Production: every model from the workflow's model providers (`settings().modelProviders([...])`) —
+ * chat models and Jev decisions, each through its provider's connection; keys from `env`.
+ */
+export function createProviderGateway(
+  directory: ModelProviderDirectory,
+  options: ProviderClientOptions,
+): ModelGateway {
+  return createModelGateway(providerClients(directory, options));
 }

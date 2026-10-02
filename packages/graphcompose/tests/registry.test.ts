@@ -1,20 +1,18 @@
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { describe, expect, it, vi } from "vitest";
 import { createModelRegistry, resolveSettings } from "../src/llm/registry.js";
+import { PromptCaching, Reasoning, ReasoningEffort } from "../src/models/index.js";
 import { fakeGateway, testConfig } from "./helpers.js";
 
 describe("resolveSettings", () => {
-  it("fills missing temperature, maxTokens, thinking, cache, timeout and retries from defaults", () => {
+  it("fills missing temperature, maxTokens and reasoning from defaults; caching on = the provider's", () => {
     const resolved = resolveSettings(testConfig.agents.alpha, testConfig.defaults.chat);
 
     expect(resolved).toEqual({
       model: "test/alpha",
       temperature: 0,
       maxTokens: "max",
-      thinking: "default",
-      cache: true,
-      timeoutMs: 120_000,
-      maxRetries: 2,
+      reasoning: Reasoning.modelDecides(),
       price: testConfig.agents.alpha.price,
     });
   });
@@ -33,8 +31,8 @@ describe("resolveSettings", () => {
 
     expect(resolved.temperature).toBe(0.7);
     expect(resolved.maxTokens).toBe(50);
-    expect(resolved.thinking).toBe("high");
-    expect(resolved.cache).toBe(false);
+    expect(resolved.reasoning).toEqual(Reasoning.on({ effort: ReasoningEffort.High }));
+    expect(resolved.promptCaching).toEqual(PromptCaching.off());
   });
 });
 

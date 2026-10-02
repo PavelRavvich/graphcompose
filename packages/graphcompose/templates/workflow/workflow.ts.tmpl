@@ -1,6 +1,8 @@
 import { Workflow } from "graphcompose";
 import { from, WorkflowSettings, type WorkflowDefinition } from "graphcompose/graph";
+import { JevModelProvider } from "graphcompose/models";
 import { usd } from "graphcompose/units";
+import { OpenRouterModelProvider } from "./model-providers/openrouter.model-provider.js";
 import { TextWorkflowStart } from "./workflow-starts/text.workflow-start.js";
 import { TextWorkflowFinish } from "./workflow-finishes/text.workflow-finish.js";
 import { MainRouter } from "./routers/main.router.js";
@@ -17,8 +19,8 @@ import { MainRouter } from "./routers/main.router.js";
     from({{agents}}).to(MainRouter),
   ],
   defaults: {
-    // kimi-k2.6 via the provider Inceptron loops on tool-call arguments — let OpenRouter use the others
-    chat: { temperature: 0, thinking: "default", cache: true, provider: { ignore: ["Inceptron"] } },
+    // reasoning and caching: the model provider's (model-providers/), an agent may override them
+    chat: { temperature: 0 },
     router: { kind: "jev", model: "typesafe/jev-1.13" },
     tools: { maxToolCalls: 8 },
     history: { limit: 8 },
@@ -33,6 +35,7 @@ export class {{pascal}}Workflow implements WorkflowDefinition {
   settings(): WorkflowSettings {
     return WorkflowSettings.builder()
       .limits({ perRun: { cost: usd(0.1) }, perDay: { cost: usd(2) } })
+      .modelProviders([OpenRouterModelProvider, JevModelProvider])
       .build();
   }
 }

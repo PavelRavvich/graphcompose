@@ -26,10 +26,6 @@ const free: ResolvedModelSettings = {
   model: "test/free",
   temperature: 0,
   maxTokens: 100,
-  thinking: "default",
-  cache: false,
-  timeoutMs: 1000,
-  maxRetries: 0,
   price: { inputPerMTok: 0, outputPerMTok: 0 },
 };
 const request = { input: "x", options: [{ name: "a", description: "A" }] };
