@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { compareNames } from "../llm/canonical-order.js";
 import { CachedPart } from "./prompt-caching.js";
 
 /** Anthropic-style cache marker; `ttl` only for a retention longer than five minutes. */
@@ -68,11 +69,7 @@ const withoutSchemaKey = (tool: WireTool): WireTool => {
 
 /** Tools in a canonical order (by name), their JSON Schemas without `$schema`. */
 export const canonicalTools = (tools: readonly WireTool[]): readonly WireTool[] =>
-  [...tools]
-    .sort((a, b) =>
-      a.function.name < b.function.name ? -1 : a.function.name > b.function.name ? 1 : 0,
-    )
-    .map(withoutSchemaKey);
+  [...tools].sort((a, b) => compareNames(a.function.name, b.function.name)).map(withoutSchemaKey);
 
 const marked = (message: WireMessage, control: CacheControl): WireMessage => {
   const content = message.content;

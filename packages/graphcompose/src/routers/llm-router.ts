@@ -1,6 +1,7 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { ResolvedModelSettings } from "../config/types.js";
 import { recordUsage } from "../finops/usage.js";
+import { compareNames } from "../llm/canonical-order.js";
 import { readRouterDecision, type ParsedDecision } from "./decision.js";
 import { decided, errorReason, failed, unknownOption } from "./outcome.js";
 import { llmRouterPrompt } from "./prompts.js";
@@ -40,7 +41,7 @@ export function createLlmRouter(deps: LlmRouterDeps): Router {
         const prompt = await llmRouterPrompt.formatMessages({
           // routes in a canonical order (by name): declaration order changes neither request nor fingerprint
           options: describeOptions(
-            [...request.options].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)),
+            [...request.options].sort((a, b) => compareNames(a.name, b.name)),
           ),
           input:
             request.instructions === undefined

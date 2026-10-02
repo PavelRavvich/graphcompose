@@ -5,6 +5,7 @@ import { validateAgentsConfig, type AgentsConfigOf } from "../config/types.js";
 import { mcpServer, type McpFacade } from "../tools/index.js";
 import { objectSchemaOf } from "../dto/schema.js";
 import { renderTemplate } from "../scaffold/render.js";
+import { normalisePromptText } from "../graph/text.js";
 import { checkGraph, dependencyTree } from "./container.js";
 import { checkToolData, CORE_TOKENS, ragParts, rememberServers, toolBuilder } from "./runtime.js";
 import type { McpServerClient, ServerTools } from "./mcp-client.js";
@@ -33,11 +34,10 @@ async function promptOf(
   const text = await readFile(path, "utf8").catch(() => {
     throw new ComponentError(`@Agent "${agent.name}": prompt file not found: ${path}`);
   });
-  return renderTemplate(
-    text,
-    variables,
-    (key) => new ComponentError(`@Agent "${agent.name}": unknown prompt variable {{${key}}}`),
-  );
+  const unknown = (key: string) =>
+    new ComponentError(`@Agent "${agent.name}": unknown prompt variable {{${key}}}`);
+  // loaded normalised (BOM, edge blank lines, NFC) and sent as loaded — what fingerprints hash
+  return normalisePromptText(renderTemplate(text, variables, unknown));
 }
 
 /** An agent's settings as the config holds them (tools by name). */

@@ -9,16 +9,32 @@ import { connectionOf } from "../../src/models/connections.js";
 import { CircuitBreakers } from "../../src/models/circuit-breaker.js";
 import {
   JevModelProvider,
-  normalisePrompt,
   PromptCaching,
   Reasoning,
   toWireRequest,
 } from "../../src/models/index.js";
 import { modelProviderOf } from "../../src/models/model-provider.decorator.js";
-import { joinPromptParts } from "../../src/models/normalise.js";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { Agent, Workflow, workflowOf } from "../../src/index.js";
+import { WorkflowFinishText, WorkflowStartText } from "../../src/dto/index.js";
+import {
+  chain,
+  WorkflowFinish,
+  WorkflowSettings,
+  WorkflowStart,
+  type WorkflowDefinition,
+} from "../../src/graph/index.js";
 import { parseWireRequest, wireFetch } from "../../src/models/wire.js";
 import { TestOpenRouterProvider } from "./providers.fixture.js";
 import { completion, providerStub } from "./stub.js";
+
+@WorkflowStart({ name: "task", description: "A task", input: WorkflowStartText })
+class Start {}
+
+@WorkflowFinish({ name: "answer", description: "The answer", output: WorkflowFinishText })
+class Finish {}
 
 const settings: ResolvedModelSettings = {
   model: "moonshotai/kimi-k2.6",
@@ -136,15 +152,32 @@ describe("AC6: the wire form, made in one place (toWireRequest)", () => {
 });
 
 describe("AC6: prompts are normalised at load and sent normalised", () => {
-  it("AC6: removes the BOM and blank edge lines, applies NFC; keeps indentation, tabs and paragraphs", () => {
-    const text = "\uFEFF\n\n  Cafe\u0301 rules\n\n\tstep one  two\n\n\n";
+  it("AC6: an agent's prompt file is loaded normalised (BOM, edge blank lines, NFC)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "gc-151-"));
+    writeFileSync(join(dir, "writer.prompt.md"), "\uFEFF\n\n  Cafe\u0301 rules\n\n\tstep\n\n");
+    @Agent({
+      name: "writer",
+      description: "Writes",
+      model: "local/llama",
+      prompt: join(dir, "writer.prompt.md"),
+    })
+    class Writer {}
+    @Workflow({
+      name: "normalised",
+      version: "1",
+      flow: [chain(Start, Writer, Finish)],
+      defaults: {
+        chat: { temperature: 0 },
+        router: { kind: "jev", model: "typesafe/jev-1.13" },
+        history: { limit: 1 },
+      },
+    })
+    class Normalised implements WorkflowDefinition {
+      settings(): WorkflowSettings {
+        return WorkflowSettings.builder().build();
+      }
+    }
 
-    expect(normalisePrompt(text)).toBe("  Caf\u00e9 rules\n\n\tstep one  two");
-    expect(normalisePrompt("\n \n")).toBe("");
-    expect(normalisePrompt("a\r\nb")).toBe("a\nb");
-  });
-
-  it("AC6: prompt parts are joined with one blank line", () => {
-    expect(joinPromptParts(["\nfirst\n\n", "", "second\n"])).toBe("first\n\nsecond");
+    expect((await workflowOf(Normalised)).prompts.writer).toBe("  Caf\u00e9 rules\n\n\tstep");
   });
 });

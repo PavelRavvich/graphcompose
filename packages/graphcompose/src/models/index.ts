@@ -75,5 +75,4 @@ export {
 export { ConfigurationError, type ModelProblem, type ModelProblemCode } from "./problems.js";
 export { ModelPurpose, ModelProviderDirectory } from "./resolve.js";
 export { DEFAULT_MODEL_PROVIDERS } from "./workflow-models.js";
-export { normalisePrompt } from "./normalise.js";
 export { toWireRequest, type WirePlan, type WireRequest } from "./wire.js";

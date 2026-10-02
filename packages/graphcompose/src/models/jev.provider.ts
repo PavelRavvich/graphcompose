@@ -1,3 +1,4 @@
+import { compareNames } from "../llm/canonical-order.js";
 import { createJevClient } from "../llm/jev-client.js";
 import { minutes, seconds } from "../units/index.js";
 import type { ModelCapabilities } from "./capabilities.js";
@@ -56,7 +57,7 @@ export class JevModelProvider implements ModelProviderHandler {
         {
           ...question,
           criteria: Object.fromEntries(
-            Object.entries(question.criteria).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+            Object.entries(question.criteria).sort(([a], [b]) => compareNames(a, b)),
           ),
         },
       ]),
