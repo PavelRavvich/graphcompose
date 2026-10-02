@@ -46,7 +46,6 @@ export {
   MODEL_MAX,
   type AgentsConfig,
   type AgentsConfigOf,
-  type ReasoningSettings,
   type CompactionSettings,
 } from "./config/types.js";
 export { writeToolsNeedApproval } from "./pause/index.js";

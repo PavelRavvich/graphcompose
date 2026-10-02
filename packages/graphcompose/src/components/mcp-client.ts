@@ -46,6 +46,7 @@ export abstract class McpServerClient<TTools extends ServerTools> {
       runId: "",
       workflow: "",
       agent: "",
+      callId: "",
       signal,
       reportCost: noCost,
     });

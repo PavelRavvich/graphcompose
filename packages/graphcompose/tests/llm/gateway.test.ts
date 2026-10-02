@@ -92,21 +92,10 @@ describe("AC12: the default model gateway", () => {
 });
 
 describe("AC12: model clients are asked for through the gateway", () => {
-  it("AC12: the registry asks the gateway for every agent, attempt and compaction model", () => {
+  it("AC12: the registry asks the gateway for every agent and the compaction model", () => {
     const { gateway, chatModel, model } = recordingGateway();
     const config = {
       ...testConfig,
-      agents: {
-        ...testConfig.agents,
-        beta: {
-          ...testConfig.agents.beta,
-          reasoning: {
-            threshold: 0.8,
-            maxAttempts: 2,
-            thinking: ["low" as const, "high" as const],
-          },
-        },
-      },
       compaction: {
         every: 4,
         keep: 2,
@@ -119,8 +108,6 @@ describe("AC12: model clients are asked for through the gateway", () => {
     expect(registry.agents.get("alpha")?.model).toBe(model);
     expect(chatModel.mock.calls.map(([spec]) => [spec.user, spec.settings.model])).toEqual([
       [{ kind: "agent", agent: "alpha" }, "test/alpha"],
-      [{ kind: "agent", agent: "beta" }, "test/beta"],
-      [{ kind: "agent", agent: "beta" }, "test/beta"],
       [{ kind: "agent", agent: "beta" }, "test/beta"],
       [{ kind: "compaction" }, "test/compact"],
     ]);

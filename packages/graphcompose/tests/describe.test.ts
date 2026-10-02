@@ -54,7 +54,7 @@ describe("describe a workflow", () => {
     ).toBe(true);
     expect(
       after(lines, "  coder  ").some((l) =>
-        l.includes("reasoning: threshold 0.8 · 3 attempts [low, medium, high] · best"),
+        l.includes("limits: modelCalls 12 (default) · toolCalls 8"),
       ),
     ).toBe(true);
     expect(describeWorkflow(test, "fast")[0]).toMatch(

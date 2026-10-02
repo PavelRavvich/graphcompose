@@ -39,13 +39,17 @@ export interface RunContext<TName extends string> {
   readonly callbacks: BaseCallbackHandler[];
 }
 
-/** Stream config: checkpoint thread = run id; tracing callbacks when tracing is on. */
+/**
+ * Stream config: checkpoint thread = run id, every step checkpointed before the next one starts
+ * (`durability: "sync"` — what a resume after a crash continues from); tracing callbacks when on.
+ */
 export function streamConfig<TName extends string>(
   deps: RunDeps<TName>,
   context: { readonly threadId: string; readonly runId: string },
   signal?: AbortSignal,
 ): ReturnType<typeof runConfig> & {
   streamMode: "values";
+  durability: "sync";
   runName: string;
   callbacks: BaseCallbackHandler[];
   signal?: AbortSignal;
@@ -54,6 +58,7 @@ export function streamConfig<TName extends string>(
   return {
     ...runConfig(context.runId),
     streamMode: "values",
+    durability: "sync",
     runName: deps.config.name,
     callbacks,
     ...(signal === undefined ? {} : { signal }),
@@ -74,7 +79,6 @@ export const failedOutcome = (error: unknown, spent: readonly UsageRecord[]): Te
   route: [],
   steps: [],
   costUsd: totalCost(spent),
-  attempts: [],
 });
 
 /** Writes spend to the account's ledger as it happens and remembers it for the Tern. */
@@ -134,7 +138,11 @@ async function* statesOnly(chunks: AsyncIterable<FlowStateType>): AsyncGenerator
   }
 }
 
-/** Drains the graph stream; a paid failure (agent, guard, router) still records its spend. */
+/** Spend a failure carries that the run's state does not hold yet. */
+const unrecordedSpendOf = (error: unknown): readonly UsageRecord[] =>
+  error instanceof PaidStepError || error instanceof LimitExceededError ? error.usage : [];
+
+/** Drains the graph stream; a paid failure (agent, guard, router, an agent's limit) still records its spend. */
 export function drainRun(
   states: AsyncIterable<FlowStateType>,
   record: (records: readonly UsageRecord[]) => Promise<void>,
@@ -142,7 +150,8 @@ export function drainRun(
 ): Promise<FlowStateType> {
   return drainRecordingUsage(statesOnly(states), record, alreadyRecorded).catch(
     async (error: unknown) => {
-      if (error instanceof PaidStepError) await record(error.usage);
+      const unrecorded = unrecordedSpendOf(error);
+      if (unrecorded.length > 0) await record(unrecorded);
       throw error;
     },
   );

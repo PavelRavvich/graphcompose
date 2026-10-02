@@ -109,7 +109,6 @@ export function fakeDeps(
     ledger,
     terns: createSqliteTernStore(":memory:"),
     guards: NO_GUARDS,
-    judges: new Map(),
   };
 }
 
@@ -138,9 +137,7 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     budgetUsd: Number.POSITIVE_INFINITY,
     answer: "",
     guarded: "",
-    pending: null,
     approvals: [],
-    attempts: [],
     summaries: [],
     ...overrides,
   };

@@ -81,27 +81,6 @@ export const CompactionSettingsSchema = z.object({
   model: ModelSettingsSchema,
 });
 
-/** What to return when attempts run out below the threshold. */
-export const ON_EXHAUSTED = ["best", "last", "fail"] as const;
-
-/**
- * Quality-gated attempts: a judge (Jev by default) scores each answer; at or above the threshold it
- * is returned at once, otherwise the agent tries again (seeing its answer and failed criteria).
- */
-export const ReasoningSettingsSchema = z.object({
-  /** Return an attempt as soon as the judge's P(good) reaches this. */
-  threshold: z.number().min(0).max(1),
-  /** Attempts including the first. */
-  maxAttempts: z.number().int().positive(),
-  /** Thinking per attempt; shorter than maxAttempts → the last level repeats. */
-  thinking: z.array(ThinkingSchema).min(1),
-  /** Exhausted below the threshold: best-scored (default when omitted), last, or fail the run. */
-  onExhausted: z.enum(ON_EXHAUSTED).optional(),
-  /** Feedback criteria for the next attempt; default: src/prompts/agents.ts. */
-  criteria: z.array(z.string().min(1)).min(1).optional(),
-  model: z.lazy(() => RouterModelSchema).optional(),
-});
-
 export const AgentSettingsSchema = ModelSettingsSchema.extend({
   description: z.string().min(1),
   /** Tool names from the registry (src/tools/catalog.ts). */
@@ -110,9 +89,8 @@ export const AgentSettingsSchema = ModelSettingsSchema.extend({
   historyLimit: z.number().int().nonnegative().optional(),
   /** How many latest summaries the agent sees (compaction). Default: defaults.history.summaries. */
   historySummaries: z.number().int().nonnegative().optional(),
-  /** Crossing it fails the run (fail fast). Default: defaults.tools.maxToolCalls. */
+  /** Tool calls per call of the agent; crossing it fails the run. Default: defaults.tools.maxToolCalls, else 20. */
   maxToolCalls: z.number().int().nonnegative().optional(),
-  reasoning: ReasoningSettingsSchema.optional(),
   /** Knowledge bases the agent uses (from `@Agent({ rag })`): name, mode and passages per retrieval. */
   rag: z
     .array(
@@ -173,7 +151,8 @@ export const AgentsConfigSchema = z.object({
   defaults: z.object({
     chat: ChatDefaultsSchema,
     router: RouterModelSchema,
-    tools: z.object({ maxToolCalls: z.number().int().nonnegative() }),
+    /** Tool calls per call of an agent (`agents.<name>.limits.toolCalls`); default 20. */
+    tools: z.object({ maxToolCalls: z.number().int().nonnegative().optional() }).optional(),
     history: z.object({
       limit: z.number().int().nonnegative(),
       /** How many latest summaries readers see (compaction). Default: compaction.keep. */
@@ -205,9 +184,7 @@ export type AgentSettings = z.infer<typeof AgentSettingsSchema>;
 export type RouterModel = z.infer<typeof RouterModelSchema>;
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 export type GuardSettings = z.infer<typeof GuardSettingsSchema>;
-export type ReasoningSettings = z.input<typeof ReasoningSettingsSchema>;
 export type CompactionSettings = z.infer<typeof CompactionSettingsSchema>;
-export type OnExhausted = (typeof ON_EXHAUSTED)[number];
 export type AgentsConfig = z.infer<typeof AgentsConfigSchema>;
 
 /** An agent whose tool names are a literal union — a typo does not compile. */

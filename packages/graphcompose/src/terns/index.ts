@@ -14,7 +14,6 @@ export {
   type MemoryStore,
   type NewSummary,
   type Summary,
-  type TernAttempt,
   type TernOutcome,
   type TernStore,
   type VersionScore,

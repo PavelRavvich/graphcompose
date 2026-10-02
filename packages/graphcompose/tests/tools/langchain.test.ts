@@ -1,15 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { toolOf } from "../../src/components/index.js";
-import { renderToolResult, toLangChainTool } from "../../src/tools/index.js";
+import { renderToolResult, toolDefinitionOf } from "../../src/tools/index.js";
 import { Clock } from "../fixtures/test-workflow/test.workflow.js";
-
-const ctx = {
-  runId: "r",
-  workflow: "b",
-  agent: "a",
-  signal: new AbortController().signal,
-  reportCost: vi.fn(),
-};
 
 describe("LangChain adapter", () => {
   it("renders values as JSON, strings as is, errors readably", () => {
@@ -18,16 +10,14 @@ describe("LangChain adapter", () => {
     expect(renderToolResult({ kind: "error", message: "boom" })).toBe("Tool error: boom");
   });
 
-  it("exposes name, description and input JSON Schema, and runs through invoke", async () => {
+  it("#150: describes a tool to the model — name, description, input JSON Schema; running stays in invoke", () => {
     const tool = toolOf(new Clock(() => new Date("2026-09-24T10:00:00Z")));
-    const exposed = toLangChainTool(tool, ctx);
+    const definition = toolDefinitionOf(tool);
 
-    expect(exposed.name).toBe("current_time");
-    expect(exposed.description).toContain("IANA");
-    const out: unknown = await exposed.invoke({ timeZone: "UTC" });
-    expect(JSON.parse(String(out))).toMatchObject({
-      iso: "2026-09-24T10:00:00.000Z",
-      timeZone: "UTC",
-    });
+    expect(definition.type).toBe("function");
+    expect(definition.function.name).toBe("current_time");
+    expect(definition.function.description).toContain("IANA");
+    expect(definition.function.parameters).toMatchObject({ type: "object" });
+    expect(definition.function.parameters).not.toHaveProperty("$schema");
   });
 });

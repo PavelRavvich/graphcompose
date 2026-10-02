@@ -4,7 +4,8 @@ import type { AgentStateType } from "../graph/state.js";
 import type { TernOutcome } from "../terns/index.js";
 import { compactIfDue } from "./compaction.js";
 import type { RunContext } from "./execute.js";
-import { isWaiting, pausedLoopState } from "./paused.js";
+import type { PendingApproval } from "../pause/index.js";
+import { isWaiting, pausedLoopOf } from "./paused.js";
 import type { AgentRunResult, RunDeps, RunStatus } from "./types.js";
 
 /** Where the run ended: the workflow finish it reached, if it reached one (not when guarded or paused). */
@@ -26,13 +27,12 @@ function outcomeOf(state: AgentStateType, paused: boolean): TernOutcome & { stat
     route: state.contributions.map((item) => item.agent),
     steps: state.contributions,
     costUsd: totalCost(state.usage),
-    attempts: state.attempts,
   };
 }
 
 /** The visited nodes; a paused run waits in an agent whose visit has not finished yet. */
-const pathOf = (state: FlowStateType, current: AgentStateType): readonly string[] =>
-  current.pending === null ? state.path : [...state.path, current.pending.agent];
+const pathOf = (state: FlowStateType, pending: PendingApproval | undefined): readonly string[] =>
+  pending === undefined ? state.path : [...state.path, pending.agent];
 
 const traceUrlOf = <TName extends string>(
   deps: RunDeps<TName>,
@@ -63,15 +63,19 @@ async function compactAfter<TName extends string>(
 async function stoppedState<TName extends string>(
   ctx: RunContext<TName>,
   state: FlowStateType,
-): Promise<{ readonly current: AgentStateType; readonly paused: boolean }> {
+): Promise<{
+  readonly current: AgentStateType;
+  readonly paused: boolean;
+  readonly pending?: PendingApproval;
+}> {
   const pause = ctx.deps.pause;
   if (pause === undefined || !(await isWaiting(ctx.flow.graph, ctx.runId))) {
     return { current: state, paused: false };
   }
-  const loop = await pausedLoopState(ctx.flow.graph, pause.checkpointer, ctx.runId);
+  const loop = await pausedLoopOf(ctx.flow.graph, pause.checkpointer, ctx.runId);
   if (loop === undefined) return { current: state, paused: true };
-  await ctx.record(loop.usage.slice(Math.max(ctx.recorded, state.usage.length)));
-  return { current: loop, paused: true };
+  await ctx.record(loop.state.usage.slice(Math.max(ctx.recorded, state.usage.length)));
+  return { current: loop.state, paused: true, pending: loop.pending };
 }
 
 /** Writes (or completes) the Tern and shapes the result: answered, guarded or paused. */
@@ -80,7 +84,7 @@ export async function finishRun<TName extends string>(
   state: FlowStateType,
   existingTernId?: string,
 ): Promise<AgentRunResult> {
-  const { current, paused } = await stoppedState(ctx, state);
+  const { current, paused, pending } = await stoppedState(ctx, state);
   const outcome = outcomeOf(current, paused);
   let ternId = existingTernId;
   if (ternId === undefined) ternId = (await ctx.deps.terns.append({ ...ctx.base, ...outcome })).id;
@@ -90,7 +94,7 @@ export async function finishRun<TName extends string>(
     status: outcome.status,
     answer: outcome.answer,
     route: outcome.route,
-    path: pathOf(state, current),
+    path: pathOf(state, pending),
     stopReason: outcome.stopReason,
     budgetUsd: ctx.budgetUsd,
     cost: buildCostReport([...current.usage, ...memory.usage]),
@@ -98,9 +102,8 @@ export async function finishRun<TName extends string>(
     ternId,
     runId: ctx.runId,
     ...(paused ? {} : finishOf(ctx, state)),
-    ...(paused && current.pending !== null ? { pending: current.pending } : {}),
+    ...(pending === undefined ? {} : { pending }),
     ...traceUrlOf(ctx.deps, ctx.base.threadId),
-    ...(current.attempts.length === 0 ? {} : { attempts: current.attempts }),
     ...(memory.compacted === undefined ? {} : { compacted: memory.compacted }),
   };
 }

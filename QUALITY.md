@@ -99,7 +99,8 @@ chain / node / Self` (Wiki → Workflow); nodes are `@WorkflowStart`, `@Router`,
 - Prompts live in `src/prompts/` (agents, graph) and `src/routers/prompts.ts` (routers own their
   prompts to stay isolated). No prompt strings inside nodes.
 - Tools: `input` / `output` DTO classes (`*.dto.ts`), tested standalone (`toolOf(new Tool(fakes))`)
-  before being wired into a graph. For a tool-using agent use `createAgent` from `langchain`.
+  before being wired into a graph. Agents run the framework's own loop (`src/graph/agent-loop/`) —
+  no `createAgent`, no middlewares; side-effecting tools use `ctx.callId` as their idempotency key.
 - **Bound every loop**: a router's `maxVisits` (required on every router on a cycle —
   `router.unbounded-cycle`), the run's steps limit (`limits.perRun.steps` —
   visits of agents and routers, default (agents + routers) × 3), and LangGraph `recursionLimit` only

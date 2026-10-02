@@ -1,8 +1,7 @@
 import { FakeListChatModel } from "@langchain/core/utils/testing";
-import { ToolCallLimitExceededError } from "langchain";
 import { describe, expect, it } from "vitest";
 import type { AgentsConfigOf } from "../src/config/types.js";
-import { AgentFailedError } from "../src/graph/errors.js";
+import { LimitExceededError } from "../src/graph/limits.js";
 import { runAgent, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
 import { NO_GUARDS } from "../src/guards/index.js";
@@ -68,7 +67,6 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd 
     prompts: { alpha: "You are alpha.", beta: "You are beta." },
     terns: createSqliteTernStore(":memory:"),
     guards: NO_GUARDS,
-    judges: new Map(),
     tools: (name) => (name === "paid_search" ? paidSearch(toolCostUsd) : libraryTool(name)),
     ledger,
   };
@@ -126,7 +124,7 @@ describe("agents with tools", () => {
     expect(model.sent[1]?.filter((message) => message.type === "tool")).toHaveLength(2);
   });
 
-  it("fails fast on the tool call limit and records spend of the failed agent", async () => {
+  it("#150 AC7: maxToolCalls from the config fails the run at agents.<name>.limits.toolCalls, the agent's spend recorded", async () => {
     const { deps, ledger } = setup({
       routes: answered,
       alpha: [toTokyo, toTokyo, "never"],
@@ -135,8 +133,13 @@ describe("agents with tools", () => {
 
     const failure = await runAgent({ task: "Loop" }, deps).catch((error: unknown) => error);
 
-    expect(failure).toBeInstanceOf(AgentFailedError);
-    expect((failure as AgentFailedError).cause).toBeInstanceOf(ToolCallLimitExceededError);
+    expect(failure).toBeInstanceOf(LimitExceededError);
+    expect(failure).toMatchObject({
+      key: "agents.alpha.limits.toolCalls",
+      limit: 1,
+      actual: 2,
+      path: ["workflow-start.chat", "main", "alpha"],
+    });
     expect(ledger.recorded.filter((record) => record.caller === "alpha").length).toBeGreaterThan(0);
   });
 
@@ -189,7 +192,7 @@ describe("tool costs in FinOps", () => {
       maxToolCalls: 1,
     });
 
-    await expect(runAgent({ task: "Loop" }, deps)).rejects.toBeInstanceOf(AgentFailedError);
+    await expect(runAgent({ task: "Loop" }, deps)).rejects.toBeInstanceOf(LimitExceededError);
     expect(ledger.recorded.some((record) => record.caller === "tool:paid_search")).toBe(true);
   });
 

@@ -6,6 +6,7 @@ const ctx = (signal: AbortSignal = new AbortController().signal): ToolContext =>
   runId: "run-1",
   workflow: "test-bundle",
   agent: "alpha",
+  callId: "call-1",
   signal,
   reportCost: vi.fn(),
 });

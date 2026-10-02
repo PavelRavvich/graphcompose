@@ -80,7 +80,9 @@ describe("gc create / gc generate end to end", () => {
     expect(out).toContain("triage, answerer → main");
     expect(out).toContain("limits    run 9 steps (default) · $0.1 · day $2");
     // create wires the MCP server and the knowledge base into the first agent
-    expect(out).toMatch(/triage .*\n\s+Sorts requests\n\s+rag: desk_notes \(tool, k 3\)/);
+    expect(out).toMatch(
+      /triage .*\n\s+Sorts requests\n\s+limits: .*\n\s+rag: desk_notes \(tool, k 3\)/,
+    );
     expect(out).toContain("· search_orders (read, local)");
     expect(out).toContain("· read_desk_files (read, MCP desk_files)");
     // #107 AC2: files named by kind, the prompt next to its agent (no prompt parameter)

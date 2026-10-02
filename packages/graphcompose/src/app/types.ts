@@ -21,7 +21,7 @@ export interface RunCallOptions {
  */
 export interface RunResult extends Pick<
   AgentRunResult,
-  "status" | "answer" | "route" | "stopReason" | "attempts" | "compacted" | "traceUrl"
+  "status" | "answer" | "route" | "stopReason" | "compacted" | "traceUrl"
 > {
   readonly thread: string;
   /** The name of the workflow finish the run reached. */

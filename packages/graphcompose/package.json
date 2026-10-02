@@ -69,7 +69,6 @@
     "@opentelemetry/exporter-trace-otlp-http": "^0.222.0",
     "@opentelemetry/sdk-trace-base": "^2.11.0",
     "dotenv": "^18.0.3",
-    "langchain": "^1.5.12",
     "langsmith": "^0.10.5",
     "tsx": "^4.19.0",
     "typescript": "^5.9.3",

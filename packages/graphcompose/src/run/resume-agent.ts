@@ -13,7 +13,7 @@ import {
   workflowAccount,
 } from "./execute.js";
 import { finishRun } from "./finish.js";
-import { isWaiting, pausedLoopState } from "./paused.js";
+import { isWaiting, pausedLoopOf } from "./paused.js";
 import type { AgentRunResult, RunDeps } from "./types.js";
 import { runVersions } from "./versions.js";
 
@@ -35,13 +35,13 @@ async function pausedRun<TName extends string>(
     limits: deps.limits,
     spentToday: () => deps.ledger.spentToday(account.key),
   });
-  const before = (await isWaiting(flow.graph, paused.runId))
-    ? await pausedLoopState(flow.graph, pause.checkpointer, paused.runId)
+  const loop = (await isWaiting(flow.graph, paused.runId))
+    ? await pausedLoopOf(flow.graph, pause.checkpointer, paused.runId)
     : undefined;
-  if (before === undefined) {
+  if (loop === undefined) {
     throw new NotPausedError(`Run ${paused.runId} is not waiting for an approval`);
   }
-  return { flow, before };
+  return { flow, before: loop.state };
 }
 
 /**

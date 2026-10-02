@@ -1,5 +1,6 @@
 import { resolveTools, type AssembledWorkflow, type WorkflowServices } from "../workflow.js";
 import { DEFAULT_MAX_TOKENS, type ProviderPreferences, type Thinking } from "../config/types.js";
+import { resolveAgentLimits, type AgentLimit } from "../graph/agent-loop/index.js";
 import { flowLines } from "../graph/flow-text.js";
 import { STEPS_PER_WORKING_NODE } from "../graph/limits.js";
 import { isJevModel } from "../graph/router-model.js";
@@ -87,17 +88,27 @@ const providerLabel = (provider: ProviderPreferences | undefined): string => {
   return parts.length === 0 ? "" : ` · providers: ${parts.join("; ")}`;
 };
 
-/** An agent's reasoning and knowledge bases, when it has them. */
-function settingsLines(agent: AssembledWorkflow["config"]["agents"][string]): string[] {
-  const r = agent.reasoning;
-  const reasoning =
-    r === undefined
-      ? []
-      : [
-          `    reasoning: threshold ${String(r.threshold)} · ${String(r.maxAttempts)} attempts [${r.thinking.map(thinkingLabel).join(", ")}] · ${r.onExhausted ?? "best"}`,
-        ];
+/** `limits: modelCalls 12 (default) · toolCalls 8` — what one call of the agent may do. */
+function limitsLine(
+  agent: AssembledWorkflow["config"]["agents"][string],
+  config: AssembledWorkflow["config"],
+): string {
+  const { limits, defaulted } = resolveAgentLimits(
+    agent.maxToolCalls,
+    config.defaults.tools?.maxToolCalls,
+  );
+  const label = (limit: AgentLimit): string =>
+    `${limit} ${String(limits[limit])}${defaulted.includes(limit) ? " (default)" : ""}`;
+  return `    limits: ${label("modelCalls")} · ${label("toolCalls")}`;
+}
+
+/** An agent's limits and knowledge bases. */
+function settingsLines(
+  agent: AssembledWorkflow["config"]["agents"][string],
+  config: AssembledWorkflow["config"],
+): string[] {
   return [
-    ...reasoning,
+    limitsLine(agent, config),
     ...(agent.rag ?? []).map((kb) => `    rag: ${kb.name} (${kb.mode}, k ${String(kb.k)})`),
   ];
 }
@@ -112,7 +123,7 @@ function agentLines(bundle: AssembledWorkflow, tools: ReadonlyMap<string, AnyToo
     return [
       `  ${name}  ${agent.model} · thinking ${thinkingLabel(agent.thinking ?? c.defaults.chat.thinking)} · ${ceilingLabel(agent.maxTokens ?? c.defaults.chat.maxTokens)} · ${history}${providerLabel(agent.provider ?? c.defaults.chat.provider)}`,
       `    ${agent.description}`,
-      ...settingsLines(agent),
+      ...settingsLines(agent, c),
       ...(own.length === 0
         ? ["    tools: none"]
         : own.map(

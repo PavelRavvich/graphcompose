@@ -28,18 +28,6 @@ export interface Tern {
   /** Declared config version and hash of the resolved config (null for runs before #78). */
   readonly configVersion: string | null;
   readonly configHash: string | null;
-  /** Quality-gated attempts of agents with reasoning; empty otherwise. */
-  readonly attempts: readonly TernAttempt[];
-}
-
-/** One reasoning attempt: which agent, which try, its judge score and whether it was returned. */
-export interface TernAttempt {
-  readonly agent: string;
-  readonly attempt: number;
-  readonly thinking: string;
-  readonly score: number | null;
-  readonly returned: boolean;
-  readonly reason?: "threshold" | "best" | "last";
 }
 
 export type NewTern = Omit<Tern, "id" | "createdAt">;
@@ -98,7 +86,7 @@ export interface MemoryStore {
 /** What changes when a paused Tern finishes. */
 export type TernOutcome = Pick<
   Tern,
-  "answer" | "status" | "stopReason" | "route" | "steps" | "costUsd" | "attempts"
+  "answer" | "status" | "stopReason" | "route" | "steps" | "costUsd"
 >;
 
 /** Mean judge score and total cost of the Terns of one prompt version. */

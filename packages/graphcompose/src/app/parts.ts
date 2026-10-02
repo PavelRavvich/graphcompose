@@ -8,7 +8,7 @@ import type { RunDeps } from "../run/types.js";
 import type { ModelGateway } from "../llm/gateway.js";
 import { buildGuards, type GuardSet } from "../guards/index.js";
 import { guardPrompts } from "../prompts/guards.js";
-import { createRouter, type Router } from "../routers/index.js";
+import { createRouter } from "../routers/index.js";
 import type { AnyTool } from "../tools/index.js";
 import type { PauseSeam } from "../pause/index.js";
 import type { ContainerOptions } from "../components/container.js";
@@ -71,29 +71,6 @@ export const pauseFor = (
   bundle.needsApproval === undefined
     ? undefined
     : { checkpointer, needsApproval: bundle.needsApproval };
-
-/** One quality judge per agent with `reasoning` (Jev unless reasoning sets a model). */
-export const judgesFor = (
-  config: AgentsConfigOf<string>,
-  gateway: ModelGateway,
-): ReadonlyMap<string, Router> =>
-  new Map(
-    Object.entries(config.agents).flatMap(([name, agent]) =>
-      agent.reasoning === undefined
-        ? []
-        : [
-            [
-              name,
-              createRouter(
-                `quality:${name}`,
-                agent.reasoning.model ?? config.defaults.router,
-                config.defaults.chat,
-                gateway,
-              ),
-            ] as const,
-          ],
-    ),
-  );
 
 /** Guards from config + their texts; each guard is a router (Jev unless it sets a model). */
 export const guardsFor = (config: AgentsConfigOf<string>, gateway: ModelGateway): GuardSet =>

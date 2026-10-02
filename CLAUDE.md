@@ -6,9 +6,9 @@ Multi-agent project on LangGraph + LangChain (TypeScript). Built with a three-ph
 ## Stack
 
 - Node 22+, TypeScript (strict, fully typed — see `QUALITY.md` → Types), ESM
-- `@langchain/langgraph` (graph), `@langchain/core` (messages, prompts, tools, test fakes),
-  `langchain` (`createAgent` for tool-using agents), `zod` (inside the framework only — workflows use
-  DTO classes, `graphcompose/dto`)
+- `@langchain/langgraph` (graph, and each agent's own loop as a subgraph), `@langchain/core`
+  (messages, prompts, tools, test fakes), `zod` (inside the framework only — workflows use DTO
+  classes, `graphcompose/dto`)
 - LLM access: **OpenRouter** only. Env: `OPENROUTER_API_KEY` (+ optional `OPENROUTER_BASE_URL`).
   - Routers: each `@Router` names its own `model` — **Jev** (`typesafe/jev-*`, Decisions API —
     probabilities, exact cost) or any chat model. Guards use `defaults.router` (Jev).
@@ -72,9 +72,11 @@ flow: [
   **to a workflow finish** is worded as a stop instruction ("Stop and send the answer: …"), never as "the
   answer is ready". `maxVisits` bounds visits of one router. A router that fails or picks an unknown
   route **fails the run** (`RouterDecisionError`) — no guessing.
-- `@Agent` — the agent's loop (`createAgent`): own model, prompt, tools, optional `reasoning`
-  (quality-gated attempts judged by Jev); `approval` — only with a pause seam: a write tool waits for
-  a human (`resumeAgent`).
+- `@Agent` — the agent's own loop (#150, `src/graph/agent-loop/`, a compiled subgraph): own model,
+  prompt, tools; every finished tool call stored by `callId` (a crash re-runs only an unfinished
+  call — `ToolContext.callId` is the idempotency key); limits per call `modelCalls` 12 /
+  `toolCalls` 20 (`maxToolCalls`); `approval` — only with a pause seam: a write tool waits for a
+  decision, one call per pause (`resumeAgent`).
 - Guards — Jev yes/no checks; an input guard trip ends the run at the workflow start with the
   guard's refusal, an output guard checks the answer at the workflow finish.
 - **Limits** in `settings()`: `WorkflowSettings.builder().limits({ perRun, perDay }).build()`,

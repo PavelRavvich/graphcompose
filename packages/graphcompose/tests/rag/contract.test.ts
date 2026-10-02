@@ -15,6 +15,7 @@ const ctx: ToolContext = {
   runId: "r",
   workflow: "b",
   agent: "helper",
+  callId: "call-1",
   signal: new AbortController().signal,
   reportCost: (usd) => {
     costs.push(usd);

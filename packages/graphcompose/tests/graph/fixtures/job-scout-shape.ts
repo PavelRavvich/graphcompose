@@ -127,7 +127,6 @@ export function jobScoutDeps(script: JobScoutScript): JobScoutRun {
     prompts: { profiler: "You profile.", scout: "You scout.", shortlist: "You save." },
     tools: () => saveShortlist,
     guards: script.guards ?? NO_GUARDS,
-    judges: new Map(),
     pause: { checkpointer: new MemorySaver(), needsApproval: writeToolsNeedApproval },
     knowledge: (name) => (name === "scout" ? (script.knowledge ?? []) : []),
     flow: jobScoutFlow,

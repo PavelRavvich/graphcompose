@@ -17,8 +17,6 @@ export interface GraphDeps<TName extends string> {
   /** Resolves a tool name from an agent's config to the tool. */
   readonly tools: (name: string) => AnyTool;
   readonly guards: GuardSet;
-  /** Quality judges by agent name (agents with `reasoning`). */
-  readonly judges: ReadonlyMap<string, Router>;
   /** Context-mode knowledge bases per agent (knowledge bases, #88). */
   readonly knowledge?: (agent: string) => readonly KnowledgeSource[];
   /** Optional pause seam (approval of tool calls). Off by default. */

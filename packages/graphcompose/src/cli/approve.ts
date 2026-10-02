@@ -44,25 +44,6 @@ export function threadLine(result: Pick<RunResult, "thread" | "traceUrl">): stri
     : `thread ${result.thread} · ${result.traceUrl}`;
 }
 
-/** Per agent with more than one attempt: `coder attempts: 0.62 → 0.74 → 0.79 · returned #3 (best)`. */
-export function attemptsLines(result: Pick<RunResult, "attempts">): string[] {
-  const byAgent = new Map<string, NonNullable<RunResult["attempts"]>[number][]>();
-  for (const attempt of result.attempts ?? []) {
-    byAgent.set(attempt.agent, [...(byAgent.get(attempt.agent) ?? []), attempt]);
-  }
-  return [...byAgent.entries()]
-    .filter(([, attempts]) => attempts.length > 1)
-    .map(([agent, attempts]) => {
-      const scores = attempts.map((a) => (a.score === null ? "?" : a.score.toFixed(2))).join(" → ");
-      const returned = attempts.find((a) => a.returned);
-      const which =
-        returned === undefined
-          ? ""
-          : ` · returned #${String(returned.attempt)} (${returned.reason ?? "?"})`;
-      return `${agent} attempts: ${scores}${which}`;
-    });
-}
-
 /** `memory: turns 1–5 → summary 1/10` when this turn compacted the conversation. */
 export function memoryLine(result: Pick<RunResult, "compacted">): string | undefined {
   const c = result.compacted;
