@@ -1,10 +1,11 @@
+import type { MessageContent } from "@langchain/core/messages";
 import { LiveCallBlockedError, TestFailure } from "./errors.js";
 import type { ScriptedTurn } from "./script.js";
 
 /** One message of a chat request: who said it and its text. */
 export interface ChatLine {
   readonly role: string;
-  readonly text: string;
+  readonly text: MessageContent;
 }
 
 /** What a component sent its model: an agent's chat, or a router's decision request. */
@@ -12,12 +13,12 @@ export type ModelRequest =
   | {
       readonly kind: "chat";
       readonly system: string;
-      readonly input: string;
+      readonly input: MessageContent;
       readonly messages: readonly ChatLine[];
     }
   | {
       readonly kind: "decision";
-      readonly input: string;
+      readonly input: MessageContent;
       readonly options: readonly string[];
       readonly instructions: string;
     };

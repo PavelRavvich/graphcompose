@@ -1,3 +1,4 @@
+import { mergeTextWithContent } from "./multimodal-utils.js";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { ResolvedModelSettings } from "../config/types.js";
 import { recordUsage } from "../finops/usage.js";
@@ -46,7 +47,7 @@ export function createLlmRouter(deps: LlmRouterDeps): Router {
           input:
             request.instructions === undefined
               ? request.input
-              : `${request.instructions}\n\n${request.input}`,
+              : mergeTextWithContent(`${request.instructions}\n\n`, request.input),
         });
         const response = await deps.model.invoke(prompt);
         const usage = recordUsage(caller, deps.settings, response);

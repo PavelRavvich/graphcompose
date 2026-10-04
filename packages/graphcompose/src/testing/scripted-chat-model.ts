@@ -5,6 +5,7 @@ import type { ResolvedModelSettings } from "../config/types.js";
 import { asError, TestFailure } from "./errors.js";
 import { ModelCallFailedError, type ScriptedTurn } from "./script.js";
 import type { ChatLine, ComponentScript, ModelRequest, ScriptBook } from "./script-book.js";
+import { extractText } from "../graph/multimodal.js";
 
 /** Output tokens that cost `usd` at the model's output price (no price or a free model → none). */
 const tokensFor = (usd: number, settings: ResolvedModelSettings): number =>
@@ -24,7 +25,7 @@ const usageOf = (outputTokens: number) => ({
 
 const lineOf = (message: BaseMessage): ChatLine => ({
   role: message.type,
-  text: message.text,
+  text: message.content,
 });
 
 /** What an agent sent: its system prompt, its input (the first human message), every message. */
@@ -32,7 +33,10 @@ export function chatRequestOf(messages: readonly BaseMessage[]): ModelRequest {
   const lines = messages.map(lineOf);
   return {
     kind: "chat",
-    system: lines.find((line) => line.role === "system")?.text ?? "",
+    system: (() => {
+      const sys = lines.find((line) => line.role === "system")?.text;
+      return sys ? extractText(sys) : "";
+    })(),
     input: lines.find((line) => line.role === "human")?.text ?? "",
     messages: lines,
   };

@@ -1,3 +1,4 @@
+import type { MessageContent } from "@langchain/core/messages";
 import type { UsageRecord } from "../finops/usage.js";
 
 /** A target the router may pick. */
@@ -11,7 +12,7 @@ export interface RouteOption {
  * Routers know nothing about graph state, agents or contributions.
  */
 export interface RouteRequest {
-  readonly input: string;
+  readonly input: MessageContent;
   readonly options: readonly RouteOption[];
   /** The question to decide; default: "which option should handle this next?". */
   readonly instructions?: string;

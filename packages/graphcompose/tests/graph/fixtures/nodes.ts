@@ -1,3 +1,4 @@
+import { extractText } from "../../../src/graph/multimodal.js";
 import type { Class } from "../../../src/components/injection.js";
 import type { FlowNodeRef } from "../../../src/graph/flow-nodes.js";
 import type { FlowRuntime } from "../../../src/graph/build.js";
@@ -60,7 +61,13 @@ export function testRunner(node: FlowNodeRef, agentCostUsd = 0): FlowNodeRunner 
     case "agent":
       return fixedAnswer(node.name, agentCostUsd);
     case "workflow-finish":
-      return (state) => Promise.resolve({ answer: state.contributions.at(-1)?.content ?? "" });
+      return (state) =>
+        Promise.resolve({
+          answer: (() => {
+            const c = state.contributions.at(-1)?.content;
+            return c ? extractText(c) : "";
+          })(),
+        });
     default:
       return () => Promise.resolve({});
   }

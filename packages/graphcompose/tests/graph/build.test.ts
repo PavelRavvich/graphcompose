@@ -1,3 +1,4 @@
+import { extractText } from "../../src/graph/multimodal.js";
 import { describe, expect, it } from "vitest";
 import {
   assembleFlowGraph,
@@ -78,11 +79,9 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
 
     expect(state.path).toEqual(["workflow-start.start", "star", "a", "star", "b", "star", "done"]);
     expect(state.answer).toBe("b answered");
-    expect(star.requests.map((request) => request.input.includes("[a]\na answered"))).toEqual([
-      false,
-      true,
-      true,
-    ]);
+    expect(
+      star.requests.map((request) => extractText(request.input).includes("[a]\na answered")),
+    ).toEqual([false, true, true]);
   });
 
   it("#141 AC2: one graph node per flow node, named <kind>.<name>", async () => {

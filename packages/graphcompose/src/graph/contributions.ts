@@ -1,13 +1,27 @@
+import type { MessageContent } from "@langchain/core/messages";
 import type { ApprovalRecord } from "../pause/index.js";
+import { mergeContent } from "./multimodal.js";
+
 /** What one agent added to the shared work. */
 export interface Contribution {
   readonly agent: string;
-  readonly content: string;
+  readonly content: MessageContent;
 }
 
-export function formatContributions(contributions: readonly Contribution[]): string {
+export function formatContributions(contributions: readonly Contribution[]): MessageContent {
   if (contributions.length === 0) return "(none yet)";
-  return contributions.map((item) => `[${item.agent}]\n${item.content}`).join("\n\n");
+
+  if (contributions.every((c) => typeof c.content === "string")) {
+    return contributions.map((item) => `[${item.agent}]\n${item.content as string}`).join("\n\n");
+  }
+
+  const parts: MessageContent[] = [];
+  for (const c of contributions) {
+    parts.push(`[${c.agent}]\n`);
+    parts.push(c.content);
+    parts.push("\n\n");
+  }
+  return mergeContent(...parts);
 }
 
 /** One previous Tern of the thread as the agents see it. */
@@ -69,6 +83,10 @@ export function renderRouteInput(
   task: string,
   contributions: readonly Contribution[],
   history = "",
-): string {
-  return `${history}Task:\n${task}\n\nContributions so far:\n${formatContributions(contributions)}`;
+): MessageContent {
+  const formattedContributions = formatContributions(contributions);
+  return mergeContent(
+    `${history}Task:\n${task}\n\nContributions so far:\n`,
+    formattedContributions,
+  );
 }

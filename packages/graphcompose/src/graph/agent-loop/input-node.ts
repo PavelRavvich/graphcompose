@@ -2,6 +2,7 @@ import { HumanMessage } from "@langchain/core/messages";
 import { renderAgentInput } from "../../prompts/agents.js";
 import { formatContributions, formatDecisionsForAgent, formatMemory } from "../contributions.js";
 import { gatherKnowledge } from "../nodes/knowledge.js";
+import { mergeContent } from "../multimodal.js";
 import type { AsyncNode } from "../types.js";
 import type { AgentLoopDeps } from "./deps.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
@@ -15,14 +16,13 @@ export function makeInputNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
   const { agent } = deps;
   return async (state, config) => {
     const knowledge = await gatherKnowledge(agent.knowledge, state.task, config);
-    const input =
-      knowledge.block +
-      renderAgentInput(
-        state.task,
-        formatContributions(state.contributions),
-        formatMemory(state, { summaries: agent.summariesLimit, turns: agent.historyLimit }),
-        formatDecisionsForAgent(state.approvals, agent.name),
-      );
-    return { messages: [new HumanMessage(input)], usage: knowledge.records };
+    const renderedInput = renderAgentInput(
+      state.task,
+      formatContributions(state.contributions),
+      formatMemory(state, { summaries: agent.summariesLimit, turns: agent.historyLimit }),
+      formatDecisionsForAgent(state.approvals, agent.name),
+    );
+    const input = mergeContent(knowledge.block, renderedInput);
+    return { messages: [new HumanMessage({ content: input })], usage: knowledge.records };
   };
 }

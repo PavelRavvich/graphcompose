@@ -1,3 +1,4 @@
+import { extractText } from "./multimodal-utils.js";
 import { z } from "zod";
 import { ZERO_USAGE, type UsageRecord } from "../finops/usage.js";
 import type { JevClient } from "../llm/jev-client.js";
@@ -67,7 +68,7 @@ export function createJevRouter(deps: JevRouterDeps): Router {
       try {
         const raw = await deps.client({
           model: deps.model,
-          state: request.input,
+          state: extractText(request.input),
           questions: {
             route: {
               type: "choice",

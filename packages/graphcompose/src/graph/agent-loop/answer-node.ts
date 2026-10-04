@@ -10,12 +10,15 @@ export function makeAnswerNode(
   const agent = deps.agent.name;
   return async (state) => {
     await deps.judges({ point: JudgePoint.BeforeAgentAnswer, owner: JudgeOwner.Agent, agent });
-    const content = state.move?.text.trim() ?? "";
+    const content = state.move?.content ?? "";
+    const textReply =
+      typeof content === "string" ? content.trim() : (state.move?.text.trim() ?? "");
+    const trimmedContent = typeof content === "string" ? content.trim() : content;
     return {
       messages: state.move === null ? [] : [state.move],
       move: null,
-      reply: content,
-      contributions: [{ agent, content }],
+      reply: textReply,
+      contributions: [{ agent, content: trimmedContent }],
     };
   };
 }

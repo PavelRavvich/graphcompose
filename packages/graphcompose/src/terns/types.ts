@@ -1,3 +1,4 @@
+import type { MessageContent } from "@langchain/core/messages";
 /** Terminology: a Tern is one question → answer round (one run). A thread is a client's sequence of Terns. */
 
 export const TERN_STATUSES = ["answered", "guarded", "failed", "paused"] as const;
@@ -6,7 +7,7 @@ export type TernStatus = (typeof TERN_STATUSES)[number];
 /** One step inside a Tern: what one agent answered. */
 export interface TernStep {
   readonly agent: string;
-  readonly content: string;
+  readonly content: MessageContent;
 }
 
 export interface Tern {
