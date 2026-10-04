@@ -27,7 +27,7 @@ export type ChoiceTarget = FlowNode | SelfTarget;
 export interface ToStep {
   readonly kind: "to";
   readonly from: readonly FlowNode[];
-  readonly to: FlowNode;
+  readonly targets: readonly FlowNode[];
 }
 
 /** `from(Router).choose(X, Y)` — the router picks one target. */
@@ -43,49 +43,30 @@ export interface ChainStep {
   readonly nodes: readonly FlowNode[];
 }
 
-export interface ForkOptions {
-  readonly maxConcurrent?: number;
-}
-
-export interface ForkStep {
-  readonly kind: "fork";
+export interface JoinStep {
+  readonly kind: "join";
   readonly from: readonly FlowNode[];
-  readonly branches: Record<string, FlowNode>;
-  readonly options?: ForkOptions;
-  readonly join: FlowNode;
+  readonly target: FlowNode;
 }
 
-export type FlowStep = ToStep | ChooseStep | ChainStep | ForkStep;
+export type FlowStep = ToStep | ChooseStep | ChainStep | JoinStep;
 
 /** The graph of a workflow: its transitions, in the workflow file. */
 export type Flow = readonly FlowStep[];
 
-/** What `fork(...)` returns: requires a `join(...)` to complete the step. */
-export interface ForkSource {
-  readonly join: (target: FlowNode) => ForkStep;
-}
-
 /** What `from(...)` returns: the step's kind is chosen next. */
 export interface FlowSource {
-  readonly to: (target: FlowNode) => ToStep;
+  readonly to: (...targets: readonly [FlowNode, ...FlowNode[]]) => ToStep;
   readonly choose: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
-  readonly fork: (branches: Record<string, FlowNode>, options?: ForkOptions) => ForkSource;
+  readonly join: (target: FlowNode) => JoinStep;
 }
 
 /** Starts a transition from one or more nodes (several = fan-in). */
 export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource {
   return {
-    to: (target) => ({ kind: "to", from: sources, to: target }),
+    to: (...targets) => ({ kind: "to", from: sources, targets }),
     choose: (...targets) => ({ kind: "choose", from: sources, targets }),
-    fork: (branches, options) => ({
-      join: (joinTarget) => ({
-        kind: "fork",
-        from: sources,
-        branches,
-        options,
-        join: joinTarget,
-      }),
-    }),
+    join: (target) => ({ kind: "join", from: sources, target }),
   };
 }
 

@@ -31,17 +31,13 @@ const nameIn =
 function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): string {
   switch (step.kind) {
     case "to":
-      return `${step.from.map(name).join(", ")} → ${name(step.to)}`;
+      return `${step.from.map(name).join(", ")} → ${step.targets.map(name).join(", ")}`;
     case "choose":
       return `${step.from.map(name).join(", ")} → ${step.targets.map(name).join(" | ")}`;
     case "chain":
       return step.nodes.map(name).join(" → ");
-    case "fork": {
-      const branches = Object.entries(step.branches)
-        .map(([k, v]) => `${k}: ${name(v)}`)
-        .join(", ");
-      return `${step.from.map(name).join(", ")} → fork({ ${branches} }) → ${name(step.join)}`;
-    }
+    case "join":
+      return `${step.from.map(name).join(", ")} → join(${name(step.target)})`;
   }
 }
 

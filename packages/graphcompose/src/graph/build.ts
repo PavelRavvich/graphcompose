@@ -10,7 +10,7 @@ import { makeFlowRouterNode, type MemoryLimits } from "./nodes/flow-router.js";
 import { predecessorsOf } from "./router-rules.js";
 import { loadRouters, type LoadedRouter } from "./router-texts.js";
 import type { WorkflowLimits } from "./settings.js";
-import { visitNode, type FlowNodeRunner, type SpentToday, type VisitDeps } from "./visit.js";
+import { visitNode, type FlowNodeRunner, type SpentToday } from "./visit.js";
 
 /** What the engine needs from the outside to run a flow. */
 export interface FlowRuntime {
@@ -107,55 +107,72 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
   }
   if (!next) return;
   if (next.kind === "to") {
-    const target = graphNodeId(nodeKeyed(model, next.target));
+    const targets = next.targets.map((t) => graphNodeId(nodeKeyed(model, t)));
     if (node.kind === "workflow-start") {
-      builder.addConditionalEdges(id, afterStart(target), [target, END]);
+      const singleTarget = targets.length === 1 && targets[0] !== undefined;
+      builder.addConditionalEdges(
+        id,
+        singleTarget
+          ? afterStart(targets[0] !)
+          : (state) => (state.guarded === "" ? targets : [END]),
+        singleTarget ? [targets[0] !, END] : undefined,
+      );
       return;
     }
-    builder.addEdge(id, target);
+    builder.addConditionalEdges(id, () => targets);
     return;
   }
-  if (next.kind === "choose") {
-    const self = next.self ? predecessorsOf(model.collected, node.key).map((ref) => ref.key) : [];
-    const targets = [...new Set([...next.targets, ...self])];
-    builder.addConditionalEdges(id, (state: FlowStateType) => state.next, pathMap(model, targets));
+  if (next.kind === "join") {
+    const targetId = graphNodeId(nodeKeyed(model, next.target));
+    const wrapperId = `join-wrap.${targetId}.${node.key}`;
+    builder.addEdge(id, wrapperId);
     return;
   }
-  builder.addConditionalEdges(id, (state: FlowStateType) => {
-    return Object.keys(next.branches).map((key) => new Send(`fork-branch.${id}.${key}`, state));
-  });
+  const self = next.self ? predecessorsOf(model.collected, node.key).map((ref) => ref.key) : [];
+  const targets = [...new Set([...next.targets, ...self])];
+  builder.addConditionalEdges(id, (state: FlowStateType) => state.next, pathMap(model, targets));
+  return;
 }
 
-function compileForkWrapperNodes(
-  builder: Builder,
-  node: FlowNodeRef,
-  model: FlowModel,
-  runtime: FlowRuntime,
-  routers: ReadonlyMap<string, LoadedRouter>,
-  deps: VisitDeps,
-) {
-  const next = model.next.get(node.key);
-  if (next?.kind !== "fork") return;
+function compileJoinBarriers(builder: Builder, model: FlowModel) {
+  const joins = new Map<string, { target: FlowNodeRef; sources: FlowNodeRef[] }>();
+  for (const t of model.collected.transitions) {
+    if (t.next.kind === "join") {
+      const targetNode = nodeKeyed(model, t.next.target);
+      if (!joins.has(targetNode.key)) {
+        joins.set(targetNode.key, { target: targetNode, sources: [] });
+      }
+      const join = joins.get(targetNode.key);
+      if (join !== undefined) join.sources.push(nodeKeyed(model, t.from));
+    }
+  }
 
-  for (const [key, targetKey] of Object.entries(next.branches)) {
-    const wrapperId = `fork-branch.${graphNodeId(node)}.${key}`;
-    const targetNode = nodeKeyed(model, targetKey);
-    const targetRunner = runnerOf(targetNode, model, runtime, routers).runner;
+  for (const { target, sources } of joins.values()) {
+    const targetId = graphNodeId(target);
+    const barrierId = `join-barrier.${targetId}`;
+    const waitId = `join-wait.${targetId}`;
 
-    builder.addNode(wrapperId, async (state) => {
-      const update = await visitNode(targetNode, targetRunner, deps)(state);
-      const lastContrib = Array.isArray(update.contributions)
-        ? update.contributions[update.contributions.length - 1]
-        : undefined;
-      return {
-        ...update,
-        contributions: [],
-        forks: { [key]: { data: lastContrib?.content ?? "", name: targetNode.name } },
-      };
+    builder.addNode(waitId, () => ({}));
+    builder.addEdge(waitId, END);
+
+    builder.addNode(barrierId, () => ({}));
+    builder.addConditionalEdges(barrierId, (state) => {
+      const allArrived = sources.every((src) => state.forks[src.key] !== undefined);
+      return allArrived ? [targetId] : [waitId];
     });
 
-    const joinId = graphNodeId(nodeKeyed(model, next.join));
-    builder.addEdge(wrapperId, joinId);
+    for (const src of sources) {
+      const wrapperId = `join-wrap.${targetId}.${src.key}`;
+      builder.addNode(wrapperId, (state) => {
+        const lastContrib = [...state.contributions].reverse().find((c) => c.agent === src.name);
+        return {
+          forks: {
+            [src.key]: { data: lastContrib?.content ?? "", name: src.name, status: "completed" },
+          },
+        };
+      });
+      builder.addEdge(wrapperId, barrierId);
+    }
   }
 }
 
@@ -179,10 +196,10 @@ function compileFlow(
       ...(maxVisits === undefined ? {} : { maxVisits }),
     };
     builder.addNode(graphNodeId(node), visitNode(node, runner, deps));
-    compileForkWrapperNodes(builder, node, model, runtime, routers, deps);
   }
   startEdges(builder, model);
   for (const node of model.nodes.values()) nodeEdges(builder, model, node);
+  compileJoinBarriers(builder, model);
   const recursionLimit = (limits.steps + model.nodes.size) * RECURSION_SAFETY_FACTOR;
   const compiled = builder.compile(
     runtime.checkpointer === undefined ? {} : { checkpointer: runtime.checkpointer },

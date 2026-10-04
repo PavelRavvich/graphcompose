@@ -30,9 +30,9 @@ export interface FlowNodeRef {
 
 /** A node's declared next step: one unconditional target, or a router's choice. */
 export type NextDeclaration =
-  | { readonly kind: "to"; readonly target: string }
+  | { readonly kind: "to"; readonly targets: readonly string[] }
   | { readonly kind: "choose"; readonly targets: readonly string[]; readonly self: boolean }
-  | { readonly kind: "fork"; readonly branches: Record<string, string>; readonly join: string };
+  | { readonly kind: "join"; readonly target: string; readonly joinSources: readonly string[] };
 
 /** A declared next step of one node (both ends are node keys). */
 export interface Transition {
@@ -114,43 +114,29 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
   switch (step.kind) {
     case "to": {
       const sources = defined(step.from.map(resolve));
-      const target = resolve(step.to);
-      return target === undefined
+      const targets = defined(step.targets.map(resolve));
+      return targets.length === 0
         ? []
-        : sources.map((from) => ({ from, next: { kind: "to", target } }));
+        : sources.map((from) => ({ from, next: { kind: "to", targets } }));
     }
     case "choose": {
       const sources = defined(step.from.map(resolve));
       const next = chooseTargets(step.targets, resolve);
       return sources.map((from) => ({ from, next }));
     }
-    case "fork": {
+    case "join": {
       const sources = defined(step.from.map(resolve));
-      const joinTarget = resolve(step.join);
-      const branches: Record<string, string> = {};
-      for (const [key, node] of Object.entries(step.branches)) {
-        const resolved = resolve(node);
-        if (resolved !== undefined) branches[key] = resolved;
-      }
-      const forkTransitions = sources.map((from) => ({
-        from,
-        next: { kind: "fork" as const, branches, join: joinTarget ?? "" },
-      }));
-      const branchTransitions =
-        joinTarget === undefined
-          ? []
-          : Object.values(branches).map((branch) => ({
-              from: branch,
-              next: { kind: "to" as const, target: joinTarget },
-            }));
-      return [...forkTransitions, ...branchTransitions];
+      const target = resolve(step.target);
+      return target === undefined
+        ? []
+        : sources.map((from) => ({ from, next: { kind: "join", target, joinSources: sources } }));
     }
     case "chain":
       return step.nodes.slice(1).flatMap((to, index) => {
         const source = step.nodes[index];
         return source === undefined
           ? []
-          : transitionsOf({ kind: "to", from: [source], to }, resolve);
+          : transitionsOf({ kind: "to", from: [source], targets: [to] }, resolve);
       });
   }
 }

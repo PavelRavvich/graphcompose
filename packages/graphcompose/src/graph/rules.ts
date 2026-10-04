@@ -14,10 +14,10 @@ export function nextStepsByNode(transitions: readonly Transition[]): Map<string,
 /** Targets a transition can lead to (`Self` excluded: it goes back to a predecessor). */
 export const targetsOf = (transition: Transition): readonly string[] =>
   transition.next.kind === "to"
-    ? [transition.next.target]
+    ? transition.next.targets
     : transition.next.kind === "choose"
       ? transition.next.targets
-      : Object.values(transition.next.branches);
+      : [transition.next.target];
 
 const labelIn = (flow: CollectedFlow, key: string): string => flow.nodes.get(key)?.label ?? key;
 

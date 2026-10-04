@@ -9,7 +9,7 @@ export type FlowNodesByKey = ReadonlyMap<string, FlowNode>;
 const nodesOfStep = (step: FlowStep): readonly FlowNode[] => {
   switch (step.kind) {
     case "to":
-      return [...step.from, step.to];
+      return [...step.from, ...step.targets];
     case "choose":
       return [
         ...step.from,
@@ -17,8 +17,8 @@ const nodesOfStep = (step: FlowStep): readonly FlowNode[] => {
       ];
     case "chain":
       return step.nodes;
-    case "fork":
-      return [...step.from, ...Object.values(step.branches), step.join];
+    case "join":
+      return [...step.from, step.target];
   }
 };
 

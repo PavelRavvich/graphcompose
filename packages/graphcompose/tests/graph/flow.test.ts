@@ -19,21 +19,21 @@ const transitionsOf = (flow: Parameters<typeof collectFlow>[0]) =>
 describe("AC1: flow DSL builds the expected transitions", () => {
   it("from(A).to(B) is one unconditional step", () => {
     expect(transitionsOf([from(A).to(B)])).toEqual([
-      { from: "a", next: { kind: "to", target: "b" } },
+      { from: "a", next: { kind: "to", targets: ["b"] } },
     ]);
   });
 
   it("from(A, B).to(C) fans in: one step from each source", () => {
     expect(transitionsOf([from(A, B).to(AnswerWorkflowFinish)])).toEqual([
-      { from: "a", next: { kind: "to", target: "answer" } },
-      { from: "b", next: { kind: "to", target: "answer" } },
+      { from: "a", next: { kind: "to", targets: ["answer"] } },
+      { from: "b", next: { kind: "to", targets: ["answer"] } },
     ]);
   });
 
   it("chain(A, B, C) is from(A).to(B) + from(B).to(C)", () => {
     expect(transitionsOf([chain(A, B, AnswerWorkflowFinish)])).toEqual([
-      { from: "a", next: { kind: "to", target: "b" } },
-      { from: "b", next: { kind: "to", target: "answer" } },
+      { from: "a", next: { kind: "to", targets: ["b"] } },
+      { from: "b", next: { kind: "to", targets: ["answer"] } },
     ]);
   });
 

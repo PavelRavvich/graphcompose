@@ -30,7 +30,9 @@ class JoinNodeAgent implements JoinHandler<
   ): JoinOutput | Promise<JoinOutput> {
     return {
       contributions: [
-        { content: `Joined: ${String(outputs.a?.data)} and ${String(outputs.b?.data)}` },
+        {
+          content: `Joined: ${String(outputs.branchA?.data)} and ${String(outputs.branchB?.data)}`,
+        },
       ],
       payload: { customJoin: true },
     };
@@ -47,7 +49,8 @@ class JoinNodeAgent implements JoinHandler<
     router: { kind: "llm", model: "stub" },
   },
   flow: [
-    from(StartNode).fork({ a: BranchAAgent, b: BranchBAgent }).join(JoinNodeAgent),
+    from(StartNode).to(BranchAAgent, BranchBAgent),
+    from(BranchAAgent, BranchBAgent).join(JoinNodeAgent),
     from(JoinNodeAgent).to(FinishNode),
   ],
 })
@@ -98,7 +101,9 @@ describe("fork-join", () => {
     );
 
     expect(result.contributions.length).toBeGreaterThan(0);
-    const joinedContrib = result.contributions[0];
+    const joinedContrib = result.contributions.find((c) =>
+      typeof c.content === "string" ? c.content : "".startsWith("Joined:"),
+    );
     if (!joinedContrib) throw new Error("Missing");
     expect(joinedContrib.content).toBe("Joined: Result A and Result B");
     expect(joinedContrib.agent).toBe("joinNode");
