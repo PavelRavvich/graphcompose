@@ -139,6 +139,7 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     guarded: "",
     approvals: [],
     summaries: [],
+    payload: {},
     ...overrides,
   };
 }
@@ -173,6 +174,8 @@ export function flowState(overrides: Partial<FlowStateType> = {}): FlowStateType
     ...baseState(),
     start: "",
     previousAgent: "",
+    payload: {},
+    forks: {},
     visits: {},
     steps: 0,
     path: [],

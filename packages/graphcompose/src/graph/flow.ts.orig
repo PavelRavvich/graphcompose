@@ -43,33 +43,15 @@ export interface ChainStep {
   readonly nodes: readonly FlowNode[];
 }
 
-export interface ForkOptions {
-  readonly maxConcurrent?: number;
-}
-
-export interface ForkStep {
-  readonly kind: "fork";
-  readonly from: readonly FlowNode[];
-  readonly branches: Record<string, FlowNode>;
-  readonly options?: ForkOptions;
-  readonly join: FlowNode;
-}
-
-export type FlowStep = ToStep | ChooseStep | ChainStep | ForkStep;
+export type FlowStep = ToStep | ChooseStep | ChainStep;
 
 /** The graph of a workflow: its transitions, in the workflow file. */
 export type Flow = readonly FlowStep[];
-
-/** What `fork(...)` returns: requires a `join(...)` to complete the step. */
-export interface ForkSource {
-  readonly join: (target: FlowNode) => ForkStep;
-}
 
 /** What `from(...)` returns: the step's kind is chosen next. */
 export interface FlowSource {
   readonly to: (target: FlowNode) => ToStep;
   readonly choose: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
-  readonly fork: (branches: Record<string, FlowNode>, options?: ForkOptions) => ForkSource;
 }
 
 /** Starts a transition from one or more nodes (several = fan-in). */
@@ -77,15 +59,6 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
   return {
     to: (target) => ({ kind: "to", from: sources, to: target }),
     choose: (...targets) => ({ kind: "choose", from: sources, targets }),
-    fork: (branches, options) => ({
-      join: (joinTarget) => ({
-        kind: "fork",
-        from: sources,
-        branches,
-        options,
-        join: joinTarget,
-      }),
-    }),
   };
 }
 

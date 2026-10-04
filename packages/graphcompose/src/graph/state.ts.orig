@@ -5,14 +5,6 @@ import type { Contribution, HistoryTurn } from "./contributions.js";
 
 const append = <TItem>(left: TItem[], right: TItem[]): TItem[] => left.concat(right);
 
-const mergeRecords = (
-  left: Record<string, unknown>,
-  right: Record<string, unknown>,
-): Record<string, unknown> => ({
-  ...left,
-  ...right,
-});
-
 /** Single source of truth for the graph state. Nodes return only the keys they own. */
 export const AgentState = Annotation.Root({
   task: Annotation<string>(),
@@ -39,8 +31,6 @@ export const AgentState = Annotation.Root({
   approvals: Annotation<ApprovalRecord[]>({ reducer: append, default: () => [] }),
   /** Name of the guard that stopped the run, "" if none. */
   guarded: Annotation<string>({ reducer: (_previous, next) => next, default: () => "" }),
-  /** Custom developer KV data aggregated across workflow. */
-  payload: Annotation<Record<string, unknown>>({ reducer: mergeRecords, default: () => ({}) }),
 });
 
 export type AgentStateType = typeof AgentState.State;

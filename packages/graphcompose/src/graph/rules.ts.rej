@@ -1,0 +1,11 @@
+@@ -13,7 +13,9 @@
+ 
+ /** Only one step from each node (its own, or inherited as a router's target) is declared. */
+ const targetsOf = (transition: Transition): readonly string[] =>
+-  transition.next.kind === "to" ? [transition.next.target] : transition.next.targets;
++  transition.next.kind === "to" ? [transition.next.target]
++  : transition.next.kind === "choose" ? transition.next.targets
++  : Object.values(transition.next.branches);
+ 
+ function duplicateDeclarations(transitions: readonly Transition[]): readonly RuleViolation[] {
+   const declared = new Map<string, Transition>();

@@ -1,5 +1,5 @@
 import type { BaseCheckpointSaver } from "@langchain/langgraph";
-import { END, START, Send, StateGraph } from "@langchain/langgraph";
+import { END, START, StateGraph } from "@langchain/langgraph";
 import type { Router } from "../routers/index.js";
 import { checkFlow, type FlowModel } from "./check-flow.js";
 import type { Flow } from "./flow.js";
@@ -10,7 +10,7 @@ import { makeFlowRouterNode, type MemoryLimits } from "./nodes/flow-router.js";
 import { predecessorsOf } from "./router-rules.js";
 import { loadRouters, type LoadedRouter } from "./router-texts.js";
 import type { WorkflowLimits } from "./settings.js";
-import { visitNode, type FlowNodeRunner, type SpentToday, type VisitDeps } from "./visit.js";
+import { visitNode, type FlowNodeRunner, type SpentToday } from "./visit.js";
 
 /** What the engine needs from the outside to run a flow. */
 export interface FlowRuntime {
@@ -101,11 +101,10 @@ const afterStart =
 function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void {
   const next = model.next.get(node.key);
   const id = graphNodeId(node);
-  if (node.kind === "workflow-finish" || (next === undefined && node.kind !== "agent")) {
+  if (node.kind === "workflow-finish" || next === undefined) {
     builder.addEdge(id, END);
     return;
   }
-  if (!next) return;
   if (next.kind === "to") {
     const target = graphNodeId(nodeKeyed(model, next.target));
     if (node.kind === "workflow-start") {
@@ -115,48 +114,9 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
     builder.addEdge(id, target);
     return;
   }
-  if (next.kind === "choose") {
-    const self = next.self ? predecessorsOf(model.collected, node.key).map((ref) => ref.key) : [];
-    const targets = [...new Set([...next.targets, ...self])];
-    builder.addConditionalEdges(id, (state: FlowStateType) => state.next, pathMap(model, targets));
-    return;
-  }
-  builder.addConditionalEdges(id, (state: FlowStateType) => {
-    return Object.keys(next.branches).map((key) => new Send(`fork-branch.${id}.${key}`, state));
-  });
-}
-
-function compileForkWrapperNodes(
-  builder: Builder,
-  node: FlowNodeRef,
-  model: FlowModel,
-  runtime: FlowRuntime,
-  routers: ReadonlyMap<string, LoadedRouter>,
-  deps: VisitDeps,
-) {
-  const next = model.next.get(node.key);
-  if (next?.kind !== "fork") return;
-
-  for (const [key, targetKey] of Object.entries(next.branches)) {
-    const wrapperId = `fork-branch.${graphNodeId(node)}.${key}`;
-    const targetNode = nodeKeyed(model, targetKey);
-    const targetRunner = runnerOf(targetNode, model, runtime, routers).runner;
-
-    builder.addNode(wrapperId, async (state) => {
-      const update = await visitNode(targetNode, targetRunner, deps)(state);
-      const lastContrib = Array.isArray(update.contributions)
-        ? update.contributions[update.contributions.length - 1]
-        : undefined;
-      return {
-        ...update,
-        contributions: [],
-        forks: { [key]: { data: lastContrib?.content ?? "", name: targetNode.name } },
-      };
-    });
-
-    const joinId = graphNodeId(nodeKeyed(model, next.join));
-    builder.addEdge(wrapperId, joinId);
-  }
+  const self = next.self ? predecessorsOf(model.collected, node.key).map((ref) => ref.key) : [];
+  const targets = [...new Set([...next.targets, ...self])];
+  builder.addConditionalEdges(id, (state: FlowStateType) => state.next, pathMap(model, targets));
 }
 
 function compileFlow(
@@ -179,7 +139,6 @@ function compileFlow(
       ...(maxVisits === undefined ? {} : { maxVisits }),
     };
     builder.addNode(graphNodeId(node), visitNode(node, runner, deps));
-    compileForkWrapperNodes(builder, node, model, runtime, routers, deps);
   }
   startEdges(builder, model);
   for (const node of model.nodes.values()) nodeEdges(builder, model, node);

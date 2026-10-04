@@ -17,8 +17,6 @@ const nodesOfStep = (step: FlowStep): readonly FlowNode[] => {
       ];
     case "chain":
       return step.nodes;
-    case "fork":
-      return [...step.from, ...Object.values(step.branches), step.join];
   }
 };
 

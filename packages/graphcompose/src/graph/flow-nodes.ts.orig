@@ -31,8 +31,7 @@ export interface FlowNodeRef {
 /** A node's declared next step: one unconditional target, or a router's choice. */
 export type NextDeclaration =
   | { readonly kind: "to"; readonly target: string }
-  | { readonly kind: "choose"; readonly targets: readonly string[]; readonly self: boolean }
-  | { readonly kind: "fork"; readonly branches: Record<string, string>; readonly join: string };
+  | { readonly kind: "choose"; readonly targets: readonly string[]; readonly self: boolean };
 
 /** A declared next step of one node (both ends are node keys). */
 export interface Transition {
@@ -123,27 +122,6 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
       const sources = defined(step.from.map(resolve));
       const next = chooseTargets(step.targets, resolve);
       return sources.map((from) => ({ from, next }));
-    }
-    case "fork": {
-      const sources = defined(step.from.map(resolve));
-      const joinTarget = resolve(step.join);
-      const branches: Record<string, string> = {};
-      for (const [key, node] of Object.entries(step.branches)) {
-        const resolved = resolve(node);
-        if (resolved !== undefined) branches[key] = resolved;
-      }
-      const forkTransitions = sources.map((from) => ({
-        from,
-        next: { kind: "fork" as const, branches, join: joinTarget ?? "" },
-      }));
-      const branchTransitions =
-        joinTarget === undefined
-          ? []
-          : Object.values(branches).map((branch) => ({
-              from: branch,
-              next: { kind: "to" as const, target: joinTarget },
-            }));
-      return [...forkTransitions, ...branchTransitions];
     }
     case "chain":
       return step.nodes.slice(1).flatMap((to, index) => {

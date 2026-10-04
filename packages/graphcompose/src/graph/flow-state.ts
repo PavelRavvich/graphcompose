@@ -1,5 +1,6 @@
 import { Annotation } from "@langchain/langgraph";
 import { AgentState } from "./state.js";
+import type { ForkOutput } from "./fork-join.js";
 
 const replace = <TValue>(_previous: TValue, next: TValue): TValue => next;
 
@@ -11,6 +12,14 @@ const addCounts = (
   for (const [name, count] of Object.entries(right)) sum[name] = (sum[name] ?? 0) + count;
   return sum;
 };
+
+const mergeForks = (
+  left: Readonly<Record<string, ForkOutput<unknown>>>,
+  right: Readonly<Record<string, ForkOutput<unknown>>>,
+): Record<string, ForkOutput<unknown>> => ({
+  ...left,
+  ...right,
+});
 
 /**
  * The state of a flow graph: the agent state the existing nodes work on, plus what the flow engine
@@ -31,6 +40,11 @@ export const FlowState = Annotation.Root({
   path: Annotation<string[]>({ reducer: (left, right) => left.concat(right), default: () => [] }),
   /** The workflow's spend today before this run (read once, at the first working node). */
   daySpentBeforeRunUsd: Annotation<number | null>({ reducer: replace, default: () => null }),
+  /** Accumulated outputs from fork branches. */
+  forks: Annotation<Record<string, ForkOutput<unknown>>>({
+    reducer: mergeForks,
+    default: () => ({}),
+  }),
 });
 
 export type FlowStateType = typeof FlowState.State;

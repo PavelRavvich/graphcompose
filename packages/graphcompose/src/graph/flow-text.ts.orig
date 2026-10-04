@@ -36,12 +36,6 @@ function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): strin
       return `${step.from.map(name).join(", ")} → ${step.targets.map(name).join(" | ")}`;
     case "chain":
       return step.nodes.map(name).join(" → ");
-    case "fork": {
-      const branches = Object.entries(step.branches)
-        .map(([k, v]) => `${k}: ${name(v)}`)
-        .join(", ");
-      return `${step.from.map(name).join(", ")} → fork({ ${branches} }) → ${name(step.join)}`;
-    }
   }
 }
 

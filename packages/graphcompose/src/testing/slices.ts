@@ -83,6 +83,8 @@ const freshState = (task: string, runId: string): FlowStateType => ({
   guarded: "",
   approvals: [],
   summaries: [],
+  payload: {},
+  forks: {},
   start: "",
   previousAgent: "",
   visits: {},

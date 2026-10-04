@@ -103,6 +103,8 @@ const flowStateOf = (task: string): FlowStateType => ({
   steps: 0,
   path: ["workflow-start.chat", "main"],
   daySpentBeforeRunUsd: null,
+  forks: {},
+  payload: {},
 });
 
 /** The loop's input for a task, as the agent's flow node hands it over. */

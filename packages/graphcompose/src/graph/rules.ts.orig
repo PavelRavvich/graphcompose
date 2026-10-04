@@ -13,11 +13,7 @@ export function nextStepsByNode(transitions: readonly Transition[]): Map<string,
 
 /** Targets a transition can lead to (`Self` excluded: it goes back to a predecessor). */
 export const targetsOf = (transition: Transition): readonly string[] =>
-  transition.next.kind === "to"
-    ? [transition.next.target]
-    : transition.next.kind === "choose"
-      ? transition.next.targets
-      : Object.values(transition.next.branches);
+  transition.next.kind === "to" ? [transition.next.target] : transition.next.targets;
 
 const labelIn = (flow: CollectedFlow, key: string): string => flow.nodes.get(key)?.label ?? key;
 
@@ -26,7 +22,7 @@ function twoNextSteps(flow: CollectedFlow): RuleViolation[] {
     .filter(([, steps]) => steps.length > 1)
     .map(([key]) => {
       const label = labelIn(flow, key);
-      const message = `${label} has more than one next step — one \`to\`, one \`choose\`, or one \`fork\``;
+      const message = `${label} has more than one next step — one \`to\` or one \`choose\``;
       return violation("graph.two-next-steps", message, [label]);
     });
 }

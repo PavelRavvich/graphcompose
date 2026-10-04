@@ -16,7 +16,6 @@ export function loopInputOf(state: FlowStateType, agent: string): AgentLoopState
     budgetUsd: state.budgetUsd,
     usage: state.usage,
     answer: state.answer,
-    payload: state.payload,
     summaries: state.summaries,
     approvals: state.approvals,
     guarded: state.guarded,
