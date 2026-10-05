@@ -37,7 +37,7 @@ const jev = "typesafe/jev-1.13";
   description: "Picks A or B",
   prompt: "Pick.",
   model: jev,
-  routes: [route(A, "A"), route(B, "B")],
+  routes: [{ target: A, prompt: "A" }, { target: B, prompt: "B" }],
 })
 export class Pick {}
 
@@ -47,7 +47,7 @@ export class Pick {}
   prompt: "Gate.",
   model: jev,
   maxVisits: 10,
-  routes: [route(Self, "Again"), route(Done, "Finished")],
+  routes: [{ target: Self, prompt: "Again" }, { target: Done, prompt: "Finished" }],
 })
 export class Gate {}
 
@@ -56,7 +56,7 @@ export class Gate {}
   description: "One route",
   prompt: "Only.",
   model: jev,
-  routes: [route(Done, "Finished")],
+  routes: [{ target: Done, prompt: "Finished" }],
 })
 export class Only {}
 
@@ -65,7 +65,7 @@ export class Only {}
   description: "Done too",
   prompt: "Second.",
   model: jev,
-  routes: [route(A, "A"), route(Done, "Finished")],
+  routes: [{ target: A, prompt: "A" }, { target: Done, prompt: "Finished" }],
 })
 export class Second {}
 
@@ -73,7 +73,7 @@ export class Second {}
   name: "mute",
   description: "No texts",
   model: jev,
-  routes: [route(Done, ""), route(A, {})],
+  routes: [{ target: Done, prompt: "" }, { target: A, prompt: "" }],
 })
 export class Mute {}
 
@@ -83,7 +83,7 @@ export class Mute {}
   description: "A again or done",
   prompt: "Loop.",
   model: jev,
-  routes: [route(A, "A"), route(Done, "Finished")],
+  routes: [{ target: A, prompt: "A" }, { target: Done, prompt: "Finished" }],
 })
 export class Loop {}
 
@@ -93,7 +93,7 @@ export class Loop {}
   description: "A or done",
   prompt: "Ping.",
   model: jev,
-  routes: [route(A, "A"), route(Done, "Finished")],
+  routes: [{ target: A, prompt: "A" }, { target: Done, prompt: "Finished" }],
 })
 export class Ping {}
 
@@ -102,7 +102,7 @@ export class Ping {}
   description: "B or done",
   prompt: "Pong.",
   model: jev,
-  routes: [route(B, "B"), route(Done, "Finished")],
+  routes: [{ target: B, prompt: "B" }, { target: Done, prompt: "Finished" }],
 })
 export class Pong {}
 
@@ -112,6 +112,6 @@ export class Pong {}
   description: "Back or done",
   prompt: "Gate.",
   model: jev,
-  routes: [route(Self, "Again"), route(Done, "Finished")],
+  routes: [{ target: Self, prompt: "Again" }, { target: Done, prompt: "Finished" }],
 })
 export class UnboundedGate {}

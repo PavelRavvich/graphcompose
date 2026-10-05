@@ -55,7 +55,7 @@ describe("#116: gc g agent joins the star; gc g router", () => {
     expect(router?.path).toBe("src/desk/routers/escalation.router.ts");
     expect(router?.content).toContain("export class EscalationRouter {}");
     expect(router?.content).toContain(
-      'route(TextWorkflowFinish, "Stop and send the answer: the contributions so far answer',
+      '{ target: TextWorkflowFinish, prompt: "Stop and send the answer: the contributions so far answer',
     );
     // #142 AC3: a new router is bounded on any cycle it is later put on
     expect(router?.content).toContain("  maxVisits: 1,\n");

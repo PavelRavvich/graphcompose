@@ -26,7 +26,7 @@ export class PullRequestWorkflowFinish {}
   description: "Sends the message to the right agent",
   prompt: "Pick who handles the message.",
   model: "typesafe/jev-1.13",
-  routes: [route(ExplainerAgent, "Explaining code"), route(CoderAgent, "Writing code")],
+  routes: [{ target: ExplainerAgent, prompt: "Explaining code" }, { target: CoderAgent, prompt: "Writing code" }],
 })
 export class MainRouter {}
 
@@ -37,8 +37,8 @@ export class MainRouter {}
   model: "typesafe/jev-1.13",
   maxVisits: 3,
   routes: [
-    route(CoderAgent, "The review asks for changes"),
-    route(PullRequestWorkflowFinish, "The review is clean"),
+    { target: CoderAgent, prompt: "The review asks for changes" },
+    { target: PullRequestWorkflowFinish, prompt: "The review is clean" },
   ],
 })
 export class ReviewGateRouter {}

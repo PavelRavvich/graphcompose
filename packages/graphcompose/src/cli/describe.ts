@@ -100,7 +100,7 @@ function settingsLines(
 ): string[] {
   return [
     limitsLine(agent, config),
-    ...(agent.rag ?? []).map((kb) => `    rag: ${kb.name} (${kb.mode}, k ${String(kb.k)})`),
+    ...(agent.rag ?? []).map((kb) => `    rag: ${kb.name} (${kb.mode}, k ${String(kb.topK)})`),
   ];
 }
 
@@ -112,7 +112,7 @@ function agentLines(bundle: AssembledWorkflow, tools: ReadonlyMap<string, AnyToo
     const history = `history ${String(agent.historyLimit ?? c.defaults.history.limit)} turns${summaries > 0 ? ` + ${String(summaries)} summaries` : ""}`;
     const own = (agent.tools ?? []).map((t) => tools.get(t));
     return [
-      `  ${name}  ${agent.model} · reasoning ${thinkingLabel(agent.thinking ?? c.defaults.chat.thinking)} · ${ceilingLabel(agent.maxTokens ?? c.defaults.chat.maxTokens)} · ${history}`,
+      `  ${name}  ${agent.model} · reasoning ${thinkingLabel(agent.thinking ?? c.defaults.models.thinking)} · ${ceilingLabel(agent.maxTokens ?? c.defaults.models.maxTokens)} · ${history}`,
       `    ${agent.description}`,
       ...settingsLines(agent, c),
       ...(own.length === 0

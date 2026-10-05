@@ -26,7 +26,7 @@ export const testConfig: AgentsConfigOf<TestAgent> = {
   name: "test-bundle",
   version: "1.0.0",
   defaults: {
-    chat: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
+    models: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-test" },
     tools: { maxToolCalls: 3 },
     history: { limit: 2 },
@@ -89,7 +89,7 @@ export function flowDeps(
     routers: testRouters,
     routerFor: flowRouterFactory({
       gateway: fakeGateway(chatModel),
-      chatDefaults: testConfig.defaults.chat,
+      chatDefaults: testConfig.defaults.models,
       chatModelSettings: (model) => ({ model, price: { inputPerMTok: 1, outputPerMTok: 2 } }),
     }),
   };

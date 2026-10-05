@@ -4,22 +4,22 @@ import { testConfig } from "../helpers.js";
 import { starOf, TestSettings } from "../fixtures/test-flow/star.js";
 
 /** A connector with fixed results — any class implementing the contract is a knowledge base. */
-@Rag({ name: "handbook", description: "The team handbook", k: 2 })
+@Rag({ name: "handbook", description: "The team handbook", topK: 2 })
 export class Handbook implements RagConnector {
   readonly queries: string[] = [];
-  retrieve(query: string, options: { readonly k: number }): Promise<RagRetrieval> {
+  retrieve(query: string, options: { readonly topK: number }): Promise<RagRetrieval> {
     this.queries.push(query);
     const results = [
       { source: "oncall.md", text: "On-call starts after the third month." },
       { source: "leave.md", text: "Leave is 25 days a year." },
       { source: "tools.md", text: "Use the #help channel." },
     ];
-    return Promise.resolve({ results: results.slice(0, options.k), costUsd: 0.0002 });
+    return Promise.resolve({ results: results.slice(0, options.topK), costUsd: 0.0002 });
   }
 }
 
 /** Another implementation of the same knowledge base — swapping needs no change elsewhere. */
-@Rag({ name: "handbook", description: "The team handbook", k: 2 })
+@Rag({ name: "handbook", description: "The team handbook", topK: 2 })
 export class HandbookFromApi implements RagConnector {
   retrieve(): Promise<RagRetrieval> {
     return Promise.resolve({

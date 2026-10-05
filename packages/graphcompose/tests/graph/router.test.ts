@@ -27,7 +27,7 @@ writeFileSync(routeFile, "﻿The work is finished.\r\n");
   prompt: "Decide carefully.",
   promptUrls: [promptFile],
   model: "typesafe/jev-1.13",
-  routes: [route(Done, { prompt: "Done:", promptUrls: [routeFile] }), route(A, "Café work")],
+  routes: [{ target: Done, prompt: "Done:", promptUrls: [routeFile] }, { target: A, prompt: "Café work" }],
 })
 class Texts {}
 
@@ -36,7 +36,7 @@ class Texts {}
   description: "Its prompt file is missing",
   promptUrls: ["./no-such.prompt.md"],
   model: "typesafe/jev-1.13",
-  routes: [route(Done, "Finished")],
+  routes: [{ target: Done, prompt: "Finished" }],
 })
 class Lost {}
 
@@ -139,7 +139,7 @@ describe("AC1: routers", () => {
   description: "A chat model as a router",
   prompt: "Pick.",
   model: "test/router",
-  routes: [route(A, "A"), route(Done, "Finished")],
+  routes: [{ target: A, prompt: "A" }, { target: Done, prompt: "Finished" }],
 })
 class Chatty {}
 

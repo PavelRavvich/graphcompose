@@ -6,7 +6,7 @@ import { fakeGateway, testConfig } from "./helpers.js";
 
 describe("resolveSettings", () => {
   it("fills missing temperature, maxTokens and reasoning from defaults; caching on = the provider's", () => {
-    const resolved = resolveSettings(testConfig.agents.alpha, testConfig.defaults.chat);
+    const resolved = resolveSettings(testConfig.agents.alpha, testConfig.defaults.models);
 
     expect(resolved).toEqual({
       model: "test/alpha",
@@ -26,7 +26,7 @@ describe("resolveSettings", () => {
         thinking: "high",
         cache: false,
       },
-      testConfig.defaults.chat,
+      testConfig.defaults.models,
     );
 
     expect(resolved.temperature).toBe(0.7);

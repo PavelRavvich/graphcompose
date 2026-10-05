@@ -10,7 +10,7 @@ describe("createRouter", () => {
     const router = createRouter(
       "main",
       testConfig.defaults.router,
-      testConfig.defaults.chat,
+      testConfig.defaults.models,
       fakeGateway(fakeChatFactory({}), client),
     );
 
@@ -28,7 +28,7 @@ describe("createRouter", () => {
       price: { inputPerMTok: 1, outputPerMTok: 2 },
     } as const;
 
-    await createRouter("main", model, testConfig.defaults.chat, fakeGateway(chatModel)).route(
+    await createRouter("main", model, testConfig.defaults.models, fakeGateway(chatModel)).route(
       request,
     );
 
@@ -44,7 +44,7 @@ describe("trivial option sets", () => {
     createRouter(
       "main",
       testConfig.defaults.router,
-      testConfig.defaults.chat,
+      testConfig.defaults.models,
       fakeGateway(fakeChatFactory({}), jevClient),
     );
 

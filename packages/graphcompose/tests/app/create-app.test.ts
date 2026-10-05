@@ -70,7 +70,7 @@ class NoLimits implements WorkflowDefinition {
     from(Support, Writer).next(Reply),
   ],
   defaults: {
-    chat: { temperature: 0, thinking: "default", cache: true },
+    models: { temperature: 0, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-1.13" },
     tools: { maxToolCalls: 2 },
     history: { limit: 2 },
@@ -85,7 +85,7 @@ class TwoStarts extends NoLimits {}
   version: "1.0.0",
   flow: [from(ChatStart).next(Writer), from(Support).next(Reply)],
   defaults: {
-    chat: { temperature: 0, thinking: "default", cache: true },
+    models: { temperature: 0, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-1.13" },
     tools: { maxToolCalls: 2 },
     history: { limit: 2 },

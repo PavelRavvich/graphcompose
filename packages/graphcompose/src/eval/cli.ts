@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { parseArgs } from "node:util";
 import { createAppDeps, type AppDeps } from "../app/app-deps.js";
-import { loadWorkflow } from "../cli/load-workflow.js";
+import { loadWorkflow, loadEnvironment } from "../cli/load-workflow.js";
 import { withProfile } from "../profile-workflow.js";
 import { pairwise, runProfile, type ProfileOutcome } from "./compare.js";
 import { configDiff, formatComparison, profileReport } from "./compare-report.js";
@@ -18,6 +18,7 @@ const { positionals, values } = parseArgs({
   options: {
     workflow: { type: "string", default: "./src/workflow.ts" },
     profile: { type: "string" },
+    env: { type: "string" },
     profiles: { type: "string", default: "base" },
     version: { type: "string" },
     limit: { type: "string", default: "100" },
@@ -31,7 +32,7 @@ const out = (line: string): void => {
   process.stdout.write(`${line}\n`);
 };
 const depsFor = async (profile: string | undefined): Promise<AppDeps> => {
-  const deps = await createAppDeps(await withProfile(await loadWorkflow(values.workflow), profile));
+  const deps = await createAppDeps(await withProfile(await loadWorkflow(values.workflow), profile), { env: await loadEnvironment(values.workflow, values.env) });
   deps.warnings.forEach((warning) => process.stderr.write(`warning: ${warning}\n`));
   return deps;
 };

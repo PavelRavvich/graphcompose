@@ -99,7 +99,7 @@ export class SqliteFtsConnector implements RagConnector {
 
   async retrieve(
     query: string,
-    options: { readonly k: number; readonly signal: AbortSignal },
+    options: { readonly topK: number; readonly signal: AbortSignal },
   ): Promise<RagRetrieval> {
     const db = this.open();
     if (Count.parse(db.prepare("SELECT COUNT(*) AS n FROM files").get()).n === 0)
@@ -110,7 +110,7 @@ export class SqliteFtsConnector implements RagConnector {
       .prepare(
         "SELECT source, text, bm25(chunks) AS rank FROM chunks WHERE chunks MATCH ? ORDER BY rank LIMIT ?",
       )
-      .all(match, options.k)
+      .all(match, options.topK)
       .map((row) => Hit.parse(row));
     return {
       results: hits.map((hit) => ({ source: hit.source, text: hit.text, score: -hit.rank })),

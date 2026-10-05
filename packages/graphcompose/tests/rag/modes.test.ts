@@ -12,7 +12,7 @@ import { decide, fakeDeps, testConfig, type TestAgent, fakeGateway } from "../he
 
 const handbook = (retrieve: KnowledgeSource["retrieve"]): KnowledgeSource => ({
   name: "handbook",
-  k: 2,
+  topK: 2,
   retrieve,
 });
 const found: KnowledgeSource["retrieve"] = () =>
@@ -47,7 +47,7 @@ describe("knowledge bases — context mode", () => {
 
     expect(retrieve).toHaveBeenCalledWith(
       "When does on-call start?",
-      expect.objectContaining({ k: 2 }),
+      expect.objectContaining({ topK: 2 }),
     );
     expect(agentInput(alpha)).toContain(
       "Knowledge (handbook):\n[oncall.md] On-call starts after the third month.",

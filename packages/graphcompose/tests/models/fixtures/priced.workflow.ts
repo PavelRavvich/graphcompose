@@ -42,7 +42,7 @@ export class Answer {}
   version: "1.0.0",
   flow: [chain(TaskStart, Summariser, Writer, Answer)],
   defaults: {
-    chat: { temperature: 0, maxTokens: MODEL_MAX },
+    models: { temperature: 0, maxTokens: MODEL_MAX },
     router: { kind: "jev", model: "typesafe/jev-1.13" },
     tools: { maxToolCalls: 2 },
     history: { limit: 2 },

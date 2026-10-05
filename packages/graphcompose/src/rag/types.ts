@@ -22,7 +22,7 @@ export interface IndexReport {
 export interface RagConnector {
   retrieve(
     query: string,
-    options: { readonly k: number; readonly signal: AbortSignal },
+    options: { readonly topK: number; readonly signal: AbortSignal },
   ): Promise<RagRetrieval>;
   /** Optional: build or update the index (`npm run rag:index`). */
   index?(): Promise<IndexReport>;
@@ -31,7 +31,7 @@ export interface RagConnector {
 /** A knowledge base as the core runs it in context mode (retrieved before the agent's loop). */
 export interface KnowledgeSource {
   readonly name: string;
-  readonly k: number;
+  readonly topK: number;
   readonly retrieve: RagConnector["retrieve"];
 }
 

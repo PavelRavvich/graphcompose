@@ -20,7 +20,7 @@ export async function gatherKnowledge(
   for (const source of sources) {
     try {
       const retrieval = await RunnableLambda.from((q: string) =>
-        source.retrieve(q, { k: source.k, signal }),
+        source.retrieve(q, { topK: source.topK, signal }),
       ).invoke(query, { ...config, runName: `rag:${source.name}` });
       records.push(
         recordReportedCost(

@@ -15,7 +15,7 @@ describe("validateAgentsConfig", () => {
     const config = validateAgentsConfig((await workflowOf(TestWorkflow)).config);
 
     expect(config.defaults.router.kind).toBe("jev");
-    expect(config.defaults.chat.maxTokens).toBe(MODEL_MAX);
+    expect(config.defaults.models.maxTokens).toBe(MODEL_MAX);
   });
 
   it("accepts a router override", () => {

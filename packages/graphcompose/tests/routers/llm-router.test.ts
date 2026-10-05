@@ -7,7 +7,7 @@ import { request } from "./fixtures.js";
 
 const settings = resolveSettings(
   { model: "test/router", price: { inputPerMTok: 1, outputPerMTok: 1 } },
-  testConfig.defaults.chat,
+  testConfig.defaults.models,
 );
 const llm = (responses: string[]) =>
   createLlmRouter({ name: "main", model: new FakeListChatModel({ responses }), settings });

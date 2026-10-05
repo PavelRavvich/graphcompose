@@ -16,7 +16,7 @@ class NoK {
 }
 
 // @ts-expect-error — a knowledge base must implement retrieve
-@Rag({ name: "no_retrieve", description: "d", k: 3 })
+@Rag({ name: "no_retrieve", description: "d", topK: 3 })
 class NoRetrieve {
   search(): string {
     return "";

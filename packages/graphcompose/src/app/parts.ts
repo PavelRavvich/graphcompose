@@ -34,7 +34,7 @@ export const evaluationFor = (
   gateway: ModelGateway,
 ): EvalDeps => ({
   ...stores,
-  judge: createRouter("judge", bundle.config.defaults.router, bundle.config.defaults.chat, gateway),
+  judge: createRouter("judge", bundle.config.defaults.router, bundle.config.defaults.models, gateway),
   account: {
     key: `${bundle.config.name}:eval`,
     dailyCap: bundle.limits.perDay?.cost ?? Number.POSITIVE_INFINITY,
@@ -49,7 +49,7 @@ export const servicesFor = (
   container: ContainerOptions,
 ): WorkflowServices => ({
   router: (name) =>
-    createRouter(name, bundle.config.defaults.router, bundle.config.defaults.chat, gateway),
+    createRouter(name, bundle.config.defaults.router, bundle.config.defaults.models, gateway),
   env,
   container,
 });
@@ -75,7 +75,7 @@ export const pauseFor = (
 /** Guards from config + their texts; each guard is a router (Jev unless it sets a model). */
 export const guardsFor = (config: AgentsConfigOf<string>, gateway: ModelGateway): GuardSet =>
   buildGuards(config.guards, guardPrompts, (name, model) =>
-    createRouter(`guard:${name}`, model ?? config.defaults.router, config.defaults.chat, gateway),
+    createRouter(`guard:${name}`, model ?? config.defaults.router, config.defaults.models, gateway),
   );
 
 /** The workflow's flow, limits and routers; each router decides on its own model. */
@@ -89,7 +89,7 @@ export const flowFor = (
   routers: bundle.routers,
   routerFor: flowRouterFactory({
     gateway,
-    chatDefaults: config.defaults.chat,
+    chatDefaults: config.defaults.models,
     chatModelSettings: chatModelSettingsOf(config),
   }),
 });

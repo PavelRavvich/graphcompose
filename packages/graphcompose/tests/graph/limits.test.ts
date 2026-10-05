@@ -19,7 +19,7 @@ import { A, B, Done, Gate, Pick, Start } from "./fixtures/rule-nodes.js";
   prompt: "Again?",
   model: "typesafe/jev-1.13",
   maxVisits: 2,
-  routes: [route(Self, "Once more"), route(Done, "Enough")],
+  routes: [{ target: Self, prompt: "Once more" }, { target: Done, prompt: "Enough" }],
 })
 class Loop {}
 

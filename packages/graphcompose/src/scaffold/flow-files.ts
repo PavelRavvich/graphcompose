@@ -20,7 +20,7 @@ const quoted = (text: string): string => text.replace(/\\/g, "\\\\").replace(/"/
 
 /** `route(BillingAgent, "Handles invoices")` — how `gc` writes a route. */
 export const routeLine = (target: string, text: string): string =>
-  `route(${target}, "${quoted(text)}")`;
+  `{ target: ${target}, prompt: "${quoted(text)}" }`;
 
 /** An agent's route in the main router: the agent class and its description. */
 export const agentRoute = (agent: Names, description: string): RouteSpec => ({

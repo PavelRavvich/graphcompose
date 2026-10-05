@@ -4,6 +4,8 @@ import type { RagMode } from "../rag/types.js";
 import type { Flow } from "../graph/flow.js";
 import type { Class, Provider } from "./injection.js";
 
+import type { PromptOptions } from "./prompt-options.js";
+
 type AgentSettings = AgentsConfig["agents"][string];
 
 /** An agent's use of a `@Rag` knowledge base; both fields required (no defaults). */
@@ -13,7 +15,7 @@ export interface RagBinding {
 }
 
 /** `@Agent` — settings of one agent; tools are class references; the prompt is a file next to it. */
-export interface AgentMeta {
+export interface AgentMeta extends PromptOptions {
   readonly name: string;
   readonly description: string;
   readonly model: string;
@@ -31,11 +33,6 @@ export interface AgentMeta {
   readonly tools?: readonly Class[];
   /** Knowledge bases: `{ use: CompanyDocs, mode: "tool" | "context" }` — `mode` is required. */
   readonly rag?: readonly RagBinding[];
-  /**
-   * The prompt file, relative to the agent's file. Default: `<name>.prompt.md` next to `<name>.agent.ts`
-   * (like Angular's `templateUrl`).
-   */
-  readonly prompt?: string;
   /** Set by `@Agent` itself: the file the agent is declared in. */
   readonly source?: string;
 }

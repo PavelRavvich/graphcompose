@@ -29,7 +29,7 @@ describe("knowledge bases — contract", () => {
 
     expect(bundle.config.agents.helper).toMatchObject({
       tools: ["search_handbook"],
-      rag: [{ name: "handbook", mode: "tool", k: 2 }],
+      rag: [{ name: "handbook", mode: "tool", topK: 2 }],
     });
     expect(search?.costCaller).toBe("rag:handbook");
     expect(await search?.invoke({ query: "on-call" }, ctx)).toEqual({
@@ -60,8 +60,8 @@ describe("knowledge bases — contract", () => {
     const [source] = bundle.knowledge?.(services).get("helper") ?? [];
 
     expect(bundle.config.agents.helper?.tools).toEqual([]);
-    expect(source?.k).toBe(2);
-    expect((await source?.retrieve("q", { k: 1, signal: ctx.signal }))?.results).toHaveLength(1);
+    expect(source?.topK).toBe(2);
+    expect((await source?.retrieve("q", { topK: 1, signal: ctx.signal }))?.results).toHaveLength(1);
     expect(bundle.knowledgeBases?.(services).map((kb) => kb.name)).toEqual(["handbook"]);
   });
 

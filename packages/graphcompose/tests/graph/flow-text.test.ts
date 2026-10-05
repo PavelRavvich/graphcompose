@@ -40,7 +40,7 @@ describe("a router on a chat model is priced like the agent using that model", (
     ...testConfig,
     defaults: {
       ...testConfig.defaults,
-      chat: { ...testConfig.defaults.chat, maxTokens: MODEL_MAX },
+      models: { ...testConfig.defaults.models, maxTokens: MODEL_MAX },
     },
     compaction: {
       every: 2,

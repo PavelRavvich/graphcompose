@@ -3,7 +3,7 @@ import { stdin, stdout } from "node:process";
 import { createInterface } from "node:readline";
 import { parseArgs, styleText } from "node:util";
 import { createApp } from "./app/create-app.js";
-import { loadWorkflowClass } from "./cli/load-workflow.js";
+import { loadWorkflowClass, loadEnvironment } from "./cli/load-workflow.js";
 import { memoryLine, summaryLine, threadLine, untilDone } from "./cli/approve.js";
 import { costSummary, costTotal, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
@@ -18,9 +18,11 @@ const { values } = parseArgs({
     workflow: { type: "string", default: "./src/workflow.ts" },
     profile: { type: "string" },
     thread: { type: "string" },
+    env: { type: "string" },
   },
 });
-const app = await createApp(await loadWorkflowClass(values.workflow), { profile: values.profile });
+const env = await loadEnvironment(values.workflow, values.env);
+const app = await createApp(await loadWorkflowClass(values.workflow), { profile: values.profile, env });
 const start = textStartOrFail(app);
 app.models.forEach((line) => {
   stdout.write(`${styleText("dim", `model ${line}`)}\n`);

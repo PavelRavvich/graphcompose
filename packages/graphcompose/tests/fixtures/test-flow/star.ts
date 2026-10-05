@@ -1,6 +1,5 @@
 import type { Class } from "../../../src/components/injection.js";
 import { from, type Flow } from "../../../src/graph/flow.js";
-import { route } from "../../../src/graph/route.js";
 import { Router } from "../../../src/graph/router.decorator.js";
 import { WorkflowSettings, type WorkflowDefinition } from "../../../src/graph/settings.js";
 import { TestAnswer, TestChat } from "./test.flow.js";
@@ -17,8 +16,8 @@ export function starOf(...agents: readonly [Class, ...Class[]]): Flow {
     model: "typesafe/jev-1.13",
     maxVisits: 10,
     routes: [
-      route(TestAnswer, "The answer covers the message"),
-      ...agents.map((agent) => route(agent, `${agent.name} work`)),
+      { target: TestAnswer, prompt: "The answer covers the message" },
+      ...agents.map((agent) => ({ target: agent, prompt: `${agent.name} work` })),
     ],
   })
   class Main {}

@@ -28,7 +28,7 @@ const routerUse = (key: string, model: RouterModel, config: AgentsConfigOf<strin
         key,
         model: model.model,
         purpose: ModelPurpose.Chat,
-        settings: resolveSettings(model, config.defaults.chat),
+        settings: resolveSettings(model, config.defaults.models),
       };
 
 const guardUses = (config: AgentsConfigOf<string>): ModelUse[] =>
@@ -47,7 +47,7 @@ export function modelUsesOf(
     key,
     model: settings.model,
     purpose: ModelPurpose.Chat,
-    settings: resolveSettings(settings, config.defaults.chat),
+    settings: resolveSettings(settings, config.defaults.models),
   });
   return [
     ...Object.entries(config.agents).map(([name, agent]) => chat(`agents.${name}`, agent)),

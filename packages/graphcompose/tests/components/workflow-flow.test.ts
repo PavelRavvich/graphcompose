@@ -26,7 +26,7 @@ class Scout {}
   prompt: "Pick one.",
   model: "typesafe/jev-1.13",
   maxVisits: 3,
-  routes: [route(Profiler, "Profiling"), route(TestAnswer, "Done")],
+  routes: [{ target: Profiler, prompt: "Profiling" }, { target: TestAnswer, prompt: "Done" }],
 })
 class Main {}
 

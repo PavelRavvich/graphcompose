@@ -1,5 +1,6 @@
-import { Workflow } from "graphcompose";
-import { from, WorkflowSettings, type WorkflowDefinition } from "graphcompose/graph";
+import { Workflow } from "graphcompose/core";
+import { WorkflowSettings, type WorkflowDefinition } from "graphcompose/core";
+import { from } from "graphcompose/router";
 import { JevModelProvider } from "graphcompose/models";
 import { usd } from "graphcompose/units";
 import { OpenRouterModelProvider } from "./model-providers/openrouter.model-provider.js";
@@ -20,7 +21,7 @@ import { MainRouter } from "./routers/main.router.js";
   ],
   defaults: {
     // reasoning and caching: the model provider's (model-providers/), an agent may override them
-    chat: { temperature: 0 },
+    models: { temperature: 0 },
     router: { kind: "jev", model: "typesafe/jev-1.13" },
     tools: { maxToolCalls: 8 },
     history: { limit: 8 },

@@ -40,3 +40,5 @@ export {
   type WorkflowMatchers,
 } from "./matchers.js";
 export { UNSCRIPTED_SUMMARY } from "./scripted-gateway.js";
+export { workflowOf } from "../components/assemble.js";
+export { toolOf } from "../components/runtime.js";

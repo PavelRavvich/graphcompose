@@ -40,7 +40,7 @@ describe("SQLite FTS5 connector (reference implementation)", () => {
   it("AC2: top-k results by BM25 with the file as source; builds the index on first use", async () => {
     const { connector } = await docs();
 
-    const retrieval = await connector.retrieve("When does on-call start?", { k: 1, signal });
+    const retrieval = await connector.retrieve("When does on-call start?", { topK: 1, signal });
 
     expect(retrieval.results).toHaveLength(1);
     expect(retrieval.results[0]).toMatchObject({ source: "onboarding.md" });
@@ -51,10 +51,10 @@ describe("SQLite FTS5 connector (reference implementation)", () => {
   it("no terms or no match → no results; k larger than the corpus returns what there is", async () => {
     const { connector } = await docs();
 
-    expect((await connector.retrieve("?!", { k: 3, signal })).results).toEqual([]);
-    expect((await connector.retrieve("kubernetes", { k: 3, signal })).results).toEqual([]);
+    expect((await connector.retrieve("?!", { topK: 3, signal })).results).toEqual([]);
+    expect((await connector.retrieve("kubernetes", { topK: 3, signal })).results).toEqual([]);
     expect(
-      (await connector.retrieve("Nimbus frost on-call", { k: 50, signal })).results.length,
+      (await connector.retrieve("Nimbus frost on-call", { topK: 50, signal })).results.length,
     ).toBeLessThanOrEqual(3);
   });
 

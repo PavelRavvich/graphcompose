@@ -12,7 +12,7 @@ export interface WorkflowServices {
   /** A router on the workflow's default router model (Jev) — cheap decisions inside tools. */
   readonly router: (name: string) => Router;
   /** The process environment (tools reading settings); default process.env. */
-  readonly env?: NodeJS.ProcessEnv;
+  readonly env?: any;
   /** Framework wiring of the app's container: replacements (test mocks) and lifecycle. */
   readonly container?: ContainerOptions;
 }

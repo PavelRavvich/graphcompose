@@ -28,10 +28,10 @@ export const ragMeta = (cls: Class): RagMeta => requireComponent(cls, "rag", "wo
 export const searchToolName = (meta: RagMeta): string => `search_${meta.name}`;
 
 /** An agent's knowledge bases as config entries (for describe and profiles). */
-export const ragSettings = (agent: AgentMeta): { name: string; mode: RagMode; k: number }[] =>
+export const ragSettings = (agent: AgentMeta): { name: string; mode: RagMode; topK: number }[] =>
   (agent.rag ?? []).map((binding) => {
     const meta = ragMeta(binding.use);
-    return { name: meta.name, mode: binding.mode, k: meta.k };
+    return { name: meta.name, mode: binding.mode, topK: meta.topK };
   });
 
 const Output = z.object({
@@ -48,7 +48,7 @@ export function searchTool(meta: RagMeta, connector: RagConnector): AnyTool {
     input: z.object({ query: z.string().min(1) }),
     output: Output,
     run: async ({ query }, ctx) => {
-      const retrieval = await connector.retrieve(query, { k: meta.k, signal: ctx.signal });
+      const retrieval = await connector.retrieve(query, { topK: meta.topK, signal: ctx.signal });
       ctx.reportCost(retrieval.costUsd ?? 0);
       return {
         results: retrieval.results.map((result) => ({
@@ -75,7 +75,7 @@ export function contextSources(
         .map((binding) => {
           const meta = ragMeta(binding.use);
           const connector = instance(binding.use);
-          return { name: meta.name, k: meta.k, retrieve: connector.retrieve.bind(connector) };
+          return { name: meta.name, topK: meta.topK, retrieve: connector.retrieve.bind(connector) };
         }),
     ]),
   );

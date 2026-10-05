@@ -4,8 +4,9 @@ import type { DtoClass } from "../dto/types.js";
 import type { ServerTools } from "./mcp-client.js";
 import type { Class, Token } from "./injection.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
+import type { PromptOptions } from "./prompt-options.js";
 
-export interface ToolMeta {
+export interface ToolMeta extends PromptOptions {
   readonly name: string;
   readonly description: string;
   readonly effect?: ToolEffect;
@@ -36,10 +37,10 @@ export type ComponentMeta =
   | { readonly kind: "injectable"; readonly meta: { readonly deps: readonly Token[] } }
   | {
       readonly kind: "rag";
-      readonly meta: {
+      readonly meta: PromptOptions & {
         readonly name: string;
         readonly description: string;
-        readonly k: number;
+        readonly topK: number;
         readonly deps: readonly Token[];
       };
     }

@@ -37,7 +37,7 @@ class TicketStart {}
   version: "1.0.0",
   flow: [from(TicketStart).next(Writer), from(Writer).next(Reply)],
   defaults: {
-    chat: { temperature: 0, thinking: "default", cache: true },
+    models: { temperature: 0, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-1.13" },
     tools: { maxToolCalls: 1 },
     history: { limit: 1 },

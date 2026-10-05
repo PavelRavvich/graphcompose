@@ -71,7 +71,7 @@ export type McpConnect = (
 /** Everything an app may be given instead of its production default. */
 export interface AppDepsOptions {
   /** Default: process.env. */
-  readonly env?: NodeJS.ProcessEnv;
+  readonly env?: any;
   /**
    * Every model call goes through it. Default: the workflow's model providers, credentials from
    * `env`, each model's settings checked against what its provider says it supports.

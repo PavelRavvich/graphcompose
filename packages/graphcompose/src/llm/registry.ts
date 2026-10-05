@@ -53,7 +53,7 @@ export function createModelRegistry(
   const bindFor =
     (user: ChatModelUser) =>
     (settings: ModelSettings): ModelBinding => {
-      const resolved = resolveSettings(settings, config.defaults.chat);
+      const resolved = resolveSettings(settings, config.defaults.models);
       return { model: gateway.chatModel({ user, settings: resolved }), settings: resolved };
     };
   const agents = new Map(

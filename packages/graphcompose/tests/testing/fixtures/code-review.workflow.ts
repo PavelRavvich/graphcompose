@@ -44,8 +44,8 @@ export class PullRequest {}
   model: "typesafe/jev-1.13",
   maxVisits: 3,
   routes: [
-    route(Coder, "The review asks for changes"),
-    route(PullRequest, "Stop and send the answer: the review is clean"),
+    { target: Coder, prompt: "The review asks for changes" },
+    { target: PullRequest, prompt: "Stop and send the answer: the review is clean" },
   ],
 })
 export class ReviewGate {}
@@ -64,7 +64,7 @@ export class Unused {}
     from(ReviewGate).routeOne(Coder, PullRequest),
   ],
   defaults: {
-    chat: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
+    models: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-1.13" },
     tools: { maxToolCalls: 2 },
     history: { limit: 2 },

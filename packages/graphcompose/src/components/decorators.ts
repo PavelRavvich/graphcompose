@@ -9,6 +9,8 @@ import { recordComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 import type { WorkflowDefinition } from "../graph/settings.js";
 
+import type { PromptOptions } from "./prompt-options.js";
+
 /**
  * The contract of a tool (`@Tool`, `@McpTool`): `implements ToolHandler<OrderQuery, OrderStatus>` — its
  * input and output DTOs (classes from `graphcompose/dto`).
@@ -17,7 +19,8 @@ export interface ToolHandler<TInput, TOutput> {
   run(input: TInput, ctx: ToolContext): Promise<TOutput>;
 }
 
-interface ToolOptions<In extends DtoClass, Out extends DtoClass, D extends readonly Token[]> {
+export interface ToolOptions<In extends DtoClass, Out extends DtoClass, D extends readonly Token[]>
+  extends PromptOptions {
   readonly name: string;
   readonly description: string;
   readonly effect?: ToolEffect;
@@ -89,13 +92,13 @@ export function McpTool<
 }
 
 /**
- * A knowledge base: a class implementing `RagConnector`. `k` (passages per retrieval) is required —
+ * A knowledge base: a class implementing `RagConnector`. `topK` (passages per retrieval) is required —
  * there is no default. Agents bind it with a required `mode`: `rag: [{ use: CompanyDocs, mode: "tool" }]`.
  */
-export function Rag<const D extends readonly Token[] = []>(options: {
+export function Rag<const D extends readonly Token[] = []>(options: PromptOptions & {
   readonly name: string;
   readonly description: string;
-  readonly k: number;
+  readonly topK: number;
   readonly deps?: D;
 }) {
   return <C extends new (...args: ResolvedAll<D>) => RagConnector>(value: C): C => {

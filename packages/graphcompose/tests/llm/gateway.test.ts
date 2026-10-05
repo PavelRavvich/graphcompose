@@ -118,7 +118,7 @@ describe("AC12: model clients are asked for through the gateway", () => {
     const router = createRouter(
       "main",
       testConfig.defaults.router,
-      testConfig.defaults.chat,
+      testConfig.defaults.models,
       gateway,
     );
 
@@ -136,7 +136,7 @@ describe("AC12: model clients are asked for through the gateway", () => {
     const { gateway, decide: decideFn } = recordingGateway();
     const model = { kind: "llm", model: "test/router", price: settings.price } as const;
 
-    await createRouter("main", model, testConfig.defaults.chat, gateway).route(request);
+    await createRouter("main", model, testConfig.defaults.models, gateway).route(request);
 
     expect(decideFn.mock.calls[0]?.[0].model).toMatchObject({
       kind: "llm",

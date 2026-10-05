@@ -89,12 +89,12 @@ describe("describe a workflow", () => {
   it("AC3 (#97): each agent shows its output ceiling; reasoning unset is the provider's (#151)", () => {
     const coder = test.config.agents.coder;
     if (coder === undefined) throw new Error("the test workflow has a coder");
-    const chat = { temperature: 0, maxTokens: test.config.defaults.chat.maxTokens };
+    const chat = { temperature: 0, maxTokens: test.config.defaults.models.maxTokens };
     const workflow: AssembledWorkflow = {
       ...test,
       config: {
         ...test.config,
-        defaults: { ...test.config.defaults, chat },
+        defaults: { ...test.config.defaults, models: chat },
         agents: { ...test.config.agents, coder: { ...coder, maxTokens: 4000, thinking: "none" } },
       },
     };

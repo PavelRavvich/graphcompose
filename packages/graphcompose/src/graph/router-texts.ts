@@ -4,7 +4,7 @@ import { ComponentError } from "../components/metadata.js";
 import type { FlowModel } from "./check-flow.js";
 import { isSelf, isSkip, labelOf } from "./flow.js";
 import type { FlowNodeRef } from "./flow-nodes.js";
-import { SELF_OPTION, type PromptSource, type RouteDeclaration } from "./route.js";
+import { SELF_OPTION, type PromptOptions, type RouteDeclaration } from "./route.js";
 import { routerMetaOf, type RouterMeta } from "./router.decorator.js";
 import { joinPromptParts } from "./text.js";
 
@@ -34,9 +34,9 @@ async function readPart(meta: RouterMeta, url: string): Promise<string> {
 }
 
 /** `prompt` first, then `promptUrls` in order, joined with one blank line, normalised. */
-async function textOf(meta: RouterMeta, source: string | PromptSource): Promise<string> {
+async function textOf(meta: RouterMeta, source: PromptOptions): Promise<string> {
   if (typeof source === "string") return joinPromptParts([source]);
-  const files = await Promise.all((source.promptUrls ?? []).map((url) => readPart(meta, url)));
+  const files = await Promise.all((source.promptUrls ?? []).map((url: string) => readPart(meta, url)));
   return joinPromptParts([source.prompt ?? "", ...files]);
 }
 
@@ -55,7 +55,7 @@ async function loadRouter(model: FlowModel, ref: FlowNodeRef): Promise<LoadedRou
   const routes = await Promise.all(
     meta.routes.map(async (declaration) => ({
       option: optionOf(model, declaration),
-      text: await textOf(meta, declaration.text),
+      text: await textOf(meta, declaration),
     })),
   );
   return {

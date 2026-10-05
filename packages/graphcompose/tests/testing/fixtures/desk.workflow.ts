@@ -197,9 +197,9 @@ export class Reply {}
   model: "typesafe/jev-1.13",
   maxVisits: 4,
   routes: [
-    route(Support, "Orders and notes"),
-    route(Writer, "Writing replies"),
-    route(Reply, "Stop and send the answer: the contributions answer the message"),
+    { target: Support, prompt: "Orders and notes" },
+    { target: Writer, prompt: "Writing replies" },
+    { target: Reply, prompt: "Stop and send the answer: the contributions answer the message" },
   ],
 })
 export class MainRouter {}
@@ -214,7 +214,7 @@ export class MainRouter {}
     from(Support, Writer).next(MainRouter),
   ],
   defaults: {
-    chat: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
+    models: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-1.13" },
     tools: { maxToolCalls: 4 },
     history: { limit: 4 },

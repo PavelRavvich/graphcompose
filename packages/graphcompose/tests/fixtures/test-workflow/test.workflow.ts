@@ -57,7 +57,7 @@ export class Coder {}
   name: "test-workflow",
   version: "1.0.0",
   defaults: {
-    chat: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
+    models: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-1.13" },
     tools: { maxToolCalls: 8 },
     history: { limit: 5 },

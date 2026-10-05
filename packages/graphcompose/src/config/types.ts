@@ -105,7 +105,7 @@ export const AgentSettingsSchema = ModelSettingsSchema.extend({
       z.object({
         name: z.string(),
         mode: z.enum(["tool", "context"]),
-        k: z.number().int().positive(),
+        topK: z.number().int().positive(),
       }),
     )
     .optional(),
@@ -157,7 +157,7 @@ export const AgentsConfigSchema = z.object({
   /** Readable config version (e.g. 1.3.0) — labels every run; profiles set their own. */
   version: z.string().min(1),
   defaults: z.object({
-    chat: ChatDefaultsSchema,
+    models: ChatDefaultsSchema,
     router: RouterModelSchema,
     /** Tool calls per call of an agent (`agents.<name>.limits.toolCalls`); default 20. */
     tools: z.object({ maxToolCalls: z.number().int().nonnegative().optional() }).optional(),

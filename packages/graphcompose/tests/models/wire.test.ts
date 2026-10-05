@@ -167,7 +167,7 @@ describe("AC6: prompts are normalised at load and sent normalised", () => {
       version: "1",
       flow: [chain(Start, Writer, Finish)],
       defaults: {
-        chat: { temperature: 0 },
+        models: { temperature: 0 },
         router: { kind: "jev", model: "typesafe/jev-1.13" },
         history: { limit: 1 },
       },

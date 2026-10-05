@@ -1,17 +1,16 @@
 import { isSelf, isSkip, labelOf } from "./flow.js";
 import type { CollectedFlow, FlowNodeRef, NextDeclaration } from "./flow-nodes.js";
-import type { PromptSource, RouteDeclaration } from "./route.js";
+import type { PromptOptions, RouteDeclaration } from "./route.js";
 import { routerMetaOf, type RouterMeta } from "./router.decorator.js";
 import { violation, type RuleViolation } from "./rule-error.js";
 import { targetsOf } from "./rules.js";
 
 const SELF_LABEL = "Self";
 
-const hasText = (source: PromptSource): boolean =>
+const hasText = (source: PromptOptions): boolean =>
   (source.prompt ?? "").trim() !== "" || (source.promptUrls ?? []).length > 0;
 
-const routeHasText = (declaration: RouteDeclaration): boolean =>
-  typeof declaration.text === "string" ? declaration.text.trim() !== "" : hasText(declaration.text);
+const routeHasText = (declaration: RouteDeclaration): boolean => hasText(declaration);
 
 function textRules(router: FlowNodeRef, meta: RouterMeta): RuleViolation[] {
   const found: RuleViolation[] = [];

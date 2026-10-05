@@ -35,7 +35,7 @@ export class SkipAggregator {}
   description: "Picks a branch",
   prompt: "Which branch?",
   model: "stub",
-  routes: [route(SkipA, "branch A"), route(SkipB, "branch B")],
+  routes: [{ target: SkipA, prompt: "branch A" }, { target: SkipB, prompt: "branch B" }],
 })
 export class SkipPicker {}
 
@@ -43,7 +43,7 @@ export class SkipPicker {}
   name: "skip-join-test",
   version: "1.0",
   defaults: {
-    chat: { maxTokens: 100, temperature: 0 },
+    models: { maxTokens: 100, temperature: 0 },
     history: { limit: 1 },
     tools: { maxToolCalls: 1 },
     router: { kind: "llm", model: "stub" },

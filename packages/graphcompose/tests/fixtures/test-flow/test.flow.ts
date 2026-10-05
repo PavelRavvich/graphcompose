@@ -2,7 +2,6 @@ import { WorkflowStartText, WorkflowFinishText } from "../../../src/dto/index.js
 import { WorkflowFinish } from "../../../src/graph/workflow-finish.decorator.js";
 import { WorkflowStart } from "../../../src/graph/workflow-start.decorator.js";
 import { from, type Flow } from "../../../src/graph/flow.js";
-import { route } from "../../../src/graph/route.js";
 import { Router } from "../../../src/graph/router.decorator.js";
 import type { LoadedRouter } from "../../../src/graph/router-texts.js";
 import { recordNode } from "../../../src/graph/node-kind.js";
@@ -45,7 +44,7 @@ const ROUTES = {
   prompt: "Pick who handles the task.",
   model: "test/router",
   maxVisits: 10,
-  routes: [route(Alpha, ROUTES.alpha), route(Beta, ROUTES.beta), route(TestAnswer, ROUTES.answer)],
+  routes: [{ target: Alpha, prompt: ROUTES.alpha }, { target: Beta, prompt: ROUTES.beta }, { target: TestAnswer, prompt: ROUTES.answer }],
 })
 export class TestMain {}
 

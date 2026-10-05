@@ -48,10 +48,10 @@ class ChatWorkflowFinish {}
   model: "test/router",
   maxVisits: 3,
   routes: [
-    route(Profiler, "Reading the resume and proposing a search brief"),
-    route(Scout, "Finding and ranking jobs"),
-    route(Shortlist, "Saving chosen jobs to the shortlist, or showing it"),
-    route(ChatWorkflowFinish, "The last answer fully covers the message"),
+    { target: Profiler, prompt: "Reading the resume and proposing a search brief" },
+    { target: Scout, prompt: "Finding and ranking jobs" },
+    { target: Shortlist, prompt: "Saving chosen jobs to the shortlist, or showing it" },
+    { target: ChatWorkflowFinish, prompt: "The last answer fully covers the message" },
   ],
 })
 class MainRouter {}
@@ -134,7 +134,7 @@ export function jobScoutDeps(script: JobScoutScript): JobScoutRun {
     routers: [],
     routerFor: flowRouterFactory({
       gateway: fakeGateway(chatModel),
-      chatDefaults: config.defaults.chat,
+      chatDefaults: config.defaults.models,
       chatModelSettings: (model) => ({ model, price: { inputPerMTok: 1, outputPerMTok: 2 } }),
     }),
     ledger,
