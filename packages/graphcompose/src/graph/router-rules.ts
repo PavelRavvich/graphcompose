@@ -1,21 +1,25 @@
 import { isSelf, isSkip, labelOf } from "./flow.js";
 import type { CollectedFlow, FlowNodeRef, NextDeclaration } from "./flow-nodes.js";
-import type { PromptOptions, RouteDeclaration } from "./route.js";
+import type { PromptInput } from "../components/prompt-input.js";
+
+import type { RouteDeclaration } from "./route.js";
 import { routerMetaOf, type RouterMeta } from "./router.decorator.js";
 import { violation, type RuleViolation } from "./rule-error.js";
 import { targetsOf } from "./rules.js";
 
 const SELF_LABEL = "Self";
 
-const hasText = (source: PromptOptions): boolean =>
-  (source.prompt ?? "").trim() !== "" || (source.promptUrls ?? []).length > 0;
+const hasText = (source: PromptInput): boolean => {
+  if (typeof source === "function") return true;
+  return (source ?? "").trim() !== "";
+};
 
-const routeHasText = (declaration: RouteDeclaration): boolean => hasText(declaration);
+const routeHasText = (declaration: RouteDeclaration): boolean => hasText(declaration.condition);
 
 function textRules(router: FlowNodeRef, meta: RouterMeta): RuleViolation[] {
   const found: RuleViolation[] = [];
-  if (!hasText(meta)) {
-    const message = `router ${router.label} has no prompt — give \`prompt\` and / or \`promptUrls\``;
+  if (!hasText(meta.instructions)) {
+    const message = `router ${router.label} has no instructions`;
     found.push(violation("router.no-prompt", message, [router.label]));
   }
   for (const declaration of meta.routes.filter((item) => !routeHasText(item))) {

@@ -24,19 +24,17 @@ writeFileSync(routeFile, "﻿The work is finished.\r\n");
 @Router({
   name: "texts",
   description: "Texts from files",
-  prompt: "Decide carefully.",
-  promptUrls: [promptFile],
+  instructions: async () => "Decide carefully.\n\nLook at the review.\n  Keep indentation.",
   model: "typesafe/jev-1.13",
-  routes: [{ target: Done, prompt: "Done:", promptUrls: [routeFile] }, { target: A, prompt: "Café work" }],
+  routes: [route(async () => "Done:\n\nThe work is finished.").to(Done), route("Café work").to(A)],
 })
 class Texts {}
 
 @Router({
-  name: "lost",
+  name: "lost", instructions: "",
   description: "Its prompt file is missing",
-  promptUrls: ["./no-such.prompt.md"],
   model: "typesafe/jev-1.13",
-  routes: [{ target: Done, prompt: "Finished" }],
+  routes: [route("Finished").to(Done)],
 })
 class Lost {}
 
@@ -127,19 +125,12 @@ describe("AC1: routers", () => {
     );
   });
 
-  it("a missing prompt file fails assembly", async () => {
-    await expect(
-      assembleFlowGraph([from(Start).next(Lost), from(Lost).routeOne(Done)], testRuntime({})),
-    ).rejects.toBeInstanceOf(ComponentError);
-  });
-});
-
 @Router({
   name: "chatty",
-  description: "A chat model as a router",
-  prompt: "Pick.",
+  description: "Chatty",
+  instructions: "Pick.",
   model: "test/router",
-  routes: [{ target: A, prompt: "A" }, { target: Done, prompt: "Finished" }],
+  routes: [route("A").to(A), route("Finished").to(Done)],
 })
 class Chatty {}
 
@@ -181,4 +172,5 @@ describe("AC1: routers through the existing routing strategies", () => {
     expect(state.path).toEqual(["workflow-start.start", "chatty", "done"]);
     expect(state.usage.map((record) => record.caller)).toEqual(["router:chatty"]);
   });
+});
 });

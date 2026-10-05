@@ -1,3 +1,5 @@
+import { file } from "../../../src/components/file.js";
+
 import {
   Agent,
   Workflow,
@@ -95,7 +97,7 @@ export class ReadFile implements ToolHandler<FileRead, FileContent> {
   price: testConfig.agents.alpha.price,
   thinking: "low",
   tools: [GreetTool, ReadFile],
-  prompt: "./greeter.prompt.md",
+  instructions: file("./greeter.prompt.md"),
 })
 export class GreeterAgent {}
 

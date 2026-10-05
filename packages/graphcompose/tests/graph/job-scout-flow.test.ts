@@ -97,7 +97,7 @@ describe("AC1: job-scout on the flow graph — the existing nodes keep working",
       knowledge: [
         {
           name: "company_notes",
-          k: 2,
+          topK: 2,
           retrieve: () =>
             Promise.resolve({ results: [{ text: "Acme: remote", source: "acme.md" }] }),
         },

@@ -15,7 +15,7 @@ const price = { inputPerMTok: 1, outputPerMTok: 2 };
 
 @Agent({
   name: "coder",
-  prompt: "./coder.prompt.md",
+  instructions: "./coder.prompt.md",
   description: "Writes the code",
   model: "test/coder",
   price,
@@ -24,7 +24,7 @@ export class Coder {}
 
 @Agent({
   name: "reviewer",
-  prompt: "./reviewer.prompt.md",
+  instructions: "./reviewer.prompt.md",
   description: "Reviews the code",
   model: "test/reviewer",
   price,
@@ -40,12 +40,12 @@ export class PullRequest {}
 @Router({
   name: "review-gate",
   description: "Sends the code back to the coder or opens the pull request",
-  prompt: "Is the review clean?",
+  instructions: "Is the review clean?",
   model: "typesafe/jev-1.13",
   maxVisits: 3,
   routes: [
-    { target: Coder, prompt: "The review asks for changes" },
-    { target: PullRequest, prompt: "Stop and send the answer: the review is clean" },
+    route("The review asks for changes").to(Coder),
+    route("Stop and send the answer: the review is clean").to(PullRequest),
   ],
 })
 export class ReviewGate {}

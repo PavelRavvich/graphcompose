@@ -5,12 +5,13 @@ import type { AnyTool } from "../../tools/index.js";
 import type { ToolCallApproval } from "./approval.js";
 import type { JudgePoints } from "./judge-points.js";
 import type { AgentLoopLimits } from "./limits.js";
+import type { PromptInput } from "../../components/prompt-input.js";
 
 /** Everything needed to run one configured agent. */
 export interface AgentDefinition {
   readonly name: string;
   readonly binding: ModelBinding;
-  readonly systemPrompt: string;
+  readonly instructions: PromptInput;
   readonly tools: readonly AnyTool[];
   readonly limits: AgentLoopLimits;
   readonly historyLimit: number;

@@ -21,21 +21,21 @@ export class SkipStart {}
 @WorkflowFinish({ name: "skipFinish", description: "Finish", output: WorkflowFinishText })
 export class SkipFinish {}
 
-@Agent({ name: "skipA", model: "stub", description: "a" })
+@Agent({ name: "skipA", model: "stub", description: "a", instructions: "" })
 export class SkipA {}
 
-@Agent({ name: "skipB", model: "stub", description: "b" })
+@Agent({ name: "skipB", model: "stub", description: "b", instructions: "" })
 export class SkipB {}
 
-@Agent({ name: "skipAggregator", model: "stub", description: "aggregates" })
+@Agent({ name: "skipAggregator", model: "stub", description: "aggregates", instructions: "" })
 export class SkipAggregator {}
 
 @Router({
   name: "skipPicker",
   description: "Picks a branch",
-  prompt: "Which branch?",
+  instructions: "Which branch?",
   model: "stub",
-  routes: [{ target: SkipA, prompt: "branch A" }, { target: SkipB, prompt: "branch B" }],
+  routes: [route("branch A").to(SkipA), route("branch B").to(SkipB)],
 })
 export class SkipPicker {}
 

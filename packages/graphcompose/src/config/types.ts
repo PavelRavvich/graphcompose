@@ -1,3 +1,5 @@
+import type { PromptInput } from "../components/prompt-input.js";
+
 import { z } from "zod";
 import { ReasoningEffort, type Reasoning } from "../models/reasoning.js";
 import { CachedPart, CacheRetention, type PromptCaching } from "../models/prompt-caching.js";
@@ -212,8 +214,10 @@ export class UnknownAgentToolError extends Error {
   override name = "UnknownAgentToolError";
 }
 
+
+
 /** One system prompt per configured agent; a missing prompt is a compile error. */
-export type AgentPrompts<TName extends string> = Readonly<Record<TName, string>>;
+export type AgentPrompts<TName extends string> = Readonly<Record<TName, PromptInput>>;
 
 /**
  * Chat model settings after defaults are applied — what a model provider receives. Reasoning and

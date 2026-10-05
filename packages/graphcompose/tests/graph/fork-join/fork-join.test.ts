@@ -16,13 +16,13 @@ export class StartNode {}
 @WorkflowFinish({ name: "finishNode", description: "Finish", output: WorkflowFinishText })
 export class FinishNode {}
 
-@Agent({ name: "branchA", model: "stub", description: "a" })
+@Agent({ name: "branchA", model: "stub", description: "a", instructions: "" })
 export class BranchAAgent {}
 
-@Agent({ name: "branchB", model: "stub", description: "b" })
+@Agent({ name: "branchB", model: "stub", description: "b", instructions: "" })
 export class BranchBAgent {}
 
-@Agent({ name: "joinNode", model: "stub", description: "j" })
+@Agent({ name: "joinNode", model: "stub", description: "j", instructions: "" })
 export class JoinNodeAgent implements JoinHandler<
   Record<string, import("../../../src/graph/fork-join.js").ForkOutput>
 > {

@@ -16,10 +16,10 @@ import { A, B, Done, Gate, Pick, Start } from "./fixtures/rule-nodes.js";
 @Router({
   name: "loop",
   description: "At most twice",
-  prompt: "Again?",
+  instructions: "Again?",
   model: "typesafe/jev-1.13",
   maxVisits: 2,
-  routes: [{ target: Self, prompt: "Once more" }, { target: Done, prompt: "Enough" }],
+  routes: [route("Once more").to(Self), route("Enough").to(Done)],
 })
 class Loop {}
 

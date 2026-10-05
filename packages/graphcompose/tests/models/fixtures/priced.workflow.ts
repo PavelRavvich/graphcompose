@@ -1,3 +1,5 @@
+import { file } from "../../../src/components/file.js";
+
 import { Agent, MODEL_MAX, Workflow } from "../../../src/index.js";
 import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
@@ -14,7 +16,7 @@ import { LocalModelProvider, TestOpenRouterProvider } from "../providers.fixture
 /** Priced by its provider's table (local/llama), no price of its own. */
 @Agent({
   name: "summariser",
-  prompt: "./summariser.prompt.md",
+  instructions: file("./summariser.prompt.md"),
   description: "Summarises the task",
   model: "local/llama",
 })
@@ -23,7 +25,7 @@ export class Summariser {}
 /** Priced by its provider's answer (OpenRouter's usage.cost). */
 @Agent({
   name: "writer",
-  prompt: "./writer.prompt.md",
+  instructions: file("./writer.prompt.md"),
   description: "Writes the answer",
   model: "moonshotai/kimi-k2.6",
   thinking: "none",

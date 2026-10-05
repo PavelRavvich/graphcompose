@@ -1,3 +1,5 @@
+import { route } from "../../../src/graph/index.js";
+
 import type { Class } from "../../../src/components/injection.js";
 import { from, type Flow } from "../../../src/graph/flow.js";
 import { Router } from "../../../src/graph/router.decorator.js";
@@ -12,12 +14,13 @@ export function starOf(...agents: readonly [Class, ...Class[]]): Flow {
   @Router({
     name: "main",
     description: "Sends the message to an agent, or sends the answer",
-    prompt: "Pick who handles the message.",
+    instructions: "Pick who handles the message.",
     model: "typesafe/jev-1.13",
     maxVisits: 10,
     routes: [
-      { target: TestAnswer, prompt: "The answer covers the message" },
-      ...agents.map((agent) => ({ target: agent, prompt: `${agent.name} work` })),
+
+      route("The answer covers the message").to(TestAnswer),
+      ...agents.map((agent) => (route(`${agent.name} work`).to(agent))),
     ],
   })
   class Main {}

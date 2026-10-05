@@ -51,7 +51,7 @@ export function planRouter(root: string, name: string, o: GenerateOptions): Chan
   const n = namesOf(name);
   const text: RouterFileSpec = {
     description: o.description ?? `${n.title} (TODO: say what it decides)`,
-    prompt: "TODO: say how to choose between the routes.",
+    instructions: "TODO: say how to choose between the routes.",
     maxVisits: 1,
   };
   return { create: [routerFile(dir, n, text, [FINISH_ROUTE])], modify: [] };

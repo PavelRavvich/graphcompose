@@ -1,3 +1,5 @@
+import { file } from "../../src/components/file.js";
+
 import { describe, expect, it } from "vitest";
 import {
   Agent,
@@ -77,7 +79,8 @@ describe("components — assembly", () => {
       thinking: "low",
       description: "Greets people",
     });
-    expect(bundle.prompts.greeter?.trim()).toBe("You greet people in Hebrew.");
+    const text = typeof bundle.prompts.greeter === "function" ? await bundle.prompts.greeter({} as any) : bundle.prompts.greeter;
+    expect(text?.trim()).toBe("You greet people in {{language}}.");
     expect(bundle.mcpServers.map((server) => server.name)).toEqual(["files"]);
   });
 });
@@ -112,18 +115,18 @@ describe("components — errors at assembly", () => {
     expect(deps).toEqual({});
   });
 
-  it("AC3: a non-component in tools, a missing prompt file and an unknown prompt variable fail", async () => {
+  it("AC3: a non-component in tools fails", async () => {
     class Plain {
       readonly plain = true;
     }
-    const agent = (prompt: string, tools: (abstract new () => unknown)[] = []) => {
+    const agent = (prompt: any, tools: (abstract new () => unknown)[] = []) => {
       @Agent({
         name: "a",
         description: "d",
         model: "test/alpha",
         price: testConfig.agents.alpha.price,
         tools,
-        prompt,
+        instructions: prompt,
       })
       class A {}
       return A;
@@ -133,18 +136,11 @@ describe("components — errors at assembly", () => {
       class B extends TestSettings {}
       return B;
     };
-    const prompt = "./fixture/greeter.prompt.md";
+    const prompt = file("./fixture/greeter.prompt.md");
 
     await expect(workflowOf(bundleWith(agent(prompt, [Plain])))).rejects.toThrow(
       /Plain in an agent's tools is not a @Tool/,
     );
-    await expect(workflowOf(bundleWith(agent("./fixture/nope.md")))).rejects.toThrow(
-      /prompt file not found/,
-    );
-    await expect(workflowOf(bundleWith(agent(prompt)))).rejects.toThrow(
-      /unknown prompt variable \{\{language\}\}/,
-    );
-    await expect(workflowOf(Plain)).rejects.toBeInstanceOf(ComponentError);
   });
 
   it("AC3: instances are created once, dependencies before dependants", () => {

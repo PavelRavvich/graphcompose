@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { file } from "../../src/components/file.js";
+import { normalisePromptText } from "../../src/graph/text.js";
+
 import { tool } from "@langchain/core/tools";
 import type { BaseLanguageModelInput } from "@langchain/core/language_models/base";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
@@ -159,7 +162,7 @@ describe("AC6: prompts are normalised at load and sent normalised", () => {
       name: "writer",
       description: "Writes",
       model: "local/llama",
-      prompt: join(dir, "writer.prompt.md"),
+      instructions: file(join(dir, "writer.prompt.md")),
     })
     class Writer {}
     @Workflow({
@@ -178,6 +181,8 @@ describe("AC6: prompts are normalised at load and sent normalised", () => {
       }
     }
 
-    expect((await workflowOf(Normalised)).prompts.writer).toBe("  Caf\u00e9 rules\n\n\tstep");
+    const writer = (await workflowOf(Normalised)).prompts.writer;
+    const text = typeof writer === "function" ? await writer({} as any) : writer;
+    expect(normalisePromptText(text as string)).toBe("  Caf\u00e9 rules\n\n\tstep");
   });
 });

@@ -1,16 +1,17 @@
 import { callerFile } from "../components/call-site.js";
 import type { Class } from "../components/injection.js";
 import { recordNode } from "./node-kind.js";
-import type { PromptOptions } from "../components/prompt-options.js";
+import type { PromptInput } from "../components/prompt-input.js";
 import type { RouteDeclaration } from "./route.js";
 
 /**
  * `@Router` — a node that picks the next node. Its prompt (`prompt` and / or `promptUrls`) says
  * **how** to choose; `routes` say **what** each choice means and must equal its `choose(...)`.
  */
-export interface RouterOptions extends PromptOptions {
+export interface RouterOptions {
   readonly name: string;
   readonly description: string;
+  readonly instructions: PromptInput;
   /** The router's own model: Jev (`typesafe/jev-*`) or any chat model. */
   readonly model: string;
   /** How many times one run may pass through this router; no limit when absent. */

@@ -22,7 +22,7 @@ export {
   type SelfTarget,
   type ToStep,
 } from "./flow.js";
-export { type PromptOptions, type RouteDeclaration } from "./route.js";
+export { route, SELF_OPTION, type RouteDeclaration } from "./route.js";
 export { WorkflowStart, type WorkflowStartOptions } from "./workflow-start.decorator.js";
 export { WorkflowFinish, type WorkflowFinishOptions } from "./workflow-finish.decorator.js";
 export { Router, type RouterOptions } from "./router.decorator.js";

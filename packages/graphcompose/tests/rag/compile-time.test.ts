@@ -30,7 +30,7 @@ class NoRetrieve {
   price: testConfig.agents.alpha.price,
   // @ts-expect-error — mode is required
   rag: [{ use: NoK }],
-  prompt: "./x.md",
+  instructions: "./x.md",
 })
 class NoMode {}
 

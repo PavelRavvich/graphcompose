@@ -8,6 +8,7 @@ import type { AsyncNode } from "../types.js";
 import { callsOf, type AgentLoopDeps } from "./deps.js";
 import { agentLimitError } from "./limits.js";
 import { loopUsage, type AgentLoopStateType, type AgentLoopUpdate } from "./state.js";
+import { normalisePromptText } from "../text.js";
 
 export class ToolCallingUnsupportedError extends Error {
   override name = "ToolCallingUnsupportedError";
@@ -32,7 +33,11 @@ async function callModel(
   deps: AgentLoopDeps,
   config: RunnableConfig | undefined,
 ): Promise<AIMessageChunk> {
-  const { binding, systemPrompt, tools, name } = deps.agent;
+  const { binding, instructions, tools, name } = deps.agent;
+  
+  let systemPrompt = typeof instructions === "function" ? await instructions(state) : instructions;
+  systemPrompt = normalisePromptText(systemPrompt);
+
   // cache markers, where the model needs them, are placed by its provider on the wire (#151)
   const messages = [new SystemMessage(systemPrompt), ...state.messages];
   if (tools.length === 0) return binding.model.invoke(messages, config);

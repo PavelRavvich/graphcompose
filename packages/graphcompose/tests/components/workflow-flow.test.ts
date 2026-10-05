@@ -14,19 +14,19 @@ import { testConfig } from "../helpers.js";
 const price = testConfig.agents.alpha.price;
 const prompt = "./fixture/greeter.prompt.md";
 
-@Agent({ name: "profiler", description: "Profiles", model: "test/alpha", price, prompt })
+@Agent({ name: "profiler", description: "Profiles", model: "test/alpha", price, instructions: "" })
 class Profiler {}
 
-@Agent({ name: "scout", description: "Scouts", model: "test/alpha", price, prompt })
+@Agent({ name: "scout", description: "Scouts", model: "test/alpha", price, instructions: "" })
 class Scout {}
 
 @Router({
   name: "main",
   description: "Picks an agent",
-  prompt: "Pick one.",
+  instructions: "Pick one.",
   model: "typesafe/jev-1.13",
   maxVisits: 3,
-  routes: [{ target: Profiler, prompt: "Profiling" }, { target: TestAnswer, prompt: "Done" }],
+  routes: [route("Profiling").to(Profiler), route("Done").to(TestAnswer)],
 })
 class Main {}
 

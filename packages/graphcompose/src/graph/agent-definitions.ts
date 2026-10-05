@@ -24,17 +24,17 @@ const limitsOf = <TName extends string>(
 export function agentDefinitions<TName extends string>(
   deps: GraphDeps<TName>,
 ): ReadonlyMap<string, AgentDefinition> {
-  const prompts = new Map<string, string>(Object.entries(deps.prompts));
+  const prompts = new Map(Object.entries(deps.prompts)) as Map<string, any>;
   const settings = new Map<string, AgentSettingsOf<string>>(Object.entries(deps.config.agents));
   const definitions = new Map<string, AgentDefinition>();
   for (const [name, binding] of deps.registry.agents) {
-    const systemPrompt = prompts.get(name);
-    if (systemPrompt === undefined) throw new MissingAgentPromptError(`No prompt for ${name}`);
+    const instructions = prompts.get(name);
+    if (instructions === undefined) throw new MissingAgentPromptError(`No prompt for ${name}`);
     const agent = settings.get(name);
     definitions.set(name, {
       name,
       binding,
-      systemPrompt,
+      instructions,
       tools: (agent?.tools ?? []).map(deps.tools),
       ...limitsOf(agent, deps.config),
       knowledge: deps.knowledge?.(name) ?? [],

@@ -6,6 +6,8 @@ import type { FlowStateType, FlowStateUpdate } from "../flow-state.js";
 import { SELF_OPTION } from "../route.js";
 import type { LoadedRouter } from "../router-texts.js";
 import type { AsyncNode } from "../types.js";
+import { normalisePromptText } from "../text.js";
+import type { PromptInput } from "../../components/prompt-input.js";
 
 /** How much of the thread's memory a router sees. */
 export interface MemoryLimits {
@@ -45,12 +47,24 @@ export class RouterDecisionError extends PaidStepError {
   }
 }
 
+async function resolvePrompt(input: PromptInput, state: FlowStateType): Promise<string> {
+  const text = typeof input === "function" ? await input(state) : input;
+  return normalisePromptText(text);
+}
+
 /** Routes in canonical order (already sorted at load) as the router's options. */
-export function routeRequestOf(state: FlowStateType, deps: FlowRouterNodeDeps): RouteRequest {
+export async function routeRequestOf(state: FlowStateType, deps: FlowRouterNodeDeps): Promise<RouteRequest> {
+  const instructions = await resolvePrompt(deps.loaded.instructions, state);
+  const options = await Promise.all(
+    deps.loaded.routes.map(async (item) => ({
+      name: item.option,
+      description: await resolvePrompt(item.condition, state),
+    }))
+  );
   return {
     input: renderRouteInput(state.task, state.contributions, formatMemory(state, deps.memory)),
-    options: deps.loaded.routes.map((item) => ({ name: item.option, description: item.text })),
-    instructions: deps.loaded.instructions,
+    options,
+    instructions,
   };
 }
 
@@ -83,7 +97,8 @@ export function makeFlowRouterNode(
     if (state.approvals.length > 0 && deps.finish !== undefined) {
       return { next: deps.finish, routeReason: AFTER_APPROVAL_DECISION };
     }
-    const outcome = await deps.router.route(routeRequestOf(state, deps));
+    const request = await routeRequestOf(state, deps);
+    const outcome = await deps.router.route(request);
     const usage = outcome.usage === undefined ? [] : [outcome.usage];
     if (outcome.kind === "failed") {
       const code = outcome.unknownOption === undefined ? "router.failed" : "router.unknown-route";

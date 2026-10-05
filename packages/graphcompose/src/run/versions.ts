@@ -7,17 +7,19 @@ import { flowLines } from "../graph/flow-text.js";
 import type { RunDeps } from "./types.js";
 
 /** Everything a run's behaviour depends on in config and prompts — what `configHash` hashes. */
+import { stripFunctions } from "./strip-functions.js";
+
 export const configSnapshot = <TName extends string>(
   deps: Pick<
     RunDeps<TName>,
     "config" | "prompts" | "compactionPrompt" | "flow" | "limits" | "routers"
   >,
 ): unknown => ({
-  config: deps.config,
+  config: stripFunctions(deps.config),
   flow: flowLines(deps.flow),
   limits: deps.limits,
-  routers: deps.routers,
-  prompts: deps.prompts,
+  routers: stripFunctions(deps.routers),
+  prompts: stripFunctions(deps.prompts),
   compactionPrompt: deps.compactionPrompt ?? null,
 });
 
@@ -40,12 +42,12 @@ export function runVersions<TName extends string>(
   );
   return {
     promptVersion: versionOf({
-      agents: deps.prompts,
+      agents: stripFunctions(deps.prompts),
       routers: routerPromptTexts,
       flowRouters: deps.routers.map(({ name, instructions, routes }) => ({
         name,
         instructions,
-        routes,
+        routes: stripFunctions(routes),
       })),
       agentLoop: agentLoopPromptTexts,
       rag: ragPromptTexts,

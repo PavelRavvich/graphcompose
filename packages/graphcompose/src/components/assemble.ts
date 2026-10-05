@@ -1,11 +1,10 @@
-import { readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
+import { mcpServer } from "../tools/index.js";
+import { type McpFacade } from "../tools/index.js";
+import type { AgentsConfigOf } from "../config/types.js";
+import { validateAgentsConfig } from "../config/types.js";
 import type { AssembledWorkflow } from "../workflow.js";
-import { validateAgentsConfig, type AgentsConfigOf } from "../config/types.js";
-import { mcpServer, type McpFacade } from "../tools/index.js";
 import { objectSchemaOf } from "../dto/schema.js";
-import { renderTemplate } from "../scaffold/render.js";
-import { normalisePromptText } from "../graph/text.js";
 import { checkGraph, dependencyTree } from "./container.js";
 import { checkToolData, CORE_TOKENS, ragParts, rememberServers, toolBuilder } from "./runtime.js";
 import type { McpServerClient, ServerTools } from "./mcp-client.js";
@@ -15,30 +14,6 @@ import { type Class } from "./injection.js";
 import { ComponentError, componentOf, requireComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 import { flowOf, settingsOf } from "./flow-parts.js";
-
-/** The agent's prompt file: `prompt` relative to the agent's file, or `<name>.prompt.md` next to it. */
-function promptPath(agent: AgentMeta): string {
-  if (agent.source === undefined) {
-    throw new ComponentError(`@Agent "${agent.name}": cannot tell which file it is declared in`);
-  }
-  const dir = dirname(agent.source);
-  if (agent.prompt !== undefined) return resolve(dir, agent.prompt);
-  return join(dir, `${basename(agent.source).replace(/(\.agent)?\.[cm]?[jt]s$/, "")}.prompt.md`);
-}
-
-async function promptOf(
-  agent: AgentMeta,
-  variables: Readonly<Record<string, string>>,
-): Promise<string> {
-  const path = promptPath(agent);
-  const text = await readFile(path, "utf8").catch(() => {
-    throw new ComponentError(`@Agent "${agent.name}": prompt file not found: ${path}`);
-  });
-  const unknown = (key: string) =>
-    new ComponentError(`@Agent "${agent.name}": unknown prompt variable {{${key}}}`);
-  // loaded normalised (BOM, edge blank lines, NFC) and sent as loaded — what fingerprints hash
-  return normalisePromptText(renderTemplate(text, variables, unknown));
-}
 
 /** An agent's settings as the config holds them (tools by name). */
 function agentSettings(
@@ -61,7 +36,6 @@ function agentSettings(
   const rag = ragSettings(agent);
   return {
     model: agent.model,
-
     description: agent.description,
     tools: [...(agent.tools ?? []).map((cls) => names.get(cls) ?? cls.name), ...search],
     ...(rag.length === 0 ? {} : { rag }),
@@ -179,13 +153,11 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   ]);
   rememberServers(bundle, mcp.instances);
   const names = toolNames(tools);
+  
   const prompts = Object.fromEntries(
-    await Promise.all(
-      agents.map(
-        async (agent) => [agent.name, await promptOf(agent, bundle.promptVariables ?? {})] as const,
-      ),
-    ),
+    agents.map((agent) => [agent.name, agent.instructions] as const)
   );
+
   const config = configOf(bundle, agents, names, mcp);
   const settings = settingsOf(bundleClass, bundle);
   validateAgentsConfig(config, [

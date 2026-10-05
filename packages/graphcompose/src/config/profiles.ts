@@ -33,7 +33,7 @@ export const ProfileSchema = z.strictObject({
   defaults: deepPartial(defaultsShape),
   compaction: deepPartial(CompactionSettingsSchema),
   agents: z.record(z.string(), deepPartial(AgentSettingsSchema)).optional(),
-  /** Replaces an agent's system prompt: inline text or a file relative to the profile. */
+  /** Replaces an agent's system instructions: inline text or a file relative to the profile. */
   prompts: z.record(z.string(), PromptOverride).optional(),
 });
 

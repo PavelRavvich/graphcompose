@@ -24,21 +24,21 @@ export class PullRequestWorkflowFinish {}
 @Router({
   name: "main",
   description: "Sends the message to the right agent",
-  prompt: "Pick who handles the message.",
+  instructions: "Pick who handles the message.",
   model: "typesafe/jev-1.13",
-  routes: [{ target: ExplainerAgent, prompt: "Explaining code" }, { target: CoderAgent, prompt: "Writing code" }],
+  routes: [route("Explaining code").to(ExplainerAgent), route("Writing code").to(CoderAgent)],
 })
 export class MainRouter {}
 
 @Router({
   name: "review-gate",
   description: "Sends the code back or opens the pull request",
-  prompt: "Is the review clean?",
+  instructions: "Is the review clean?",
   model: "typesafe/jev-1.13",
   maxVisits: 3,
   routes: [
-    { target: CoderAgent, prompt: "The review asks for changes" },
-    { target: PullRequestWorkflowFinish, prompt: "The review is clean" },
+    route("The review asks for changes").to(CoderAgent),
+    route("The review is clean").to(PullRequestWorkflowFinish),
   ],
 })
 export class ReviewGateRouter {}

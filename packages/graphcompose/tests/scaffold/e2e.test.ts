@@ -158,7 +158,7 @@ describe("gc create / gc generate end to end", () => {
     expect(out).toContain("main → triage | answerer | billing | text (workflow finish)");
     expect(out).toContain("triage, answerer, billing → main");
     expect(readFileSync(join(project, "src/desk/routers/main.router.ts"), "utf8")).toContain(
-      '{ target: BillingAgent, prompt: "Handles invoices" }',
+      'route("Handles invoices").to(BillingAgent)',
     );
     // #142 AC3: `gc g router` writes maxVisits: 1, and the workflow still assembles (check above)
     expect(readFileSync(join(project, "src/desk/routers/escalation.router.ts"), "utf8")).toContain(

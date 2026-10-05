@@ -1,7 +1,7 @@
 import type { AIMessage, BaseMessage } from "@langchain/core/messages";
 import { Annotation } from "@langchain/langgraph";
 import type { UsageRecord } from "../../finops/usage.js";
-import { AgentState } from "../state.js";
+import { FlowState } from "../flow-state.js";
 
 const append = <TItem>(left: TItem[], right: TItem[]): TItem[] => left.concat(right);
 const replace = <TValue>(_previous: TValue, next: TValue): TValue => next;
@@ -41,7 +41,7 @@ const NOTHING_HANDED_OVER: HandedOver = { contributions: 0, usage: 0, approvals:
  * counters its limits check. Checkpointed node by node — each tool call is its own task.
  */
 export const AgentLoopState = Annotation.Root({
-  ...AgentState.spec,
+  ...FlowState.spec,
   /** The flow nodes visited up to and including this agent (limit errors name it). */
   flowPath: Annotation<string[]>({ reducer: replace, default: () => [] }),
   /** Where this loop's additions start in the lists it was handed. */

@@ -18,20 +18,20 @@ class WebhookWorkflowStart {}
 @Router({
   name: "spin",
   description: "Loops back to the agent",
-  prompt: "Again?",
+  instructions: "Again?",
   model: "typesafe/jev-1.13",
   maxVisits: 25,
-  routes: [{ target: Self, prompt: "Once more" }, { target: Done, prompt: "Enough" }],
+  routes: [route("Once more").to(Self), route("Enough").to(Done)],
 })
 class Spin {}
 
 @Router({
   name: "star",
   description: "Sends the message to an agent, or sends the answer",
-  prompt: "Pick who handles the message.",
+  instructions: "Pick who handles the message.",
   model: "typesafe/jev-1.13",
   maxVisits: 3,
-  routes: [{ target: A, prompt: "A work" }, { target: B, prompt: "B work" }, { target: Done, prompt: "The answer covers it" }],
+  routes: [route("A work").to(A), route("B work").to(B), route("The answer covers it").to(Done)],
 })
 class Star {}
 

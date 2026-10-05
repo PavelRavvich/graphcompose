@@ -1,3 +1,5 @@
+import { file } from "../../../src/components/file.js";
+
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -167,7 +169,7 @@ const price = { inputPerMTok: 1, outputPerMTok: 10 };
 
 @Agent({
   name: "support",
-  prompt: "./support.prompt.md",
+  instructions: "./support.prompt.md",
   description: "Answers questions about orders and keeps notes",
   model: "test/support",
   price,
@@ -177,7 +179,7 @@ export class Support {}
 
 @Agent({
   name: "writer",
-  prompt: "./writer.prompt.md",
+  instructions: file("./writer.prompt.md"),
   description: "Writes replies",
   model: "test/writer",
   price,
@@ -193,13 +195,13 @@ export class Reply {}
 @Router({
   name: "main",
   description: "Sends the message to an agent, or sends the reply",
-  prompt: "Pick who handles the message.",
+  instructions: "Pick who handles the message.",
   model: "typesafe/jev-1.13",
   maxVisits: 4,
   routes: [
-    { target: Support, prompt: "Orders and notes" },
-    { target: Writer, prompt: "Writing replies" },
-    { target: Reply, prompt: "Stop and send the answer: the contributions answer the message" },
+    route("Orders and notes").to(Support),
+    route("Writing replies").to(Writer),
+    route("Stop and send the answer: the contributions answer the message").to(Reply),
   ],
 })
 export class MainRouter {}
