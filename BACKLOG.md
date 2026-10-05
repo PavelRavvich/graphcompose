@@ -1,7 +1,9 @@
 # Бэклог задач (Backlog)
 
-## 1. Баг: Deadlock при комбинации Skip + Join
+## 1. ~~Баг: Deadlock при комбинации Skip + Join~~ — ИСПРАВЛЕНО
 **Тип:** Bug / Critical
+**Статус:** Роутер репортит невыбранные источники join как `skipped` (`reportingSkippedBranches` в `build.ts`), тесты: `tests/graph/fork-join/skip-join.test.ts`.
+**Остаток:** явный `Skip` (`skip-wrap`) по-прежнему завершает run, не доходя до барьера.
 **Описание:** Если роутер пропускает агента (например, через `routeManyOrSkip`), узел `skip-wrap` проглатывает выполнение. Если после этого стоит строгий барьер `.join()`, граф зависает навсегда, ожидая пропущенного агента.
 **Задача:** Научить `skip-wrap` корректно рапортовать барьеру (через `state.forks`), что ветка пропущена, чтобы барьер мог сняться.
 **Локация:** `packages/graphcompose/src/graph/build.ts` (см. комментарий `TODO: we should report to the corresponding barrier`).

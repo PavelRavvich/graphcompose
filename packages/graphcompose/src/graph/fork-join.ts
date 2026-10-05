@@ -7,6 +7,8 @@ export interface ForkOutput<T = string> {
   readonly data: T;
   /** Executed node name */
   readonly name: string;
+  /** Status of the execution, mostly to notify about skipped branches */
+  readonly status?: "completed" | "skipped";
 }
 
 /** A mapped type utility that wraps the keys of the expected object. */

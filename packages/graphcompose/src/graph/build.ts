@@ -50,7 +50,45 @@ function runnerOf(
     memory: runtime.routerMemory,
     ...(finish === undefined ? {} : { finish }),
   });
-  return loaded.maxVisits === undefined ? { runner } : { runner, maxVisits: loaded.maxVisits };
+  const skipping = reportingSkippedBranches(runner, loaded, joinSourceKeys(model));
+  return loaded.maxVisits === undefined
+    ? { runner: skipping }
+    : { runner: skipping, maxVisits: loaded.maxVisits };
+}
+
+/** Keys of every node that feeds a join barrier. */
+function joinSourceKeys(model: FlowModel): ReadonlySet<string> {
+  const keys = new Set<string>();
+  for (const t of model.collected.transitions) {
+    if (t.next.kind === "join" || t.next.kind === "joinAny" || t.next.kind === "joinQuorum") {
+      keys.add(t.from);
+    }
+  }
+  return keys;
+}
+
+/**
+ * A router that does not choose a branch leading into a join barrier would leave the barrier
+ * waiting for it forever. After each decision, the unchosen join sources are reported to the
+ * barrier as `skipped` (they count as arrived, and the join handler sees their status).
+ */
+function reportingSkippedBranches(
+  runner: FlowNodeRunner,
+  loaded: LoadedRouter,
+  joinSources: ReadonlySet<string>,
+): FlowNodeRunner {
+  const skippable = loaded.routes.map((r) => r.option).filter((o) => joinSources.has(o));
+  if (skippable.length === 0) return runner;
+  return async (state, config) => {
+    const update = await runner(state, config);
+    const chosen = update.next;
+    const skipped = skippable.filter((key) => key !== chosen);
+    if (skipped.length === 0) return update;
+    const forks = Object.fromEntries(
+      skipped.map((key) => [key, { data: "", name: key, status: "skipped" as const }]),
+    );
+    return { ...update, forks: { ...(update.forks ?? {}), ...forks } };
+  };
 }
 
 /**
@@ -167,8 +205,8 @@ function compileJoinBarriers(builder: Builder, model: FlowModel) {
   }
   
   // Add global skip-wrap
-  builder.addNode("skip-wrap", (state) => ({})); // TODO: we should report to the corresponding barrier, but for now we just pass through
-  builder.addEdge("skip-wrap", END); // In reality this should route to a barrier
+  builder.addNode("skip-wrap", () => ({})); // `Skip` chosen explicitly: nothing to run, the run ends
+  builder.addEdge("skip-wrap", END);
 
   for (const { target, sources, type, count } of joins.values()) {
     const targetId = graphNodeId(target);

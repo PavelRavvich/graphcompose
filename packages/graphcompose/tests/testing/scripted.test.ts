@@ -201,6 +201,6 @@ describe("#148 AC4: restartApp() closes the current app and returns a new one ov
     await expect(second.execute(ChatStart, { text: "hi" })).rejects.toFailWith({
       code: "test.app-closed",
     });
-    expect((await third.run(ChatStart, { text: "hi" })).output).toEqual({ text: "third" });
+    expect((await third.execute(ChatStart, { text: "hi" })).output).toEqual({ text: "third" });
   });
 });
