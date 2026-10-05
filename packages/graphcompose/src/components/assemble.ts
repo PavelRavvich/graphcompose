@@ -1,8 +1,8 @@
-import { basename, dirname, join, resolve } from "node:path";
 import { mcpServer } from "../tools/index.js";
 import { type McpFacade } from "../tools/index.js";
 import type { AgentsConfigOf } from "../config/types.js";
 import { validateAgentsConfig } from "../config/types.js";
+import { renderPromptVariables } from "./prompt-render.js";
 import type { AssembledWorkflow } from "../workflow.js";
 import { objectSchemaOf } from "../dto/schema.js";
 import { checkGraph, dependencyTree } from "./container.js";
@@ -153,9 +153,15 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   ]);
   rememberServers(bundle, mcp.instances);
   const names = toolNames(tools);
-  
+
   const prompts = Object.fromEntries(
-    agents.map((agent) => [agent.name, agent.instructions] as const)
+    agents.map(
+      (agent) =>
+        [
+          agent.name,
+          renderPromptVariables(agent.name, agent.instructions, bundle.promptVariables),
+        ] as const,
+    ),
   );
 
   const config = configOf(bundle, agents, names, mcp);

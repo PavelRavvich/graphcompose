@@ -79,8 +79,11 @@ describe("components — assembly", () => {
       thinking: "low",
       description: "Greets people",
     });
-    const text = typeof bundle.prompts.greeter === "function" ? await bundle.prompts.greeter({} as any) : bundle.prompts.greeter;
-    expect(text?.trim()).toBe("You greet people in {{language}}.");
+    const text =
+      typeof bundle.prompts.greeter === "function"
+        ? await bundle.prompts.greeter({} as any)
+        : bundle.prompts.greeter;
+    expect(text?.trim()).toBe("You greet people in Hebrew.");
     expect(bundle.mcpServers.map((server) => server.name)).toEqual(["files"]);
   });
 });
@@ -119,6 +122,7 @@ describe("components — errors at assembly", () => {
     class Plain {
       readonly plain = true;
     }
+
     const agent = (prompt: any, tools: (abstract new () => unknown)[] = []) => {
       @Agent({
         name: "a",
@@ -126,6 +130,7 @@ describe("components — errors at assembly", () => {
         model: "test/alpha",
         price: testConfig.agents.alpha.price,
         tools,
+
         instructions: prompt,
       })
       class A {}
