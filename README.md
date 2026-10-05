@@ -80,6 +80,39 @@ examples/job-scout/     the example (uses only the public API)
 rebuild the framework on change. The framework never imports the examples, and the examples use
 only `graphcompose` — both enforced by ESLint.
 
+## Environments
+
+GraphCompose supports Angular-style environment files. Place your files in the `environments/` folder next to your workflow:
+
+```ts
+// src/environments/environment.ts
+export interface AppEnvironment {
+  readonly apiUrl: string;
+}
+
+export const environment: AppEnvironment = {
+  apiUrl: "https://api.example.com",
+};
+```
+
+You can create variations like `environment.staging.ts`. The CLI will automatically load them based on the `--env` flag:
+
+```bash
+npx gc chat --env=staging
+```
+
+The `environment` object is provided via Dependency Injection using the built-in `ENV` token. You can inject it into any tool or agent:
+
+```ts
+import { Injectable, ENV } from "graphcompose";
+import type { AppEnvironment } from "../environments/environment.js";
+
+@Injectable({ deps: [ENV] })
+export class MyService {
+  constructor(private readonly env: AppEnvironment) {}
+}
+```
+
 ## Tracing (local, optional)
 
 ```bash
