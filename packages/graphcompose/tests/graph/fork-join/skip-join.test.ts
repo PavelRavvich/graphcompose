@@ -13,6 +13,7 @@ import {
   type WorkflowDefinition,
 } from "../../../src/graph/index.js";
 import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
+import { Skip } from "../../../src/graph/index.js";
 import type { Router as RoutingStrategy } from "../../../src/routers/index.js";
 
 @WorkflowStart({ name: "skipStart", description: "Start", input: WorkflowStartText })
@@ -35,7 +36,7 @@ export class SkipAggregator {}
   description: "Picks a branch",
   instructions: "Which branch?",
   model: "stub",
-  routes: [route("branch A").to(SkipA), route("branch B").to(SkipB)],
+  routes: [route("branch A").to(SkipA), route("branch B").to(SkipB), route("skip").to(Skip)],
 })
 export class SkipPicker {}
 
@@ -50,7 +51,7 @@ export class SkipPicker {}
   },
   flow: [
     from(SkipStart).next(SkipPicker),
-    from(SkipPicker).routeOne(SkipA, SkipB),
+    from(SkipPicker).routeOne(SkipA, SkipB, Skip),
     from(SkipA, SkipB).join(SkipAggregator),
     from(SkipAggregator).next(SkipFinish),
   ],
@@ -64,6 +65,11 @@ export class SkipJoinWorkflow implements WorkflowDefinition {
 const picking = (next: string): RoutingStrategy => ({
   name: "picker",
   route: () => Promise.resolve({ kind: "decided", decision: { next, reason: "test" } }),
+});
+
+it("does not leave the join waiting when explicitly skipping", async () => {
+  const { visited, state } = await run("Skip");
+  expect(visited).toContain("skipAggregator");
 });
 
 async function run(chosen: string) {

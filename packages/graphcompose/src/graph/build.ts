@@ -231,8 +231,16 @@ function compileJoinBarriers(builder: Builder, model: FlowModel) {
   }
 
   // Add global skip-wrap
-  builder.addNode("skip-wrap", () => ({})); // `Skip` chosen explicitly: nothing to run, the run ends
-  builder.addEdge("skip-wrap", END);
+  builder.addNode("skip-wrap", () => ({}));
+  if (joins.size === 0) {
+    builder.addEdge("skip-wrap", END);
+  } else {
+    builder.addConditionalEdges("skip-wrap", (state) => {
+      return [...joins.values()].map(
+        (j) => new Send(`join-barrier.${graphNodeId(j.target)}`, state),
+      );
+    });
+  }
 
   for (const { target, sources, type, count } of joins.values()) {
     const targetId = graphNodeId(target);

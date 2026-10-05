@@ -11,6 +11,7 @@ export {
   from,
   node,
   Self,
+  Skip,
   type ChainStep,
   type ChoiceTarget,
   type ChooseStep,

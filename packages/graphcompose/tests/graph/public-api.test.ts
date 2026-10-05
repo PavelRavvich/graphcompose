@@ -11,6 +11,7 @@ describe("AC1: graphcompose/graph and graphcompose/units", () => {
       "RouterDecisionError",
       "SELF_OPTION",
       "Self",
+      "Skip",
       "WorkflowFinish",
       "WorkflowSettings",
       "WorkflowSettingsError",
