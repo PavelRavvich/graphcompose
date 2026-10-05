@@ -8,3 +8,5 @@ export type { PromptInput } from "../components/prompt-input.js";
 export { WorkflowSettings, type WorkflowDefinition } from "../graph/settings.js";
 export { studioGraphOf } from "../studio.js";
 export type { Router } from "../routers/index.js";
+export { file } from "../components/file.js";
+export { route } from "../graph/route.js";
