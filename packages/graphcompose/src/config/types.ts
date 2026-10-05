@@ -214,8 +214,6 @@ export class UnknownAgentToolError extends Error {
   override name = "UnknownAgentToolError";
 }
 
-
-
 /** One system prompt per configured agent; a missing prompt is a compile error. */
 export type AgentPrompts<TName extends string> = Readonly<Record<TName, PromptInput>>;
 

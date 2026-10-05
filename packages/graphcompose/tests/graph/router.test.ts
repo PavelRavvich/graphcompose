@@ -2,6 +2,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+
 import { ComponentError } from "../../src/components/metadata.js";
 import { assembleFlowGraph } from "../../src/graph/build.js";
 import { from, Self, type Flow } from "../../src/graph/flow.js";
@@ -24,14 +25,17 @@ writeFileSync(routeFile, "﻿The work is finished.\r\n");
 @Router({
   name: "texts",
   description: "Texts from files",
+  // eslint-disable-next-line @typescript-eslint/require-await
   instructions: async () => "Decide carefully.\n\nLook at the review.\n  Keep indentation.",
   model: "typesafe/jev-1.13",
+  // eslint-disable-next-line @typescript-eslint/require-await
   routes: [route(async () => "Done:\n\nThe work is finished.").to(Done), route("Café work").to(A)],
 })
 class Texts {}
 
 @Router({
-  name: "lost", instructions: "",
+  name: "lost",
+  instructions: "",
   description: "Its prompt file is missing",
   model: "typesafe/jev-1.13",
   routes: [route("Finished").to(Done)],
@@ -73,7 +77,9 @@ describe("AC1: routers", () => {
   it("joins prompt then files with one blank line, normalised (BOM, CRLF, edges, NFC)", async () => {
     const texts = scriptedRouter("texts", ["done"]);
 
-    await run([from(Start).next(Texts), from(Texts).routeOne(A, Done), from(A).next(Done)], { texts });
+    await run([from(Start).next(Texts), from(Texts).routeOne(A, Done), from(A).next(Done)], {
+      texts,
+    });
 
     expect(texts.requests[0]?.instructions).toBe(
       "Decide carefully.\n\nLook at the review.\n  Keep indentation.",
@@ -125,52 +131,59 @@ describe("AC1: routers", () => {
     );
   });
 
-@Router({
-  name: "chatty",
-  description: "Chatty",
-  instructions: "Pick.",
-  model: "test/router",
-  routes: [route("A").to(A), route("Finished").to(Done)],
-})
-class Chatty {}
+  @Router({
+    name: "chatty",
+    description: "Chatty",
+    instructions: "Pick.",
+    model: "test/router",
+    routes: [route("A").to(A), route("Finished").to(Done)],
+  })
+  class Chatty {}
 
-describe("AC1: routers through the existing routing strategies", () => {
-  const deps = {
-    gateway: fakeGateway(fakeChatFactory({ "test/router": ['{"next":"done","reason":"ok"}'] })),
-    chatDefaults: { temperature: 0, thinking: "default" as const, cache: false },
-    chatModelSettings: (model: string) => ({
-      model,
-      price: { inputPerMTok: 1, outputPerMTok: 2 },
-    }),
-  };
-  const runtime = testRuntime({}, { routerFor: flowRouterFactory(deps) });
+  describe("AC1: routers through the existing routing strategies", () => {
+    const deps = {
+      gateway: fakeGateway(fakeChatFactory({ "test/router": ['{"next":"done","reason":"ok"}'] })),
+      chatDefaults: { temperature: 0, thinking: "default" as const, cache: false },
+      chatModelSettings: (model: string) => ({
+        model,
+        price: { inputPerMTok: 1, outputPerMTok: 2 },
+      }),
+    };
+    const runtime = testRuntime({}, { routerFor: flowRouterFactory(deps) });
 
-  it("picks Jev for typesafe/jev-* and a chat model otherwise", () => {
-    expect(routerModelOf("typesafe/jev-1.13", deps)).toEqual({
-      kind: "jev",
-      model: "typesafe/jev-1.13",
+    it("picks Jev for typesafe/jev-* and a chat model otherwise", () => {
+      expect(routerModelOf("typesafe/jev-1.13", deps)).toEqual({
+        kind: "jev",
+        model: "typesafe/jev-1.13",
+      });
+      expect(routerModelOf("test/router", deps)).toMatchObject({
+        kind: "llm",
+        model: "test/router",
+      });
     });
-    expect(routerModelOf("test/router", deps)).toMatchObject({ kind: "llm", model: "test/router" });
+
+    it("a router with one route decides without a model call", async () => {
+      const flow: Flow = [from(Start).next(A), from(A).next(Only), from(Only).routeOne(Done)];
+      const { graph } = await assembleFlowGraph(flow, runtime);
+
+      const state = await graph.invoke({ task: "go" });
+
+      expect(state.path).toEqual(["workflow-start.start", "a", "only", "done"]);
+      expect(state.routeReason).toBe("single option");
+    });
+
+    it("a chat-model router decides from the model's JSON and records its usage", async () => {
+      const flow: Flow = [
+        from(Start).next(Chatty),
+        from(Chatty).routeOne(A, Done),
+        from(A).next(Done),
+      ];
+      const { graph } = await assembleFlowGraph(flow, runtime);
+
+      const state = await graph.invoke({ task: "go" });
+
+      expect(state.path).toEqual(["workflow-start.start", "chatty", "done"]);
+      expect(state.usage.map((record) => record.caller)).toEqual(["router:chatty"]);
+    });
   });
-
-  it("a router with one route decides without a model call", async () => {
-    const flow: Flow = [from(Start).next(A), from(A).next(Only), from(Only).routeOne(Done)];
-    const { graph } = await assembleFlowGraph(flow, runtime);
-
-    const state = await graph.invoke({ task: "go" });
-
-    expect(state.path).toEqual(["workflow-start.start", "a", "only", "done"]);
-    expect(state.routeReason).toBe("single option");
-  });
-
-  it("a chat-model router decides from the model's JSON and records its usage", async () => {
-    const flow: Flow = [from(Start).next(Chatty), from(Chatty).routeOne(A, Done), from(A).next(Done)];
-    const { graph } = await assembleFlowGraph(flow, runtime);
-
-    const state = await graph.invoke({ task: "go" });
-
-    expect(state.path).toEqual(["workflow-start.start", "chatty", "done"]);
-    expect(state.usage.map((record) => record.caller)).toEqual(["router:chatty"]);
-  });
-});
 });

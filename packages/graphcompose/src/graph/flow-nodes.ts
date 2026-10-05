@@ -33,10 +33,20 @@ export interface FlowNodeRef {
 export type NextDeclaration =
   | { readonly kind: "to"; readonly targets: readonly string[] }
   | { readonly kind: "nextEach"; readonly target: string }
-  | { readonly kind: "choose"; readonly targets: readonly string[]; readonly self: boolean; readonly skip: boolean }
+  | {
+      readonly kind: "choose";
+      readonly targets: readonly string[];
+      readonly self: boolean;
+      readonly skip: boolean;
+    }
   | { readonly kind: "join"; readonly target: string; readonly joinSources: readonly string[] }
   | { readonly kind: "joinAny"; readonly target: string; readonly joinSources: readonly string[] }
-  | { readonly kind: "joinQuorum"; readonly target: string; readonly joinSources: readonly string[]; readonly count: number };
+  | {
+      readonly kind: "joinQuorum";
+      readonly target: string;
+      readonly joinSources: readonly string[];
+      readonly count: number;
+    };
 
 /** A declared next step of one node (both ends are node keys). */
 export interface Transition {
@@ -106,7 +116,9 @@ const defined = (names: readonly (string | undefined)[]): string[] =>
   names.filter((name): name is string => name !== undefined);
 
 function chooseTargets(targets: readonly ChoiceTarget[], resolve: Resolve): NextDeclaration {
-  const nodesOnly = targets.filter((target): target is FlowNode => !isSelf(target) && !isSkip(target));
+  const nodesOnly = targets.filter(
+    (target): target is FlowNode => !isSelf(target) && !isSkip(target),
+  );
   return {
     kind: "choose",
     targets: defined(nodesOnly.map(resolve)),
@@ -115,6 +127,7 @@ function chooseTargets(targets: readonly ChoiceTarget[], resolve: Resolve): Next
   };
 }
 
+// eslint-disable-next-line complexity
 function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
   switch (step.kind) {
     case "to": {
@@ -129,18 +142,29 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
       const next = chooseTargets(step.targets, resolve);
       return sources.map((from) => ({ from, next }));
     }
-    
+
     case "nextEach": {
       const sources = defined(step.from.map(resolve));
       const target = resolve(step.target);
-      return target === undefined ? [] : sources.map(from => ({ from, next: { kind: "nextEach", target, extractor: step.extractor } }));
+      return target === undefined
+        ? []
+        : sources.map((from) => ({
+            from,
+            next: { kind: "nextEach", target, extractor: step.extractor },
+          }));
     }
     case "joinAny":
     case "joinQuorum":
     case "join": {
       const sources = defined(step.from.map(resolve));
       const target = resolve(step.target);
-      return target === undefined ? [] : sources.map((from) => ({ from, next: { kind: step.kind, target, joinSources: sources, count: (step as any).count } }));
+      return target === undefined
+        ? []
+        : sources.map((from) => ({
+            from,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            next: { kind: step.kind, target, joinSources: sources, count: (step as any).count },
+          }));
     }
     case "chain":
       return step.nodes.slice(1).flatMap((to, index) => {

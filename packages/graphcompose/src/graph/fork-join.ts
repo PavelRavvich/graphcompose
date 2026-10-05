@@ -36,4 +36,4 @@ export interface AgentOutput<T> {
 }
 
 /** Utility type for join handlers to cleanly expect an array of ForkOutputs. */
-export type JoinArray<T> = Array<ForkOutput<T>>;
+export type JoinArray<T> = ForkOutput<T>[];

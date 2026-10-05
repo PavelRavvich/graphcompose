@@ -42,14 +42,7 @@
                 },
                 {
                   "type": "string",
-                  "enum": [
-                    "none",
-                    "minimal",
-                    "low",
-                    "medium",
-                    "high",
-                    "xhigh"
-                  ]
+                  "enum": ["none", "minimal", "low", "medium", "high", "xhigh"]
                 },
                 {
                   "type": "object",
@@ -60,9 +53,7 @@
                       "maximum": 9007199254740991
                     }
                   },
-                  "required": [
-                    "budgetTokens"
-                  ]
+                  "required": ["budgetTokens"]
                 },
                 {
                   "oneOf": [
@@ -74,9 +65,7 @@
                           "const": "model-decides"
                         }
                       },
-                      "required": [
-                        "kind"
-                      ]
+                      "required": ["kind"]
                     },
                     {
                       "type": "object",
@@ -87,13 +76,7 @@
                         },
                         "effort": {
                           "type": "string",
-                          "enum": [
-                            "minimal",
-                            "low",
-                            "medium",
-                            "high",
-                            "xhigh"
-                          ]
+                          "enum": ["minimal", "low", "medium", "high", "xhigh"]
                         },
                         "budget": {
                           "type": "object",
@@ -104,14 +87,10 @@
                               "maximum": 9007199254740991
                             }
                           },
-                          "required": [
-                            "tokens"
-                          ]
+                          "required": ["tokens"]
                         }
                       },
-                      "required": [
-                        "kind"
-                      ]
+                      "required": ["kind"]
                     },
                     {
                       "type": "object",
@@ -121,9 +100,7 @@
                           "const": "off"
                         }
                       },
-                      "required": [
-                        "kind"
-                      ]
+                      "required": ["kind"]
                     }
                   ]
                 }
@@ -145,11 +122,7 @@
                         },
                         "retention": {
                           "type": "string",
-                          "enum": [
-                            "5m",
-                            "1h",
-                            "24h"
-                          ]
+                          "enum": ["5m", "1h", "24h"]
                         },
                         "cachedParts": {
                           "readOnly": true,
@@ -157,11 +130,7 @@
                           "type": "array",
                           "items": {
                             "type": "string",
-                            "enum": [
-                              "system-prompt",
-                              "tools",
-                              "history"
-                            ]
+                            "enum": ["system-prompt", "tools", "history"]
                           }
                         },
                         "key": {
@@ -169,11 +138,7 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "kind",
-                        "retention",
-                        "cachedParts"
-                      ]
+                      "required": ["kind", "retention", "cachedParts"]
                     },
                     {
                       "type": "object",
@@ -183,9 +148,7 @@
                           "const": "off"
                         }
                       },
-                      "required": [
-                        "kind"
-                      ]
+                      "required": ["kind"]
                     }
                   ]
                 }
@@ -208,10 +171,7 @@
                   "minLength": 1
                 }
               },
-              "required": [
-                "kind",
-                "model"
-              ]
+              "required": ["kind", "model"]
             },
             {
               "type": "object",
@@ -246,14 +206,7 @@
                     },
                     {
                       "type": "string",
-                      "enum": [
-                        "none",
-                        "minimal",
-                        "low",
-                        "medium",
-                        "high",
-                        "xhigh"
-                      ]
+                      "enum": ["none", "minimal", "low", "medium", "high", "xhigh"]
                     },
                     {
                       "type": "object",
@@ -264,9 +217,7 @@
                           "maximum": 9007199254740991
                         }
                       },
-                      "required": [
-                        "budgetTokens"
-                      ]
+                      "required": ["budgetTokens"]
                     },
                     {
                       "oneOf": [
@@ -278,9 +229,7 @@
                               "const": "model-decides"
                             }
                           },
-                          "required": [
-                            "kind"
-                          ]
+                          "required": ["kind"]
                         },
                         {
                           "type": "object",
@@ -291,13 +240,7 @@
                             },
                             "effort": {
                               "type": "string",
-                              "enum": [
-                                "minimal",
-                                "low",
-                                "medium",
-                                "high",
-                                "xhigh"
-                              ]
+                              "enum": ["minimal", "low", "medium", "high", "xhigh"]
                             },
                             "budget": {
                               "type": "object",
@@ -308,14 +251,10 @@
                                   "maximum": 9007199254740991
                                 }
                               },
-                              "required": [
-                                "tokens"
-                              ]
+                              "required": ["tokens"]
                             }
                           },
-                          "required": [
-                            "kind"
-                          ]
+                          "required": ["kind"]
                         },
                         {
                           "type": "object",
@@ -325,9 +264,7 @@
                               "const": "off"
                             }
                           },
-                          "required": [
-                            "kind"
-                          ]
+                          "required": ["kind"]
                         }
                       ]
                     }
@@ -349,11 +286,7 @@
                             },
                             "retention": {
                               "type": "string",
-                              "enum": [
-                                "5m",
-                                "1h",
-                                "24h"
-                              ]
+                              "enum": ["5m", "1h", "24h"]
                             },
                             "cachedParts": {
                               "readOnly": true,
@@ -361,11 +294,7 @@
                               "type": "array",
                               "items": {
                                 "type": "string",
-                                "enum": [
-                                  "system-prompt",
-                                  "tools",
-                                  "history"
-                                ]
+                                "enum": ["system-prompt", "tools", "history"]
                               }
                             },
                             "key": {
@@ -373,11 +302,7 @@
                               "minLength": 1
                             }
                           },
-                          "required": [
-                            "kind",
-                            "retention",
-                            "cachedParts"
-                          ]
+                          "required": ["kind", "retention", "cachedParts"]
                         },
                         {
                           "type": "object",
@@ -387,9 +312,7 @@
                               "const": "off"
                             }
                           },
-                          "required": [
-                            "kind"
-                          ]
+                          "required": ["kind"]
                         }
                       ]
                     }
@@ -415,20 +338,14 @@
                       "minimum": 0
                     }
                   },
-                  "required": [
-                    "inputPerMTok",
-                    "outputPerMTok"
-                  ]
+                  "required": ["inputPerMTok", "outputPerMTok"]
                 },
                 "kind": {
                   "type": "string",
                   "const": "llm"
                 }
               },
-              "required": [
-                "model",
-                "kind"
-              ]
+              "required": ["model", "kind"]
             }
           ]
         },
@@ -508,14 +425,7 @@
                 },
                 {
                   "type": "string",
-                  "enum": [
-                    "none",
-                    "minimal",
-                    "low",
-                    "medium",
-                    "high",
-                    "xhigh"
-                  ]
+                  "enum": ["none", "minimal", "low", "medium", "high", "xhigh"]
                 },
                 {
                   "type": "object",
@@ -526,9 +436,7 @@
                       "maximum": 9007199254740991
                     }
                   },
-                  "required": [
-                    "budgetTokens"
-                  ]
+                  "required": ["budgetTokens"]
                 },
                 {
                   "oneOf": [
@@ -540,9 +448,7 @@
                           "const": "model-decides"
                         }
                       },
-                      "required": [
-                        "kind"
-                      ]
+                      "required": ["kind"]
                     },
                     {
                       "type": "object",
@@ -553,13 +459,7 @@
                         },
                         "effort": {
                           "type": "string",
-                          "enum": [
-                            "minimal",
-                            "low",
-                            "medium",
-                            "high",
-                            "xhigh"
-                          ]
+                          "enum": ["minimal", "low", "medium", "high", "xhigh"]
                         },
                         "budget": {
                           "type": "object",
@@ -570,14 +470,10 @@
                               "maximum": 9007199254740991
                             }
                           },
-                          "required": [
-                            "tokens"
-                          ]
+                          "required": ["tokens"]
                         }
                       },
-                      "required": [
-                        "kind"
-                      ]
+                      "required": ["kind"]
                     },
                     {
                       "type": "object",
@@ -587,9 +483,7 @@
                           "const": "off"
                         }
                       },
-                      "required": [
-                        "kind"
-                      ]
+                      "required": ["kind"]
                     }
                   ]
                 }
@@ -611,11 +505,7 @@
                         },
                         "retention": {
                           "type": "string",
-                          "enum": [
-                            "5m",
-                            "1h",
-                            "24h"
-                          ]
+                          "enum": ["5m", "1h", "24h"]
                         },
                         "cachedParts": {
                           "readOnly": true,
@@ -623,11 +513,7 @@
                           "type": "array",
                           "items": {
                             "type": "string",
-                            "enum": [
-                              "system-prompt",
-                              "tools",
-                              "history"
-                            ]
+                            "enum": ["system-prompt", "tools", "history"]
                           }
                         },
                         "key": {
@@ -635,11 +521,7 @@
                           "minLength": 1
                         }
                       },
-                      "required": [
-                        "kind",
-                        "retention",
-                        "cachedParts"
-                      ]
+                      "required": ["kind", "retention", "cachedParts"]
                     },
                     {
                       "type": "object",
@@ -649,9 +531,7 @@
                           "const": "off"
                         }
                       },
-                      "required": [
-                        "kind"
-                      ]
+                      "required": ["kind"]
                     }
                   ]
                 }
@@ -723,14 +603,7 @@
               },
               {
                 "type": "string",
-                "enum": [
-                  "none",
-                  "minimal",
-                  "low",
-                  "medium",
-                  "high",
-                  "xhigh"
-                ]
+                "enum": ["none", "minimal", "low", "medium", "high", "xhigh"]
               },
               {
                 "type": "object",
@@ -741,9 +614,7 @@
                     "maximum": 9007199254740991
                   }
                 },
-                "required": [
-                  "budgetTokens"
-                ]
+                "required": ["budgetTokens"]
               },
               {
                 "oneOf": [
@@ -755,9 +626,7 @@
                         "const": "model-decides"
                       }
                     },
-                    "required": [
-                      "kind"
-                    ]
+                    "required": ["kind"]
                   },
                   {
                     "type": "object",
@@ -768,13 +637,7 @@
                       },
                       "effort": {
                         "type": "string",
-                        "enum": [
-                          "minimal",
-                          "low",
-                          "medium",
-                          "high",
-                          "xhigh"
-                        ]
+                        "enum": ["minimal", "low", "medium", "high", "xhigh"]
                       },
                       "budget": {
                         "type": "object",
@@ -785,14 +648,10 @@
                             "maximum": 9007199254740991
                           }
                         },
-                        "required": [
-                          "tokens"
-                        ]
+                        "required": ["tokens"]
                       }
                     },
-                    "required": [
-                      "kind"
-                    ]
+                    "required": ["kind"]
                   },
                   {
                     "type": "object",
@@ -802,9 +661,7 @@
                         "const": "off"
                       }
                     },
-                    "required": [
-                      "kind"
-                    ]
+                    "required": ["kind"]
                   }
                 ]
               }
@@ -826,11 +683,7 @@
                       },
                       "retention": {
                         "type": "string",
-                        "enum": [
-                          "5m",
-                          "1h",
-                          "24h"
-                        ]
+                        "enum": ["5m", "1h", "24h"]
                       },
                       "cachedParts": {
                         "readOnly": true,
@@ -838,11 +691,7 @@
                         "type": "array",
                         "items": {
                           "type": "string",
-                          "enum": [
-                            "system-prompt",
-                            "tools",
-                            "history"
-                          ]
+                          "enum": ["system-prompt", "tools", "history"]
                         }
                       },
                       "key": {
@@ -850,11 +699,7 @@
                         "minLength": 1
                       }
                     },
-                    "required": [
-                      "kind",
-                      "retention",
-                      "cachedParts"
-                    ]
+                    "required": ["kind", "retention", "cachedParts"]
                   },
                   {
                     "type": "object",
@@ -864,9 +709,7 @@
                         "const": "off"
                       }
                     },
-                    "required": [
-                      "kind"
-                    ]
+                    "required": ["kind"]
                   }
                 ]
               }
@@ -929,10 +772,7 @@
                 },
                 "mode": {
                   "type": "string",
-                  "enum": [
-                    "tool",
-                    "context"
-                  ]
+                  "enum": ["tool", "context"]
                 },
                 "topK": {
                   "type": "integer",
@@ -940,11 +780,7 @@
                   "maximum": 9007199254740991
                 }
               },
-              "required": [
-                "name",
-                "mode",
-                "topK"
-              ]
+              "required": ["name", "mode", "topK"]
             }
           }
         },
@@ -970,18 +806,13 @@
                 "minLength": 1
               }
             },
-            "required": [
-              "file"
-            ],
+            "required": ["file"],
             "additionalProperties": false
           }
         ]
       }
     }
   },
-  "required": [
-    "profile",
-    "version"
-  ],
+  "required": ["profile", "version"],
   "additionalProperties": false
 }

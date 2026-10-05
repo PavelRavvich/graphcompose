@@ -57,7 +57,10 @@ describe("AC1: assembly rules", () => {
     ["graph.not-a-node", [from(Start).next(SomeTool)]],
     ["graph.two-next-steps", [from(Start).next(A), from(A).next(Done), from(A).next(OtherDone)]],
     ["graph.choose-from-non-router", [from(Start).next(A), from(A).routeOne(Done)]],
-    ["graph.router-not-last-in-chain", [chain(Start, Pick, A), from(A).next(Done), from(B).next(Done)]],
+    [
+      "graph.router-not-last-in-chain",
+      [chain(Start, Pick, A), from(A).next(Done), from(B).next(Done)],
+    ],
     ["graph.cycle-without-router", [from(Start).next(A), from(A).next(B), from(B).next(A)]],
     [
       "graph.duplicate-node",
@@ -80,9 +83,9 @@ describe("AC1: assembly rules", () => {
     const first = node(B, "again");
     const second = node(OtherA, "again");
 
-    expect(codesOf([from(Start).next(first), from(first).next(Done), from(second).next(Done)])).toContain(
-      "graph.duplicate-node-name",
-    );
+    expect(
+      codesOf([from(Start).next(first), from(first).next(Done), from(second).next(Done)]),
+    ).toContain("graph.duplicate-node-name");
   });
 
   it("router texts: a router needs a prompt and every route a text", () => {

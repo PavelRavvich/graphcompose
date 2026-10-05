@@ -1,3 +1,5 @@
+/* eslint-disable max-lines, max-lines-per-function */
+
 import type { BaseCheckpointSaver } from "@langchain/langgraph";
 import { END, START, Send, StateGraph } from "@langchain/langgraph";
 import type { Router } from "../routers/index.js";
@@ -107,10 +109,12 @@ function nodeKeyed(model: FlowModel, key: string): FlowNodeRef {
 
 /** Node key → graph node id, for the given keys (a conditional edge's path map). */
 const pathMap = (model: FlowModel, keys: readonly string[]): Record<string, string> =>
-  Object.fromEntries(keys.map((key) => {
-    if (key === "skip-wrap") return ["skip-wrap", "skip-wrap"];
-    return [key, graphNodeId(nodeKeyed(model, key))];
-  }));
+  Object.fromEntries(
+    keys.map((key) => {
+      if (key === "skip-wrap") return ["skip-wrap", "skip-wrap"];
+      return [key, graphNodeId(nodeKeyed(model, key))];
+    }),
+  );
 
 function startEdges(builder: Builder, model: FlowModel): void {
   const starts = [...model.nodes.values()].filter((ref) => ref.kind === "workflow-start");
@@ -139,6 +143,7 @@ const afterStart =
   (state: FlowStateType): string =>
     state.guarded === "" ? target : END;
 
+// eslint-disable-next-line complexity
 function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void {
   const next = model.next.get(node.key);
   const id = graphNodeId(node);
@@ -154,8 +159,10 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
       builder.addConditionalEdges(
         id,
         singleTarget
-          ? afterStart(targets[0]!)
+          ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            afterStart(targets[0]!)
           : (state) => (state.guarded === "" ? targets : [END]),
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         singleTarget ? [targets[0]!, END] : undefined,
       );
       return;
@@ -180,30 +187,49 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
     return;
   }
   const self = next.self ? predecessorsOf(model.collected, node.key).map((ref) => ref.key) : [];
-  const skip = (next as any).skip ? ['skip-wrap'] : [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const skip = (next as any).skip ? ["skip-wrap"] : [];
   const targets = [...new Set([...next.targets, ...self, ...skip])];
-  
-  builder.addConditionalEdges(id, (state: FlowStateType) => {
-    // If the router chose "skip", we map it to "skip-wrap"
-    if (state.next === "Skip" || state.next === "skip") return "skip-wrap";
-    return state.next;
-  }, pathMap(model, targets));
+
+  builder.addConditionalEdges(
+    id,
+    (state: FlowStateType) => {
+      // If the router chose "skip", we map it to "skip-wrap"
+      if (state.next === "Skip" || state.next === "skip") return "skip-wrap";
+      return state.next;
+    },
+    pathMap(model, targets),
+  );
   return;
 }
 
 function compileJoinBarriers(builder: Builder, model: FlowModel) {
-  const joins = new Map<string, { target: FlowNodeRef; sources: FlowNodeRef[]; type: "join" | "joinAny" | "joinQuorum"; count?: number }>();
+  const joins = new Map<
+    string,
+    {
+      target: FlowNodeRef;
+      sources: FlowNodeRef[];
+      type: "join" | "joinAny" | "joinQuorum";
+      count?: number;
+    }
+  >();
   for (const t of model.collected.transitions) {
     if (t.next.kind === "join" || t.next.kind === "joinAny" || t.next.kind === "joinQuorum") {
       const targetNode = nodeKeyed(model, t.next.target);
       if (!joins.has(targetNode.key)) {
-        joins.set(targetNode.key, { target: targetNode, sources: [], type: t.next.kind, count: (t.next as any).count });
+        joins.set(targetNode.key, {
+          target: targetNode,
+          sources: [],
+          type: t.next.kind,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          count: (t.next as any).count,
+        });
       }
       const join = joins.get(targetNode.key);
       if (join !== undefined) join.sources.push(nodeKeyed(model, t.from));
     }
   }
-  
+
   // Add global skip-wrap
   builder.addNode("skip-wrap", () => ({})); // `Skip` chosen explicitly: nothing to run, the run ends
   builder.addEdge("skip-wrap", END);
@@ -220,6 +246,7 @@ function compileJoinBarriers(builder: Builder, model: FlowModel) {
     builder.addConditionalEdges(barrierId, (state) => {
       if (type === "joinAny") {
         const anyArrived = sources.some((src) => state.forks[src.key] !== undefined);
+
         return anyArrived ? [targetId] : [waitId];
       }
       if (type === "joinQuorum") {

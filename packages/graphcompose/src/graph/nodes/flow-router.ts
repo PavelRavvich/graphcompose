@@ -53,13 +53,16 @@ async function resolvePrompt(input: PromptInput, state: FlowStateType): Promise<
 }
 
 /** Routes in canonical order (already sorted at load) as the router's options. */
-export async function routeRequestOf(state: FlowStateType, deps: FlowRouterNodeDeps): Promise<RouteRequest> {
+export async function routeRequestOf(
+  state: FlowStateType,
+  deps: FlowRouterNodeDeps,
+): Promise<RouteRequest> {
   const instructions = await resolvePrompt(deps.loaded.instructions, state);
   const options = await Promise.all(
     deps.loaded.routes.map(async (item) => ({
       name: item.option,
       description: await resolvePrompt(item.condition, state),
-    }))
+    })),
   );
   return {
     input: renderRouteInput(state.task, state.contributions, formatMemory(state, deps.memory)),

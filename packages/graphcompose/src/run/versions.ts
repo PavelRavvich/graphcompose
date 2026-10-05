@@ -15,10 +15,13 @@ export const configSnapshot = <TName extends string>(
     "config" | "prompts" | "compactionPrompt" | "flow" | "limits" | "routers"
   >,
 ): unknown => ({
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   config: stripFunctions(deps.config),
   flow: flowLines(deps.flow),
   limits: deps.limits,
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   routers: stripFunctions(deps.routers),
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   prompts: stripFunctions(deps.prompts),
   compactionPrompt: deps.compactionPrompt ?? null,
 });
@@ -42,11 +45,13 @@ export function runVersions<TName extends string>(
   );
   return {
     promptVersion: versionOf({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       agents: stripFunctions(deps.prompts),
       routers: routerPromptTexts,
       flowRouters: deps.routers.map(({ name, instructions, routes }) => ({
         name,
         instructions,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         routes: stripFunctions(routes),
       })),
       agentLoop: agentLoopPromptTexts,

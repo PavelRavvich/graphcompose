@@ -27,7 +27,7 @@ function nodeText(collected: CollectedFlow, target: FlowNode): string {
 const nameIn =
   (collected: CollectedFlow) =>
   (target: ChoiceTarget): string =>
-    isSelf(target) ? "Self" : isSkip(target) ? "Skip" : nodeText(collected, target as FlowNode);
+    isSelf(target) ? "Self" : isSkip(target) ? "Skip" : nodeText(collected, target);
 
 function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): string {
   switch (step.kind) {
@@ -44,6 +44,7 @@ function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): strin
     case "joinAny":
       return `${step.from.map(name).join(", ")} → joinAny(${name(step.target)})`;
     case "joinQuorum":
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       return `${step.from.map(name).join(", ")} → joinQuorum(${step.count}, ${name(step.target)})`;
   }
 }

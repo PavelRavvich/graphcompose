@@ -70,10 +70,11 @@ export class Only {}
 export class Second {}
 
 @Router({
-  name: "mute", instructions: "",
+  name: "mute",
+  instructions: "",
   description: "No texts",
   model: jev,
-  routes: [route("").to(Done), route("" ).to(A)],
+  routes: [route("").to(Done), route("").to(A)],
 })
 export class Mute {}
 

@@ -86,7 +86,15 @@ async function run(chosen: string) {
   };
   const { graph } = await assembleFlowGraph(assembled.flow, runtime);
   const state = await graph.invoke(
-    { start: "skipStart", task: "go", history: [], contributions: [], usage: [], payload: {}, forks: {} },
+    {
+      start: "skipStart",
+      task: "go",
+      history: [],
+      contributions: [],
+      usage: [],
+      payload: {},
+      forks: {},
+    },
     { configurable: { thread_id: `t-${chosen}` } },
   );
   return { state, visited };
@@ -99,8 +107,8 @@ describe("a router that skips a join source", () => {
     expect(visited).toContain("skipA");
     expect(visited).not.toContain("skipB");
     expect(visited).toContain("skipAggregator");
-    expect(state.forks["skipB"]).toMatchObject({ status: "skipped" });
-    expect(state.forks["skipA"]).toMatchObject({ status: "completed" });
+    expect(state.forks.skipB).toMatchObject({ status: "skipped" });
+    expect(state.forks.skipA).toMatchObject({ status: "completed" });
   });
 
   it("works symmetrically when the other branch is chosen", async () => {
@@ -109,6 +117,6 @@ describe("a router that skips a join source", () => {
     expect(visited).toContain("skipB");
     expect(visited).not.toContain("skipA");
     expect(visited).toContain("skipAggregator");
-    expect(state.forks["skipA"]).toMatchObject({ status: "skipped" });
+    expect(state.forks.skipA).toMatchObject({ status: "skipped" });
   });
 });

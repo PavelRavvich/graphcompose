@@ -1,3 +1,4 @@
+import type { PromptInput } from "../components/prompt-input.js";
 import type { AgentSettingsOf, AgentsConfigOf } from "../config/types.js";
 import { resolveAgentLimits, type AgentDefinition } from "./agent-loop/index.js";
 import type { GraphDeps } from "./deps.js";
@@ -24,7 +25,7 @@ const limitsOf = <TName extends string>(
 export function agentDefinitions<TName extends string>(
   deps: GraphDeps<TName>,
 ): ReadonlyMap<string, AgentDefinition> {
-  const prompts = new Map(Object.entries(deps.prompts)) as Map<string, any>;
+  const prompts = new Map(Object.entries(deps.prompts));
   const settings = new Map<string, AgentSettingsOf<string>>(Object.entries(deps.config.agents));
   const definitions = new Map<string, AgentDefinition>();
   for (const [name, binding] of deps.registry.agents) {
@@ -34,7 +35,7 @@ export function agentDefinitions<TName extends string>(
     definitions.set(name, {
       name,
       binding,
-      instructions,
+      instructions: instructions as PromptInput,
       tools: (agent?.tools ?? []).map(deps.tools),
       ...limitsOf(agent, deps.config),
       knowledge: deps.knowledge?.(name) ?? [],

@@ -58,8 +58,23 @@ export function routerSlice(built: BuiltApp, target: FlowNode): RouterSlice {
   const router = built.deps.routerFor(loaded);
   return {
     decide: async (input) => {
-      const options = await Promise.all(loaded.routes.map(async (item) => ({ name: item.option, description: await (typeof item.condition === "function" ? item.condition({} as any) : item.condition) })));
-      const outcome = await router.route({ input, options, instructions: await (typeof loaded.instructions === "function" ? loaded.instructions({} as any) : loaded.instructions) });
+      const options = await Promise.all(
+        loaded.routes.map(async (item) => ({
+          name: item.option,
+          description: await (typeof item.condition === "function"
+            ? // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+              item.condition({} as any)
+            : item.condition),
+        })),
+      );
+      const outcome = await router.route({
+        input,
+        options,
+        instructions: await (typeof loaded.instructions === "function"
+          ? // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+            loaded.instructions({} as any)
+          : loaded.instructions),
+      });
       if (outcome.kind === "failed") {
         throw new RouterDecisionError(name, "router.failed", outcome.reason, []);
       }

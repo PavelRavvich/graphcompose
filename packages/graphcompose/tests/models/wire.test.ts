@@ -182,7 +182,9 @@ describe("AC6: prompts are normalised at load and sent normalised", () => {
     }
 
     const writer = (await workflowOf(Normalised)).prompts.writer;
+
     const text = typeof writer === "function" ? await writer({} as any) : writer;
-    expect(normalisePromptText(text as string)).toBe("  Caf\u00e9 rules\n\n\tstep");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(normalisePromptText(text!)).toBe("  Caf\u00e9 rules\n\n\tstep");
   });
 });

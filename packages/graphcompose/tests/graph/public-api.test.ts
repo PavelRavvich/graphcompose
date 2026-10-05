@@ -20,7 +20,7 @@ describe("AC1: graphcompose/graph and graphcompose/units", () => {
       "node",
       "route",
     ].sort();
-    
+
     expect(Object.keys(graph).sort()).toEqual(expected);
   });
 

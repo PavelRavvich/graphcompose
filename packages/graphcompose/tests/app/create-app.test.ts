@@ -173,7 +173,9 @@ describe("AC12: createApp — the real app", () => {
     const book = new ScriptBook();
     const app = await createApp(CodeReview, offline(book));
 
-    await expect(app.execute(ChatStart, { text: "hi" })).rejects.toBeInstanceOf(NotAWorkflowStartError);
+    await expect(app.execute(ChatStart, { text: "hi" })).rejects.toBeInstanceOf(
+      NotAWorkflowStartError,
+    );
     await expect(app.execute(Reply, { text: "hi" })).rejects.toThrow(
       'Reply is not a workflow start of "code-review"',
     );

@@ -45,7 +45,11 @@ const ROUTES = {
   instructions: "Pick who handles the task.",
   model: "test/router",
   maxVisits: 10,
-  routes: [route(ROUTES.alpha ).to(Alpha), route(ROUTES.beta ).to(Beta), route(ROUTES.answer ).to(TestAnswer)],
+  routes: [
+    route(ROUTES.alpha).to(Alpha),
+    route(ROUTES.beta).to(Beta),
+    route(ROUTES.answer).to(TestAnswer),
+  ],
 })
 export class TestMain {}
 
@@ -64,9 +68,9 @@ export const testRouters: readonly LoadedRouter[] = [
     model: "test/router",
     instructions: "Pick who handles the task.",
     routes: [
-      { option: "alpha", condition: ROUTES.alpha  },
-      { option: "answer", condition: ROUTES.answer  },
-      { option: "beta", condition: ROUTES.beta  },
+      { option: "alpha", condition: ROUTES.alpha },
+      { option: "answer", condition: ROUTES.answer },
+      { option: "beta", condition: ROUTES.beta },
     ],
   },
 ];

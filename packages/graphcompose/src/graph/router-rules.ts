@@ -11,6 +11,7 @@ const SELF_LABEL = "Self";
 
 const hasText = (source: PromptInput): boolean => {
   if (typeof source === "function") return true;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return (source ?? "").trim() !== "";
 };
 
@@ -38,7 +39,12 @@ function routeKey(flow: CollectedFlow, declaration: RouteDeclaration): string {
 
 function chooseKeys(next: NextDeclaration | undefined): string[] {
   if (next?.kind !== "choose") return [];
-  return [...next.targets, ...(next.self ? [SELF_LABEL] : []), ...((next as any).skip ? ["Skip"] : [])];
+  return [
+    ...next.targets,
+    ...(next.self ? [SELF_LABEL] : []),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    ...((next as any).skip ? ["Skip"] : []),
+  ];
 }
 
 const chooseOf = (flow: CollectedFlow, routerKey: string): NextDeclaration | undefined =>

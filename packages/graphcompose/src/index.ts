@@ -29,7 +29,13 @@ export type { GraphDeps } from "./graph/deps.js";
 export { resumeAgent, NotPausedError } from "./run/resume-agent.js";
 export { runAgent } from "./run/run-agent.js";
 export { UnknownThreadError } from "./run/thread.js";
-export type { AgentExecutionOutput, RunDeps, RunOptions, RunStatus, SpendAccount } from "./run/types.js";
+export type {
+  AgentExecutionOutput,
+  RunDeps,
+  RunOptions,
+  RunStatus,
+  SpendAccount,
+} from "./run/types.js";
 export { runVersions } from "./run/versions.js";
 export * from "./rag/index.js";
 export {
@@ -49,3 +55,4 @@ export {
   type CompactionSettings,
 } from "./config/types.js";
 export { writeToolsNeedApproval } from "./pause/index.js";
+export { file } from "./components/file.js";

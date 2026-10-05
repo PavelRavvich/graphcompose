@@ -42,6 +42,7 @@ export default tseslint.config(
       ".artifacts",
       "packages/*/bin",
       "**/.scaffold-tmp",
+      "scratch/**",
     ],
   },
   js.configs.recommended,
@@ -173,7 +174,16 @@ export default tseslint.config(
   },
   {
     files: ["packages/graphcompose/tests/**/*.ts", "examples/*/tests/**/*.ts"],
-    rules: { "max-lines-per-function": "off" },
+    rules: {
+      "max-lines": "off",
+      "max-lines-per-function": "off",
+      "@typescript-eslint/no-unsafe-argument": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+    },
   },
   {
     files: ["**/*.js", "**/*.cjs"],

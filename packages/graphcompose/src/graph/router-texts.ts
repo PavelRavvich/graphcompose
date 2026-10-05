@@ -3,6 +3,7 @@ import type { FlowModel } from "./check-flow.js";
 import { isSelf, labelOf } from "./flow.js";
 import type { FlowNodeRef } from "./flow-nodes.js";
 import { SELF_OPTION, type RouteDeclaration } from "./route.js";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { routerMetaOf, type RouterMeta } from "./router.decorator.js";
 import type { PromptInput } from "../components/prompt-input.js";
 
@@ -27,7 +28,8 @@ export interface LoadedRouter {
 function optionOf(model: FlowModel, declaration: RouteDeclaration): string {
   return isSelf(declaration.target)
     ? SELF_OPTION
-    : (model.collected.keyOf(declaration.target as any) ?? labelOf(declaration.target as any));
+    : // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+      (model.collected.keyOf(declaration.target as any) ?? labelOf(declaration.target));
 }
 
 const byOption = (left: LoadedRoute, right: LoadedRoute): number =>
@@ -51,6 +53,7 @@ function loadRouter(model: FlowModel, ref: FlowNodeRef): LoadedRouter {
 }
 
 /** Every router of the flow with its texts loaded, by node key. */
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function loadRouters(model: FlowModel): Promise<ReadonlyMap<string, LoadedRouter>> {
   const routers = [...model.nodes.values()].filter((ref) => ref.kind === "router");
   const loaded = routers.map((ref) => loadRouter(model, ref));

@@ -71,6 +71,7 @@ export type McpConnect = (
 /** Everything an app may be given instead of its production default. */
 export interface AppDepsOptions {
   /** Default: process.env. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly env?: any;
   /**
    * Every model call goes through it. Default: the workflow's model providers, credentials from
@@ -156,10 +157,13 @@ export async function createAppDeps(
   bundle: AssembledWorkflow,
   options: AppDepsOptions = {},
 ): Promise<AppDeps> {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const env = options.env ?? process.env;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const models = await modelsFor(bundle, options.gateway, providerClientsOf(options, env));
   const gateway = models.gateway;
   const lifecycle = lifecycleOf(options.container);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const services = servicesFor(bundle, gateway, env, lifecycle.options);
   const tools: readonly AnyTool[] = resolveTools(bundle, services);
   const toolNames = tools.map((tool) => tool.name);
@@ -167,9 +171,12 @@ export async function createAppDeps(
   const mcp = await (options.connectMcp ?? connectConfigured(options.transport))(
     bundle,
     config,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     env,
   );
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const { terns, ownsTerns, ledger, checkpointer } = storesOf(options, env);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const tracing = langfuseTracing(env);
   const deps = {
     config,

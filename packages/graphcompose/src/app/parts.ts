@@ -34,7 +34,12 @@ export const evaluationFor = (
   gateway: ModelGateway,
 ): EvalDeps => ({
   ...stores,
-  judge: createRouter("judge", bundle.config.defaults.router, bundle.config.defaults.models, gateway),
+  judge: createRouter(
+    "judge",
+    bundle.config.defaults.router,
+    bundle.config.defaults.models,
+    gateway,
+  ),
   account: {
     key: `${bundle.config.name}:eval`,
     dailyCap: bundle.limits.perDay?.cost ?? Number.POSITIVE_INFINITY,

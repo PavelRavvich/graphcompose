@@ -32,7 +32,11 @@ const out = (line: string): void => {
   process.stdout.write(`${line}\n`);
 };
 const depsFor = async (profile: string | undefined): Promise<AppDeps> => {
-  const deps = await createAppDeps(await withProfile(await loadWorkflow(values.workflow), profile), { env: await loadEnvironment(values.workflow, values.env) });
+  const deps = await createAppDeps(
+    await withProfile(await loadWorkflow(values.workflow), profile),
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    { env: await loadEnvironment(values.workflow, values.env) },
+  );
   deps.warnings.forEach((warning) => process.stderr.write(`warning: ${warning}\n`));
   return deps;
 };

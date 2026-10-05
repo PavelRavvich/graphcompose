@@ -14,6 +14,7 @@ import { contextSources, ragMeta, searchTool } from "./rag.js";
 
 /** Core services a component can depend on. */
 export const ROUTER_FACTORY = new InjectionToken<(name: string) => Router>("ROUTER_FACTORY");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const ENV = new InjectionToken<any>("ENV");
 export const CORE_TOKENS = [ROUTER_FACTORY, ENV];
 

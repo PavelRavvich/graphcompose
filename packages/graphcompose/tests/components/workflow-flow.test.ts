@@ -12,6 +12,7 @@ import { TestSettings } from "../fixtures/test-flow/star.js";
 import { testConfig } from "../helpers.js";
 
 const price = testConfig.agents.alpha.price;
+
 const prompt = "./fixture/greeter.prompt.md";
 
 @Agent({ name: "profiler", description: "Profiles", model: "test/alpha", price, instructions: "" })

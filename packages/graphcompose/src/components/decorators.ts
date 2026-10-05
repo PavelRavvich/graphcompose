@@ -17,7 +17,11 @@ export interface ToolHandler<TInput, TOutput> {
   run(input: TInput, ctx: ToolContext): Promise<TOutput>;
 }
 
-export interface ToolOptions<In extends DtoClass, Out extends DtoClass, D extends readonly Token[]> {
+export interface ToolOptions<
+  In extends DtoClass,
+  Out extends DtoClass,
+  D extends readonly Token[],
+> {
   readonly name: string;
   readonly description: string;
   readonly effect?: ToolEffect;

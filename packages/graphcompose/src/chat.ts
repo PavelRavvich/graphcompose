@@ -21,8 +21,13 @@ const { values } = parseArgs({
     env: { type: "string" },
   },
 });
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const env = await loadEnvironment(values.workflow, values.env);
-const app = await createApp(await loadWorkflowClass(values.workflow), { profile: values.profile, env });
+const app = await createApp(await loadWorkflowClass(values.workflow), {
+  profile: values.profile,
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  env,
+});
 const start = textStartOrFail(app);
 app.models.forEach((line) => {
   stdout.write(`${styleText("dim", `model ${line}`)}\n`);
@@ -72,7 +77,9 @@ try {
     try {
       const thread = threadId === undefined ? {} : { thread: threadId };
       turn.interrupted = false;
-      const first = await busy((signal) => app.execute(start, { text: line }, { ...thread, signal }));
+      const first = await busy((signal) =>
+        app.execute(start, { text: line }, { ...thread, signal }),
+      );
       const result = await untilDone(first, app, ask, busy);
       threadId = result.thread;
       say(`${styleText("cyan", "agent ›")} ${result.answer}`);

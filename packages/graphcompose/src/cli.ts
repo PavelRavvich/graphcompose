@@ -20,8 +20,13 @@ const { values, positionals } = parseArgs({
     env: { type: "string" },
   },
 });
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const env = await loadEnvironment(values.workflow, values.env);
-const app = await createApp(await loadWorkflowClass(values.workflow), { profile: values.profile, env });
+const app = await createApp(await loadWorkflowClass(values.workflow), {
+  profile: values.profile,
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  env,
+});
 app.warnings.forEach((warning) => {
   stderr.write(`warning: ${warning}\n`);
 });

@@ -67,7 +67,7 @@ flow: [
   (`GraphRuleError`, stable codes `graph.*` / `router.*`): every node is a decorated class, one next
   step per node, `choose` only from a router, a cycle needs a router, a workflow start exists, no
   unreachable node or dead end, nothing after a workflow finish, a router's `routes` equal its `choose(...)`.
-- `@Router` (Wiki → Routers): `prompt` / `promptUrls` say **how** to choose; `routes` say **what**
+- `@Router` (Wiki → Routers): `instructions` says **how** to choose; `routes` array uses `route().to()` to define conditions
   each choice means (`route(Profiler, "Reading the resume …")`) — route text is required; a route
   **to a workflow finish** is worded as a stop instruction ("Stop and send the answer: …"), never as "the
   answer is ready". `maxVisits` bounds visits of one router. A router that fails or picks an unknown
@@ -90,8 +90,7 @@ flow: [
 - Components, Angular style (Wiki → Components): annotated classes, one per file, folders by kind
   (`workflow-starts/`, `routers/`, `agents/`, `workflow-finishes/`, `tools/`, `mcp/`, `rag/`, `services/`); the
   `@Workflow` module places nodes in its `flow` and lists `mcp` servers and `providers` by class
-  reference; dependencies through the constructor, declared in `deps` (compiler-checked); prompts in
-  `*.prompt.md`. `@Injectable` services stay until #121 renames them.
+  reference; dependencies through the constructor, declared in `deps` (compiler-checked); instructions via `file("./*.prompt.md")`. `@Injectable` services stay until #121 renames them.
 - **Data are DTO classes** (`graphcompose/dto`, Wiki → Standard DTOs): one field decorator per field
   (`@Text`, `@Integer`, `@Flag`, `@OneOf`, `@ListOf`, `@Nested`, …), plain data, no methods. Tool
   `input` / `output`, MCP server tools (`tools: { name: { input, output } }`), workflow start
@@ -102,7 +101,7 @@ flow: [
 - Knowledge bases: a `@Rag` class implementing `RagConnector` in `rag/`, bound by agents with
   `rag: [{ use, mode: "tool" | "context" }]` (Wiki → Knowledge bases).
 - Add a tool: a `@Tool` class in `tools/` with `input` / `output` DTOs in `*.dto.ts`, referenced
-  from an agent. Add an agent: `agents/<name>.agent.ts` + `<name>.prompt.md`, placed in the `flow`
+  from an agent. Add an agent: `agents/<name>.agent.ts` and use `file("./<name>.prompt.md")`, placed in the `flow`
   and in its router's `choose(...)` and `routes`. A workflow = its components under one directory
   with a `*.workflow.ts`; commands find it by path (`--workflow`). Test tools with
   `toolOf(new Tool(fakes))`.
@@ -113,7 +112,7 @@ flow: [
   tool with its `*.server.ts` server injected.
 - **File conventions** (Wiki → Components): `*.workflow-start.ts`, `*.router.ts`,
   `*.workflow-finish.ts`,
-  `*.agent.ts` + `*.prompt.md` (found by convention), `*.tool.ts` + `*.tool.test.ts`, `*.dto.ts`,
+  `*.agent.ts` with explicit `instructions: file()`, `*.tool.ts` + `*.tool.test.ts`, `*.dto.ts`,
   `*.server.ts` + `*.mcp.ts`, `*.rag.ts`, `*.service.ts` (`@Injectable`), `*.helper.ts`; tools keep
   `run`, bulky helpers go to `*.helper.ts`.
 - **Framework and examples apart** (ESLint-enforced both ways): `packages/graphcompose` never imports
@@ -208,7 +207,7 @@ packages/graphcompose/        the framework (npm package `graphcompose`; builds 
   bin/              graphcompose launcher
 examples/job-scout/          the example (package job-scout-example; depends on graphcompose)
   src/              job-scout.workflow.ts, studio.ts; workflow-starts/ (*.workflow-start.ts), routers/
-                    (*.router.ts), agents/ (*.agent.ts + *.prompt.md), workflow-finishes/
+                    (*.router.ts), agents/ (*.agent.ts using file()), workflow-finishes/
                     (*.workflow-finish.ts), tools/ (*.tool.ts +
                     *.dto.ts), services/ (*.service.ts), mcp/ (*.server.ts, *.mcp.ts, *.dto.ts),
                     rag/ (*.rag.ts), helpers/ (*.helper.ts), config/, scripts/, data/

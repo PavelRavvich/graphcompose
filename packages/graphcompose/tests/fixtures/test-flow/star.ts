@@ -18,9 +18,8 @@ export function starOf(...agents: readonly [Class, ...Class[]]): Flow {
     model: "typesafe/jev-1.13",
     maxVisits: 10,
     routes: [
-
       route("The answer covers the message").to(TestAnswer),
-      ...agents.map((agent) => (route(`${agent.name} work`).to(agent))),
+      ...agents.map((agent) => route(`${agent.name} work`).to(agent)),
     ],
   })
   class Main {}

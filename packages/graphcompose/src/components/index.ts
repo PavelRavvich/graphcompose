@@ -22,3 +22,4 @@ export {
   type ServerTools,
   type ToolsOf,
 } from "./mcp-client.js";
+export { file } from "./file.js";

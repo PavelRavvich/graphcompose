@@ -34,7 +34,7 @@ async function callModel(
   config: RunnableConfig | undefined,
 ): Promise<AIMessageChunk> {
   const { binding, instructions, tools, name } = deps.agent;
-  
+
   let systemPrompt = typeof instructions === "function" ? await instructions(state) : instructions;
   systemPrompt = normalisePromptText(systemPrompt);
 

@@ -5,7 +5,6 @@ import type { ServerTools } from "./mcp-client.js";
 import type { Class, Token } from "./injection.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 
-
 export interface ToolMeta {
   readonly name: string;
   readonly description: string;

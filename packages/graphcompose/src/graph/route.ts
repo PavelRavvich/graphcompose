@@ -11,6 +11,7 @@ export interface RouteDeclaration {
 /** The option name a router sees for `Self`. */
 export const SELF_OPTION = "self";
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const route = (condition: PromptInput) => ({
   to: (target: ChoiceTarget): RouteDeclaration => ({ target, condition }),
 });

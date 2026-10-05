@@ -36,7 +36,11 @@ class Spin {}
 class Star {}
 
 /** The job-scout shape: workflow start → router star → agent → router again → … → workflow finish. */
-const starFlow: Flow = [from(Start).next(Star), from(Star).routeOne(A, B, Done), from(A, B).next(Star)];
+const starFlow: Flow = [
+  from(Start).next(Star),
+  from(Star).routeOne(A, B, Done),
+  from(A, B).next(Star),
+];
 
 const twoStarts: Flow = [from(Start, WebhookWorkflowStart).next(A), from(A).next(Done)];
 

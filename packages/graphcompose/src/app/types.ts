@@ -49,7 +49,11 @@ export interface App {
   readonly models: readonly string[];
   /** The workflow start a plain text goes to (input `WorkflowStartText`), if the flow has one. */
   readonly textStart: Class | undefined;
-  execute(start: Class, input: WorkflowStartText, options?: ExecutionOptions): Promise<ExecutionOutput>;
+  execute(
+    start: Class,
+    input: WorkflowStartText,
+    options?: ExecutionOptions,
+  ): Promise<ExecutionOutput>;
   resume(
     thread: string,
     decision: ToolCallApprovalDecision,

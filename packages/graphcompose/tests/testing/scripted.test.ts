@@ -57,7 +57,12 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
       modelOf(Reviewer).respond(answer("fix A"), answer("fix B"), answer("clean"));
       modelOf(ReviewGate).respond(decide(Coder), decide(Coder), decide(PullRequest));
 
-      const result = await app.execute(TaskStart, { text: "Add a flag" }); console.log("PATH:", result.path.map(n => n.name));
+      const result = await app.execute(TaskStart, { text: "Add a flag" });
+      // eslint-disable-next-line no-console
+      console.log(
+        "PATH:",
+        result.path.map((n) => n.name),
+      );
 
       const lap = [Coder, Reviewer, ReviewGate];
       expect(result).toFollowPath([TaskStart, ...lap, ...lap, ...lap, PullRequest]);

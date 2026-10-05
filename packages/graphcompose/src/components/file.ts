@@ -9,9 +9,9 @@ export function file(filePath: string): (state: FlowStateType) => Promise<string
   if (!caller) {
     throw new Error(`file(): could not determine caller file for ${filePath}`);
   }
-  
+
   const resolvedPath = path.resolve(path.dirname(caller), filePath);
-  
+
   return async () => {
     return await fs.promises.readFile(resolvedPath, "utf-8");
   };

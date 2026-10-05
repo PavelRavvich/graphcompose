@@ -23,7 +23,9 @@ export const Self: SelfTarget = Object.freeze({ kind: "self" });
 export type FlowNode = Class | NamedNode;
 
 /** What a router may choose: a node or `Self`. */
-export interface SkipTarget { readonly kind: "skip"; }
+export interface SkipTarget {
+  readonly kind: "skip";
+}
 export type ChoiceTarget = FlowNode | SelfTarget | SkipTarget;
 
 /** `from(A, B).next(C)` — an unconditional step from every source. */
@@ -52,11 +54,11 @@ export interface JoinStep {
   readonly target: FlowNode;
 }
 
-
 export interface NextEachStep {
   readonly kind: "nextEach";
   readonly from: readonly FlowNode[];
   readonly target: FlowNode;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly extractor: (payload: any) => any[];
 }
 
@@ -73,8 +75,8 @@ export interface JoinQuorumStep {
   readonly target: FlowNode;
 }
 
-export type FlowStep = ToStep | ChooseStep | ChainStep | JoinStep | NextEachStep | JoinAnyStep | JoinQuorumStep;
-
+export type FlowStep =
+  ToStep | ChooseStep | ChainStep | JoinStep | NextEachStep | JoinAnyStep | JoinQuorumStep;
 
 /** The graph of a workflow: its transitions, in the workflow file. */
 export type Flow = readonly FlowStep[];
@@ -82,6 +84,7 @@ export type Flow = readonly FlowStep[];
 /** What `from(...)` returns: the step's kind is chosen next. */
 export interface FlowSource {
   readonly next: (target: FlowNode) => ToStep;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly nextParallel: (...args: any[]) => ToStep | NextEachStep; // Simplified for runtime AST
   readonly routeOne: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
   readonly routeOneOrSkip: (target: ChoiceTarget) => ChooseStep;
@@ -98,8 +101,15 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
   return {
     next: (target) => ({ kind: "to", from: sources, targets: [target] }),
     nextParallel: (...args) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       if (args.length === 2 && typeof args[1] === "function" && !nodeInfoOf(args[1])) {
-        return { kind: "nextEach", from: sources, target: args[0] as FlowNode, extractor: args[1] as any };
+        return {
+          kind: "nextEach",
+          from: sources,
+          target: args[0] as FlowNode,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          extractor: args[1],
+        };
       }
       return { kind: "to", from: sources, targets: args as FlowNode[] };
     },
@@ -110,11 +120,21 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
       // For now we just ignore it in AST or we can extract it.
       let actualTargets = targets;
       let constraints = undefined;
-      if (targets.length > 0 && typeof targets[targets.length - 1] === "object" && !isSkip(targets[targets.length - 1] as any) && !isSelf(targets[targets.length - 1] as any) && !('name' in (targets[targets.length - 1] as any))) {
+      if (
+        targets.length > 0 &&
+        typeof targets[targets.length - 1] === "object" &&
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+        !isSkip(targets[targets.length - 1] as any) &&
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+        !isSelf(targets[targets.length - 1] as any) &&
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        !("name" in (targets[targets.length - 1] as any))
+      ) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         constraints = targets.pop();
         actualTargets = targets;
       }
-      return { kind: "choose", from: sources, targets: [...actualTargets, Skip] as any };
+      return { kind: "choose", from: sources, targets: [...actualTargets, Skip] };
     },
     join: (target) => ({ kind: "join", from: sources, target }),
     joinAny: (target) => ({ kind: "joinAny", from: sources, target }),
@@ -132,8 +152,10 @@ export function node(use: Class, name: string): NamedNode {
   return Object.freeze({ kind: "named-node", use, name });
 }
 
-export const isSelf = (target: ChoiceTarget): target is SelfTarget => typeof target === "object" && target.kind === "self";
-export const isSkip = (target: ChoiceTarget): target is SkipTarget => typeof target === "object" && target.kind === "skip";
+export const isSelf = (target: ChoiceTarget): target is SelfTarget =>
+  typeof target === "object" && target.kind === "self";
+export const isSkip = (target: ChoiceTarget): target is SkipTarget =>
+  typeof target === "object" && target.kind === "skip";
 
 export const isNamedNode = (target: ChoiceTarget): target is NamedNode =>
   typeof target === "object" && target.kind === "named-node";

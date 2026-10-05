@@ -1,4 +1,5 @@
 import { checkFlow } from "../graph/check-flow.js";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { isSelf, type Flow, type FlowNode, type FlowStep } from "../graph/flow.js";
 import type { AgentExecutionOutput } from "../run/types.js";
 import type { ExecutionOutput } from "./types.js";
@@ -13,7 +14,15 @@ const nodesOfStep = (step: FlowStep): readonly FlowNode[] => {
     case "nextEach":
       return [...step.from, step.target];
     case "choose":
-      return [...step.from, ...step.targets.filter((t): t is FlowNode => typeof t === "function" || (typeof t === "object" && t !== null && ("use" in t || "name" in t)))];
+      return [
+        ...step.from,
+        ...step.targets.filter(
+          (t): t is FlowNode =>
+            typeof t === "function" ||
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            (typeof t === "object" && t !== null && ("use" in t || "name" in t)),
+        ),
+      ];
     case "chain":
       return step.nodes;
     case "join":
