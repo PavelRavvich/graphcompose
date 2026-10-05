@@ -5,14 +5,14 @@ import { labelOf, Self, type FlowNode, type SelfTarget } from "../graph/flow.js"
 import { agentLoopGraph, loopInputOf, noJudges } from "../graph/agent-loop/index.js";
 import { RouterDecisionError } from "../graph/nodes/flow-router.js";
 import type { FlowStateType } from "../graph/flow-state.js";
-import type { ToolContext, ToolResult } from "../tools/index.js";
+import type { ToolContext, ToolOutput } from "../tools/index.js";
 import { TestSetupError } from "./errors.js";
 import { nodeNameOf } from "./failure-facts.js";
 import { toolNameOf } from "./script.js";
 
 /** One tool of the app, as the agents get it (validation, timeout, errors as results). */
 export interface ToolSlice<TInput, TOutput> {
-  invoke(input: TInput): Promise<ToolResult<TOutput>>;
+  invoke(input: TInput): Promise<ToolOutput<TOutput>>;
 }
 
 /** One router of the app on its own: a text in, the node it chooses out. */
@@ -45,7 +45,7 @@ export function toolSlice<TInput, TOutput>(
   };
   return {
     // the tool validates its result against the output DTO that `run` returns
-    invoke: async (input) => (await tool.invoke(input, ctx)) as ToolResult<TOutput>,
+    invoke: async (input) => (await tool.invoke(input, ctx)) as ToolOutput<TOutput>,
   };
 }
 

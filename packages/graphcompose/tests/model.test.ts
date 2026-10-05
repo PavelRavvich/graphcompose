@@ -52,7 +52,7 @@ describe("AC12: createAppDeps on an injected model gateway", () => {
     const env = { TERN_DB: ":memory:", SPEND_LEDGER_DIR: mkdtempSync(join(tmpdir(), "gc-135-")) };
     const app = await createApp(TestWorkflow, { env, gateway: { chatModel, decide } });
 
-    const result = await app.run(TestChat, { text: "What time is it?" });
+    const result = await app.execute(TestChat, { text: "What time is it?" });
     await app.close();
 
     expect(result.status).toBe("answered");

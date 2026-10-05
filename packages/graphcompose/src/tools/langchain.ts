@@ -1,9 +1,9 @@
 import type { ToolDefinition } from "@langchain/core/language_models/base";
 import { inputJsonSchema } from "../dto/schema.js";
-import type { AnyTool, ToolResult } from "./types.js";
+import type { AnyTool, ToolOutput } from "./types.js";
 
 /** What the model reads back: JSON of the value, or a readable error. */
-export function renderToolResult(result: ToolResult<unknown>): string {
+export function renderToolResult(result: ToolOutput<unknown>): string {
   if (result.kind === "error") return `Tool error: ${result.message}`;
   return typeof result.value === "string" ? result.value : JSON.stringify(result.value);
 }

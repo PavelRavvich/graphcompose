@@ -35,7 +35,7 @@ export interface RunOptions {
 /** How a run ended for its caller. Failures are thrown, not returned. */
 export type RunStatus = "answered" | "guarded" | "paused";
 
-export interface AgentRunResult {
+export interface AgentExecutionOutput {
   readonly status: RunStatus;
   readonly answer: string;
   /** Agents in the order they ran. */

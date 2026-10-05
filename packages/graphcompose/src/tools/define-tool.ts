@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import { pathOf } from "../dto/errors.js";
-import type { Tool, ToolContext, ToolEffect, ToolResult } from "./types.js";
+import type { Tool, ToolContext, ToolEffect, ToolOutput } from "./types.js";
 
 export const DEFAULT_TOOL_TIMEOUT_MS = 30_000;
 
@@ -35,7 +35,7 @@ const describeIssues = (error: z.ZodError): string =>
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-const failure = (message: string): ToolResult<never> => ({ kind: "error", message });
+const failure = (message: string): ToolOutput<never> => ({ kind: "error", message });
 
 /** Rejects when the signal aborts, even if the work ignores the signal. */
 function untilAborted<TValue>(work: Promise<TValue>, signal: AbortSignal): Promise<TValue> {
@@ -78,7 +78,7 @@ export function defineTool<TName extends string, TInput, TOutput>(
     );
   }
   const timeoutMs = definition.timeoutMs ?? DEFAULT_TOOL_TIMEOUT_MS;
-  const invoke = async (raw: unknown, ctx: ToolContext): Promise<ToolResult<TOutput>> => {
+  const invoke = async (raw: unknown, ctx: ToolContext): Promise<ToolOutput<TOutput>> => {
     const input = definition.input.safeParse(raw);
     if (!input.success) return failure(`invalid input: ${describeIssues(input.error)}`);
     let produced: unknown;

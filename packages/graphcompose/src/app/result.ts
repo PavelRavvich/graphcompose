@@ -1,7 +1,7 @@
 import { checkFlow } from "../graph/check-flow.js";
 import { isSelf, type Flow, type FlowNode, type FlowStep } from "../graph/flow.js";
-import type { AgentRunResult } from "../run/types.js";
-import type { RunResult } from "./types.js";
+import type { AgentExecutionOutput } from "../run/types.js";
+import type { ExecutionOutput } from "./types.js";
 
 /** Flow nodes by their key: the classes and named nodes a run's path is read back into. */
 export type FlowNodesByKey = ReadonlyMap<string, FlowNode>;
@@ -10,7 +10,7 @@ const nodesOfStep = (step: FlowStep): readonly FlowNode[] => {
   switch (step.kind) {
     case "to":
       return [...step.from, ...step.targets];
-    case "scatter":
+    case "nextEach":
       return [...step.from, step.target];
     case "choose":
       return [...step.from, ...step.targets.filter((t): t is FlowNode => typeof t === "function" || (typeof t === "object" && t !== null && ("use" in t || "name" in t)))];
@@ -35,7 +35,7 @@ export function flowNodesByKey(flow: Flow): FlowNodesByKey {
 }
 
 /** A run of the core, as the app reports it. */
-export function runResultOf(run: AgentRunResult, nodes: FlowNodesByKey): RunResult {
+export function runResultOf(run: AgentExecutionOutput, nodes: FlowNodesByKey): ExecutionOutput {
   return {
     thread: run.threadId,
     status: run.status,

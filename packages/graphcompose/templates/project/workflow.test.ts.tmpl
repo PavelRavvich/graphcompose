@@ -16,7 +16,7 @@ test("the main router sends the text to {{agentKebab}} and finishes with its ans
   modelOf(MainRouter).respond(decide({{agent}}Agent), decide(TextWorkflowFinish));
   modelOf({{agent}}Agent).respond(answer("Done."));
 
-  const result = await app.run(TextWorkflowStart, { text: "Hello" });
+  const result = await app.execute(TextWorkflowStart, { text: "Hello" });
 
   expect(result).toFollowPath([
     TextWorkflowStart,

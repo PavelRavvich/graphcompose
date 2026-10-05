@@ -1,4 +1,4 @@
-import type { RunResult } from "../app/types.js";
+import type { ExecutionOutput } from "../app/types.js";
 import type { Class } from "../components/injection.js";
 import type { WorkflowFinishText } from "../dto/standard/framework.js";
 import { labelOf, type FlowNode } from "../graph/flow.js";
@@ -43,19 +43,19 @@ const verdict = (
   message: () => `expected ${context.isNot ? "not " : ""}${expected}, ${got}`,
 });
 
-const isRunResult = (value: unknown): value is RunResult =>
+const isExecutionOutput = (value: unknown): value is ExecutionOutput =>
   typeof value === "object" && value !== null && "path" in value && "thread" in value;
 
 const wrongReceived = (matcher: string, wanted: string): Verdict => ({
   pass: false,
   message: () => `${matcher}: expected ${wanted}`,
 });
-const RUN = "a run result (app.run / app.resume)";
+const RUN = "a run result (app.execute / app.resume)";
 const SCRIPT = "modelOf(…) of an agent or a router";
 
 const pathText = (path: readonly FlowNode[]): string => path.map(labelOf).join(" → ") || "(none)";
 
-const endOf = (run: RunResult): string => {
+const endOf = (run: ExecutionOutput): string => {
   if (run.finish !== undefined)
     return `it finished at "${run.finish}" with ${JSON.stringify(run.output)}`;
   if (run.pause !== undefined) return `it paused at "${run.pause.agent}"`;
@@ -78,7 +78,7 @@ function hasParts(
 /** Matchers on run results, errors and `modelOf(…)` — all by class. Registered by the setup file. */
 export const workflowMatchers = {
   toFollowPath(this: MatcherContext, received: unknown, path: readonly FlowNode[]): Verdict {
-    if (!isRunResult(received)) return wrongReceived("toFollowPath", RUN);
+    if (!isExecutionOutput(received)) return wrongReceived("toFollowPath", RUN);
     const pass =
       received.path.length === path.length && received.path.every((node, i) => node === path[i]);
     return verdict(this, pass, `the path ${pathText(path)}`, `it was ${pathText(received.path)}`);
@@ -90,7 +90,7 @@ export const workflowMatchers = {
     finish: FlowNode,
     output?: WorkflowFinishText,
   ): Verdict {
-    if (!isRunResult(received)) return wrongReceived("toFinishWith", RUN);
+    if (!isExecutionOutput(received)) return wrongReceived("toFinishWith", RUN);
     const pass =
       received.finish === nodeNameOf(finish) &&
       (output === undefined || this.equals(received.output, output));
@@ -99,7 +99,7 @@ export const workflowMatchers = {
   },
 
   toHavePausedAt(this: MatcherContext, received: unknown, agent: FlowNode): Verdict {
-    if (!isRunResult(received)) return wrongReceived("toHavePausedAt", RUN);
+    if (!isExecutionOutput(received)) return wrongReceived("toHavePausedAt", RUN);
     const pass = received.pause?.agent === nodeNameOf(agent);
     return verdict(this, pass, `the run to pause at ${labelOf(agent)}`, endOf(received));
   },

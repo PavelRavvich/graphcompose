@@ -17,7 +17,7 @@ import {
 } from "./execute.js";
 import { finishRun } from "./finish.js";
 import { openThread } from "./thread.js";
-import type { AgentRunResult, RunDeps, RunOptions } from "./types.js";
+import type { AgentExecutionOutput, RunDeps, RunOptions } from "./types.js";
 import { runVersions } from "./versions.js";
 
 /** The workflow start a task goes to: the one asked for, else the text start (input `WorkflowStartText`). */
@@ -37,7 +37,7 @@ export async function runAgent<TName extends string>(
   input: unknown,
   deps: RunDeps<TName>,
   options: RunOptions = {},
-): Promise<AgentRunResult> {
+): Promise<AgentExecutionOutput> {
   const { task, threadId: requested, start } = RunInputSchema.parse(input);
   const account = options.account ?? workflowAccount(deps);
   const { threadId, history, summaries } = await openThread(deps, requested);

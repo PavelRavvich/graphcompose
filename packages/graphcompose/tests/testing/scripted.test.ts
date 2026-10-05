@@ -42,7 +42,7 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
     modelOf(MainRouter).respond(decide(Support), decide(Reply));
     modelOf(Support).respond(callTool(OrderStatus, { orderId: "42" }), answer("Shipped."));
 
-    const result = await app.run(ChatStart, { text: "Where is order 42?" });
+    const result = await app.execute(ChatStart, { text: "Where is order 42?" });
 
     expect(result).toFollowPath([ChatStart, MainRouter, Support, MainRouter, Reply]);
     expect(result).toFinishWith(Reply, { text: "Shipped." });
@@ -57,7 +57,7 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
       modelOf(Reviewer).respond(answer("fix A"), answer("fix B"), answer("clean"));
       modelOf(ReviewGate).respond(decide(Coder), decide(Coder), decide(PullRequest));
 
-      const result = await app.run(TaskStart, { text: "Add a flag" }); console.log("PATH:", result.path.map(n => n.name));
+      const result = await app.execute(TaskStart, { text: "Add a flag" }); console.log("PATH:", result.path.map(n => n.name));
 
       const lap = [Coder, Reviewer, ReviewGate];
       expect(result).toFollowPath([TaskStart, ...lap, ...lap, ...lap, PullRequest]);
@@ -70,8 +70,8 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
     modelOf(MainRouter).respond(decide(Writer), decide(Reply), decide(Writer), decide(Reply));
     modelOf(Writer).respond(answer("first")).thenAlways(answer("again"));
 
-    const first = await app.run(ChatStart, { text: "hi" });
-    const second = await app.run(ChatStart, { text: "hi again" }, { thread: first.thread });
+    const first = await app.execute(ChatStart, { text: "hi" });
+    const second = await app.execute(ChatStart, { text: "hi again" }, { thread: first.thread });
 
     expect(first.output).toEqual({ text: "first" });
     expect(second.output).toEqual({ text: "again" });
@@ -80,7 +80,7 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
   test("failWith: a router's failed call fails the run at the router", async ({ app, modelOf }) => {
     modelOf(MainRouter).respond(failWith(ModelFailure.Timeout));
 
-    await expect(app.run(ChatStart, { text: "hi" })).rejects.toFailWith({
+    await expect(app.execute(ChatStart, { text: "hi" })).rejects.toFailWith({
       code: "router.failed",
       node: MainRouter,
     });
@@ -90,7 +90,7 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
     modelOf(MainRouter).respond(decide(Writer));
     modelOf(Writer).respond(failWith(ModelFailure.RateLimited));
 
-    await expect(app.run(ChatStart, { text: "hi" })).rejects.toFailWith({ node: Writer });
+    await expect(app.execute(ChatStart, { text: "hi" })).rejects.toFailWith({ node: Writer });
   });
 
   test("a script shorter than the run fails clearly, naming the class", async ({
@@ -100,7 +100,7 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
     modelOf(MainRouter).respond(decide(Writer), decide(Writer));
     modelOf(Writer).respond(answer("only one"));
 
-    const run = app.run(ChatStart, { text: "hi" });
+    const run = app.execute(ChatStart, { text: "hi" });
 
     await expect(run).rejects.toFailWith({ code: "test.script-exhausted" });
     await expect(run).rejects.toThrow(/script exhausted for Writer: 1 turn scripted, asked for #2/);
@@ -112,7 +112,7 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
   }) => {
     modelOf(MainRouter).respond(decide(ChatStart));
 
-    await expect(app.run(ChatStart, { text: "hi" })).rejects.toThrow(
+    await expect(app.execute(ChatStart, { text: "hi" })).rejects.toThrow(
       /test.not-a-route: decide\(chat\) for MainRouter: not one of its routes \(reply, support, writer\)/,
     );
   });
@@ -121,7 +121,7 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
     modelOf(MainRouter).respond(decide(Writer, { cost: usd(0.001) }), decide(Reply));
     modelOf(Writer).respond(answer("hi", { cost: usd(0.002), truncated: true }));
 
-    const result = await app.run(ChatStart, { text: "hi" });
+    const result = await app.execute(ChatStart, { text: "hi" });
 
     expect(result.spend.totalUsd).toBeCloseTo(0.003, 9);
     expect(result.spend.byCaller).toMatchObject({ "router:main": 0.001 });
@@ -144,7 +144,7 @@ describe("AC12: scripts are picked by position, so a resumed run continues the s
       write_file: () => Promise.resolve({ content: "ok" }),
     });
 
-    const paused = await app.run(ChatStart, { text: "note: call back" });
+    const paused = await app.execute(ChatStart, { text: "note: call back" });
     const restarted = await restartApp();
     const done = await restarted.resume(paused.thread, approve);
 
@@ -166,11 +166,11 @@ describe("#148 AC4: restartApp() closes the current app and returns a new one ov
     modelOf(MainRouter).respond(decide(Writer), decide(Reply));
     modelOf(Writer).respond(answer("one"), answer("two"));
     await app.tool(OrderStatus).invoke({ orderId: "1" });
-    const first = await app.run(ChatStart, { text: "1" });
+    const first = await app.execute(ChatStart, { text: "1" });
     lifecycle.length = 0;
 
     const restarted = await restartApp();
-    const second = await restarted.run(ChatStart, { text: "2" });
+    const second = await restarted.execute(ChatStart, { text: "2" });
 
     expect(lifecycle).toEqual(["OrderBook.onStop", "OrderBook.onStart"]);
     expect([first.thread, second.thread]).toEqual(["thread-1", "thread-2"]);
@@ -180,7 +180,7 @@ describe("#148 AC4: restartApp() closes the current app and returns a new one ov
   test("the old app fails with test.app-closed after a restart", async ({ app, restartApp }) => {
     await restartApp();
 
-    await expect(app.run(ChatStart, { text: "hi" })).rejects.toFailWith({
+    await expect(app.execute(ChatStart, { text: "hi" })).rejects.toFailWith({
       code: "test.app-closed",
     });
     await expect(app.tool(OrderStatus).invoke({ orderId: "1" })).rejects.toThrow(
@@ -198,7 +198,7 @@ describe("#148 AC4: restartApp() closes the current app and returns a new one ov
     const second = await restartApp();
     const third = await restartApp();
 
-    await expect(second.run(ChatStart, { text: "hi" })).rejects.toFailWith({
+    await expect(second.execute(ChatStart, { text: "hi" })).rejects.toFailWith({
       code: "test.app-closed",
     });
     expect((await third.run(ChatStart, { text: "hi" })).output).toEqual({ text: "third" });

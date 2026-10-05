@@ -6,12 +6,12 @@ import { workflowStartMetaOf } from "../graph/workflow-start.decorator.js";
 import { withProfile } from "../profile-workflow.js";
 import { resumeAgent, NotPausedError } from "../run/resume-agent.js";
 import { runAgent } from "../run/run-agent.js";
-import type { AgentRunResult } from "../run/types.js";
+import type { AgentExecutionOutput } from "../run/types.js";
 import type { AssembledWorkflow } from "../workflow.js";
 import { createAppDeps, type AppDeps, type AppDepsOptions } from "./app-deps.js";
 import { createMemoryPausedRunRepository, type PausedRunRepository } from "./paused-runs.js";
 import { flowNodesByKey, runResultOf, type FlowNodesByKey } from "./result.js";
-import type { App, RunResult } from "./types.js";
+import type { App, ExecutionOutput } from "./types.js";
 
 export class NotAWorkflowStartError extends Error {
   override name = "NotAWorkflowStartError";
@@ -63,7 +63,7 @@ export async function buildApp(
   const nodes = flowNodesByKey(bundle.flow);
   const deps = await createAppDeps(bundle, options);
   const paused = options.pausedRuns ?? createMemoryPausedRunRepository();
-  const settle = (run: AgentRunResult): RunResult => {
+  const settle = (run: AgentExecutionOutput): ExecutionOutput => {
     if (run.status === "paused") paused.set(run);
     else paused.delete(run.threadId);
     return runResultOf(run, nodes);
@@ -75,7 +75,7 @@ export async function buildApp(
     warnings: deps.warnings,
     models: deps.models,
     textStart: textStartOf(nodes),
-    run: async (start, input, call = {}) => {
+    execute: async (start, input, call = {}) => {
       const meta = startMetaOf(start, nodes, deps.config.name);
       const { text } = validate(meta.input, input);
       const thread = call.thread === undefined ? {} : { threadId: call.thread };
@@ -99,7 +99,7 @@ export async function buildApp(
 /**
  * Builds a workflow into an app: the container, the graph (every assembly error at once), the
  * components' `onStart` hooks — `const app = await createApp(JobScout)`; then
- * `app.run(ChatWorkflowStart, { text })`, `app.resume(thread, decision)`, `app.close()`.
+ * `app.execute(ChatWorkflowStart, { text })`, `app.resume(thread, decision)`, `app.close()`.
  */
 export async function createApp(workflow: Class, options: AppOptions = {}): Promise<App> {
   const bundle = await withProfile(

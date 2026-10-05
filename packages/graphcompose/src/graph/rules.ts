@@ -17,7 +17,7 @@ export const targetsOf = (transition: Transition): readonly string[] => {
     case "to":
     case "choose":
       return transition.next.targets;
-    case "scatter":
+    case "nextEach":
     case "join":
     case "joinAny":
     case "joinQuorum":

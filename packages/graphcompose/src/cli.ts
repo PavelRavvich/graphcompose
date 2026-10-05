@@ -28,7 +28,7 @@ const busy = <T>(work: (signal: AbortSignal | undefined) => Promise<T>): Promise
   withSpinner(stderr, "thinking", () => work(undefined));
 const thread = values.thread === undefined ? {} : { thread: values.thread };
 const result = await busy(() =>
-  app.run(textStartOrFail(app), { text: positionals.join(" ") }, thread),
+  app.execute(textStartOrFail(app), { text: positionals.join(" ") }, thread),
 )
   .then((first) =>
     untilDone(

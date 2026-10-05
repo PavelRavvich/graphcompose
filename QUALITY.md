@@ -47,7 +47,7 @@ holds from its type**, not guess it from the name.
   `type ModelId = Brand<string, "ModelId">` (`src/types/brand.ts`). The brand is applied once,
   at the validated boundary.
 - **Discriminated unions for variants and outcomes**:
-  `type ToolResult<T> = { kind: "ok"; value: T } | { kind: "error"; error: ToolError }`.
+  `type ToolOutput<T> = { kind: "ok"; value: T } | { kind: "error"; error: ToolError }`.
   `switch` over `kind` is exhaustive (default branch assigns to `never`).
 - **One source per shape — derive, don't duplicate**: a DTO class is its own type; inside the
   framework `z.infer<typeof Schema>`, `typeof FlowState.State`, `ReturnType`, `Parameters`,

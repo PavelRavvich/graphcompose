@@ -1,5 +1,5 @@
 import type { BuiltApp } from "../app/create-app.js";
-import type { App, RunResult } from "../app/types.js";
+import type { App, ExecutionOutput } from "../app/types.js";
 import type { FlowNode } from "../graph/flow.js";
 import type { TestClock } from "./clock.js";
 import type { TestEnvironment } from "./environment.js";
@@ -20,7 +20,7 @@ import {
  * A blocked live call or a script problem fails the call, even when the run swallowed it; any call
  * after `close()` (or `restartApp()`) fails with `test.app-closed`.
  */
-export interface TestApp extends Pick<App, "run" | "resume" | "close"> {
+export interface TestApp extends Pick<App, "execute" | "resume" | "close"> {
   readonly clock: TestClock;
   agent(agent: FlowNode): AgentSlice;
   router(router: FlowNode): RouterSlice;
@@ -52,9 +52,9 @@ export function createTestApp(environment: TestEnvironment): TestApp {
   };
   return {
     clock: environment.clock,
-    run: (start, input, options) =>
-      checked(environment, async () => (await built()).app.run(start, input, options)),
-    resume: (thread, decision, options): Promise<RunResult> =>
+    execute: (start, input, options) =>
+      checked(environment, async () => (await built()).app.execute(start, input, options)),
+    resume: (thread, decision, options): Promise<ExecutionOutput> =>
       checked(environment, async () => (await built()).app.resume(thread, decision, options)),
     close: async () => {
       closed = true;

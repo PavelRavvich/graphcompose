@@ -50,7 +50,7 @@ describe("AC12: everything external is replaced; a live call fails the test befo
   }) => {
     modelOf(MainRouter).respond(decide(Writer));
 
-    const run = app.run(ChatStart, { text: "hi" });
+    const run = app.execute(ChatStart, { text: "hi" });
 
     await expect(run).rejects.toFailWith({ code: "test.live-call-blocked" });
     await expect(run).rejects.toThrow(/Writer has no script/);
@@ -74,7 +74,7 @@ describe("AC12: everything external is replaced; a live call fails the test befo
     modelOf(MainRouter).respond(decide(Support));
     modelOf(Support).respond(callTool(ReadNote, { title: "n1" }), answer("Read."));
 
-    await expect(app.run(ChatStart, { text: "read n1" })).rejects.toThrow(
+    await expect(app.execute(ChatStart, { text: "read n1" })).rejects.toThrow(
       /test.live-call-blocked: MCP server "notes" tool "read_text_file" has no stub; add mcpOf\(NotesServer\)/,
     );
   });
@@ -86,7 +86,7 @@ describe("AC12: everything external is replaced; a live call fails the test befo
       read_text_file: () => Promise.resolve({ content: "call back" }),
     });
 
-    const result = await app.run(ChatStart, { text: "read n1" });
+    const result = await app.execute(ChatStart, { text: "read n1" });
 
     expect(result).toFinishWith(Reply, { text: "Call back." });
     expect(toolResultsOf(modelOf(Support).lastRequest)).toEqual(['{"text":"call back"}']);
@@ -123,7 +123,7 @@ describe("AC12: everything external is replaced; a live call fails the test befo
     modelOf(MainRouter).respond(decide(Support));
     modelOf(Support).respond(callTool(SaveNote, { title: "n2", text: "x" }));
 
-    const result = await app.run(ChatStart, { text: "save" });
+    const result = await app.execute(ChatStart, { text: "save" });
 
     expect(result).toHavePausedAt(Support);
     expect(result.pause).toEqual({

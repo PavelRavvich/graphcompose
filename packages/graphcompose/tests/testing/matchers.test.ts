@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RunResult } from "../../src/app/types.js";
+import type { ExecutionOutput } from "../../src/app/types.js";
 import { buildCostReport } from "../../src/finops/usage.js";
 import { AgentFailedError } from "../../src/graph/errors.js";
 import { GraphRuleError, LimitExceededError, RouterDecisionError } from "../../src/graph/index.js";
@@ -15,7 +15,7 @@ import {
   Writer,
 } from "./fixtures/desk.workflow.js";
 
-const run = (parts: Partial<RunResult>): RunResult => ({
+const run = (parts: Partial<ExecutionOutput>): ExecutionOutput => ({
   thread: "thread-1",
   status: "answered",
   answer: "Hi.",
@@ -95,7 +95,7 @@ describe("AC12: matchers by class — a passing and a failing case, readable fai
   it("the run matchers want a run result", () => {
     expect(() => {
       expect({}).toFollowPath([]);
-    }).toThrow("toFollowPath: expected a run result (app.run / app.resume)");
+    }).toThrow("toFollowPath: expected a run result (app.execute / app.resume)");
     expect(() => {
       expect({}).toFinishWith(Reply);
     }).toThrow("toFinishWith: expected a run result");
@@ -118,7 +118,7 @@ describe("AC12: matchers on modelOf(…)", () => {
     modelOf(MainRouter).respond(decide(Support), decide(Reply));
     modelOf(Support).respond(callTool(OrderStatus, { orderId: "5" }), answer("Shipped."));
 
-    await app.run(ChatStart, { text: "where is 5?" });
+    await app.execute(ChatStart, { text: "where is 5?" });
 
     expect(modelOf(Support)).toHaveCalledTools([OrderStatus]);
     expect(modelOf(Writer)).toHaveCalledTools([]);

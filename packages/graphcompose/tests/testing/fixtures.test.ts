@@ -34,7 +34,7 @@ describe("AC12: mockOf — a typed mock injected instead of the class", () => {
     modelOf(MainRouter).respond(decide(Support), decide(Reply));
     modelOf(Support).respond(callTool(OrderStatus, { orderId: "7" }), answer("Lost."));
 
-    await app.run(ChatStart, { text: "where is 7?" });
+    await app.execute(ChatStart, { text: "where is 7?" });
 
     expect(mockOf(OrderBook).statusOf.mock.calls).toEqual([["7"]]);
     expect(toolResultsOf(modelOf(Support).lastRequest)).toEqual(['{"status":"order lost"}']);
@@ -60,7 +60,7 @@ describe("AC12: modelOf — what a component sent its model", () => {
     modelOf(MainRouter).respond(decide(Writer), decide(Reply));
     modelOf(Writer).respond(answer("Hello!"));
 
-    await app.run(ChatStart, { text: "say hello" });
+    await app.execute(ChatStart, { text: "say hello" });
 
     expect(modelOf(Writer).onlyRequest).toMatchObject({
       kind: "chat",

@@ -181,7 +181,7 @@ describe("AC12: named nodes are scripted and matched like classes", () => {
     async ({ app, modelOf }) => {
       modelOf(Editor).respond(answer("edited"));
 
-      const result = await app.run(ChatStart, { text: "edit this" });
+      const result = await app.execute(ChatStart, { text: "edit this" });
 
       expect(result).toFollowPath([ChatStart, Editor, Reply]);
       expect(result).toFinishWith(Reply, { text: "edited" });

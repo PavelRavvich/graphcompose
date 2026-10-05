@@ -19,7 +19,7 @@ export interface ToolContext {
 }
 
 /** Tool failures are values, not exceptions: the model sees them and can recover. */
-export type ToolResult<TOutput> =
+export type ToolOutput<TOutput> =
   | { readonly kind: "ok"; readonly value: TOutput }
   | { readonly kind: "error"; readonly message: string };
 
@@ -31,7 +31,7 @@ export interface Tool<TName extends string = string, TInput = unknown, TOutput =
   readonly timeoutMs: number;
   readonly input: z.ZodType<TInput>;
   readonly output: z.ZodType<TOutput>;
-  readonly invoke: (raw: unknown, ctx: ToolContext) => Promise<ToolResult<TOutput>>;
+  readonly invoke: (raw: unknown, ctx: ToolContext) => Promise<ToolOutput<TOutput>>;
   /** Who reported costs are billed to (default `tool:<name>`), e.g. `rag:<name>` → category retrieval. */
   readonly costCaller?: string;
 }

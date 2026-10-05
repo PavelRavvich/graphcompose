@@ -70,7 +70,7 @@ try {
     try {
       const thread = threadId === undefined ? {} : { thread: threadId };
       turn.interrupted = false;
-      const first = await busy((signal) => app.run(start, { text: line }, { ...thread, signal }));
+      const first = await busy((signal) => app.execute(start, { text: line }, { ...thread, signal }));
       const result = await untilDone(first, app, ask, busy);
       threadId = result.thread;
       say(`${styleText("cyan", "agent ›")} ${result.answer}`);

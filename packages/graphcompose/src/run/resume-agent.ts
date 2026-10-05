@@ -14,7 +14,7 @@ import {
 } from "./execute.js";
 import { finishRun } from "./finish.js";
 import { isWaiting, pausedLoopOf } from "./paused.js";
-import type { AgentRunResult, RunDeps } from "./types.js";
+import type { AgentExecutionOutput, RunDeps } from "./types.js";
 import { runVersions } from "./versions.js";
 
 export class NotPausedError extends Error {
@@ -23,7 +23,7 @@ export class NotPausedError extends Error {
 
 /** The flow graph and the paused agent loop's state of a run that is really waiting for an approval. */
 async function pausedRun<TName extends string>(
-  paused: AgentRunResult,
+  paused: AgentExecutionOutput,
   deps: RunDeps<TName>,
 ): Promise<{ flow: FlowGraph; before: AgentStateType }> {
   const pause = deps.pause;
@@ -49,11 +49,11 @@ async function pausedRun<TName extends string>(
  * recorded before the pause is not recorded again.
  */
 export async function resumeAgent<TName extends string>(
-  paused: AgentRunResult,
+  paused: AgentExecutionOutput,
   decision: ToolCallApprovalDecision,
   deps: RunDeps<TName>,
   options: { readonly signal?: AbortSignal | undefined } = {},
-): Promise<AgentRunResult> {
+): Promise<AgentExecutionOutput> {
   const { flow, before } = await pausedRun(paused, deps);
   const spent: UsageRecord[] = [];
   const record = recorder(deps, workflowAccount(deps), spent);

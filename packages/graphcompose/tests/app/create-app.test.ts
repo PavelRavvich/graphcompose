@@ -113,7 +113,7 @@ describe("AC12: createApp — the real app", () => {
     book.scriptOf("router:review-gate").respond(decide(PullRequest));
     const app = await createApp(CodeReview, offline(book));
 
-    const result = await app.run(TaskStart, { text: "Add a flag" });
+    const result = await app.execute(TaskStart, { text: "Add a flag" });
     await app.close();
 
     expect(result).toMatchObject({
@@ -138,7 +138,7 @@ describe("AC12: createApp — the real app", () => {
       .respond(callTool(SaveNote, { title: "a", text: "b" }), answer("Saved."));
     const app = await createApp(Desk, offline(book, stubs));
 
-    const paused = await app.run(ChatStart, { text: "save a note" });
+    const paused = await app.execute(ChatStart, { text: "save a note" });
     const done = await app.resume(paused.thread, { approved: true, by: "dana" });
 
     expect(paused).toMatchObject({
@@ -173,11 +173,11 @@ describe("AC12: createApp — the real app", () => {
     const book = new ScriptBook();
     const app = await createApp(CodeReview, offline(book));
 
-    await expect(app.run(ChatStart, { text: "hi" })).rejects.toBeInstanceOf(NotAWorkflowStartError);
-    await expect(app.run(Reply, { text: "hi" })).rejects.toThrow(
+    await expect(app.execute(ChatStart, { text: "hi" })).rejects.toBeInstanceOf(NotAWorkflowStartError);
+    await expect(app.execute(Reply, { text: "hi" })).rejects.toThrow(
       'Reply is not a workflow start of "code-review"',
     );
-    await expect(app.run(TaskStart, { text: "" })).rejects.toBeInstanceOf(DtoValidationError);
+    await expect(app.execute(TaskStart, { text: "" })).rejects.toBeInstanceOf(DtoValidationError);
     expect(book.scriptOf("agent:coder").requests).toEqual([]);
     await app.close();
   });
@@ -188,8 +188,8 @@ describe("AC12: createApp — the real app", () => {
     book.scriptOf("agent:writer").respond(answer("chat"));
     const app = await createApp(TwoStarts, offline(book));
 
-    const ticket = await app.run(TicketStart, { text: "printer broken", id: "T-1" } as Ticket);
-    const chat = await app.run(ChatStart, { text: "hi" });
+    const ticket = await app.execute(TicketStart, { text: "printer broken", id: "T-1" } as Ticket);
+    const chat = await app.execute(ChatStart, { text: "hi" });
     await app.close();
 
     expect(ticket).toMatchObject({

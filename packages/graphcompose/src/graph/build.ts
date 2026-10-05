@@ -125,7 +125,7 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
     builder.addConditionalEdges(id, () => targets);
     return;
   }
-  if (next.kind === "scatter") {
+  if (next.kind === "nextEach") {
     const targetId = graphNodeId(nodeKeyed(model, next.target));
     builder.addConditionalEdges(id, (state) => {
       // In a real implementation we would extract items from state payload here

@@ -187,7 +187,7 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 packages/graphcompose/        the framework (npm package `graphcompose`; builds to dist/, bin `graphcompose`)
   src/
     index.ts        public API (components, createApp, runAgent / resumeAgent, createAppDeps, RAG, tools, types)
-    app/            createApp → app.run / resume / close; app-deps.ts — production wiring (model gateway,
+    app/            createApp → app.execute / resume / close; app-deps.ts — production wiring (model gateway,
                     MCP, ledger, Terns, tracing), every part replaceable
     testing/        `graphcompose/testing`: testWith (Vitest fixtures), scripted gateway, matchers, setup.ts
     components/     @Tool @Agent @McpServer @McpTool @Rag @Injectable @Workflow, DI container, workflowOf

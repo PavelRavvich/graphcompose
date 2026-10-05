@@ -70,14 +70,14 @@ describe("AC6: limits per run use the providers' cost", () => {
     );
     modelOf(Writer).respond(answer("done", { cost: usd(0.02) }));
 
-    const result = await app.run(TaskStart, { text: "go" });
+    const result = await app.execute(TaskStart, { text: "go" });
     expect(result.spend.totalUsd).toBeCloseTo(0.03, 6);
     expect(result.spend.trace.map((line) => [line.caller, line.costSource])).toEqual([
       ["summariser", "price-table"],
       ["writer", "api"],
     ]);
 
-    const overRun = app.run(TaskStart, { text: "again" });
+    const overRun = app.execute(TaskStart, { text: "again" });
     await expect(overRun).rejects.toFailWith({ code: "limits.perRun.cost" });
   });
 });

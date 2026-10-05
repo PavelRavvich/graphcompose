@@ -136,7 +136,7 @@ export class TestEnvironment {
     }
     if (this.#apps.length > 0) {
       throw new TestSetupError(
-        `mockOf(${cls.name}) after the app started: call it before the first app.run(…)`,
+        `mockOf(${cls.name}) after the app started: call it before the first app.execute(…)`,
       );
     }
     const mock = mockInstanceOf(cls);

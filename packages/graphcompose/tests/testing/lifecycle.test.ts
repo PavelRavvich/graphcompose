@@ -50,8 +50,8 @@ describe("AC12: isolation per test", () => {
       scriptTurn(modelOf, "A1");
       scriptTurn(modelOf, "A2");
 
-      const first = await app.run(ChatStart, { text: "I am A" });
-      await app.run(ChatStart, { text: "and again" }, { thread: first.thread });
+      const first = await app.execute(ChatStart, { text: "I am A" });
+      await app.execute(ChatStart, { text: "and again" }, { thread: first.thread });
 
       expect(first.thread).toBe("thread-1");
       expect(modelOf(MainRouter).lastRequest.input).toContain("I am A");
@@ -65,8 +65,8 @@ describe("AC12: isolation per test", () => {
       scriptTurn(modelOf, "B1");
       scriptTurn(modelOf, "B2");
 
-      const first = await app.run(ChatStart, { text: "I am B" });
-      await app.run(ChatStart, { text: "and again" }, { thread: first.thread });
+      const first = await app.execute(ChatStart, { text: "I am B" });
+      await app.execute(ChatStart, { text: "and again" }, { thread: first.thread });
 
       expect(first.thread).toBe("thread-1");
       expect(modelOf(MainRouter).lastRequest.input).toContain("I am B");
@@ -86,11 +86,11 @@ describe("AC12: a controllable clock — the per-day limit resets after midnight
     const cost = { cost: usd(0.03) };
     modelOf(Writer).respond(answer("one", cost), answer("two", cost), answer("three", cost));
 
-    await app.run(ChatStart, { text: "1" });
-    const overDay = app.run(ChatStart, { text: "2" });
+    await app.execute(ChatStart, { text: "1" });
+    const overDay = app.execute(ChatStart, { text: "2" });
     await expect(overDay).rejects.toFailWith({ code: "limits.perDay.cost" });
     app.clock.advance("25h");
-    const nextDay = await app.run(ChatStart, { text: "3" });
+    const nextDay = await app.execute(ChatStart, { text: "3" });
 
     expect(nextDay.output).toEqual({ text: "three" });
   });

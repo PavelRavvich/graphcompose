@@ -20,7 +20,7 @@ export {
 } from "./app/app-deps.js";
 export { createApp, NotAWorkflowStartError, type AppOptions } from "./app/create-app.js";
 export type { PausedRunRepository } from "./app/paused-runs.js";
-export type { App, RunCallOptions, RunResult } from "./app/types.js";
+export type { App, ExecutionOptions, ExecutionOutput } from "./app/types.js";
 export { studioGraphOf } from "./studio.js";
 export { loadWorkflow, loadWorkflowClass, WorkflowLoadError } from "./cli/load-workflow.js";
 export { withProfile } from "./profile-workflow.js";
@@ -29,7 +29,7 @@ export type { GraphDeps } from "./graph/deps.js";
 export { resumeAgent, NotPausedError } from "./run/resume-agent.js";
 export { runAgent } from "./run/run-agent.js";
 export { UnknownThreadError } from "./run/thread.js";
-export type { AgentRunResult, RunDeps, RunOptions, RunStatus, SpendAccount } from "./run/types.js";
+export type { AgentExecutionOutput, RunDeps, RunOptions, RunStatus, SpendAccount } from "./run/types.js";
 export { runVersions } from "./run/versions.js";
 export * from "./rag/index.js";
 export {
@@ -38,7 +38,7 @@ export {
   type Tool as TypedTool,
   type ToolContext,
   type ToolEffect,
-  type ToolResult,
+  type ToolOutput,
 } from "./tools/index.js";
 export type { RouteOutcome, RouteRequest, Router } from "./routers/index.js";
 export type { UsageRecord } from "./finops/usage.js";

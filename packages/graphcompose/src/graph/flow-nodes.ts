@@ -32,7 +32,7 @@ export interface FlowNodeRef {
 /** A node's declared next step: one unconditional target, or a router's choice. */
 export type NextDeclaration =
   | { readonly kind: "to"; readonly targets: readonly string[] }
-  | { readonly kind: "scatter"; readonly target: string }
+  | { readonly kind: "nextEach"; readonly target: string }
   | { readonly kind: "choose"; readonly targets: readonly string[]; readonly self: boolean; readonly skip: boolean }
   | { readonly kind: "join"; readonly target: string; readonly joinSources: readonly string[] }
   | { readonly kind: "joinAny"; readonly target: string; readonly joinSources: readonly string[] }
@@ -130,10 +130,10 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
       return sources.map((from) => ({ from, next }));
     }
     
-    case "scatter": {
+    case "nextEach": {
       const sources = defined(step.from.map(resolve));
       const target = resolve(step.target);
-      return target === undefined ? [] : sources.map(from => ({ from, next: { kind: "scatter", target, extractor: step.extractor } }));
+      return target === undefined ? [] : sources.map(from => ({ from, next: { kind: "nextEach", target, extractor: step.extractor } }));
     }
     case "joinAny":
     case "joinQuorum":

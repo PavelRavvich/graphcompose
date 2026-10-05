@@ -6,7 +6,7 @@ import { compactIfDue } from "./compaction.js";
 import type { RunContext } from "./execute.js";
 import type { PendingApproval } from "../pause/index.js";
 import { isWaiting, pausedLoopOf } from "./paused.js";
-import type { AgentRunResult, RunDeps, RunStatus } from "./types.js";
+import type { AgentExecutionOutput, RunDeps, RunStatus } from "./types.js";
 
 /** Where the run ended: the workflow finish it reached, if it reached one (not when guarded or paused). */
 function finishOf<TName extends string>(
@@ -83,7 +83,7 @@ export async function finishRun<TName extends string>(
   ctx: RunContext<TName>,
   state: FlowStateType,
   existingTernId?: string,
-): Promise<AgentRunResult> {
+): Promise<AgentExecutionOutput> {
   const { current, paused, pending } = await stoppedState(ctx, state);
   const outcome = outcomeOf(current, paused);
   let ternId = existingTernId;

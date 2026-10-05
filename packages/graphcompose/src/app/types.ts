@@ -7,10 +7,10 @@ import type {
 import type { CostReport } from "../finops/usage.js";
 import type { FlowNode } from "../graph/flow.js";
 import type { PendingApproval } from "../pause/index.js";
-import type { AgentRunResult } from "../run/types.js";
+import type { AgentExecutionOutput } from "../run/types.js";
 
 /** Per call: the conversation to continue (omit for a new one) and a signal to stop the run. */
-export interface RunCallOptions {
+export interface ExecutionOptions {
   readonly thread?: string;
   readonly signal?: AbortSignal | undefined;
 }
@@ -19,8 +19,8 @@ export interface RunCallOptions {
  * What one run (or resume) of the app ended with. `finish` / `output` when it reached a workflow
  * finish, `pause` when it waits for an approval; `path` = the flow nodes it visited, `spend` = its cost.
  */
-export interface RunResult extends Pick<
-  AgentRunResult,
+export interface ExecutionOutput extends Pick<
+  AgentExecutionOutput,
   "status" | "answer" | "route" | "stopReason" | "compacted" | "traceUrl"
 > {
   readonly thread: string;
@@ -49,11 +49,11 @@ export interface App {
   readonly models: readonly string[];
   /** The workflow start a plain text goes to (input `WorkflowStartText`), if the flow has one. */
   readonly textStart: Class | undefined;
-  run(start: Class, input: WorkflowStartText, options?: RunCallOptions): Promise<RunResult>;
+  execute(start: Class, input: WorkflowStartText, options?: ExecutionOptions): Promise<ExecutionOutput>;
   resume(
     thread: string,
     decision: ToolCallApprovalDecision,
-    options?: Pick<RunCallOptions, "signal">,
-  ): Promise<RunResult>;
+    options?: Pick<ExecutionOptions, "signal">,
+  ): Promise<ExecutionOutput>;
   close(): Promise<void>;
 }

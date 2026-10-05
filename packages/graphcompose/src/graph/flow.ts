@@ -53,8 +53,8 @@ export interface JoinStep {
 }
 
 
-export interface ScatterStep {
-  readonly kind: "scatter";
+export interface NextEachStep {
+  readonly kind: "nextEach";
   readonly from: readonly FlowNode[];
   readonly target: FlowNode;
   readonly extractor: (payload: any) => any[];
@@ -73,7 +73,7 @@ export interface JoinQuorumStep {
   readonly target: FlowNode;
 }
 
-export type FlowStep = ToStep | ChooseStep | ChainStep | JoinStep | ScatterStep | JoinAnyStep | JoinQuorumStep;
+export type FlowStep = ToStep | ChooseStep | ChainStep | JoinStep | NextEachStep | JoinAnyStep | JoinQuorumStep;
 
 
 /** The graph of a workflow: its transitions, in the workflow file. */
@@ -82,7 +82,7 @@ export type Flow = readonly FlowStep[];
 /** What `from(...)` returns: the step's kind is chosen next. */
 export interface FlowSource {
   readonly next: (target: FlowNode) => ToStep;
-  readonly nextParallel: (...args: any[]) => ToStep | ScatterStep; // Simplified for runtime AST
+  readonly nextParallel: (...args: any[]) => ToStep | NextEachStep; // Simplified for runtime AST
   readonly routeOne: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
   readonly routeOneOrSkip: (target: ChoiceTarget) => ChooseStep;
   readonly routeManyOrSkip: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
@@ -99,7 +99,7 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
     next: (target) => ({ kind: "to", from: sources, targets: [target] }),
     nextParallel: (...args) => {
       if (args.length === 2 && typeof args[1] === "function" && !nodeInfoOf(args[1])) {
-        return { kind: "scatter", from: sources, target: args[0] as FlowNode, extractor: args[1] as any };
+        return { kind: "nextEach", from: sources, target: args[0] as FlowNode, extractor: args[1] as any };
       }
       return { kind: "to", from: sources, targets: args as FlowNode[] };
     },

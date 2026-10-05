@@ -33,8 +33,8 @@ function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): strin
   switch (step.kind) {
     case "to":
       return `${step.from.map(name).join(", ")} → ${step.targets.map(name).join(", ")}`;
-    case "scatter":
-      return `${step.from.map(name).join(", ")} ⇉ [scatter] ${name(step.target)}`;
+    case "nextEach":
+      return `${step.from.map(name).join(", ")} ⇉ [nextEach] ${name(step.target)}`;
     case "choose":
       return `${step.from.map(name).join(", ")} → ${step.targets.map(name).join(" | ")}`;
     case "chain":
