@@ -23,10 +23,11 @@ npm i graphcompose
 ```
 
 ```ts
-// src/agents/scout.agent.ts — its prompt is scout.prompt.md next to it (like templateUrl)
+// src/agents/scout.agent.ts — instructions are explicitly loaded via file()
 @Agent({
   name: "scout",
   description: "Finds jobs",
+  instructions: file("./scout.prompt.md"),
   model: "moonshotai/kimi-k2.6",
   price,
   tools: [GreenhouseJobs],
