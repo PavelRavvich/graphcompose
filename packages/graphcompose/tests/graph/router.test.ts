@@ -41,10 +41,10 @@ class Texts {}
 class Lost {}
 
 const selfFlow: Flow = [
-  from(Start).to(Pick),
-  from(Pick).choose(A, B),
-  from(A, B).to(Gate),
-  from(Gate).choose(Self, Done),
+  from(Start).next(Pick),
+  from(Pick).routeOne(A, B),
+  from(A, B).next(Gate),
+  from(Gate).routeOne(Self, Done),
 ];
 
 async function run(flow: Flow, routers: Readonly<Record<string, RoutingStrategy>>) {
@@ -75,7 +75,7 @@ describe("AC1: routers", () => {
   it("joins prompt then files with one blank line, normalised (BOM, CRLF, edges, NFC)", async () => {
     const texts = scriptedRouter("texts", ["done"]);
 
-    await run([from(Start).to(Texts), from(Texts).choose(A, Done), from(A).to(Done)], { texts });
+    await run([from(Start).next(Texts), from(Texts).routeOne(A, Done), from(A).next(Done)], { texts });
 
     expect(texts.requests[0]?.instructions).toBe(
       "Decide carefully.\n\nLook at the review.\n  Keep indentation.",
@@ -129,7 +129,7 @@ describe("AC1: routers", () => {
 
   it("a missing prompt file fails assembly", async () => {
     await expect(
-      assembleFlowGraph([from(Start).to(Lost), from(Lost).choose(Done)], testRuntime({})),
+      assembleFlowGraph([from(Start).next(Lost), from(Lost).routeOne(Done)], testRuntime({})),
     ).rejects.toBeInstanceOf(ComponentError);
   });
 });
@@ -163,7 +163,7 @@ describe("AC1: routers through the existing routing strategies", () => {
   });
 
   it("a router with one route decides without a model call", async () => {
-    const flow: Flow = [from(Start).to(A), from(A).to(Only), from(Only).choose(Done)];
+    const flow: Flow = [from(Start).next(A), from(A).next(Only), from(Only).routeOne(Done)];
     const { graph } = await assembleFlowGraph(flow, runtime);
 
     const state = await graph.invoke({ task: "go" });
@@ -173,7 +173,7 @@ describe("AC1: routers through the existing routing strategies", () => {
   });
 
   it("a chat-model router decides from the model's JSON and records its usage", async () => {
-    const flow: Flow = [from(Start).to(Chatty), from(Chatty).choose(A, Done), from(A).to(Done)];
+    const flow: Flow = [from(Start).next(Chatty), from(Chatty).routeOne(A, Done), from(A).next(Done)];
     const { graph } = await assembleFlowGraph(flow, runtime);
 
     const state = await graph.invoke({ task: "go" });

@@ -35,7 +35,7 @@ class TicketStart {}
 @Workflow({
   name: "tickets",
   version: "1.0.0",
-  flow: [from(TicketStart).to(Writer), from(Writer).to(Reply)],
+  flow: [from(TicketStart).next(Writer), from(Writer).next(Reply)],
   defaults: {
     chat: { temperature: 0, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-1.13" },

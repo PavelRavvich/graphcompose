@@ -10,14 +10,15 @@ const nodesOfStep = (step: FlowStep): readonly FlowNode[] => {
   switch (step.kind) {
     case "to":
       return [...step.from, ...step.targets];
+    case "scatter":
+      return [...step.from, step.target];
     case "choose":
-      return [
-        ...step.from,
-        ...step.targets.filter((target): target is FlowNode => !isSelf(target)),
-      ];
+      return [...step.from, ...step.targets.filter((t): t is FlowNode => typeof t === "function" || (typeof t === "object" && t !== null && ("use" in t || "name" in t)))];
     case "chain":
       return step.nodes;
     case "join":
+    case "joinAny":
+    case "joinQuorum":
       return [...step.from, step.target];
   }
 };

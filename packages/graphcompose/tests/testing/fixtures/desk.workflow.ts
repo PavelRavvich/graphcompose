@@ -209,9 +209,9 @@ export class MainRouter {}
   name: "desk",
   version: "1.0.0",
   flow: [
-    from(ChatStart).to(MainRouter),
-    from(MainRouter).choose(Support, Writer, Reply),
-    from(Support, Writer).to(MainRouter),
+    from(ChatStart).next(MainRouter),
+    from(MainRouter).routeOne(Support, Writer, Reply),
+    from(Support, Writer).next(MainRouter),
   ],
   defaults: {
     chat: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },

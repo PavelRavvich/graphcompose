@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Workflow, Agent } from "../../../src/components/index.js";
 import { workflowOf } from "../../../src/components/assemble.js";
 import { WorkflowStart, WorkflowFinish, from } from "../../../src/graph/index.js";
+import { recordNode } from "../../../src/graph/node-kind.js";
 import { WorkflowStartText, WorkflowFinishText } from "../../../src/dto/index.js";
 import type { JoinOutput, JoinHandler } from "../../../src/graph/fork-join.js";
 import { assembleFlowGraph } from "../../../src/graph/build.js";
@@ -10,19 +11,19 @@ import type { WorkflowDefinition } from "../../../src/graph/settings.js";
 import { WorkflowSettings } from "../../../src/graph/settings.js";
 
 @WorkflowStart({ name: "startNode", description: "Start", input: WorkflowStartText })
-class StartNode {}
+export class StartNode {}
 
 @WorkflowFinish({ name: "finishNode", description: "Finish", output: WorkflowFinishText })
-class FinishNode {}
+export class FinishNode {}
 
 @Agent({ name: "branchA", model: "stub", description: "a" })
-class BranchAAgent {}
+export class BranchAAgent {}
 
 @Agent({ name: "branchB", model: "stub", description: "b" })
-class BranchBAgent {}
+export class BranchBAgent {}
 
 @Agent({ name: "joinNode", model: "stub", description: "j" })
-class JoinNodeAgent implements JoinHandler<
+export class JoinNodeAgent implements JoinHandler<
   Record<string, import("../../../src/graph/fork-join.js").ForkOutput>
 > {
   onJoin(
@@ -49,18 +50,20 @@ class JoinNodeAgent implements JoinHandler<
     router: { kind: "llm", model: "stub" },
   },
   flow: [
-    from(StartNode).to(BranchAAgent, BranchBAgent),
+    from(StartNode).nextParallel(BranchAAgent, BranchBAgent),
     from(BranchAAgent, BranchBAgent).join(JoinNodeAgent),
-    from(JoinNodeAgent).to(FinishNode),
+    from(JoinNodeAgent).next(FinishNode),
   ],
 })
-class ForkJoinWorkflow implements WorkflowDefinition {
+export class ForkJoinWorkflow implements WorkflowDefinition {
   settings(): WorkflowSettings {
     return WorkflowSettings.builder().build();
   }
 }
 
 describe("fork-join", () => {
+  recordNode(StartNode, { kind: "workflow-start", name: "startNode" });
+  recordNode(FinishNode, { kind: "workflow-finish", name: "finishNode" });
   it("compiles and runs correctly", async () => {
     const assembled = await workflowOf(ForkJoinWorkflow);
     expect(assembled.flow).toBeDefined();
@@ -102,7 +105,7 @@ describe("fork-join", () => {
 
     expect(result.contributions.length).toBeGreaterThan(0);
     const joinedContrib = result.contributions.find((c) =>
-      typeof c.content === "string" ? c.content : "".startsWith("Joined:"),
+      (typeof c.content === "string" ? c.content : "").startsWith("Joined:"),
     );
     if (!joinedContrib) throw new Error("Missing");
     expect(joinedContrib.content).toBe("Joined: Result A and Result B");

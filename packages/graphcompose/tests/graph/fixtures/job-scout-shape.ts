@@ -58,9 +58,9 @@ class MainRouter {}
 
 /** The job-scout flow (#116 approved shape) over test nodes. */
 export const jobScoutFlow: Flow = [
-  from(ChatWorkflowStart).to(MainRouter),
-  from(MainRouter).choose(Profiler, Scout, Shortlist, ChatWorkflowFinish),
-  from(Profiler, Scout, Shortlist).to(MainRouter),
+  from(ChatWorkflowStart).next(MainRouter),
+  from(MainRouter).routeOne(Profiler, Scout, Shortlist, ChatWorkflowFinish),
+  from(Profiler, Scout, Shortlist).next(MainRouter),
 ];
 
 type JobScoutAgent = "profiler" | "scout" | "shortlist";

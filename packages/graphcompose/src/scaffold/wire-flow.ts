@@ -41,7 +41,7 @@ interface Insert {
   readonly text: string;
 }
 
-/** Before the last element (`choose(A, Finish)` → `choose(A, B, Finish)`) or after the last one. */
+/** Before the last element (`routeOne(A, Finish)` → `routeOne(A, B, Finish)`) or after the last one. */
 function insertion(
   list: ts.NodeArray<ts.Expression>,
   element: string,
@@ -65,18 +65,18 @@ const applyInserts = (text: string, inserts: readonly Insert[]): string =>
     );
 
 /**
- * Puts a new agent into a star flow: `from(Router).choose(…, Agent, Finish)` and
- * `from(…, Agent).to(Router)`; an unexpected shape → an error naming the file — never a guess.
+ * Puts a new agent into a star flow: `from(Router).routeOne(…, Agent, Finish)` and
+ * `from(…, Agent).next(Router)`; an unexpected shape → an error naming the file — never a guess.
  */
 export function addAgentToFlow(file: FileToWrite, agent: string, router: string): FileToWrite {
   const source = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true);
   const calls = flowCalls(source);
   const choose = calls.find(
-    (c) => c.method === "choose" && names(c.sources, source).join() === router,
+    (c) => c.method === "routeOne" && names(c.sources, source).join() === router,
   );
   const back = calls.find(
     (c) =>
-      c.method === "to" &&
+      c.method === "next" &&
       names(c.args, source).join() === router &&
       !names(c.sources, source).includes("TextWorkflowStart"),
   );
@@ -84,7 +84,7 @@ export function addAgentToFlow(file: FileToWrite, agent: string, router: string)
   const intoReturn = back === undefined ? undefined : insertion(back.sources, agent, false);
   if (intoChoice === undefined || intoReturn === undefined) {
     throw new ScaffoldError(
-      `${file.path}: no from(${router}).choose(…) and from(…).to(${router}) in the flow — add ${agent} by hand`,
+      `${file.path}: no from(${router}).routeOne(…) and from(…).next(${router}) in the flow — add ${agent} by hand`,
     );
   }
   return { path: file.path, content: applyInserts(file.content, [intoChoice, intoReturn]) };

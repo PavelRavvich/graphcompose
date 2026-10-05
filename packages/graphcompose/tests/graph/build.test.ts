@@ -36,9 +36,9 @@ class Spin {}
 class Star {}
 
 /** The job-scout shape: workflow start → router star → agent → router again → … → workflow finish. */
-const starFlow: Flow = [from(Start).to(Star), from(Star).choose(A, B, Done), from(A, B).to(Star)];
+const starFlow: Flow = [from(Start).next(Star), from(Star).routeOne(A, B, Done), from(A, B).next(Star)];
 
-const twoStarts: Flow = [from(Start, WebhookWorkflowStart).to(A), from(A).to(Done)];
+const twoStarts: Flow = [from(Start, WebhookWorkflowStart).next(A), from(A).next(Done)];
 
 describe("AC1: the flow runs as a LangGraph graph", () => {
   it("runs the code-review shape from workflow start to workflow finish, through the gate-router cycle", async () => {
@@ -96,6 +96,8 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
       "agent.reviewer",
       "router.main",
       "router.review-gate",
+      "skip-wrap",
+
       "workflow-finish.answer",
       "workflow-finish.pull-request",
       "workflow-start.chat",
@@ -120,7 +122,7 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
   });
 
   it("runs past LangGraph's default recursion limit when the steps limit allows it", async () => {
-    const flow: Flow = [from(Start).to(A), from(A).to(Spin), from(Spin).choose(Self, Done)];
+    const flow: Flow = [from(Start).next(A), from(A).next(Spin), from(Spin).routeOne(Self, Done)];
     const spin = scriptedRouter("spin", [...Array<string>(20).fill("self"), "done"]);
     const built = await assembleFlowGraph(
       flow,

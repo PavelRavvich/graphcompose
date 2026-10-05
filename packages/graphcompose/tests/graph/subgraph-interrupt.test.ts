@@ -42,7 +42,7 @@ const runtime = testRuntime(
 
 describe("AC1: a compiled subgraph as a flow node", () => {
   it("an interrupt() inside the subgraph pauses the whole run; resume continues it", async () => {
-    const { graph } = await assembleFlowGraph([from(Start).to(A), from(A).to(Done)], runtime);
+    const { graph } = await assembleFlowGraph([from(Start).next(A), from(A).next(Done)], runtime);
     const config = { configurable: { thread_id: "subgraph-interrupt" } };
 
     await graph.invoke({ task: "deploy" }, config);

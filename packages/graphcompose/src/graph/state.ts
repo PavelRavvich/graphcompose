@@ -44,4 +44,8 @@ export const AgentState = Annotation.Root({
 });
 
 export type AgentStateType = typeof AgentState.State;
+
+/** Strongly typed agent state wrapper to strictly define the expected payload. */
+export type AgentState<Payload = Record<string, unknown>> = Omit<AgentStateType, "payload"> & { payload: Payload };
+
 export type AgentStateUpdate = typeof AgentState.Update;

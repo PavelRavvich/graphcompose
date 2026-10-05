@@ -23,9 +23,9 @@ export function starOf(...agents: readonly [Class, ...Class[]]): Flow {
   })
   class Main {}
   return [
-    from(TestChat).to(Main),
-    from(Main).choose(...agents, TestAnswer),
-    from(...agents).to(Main),
+    from(TestChat).next(Main),
+    from(Main).routeOne(...agents, TestAnswer),
+    from(...agents).next(Main),
   ];
 }
 

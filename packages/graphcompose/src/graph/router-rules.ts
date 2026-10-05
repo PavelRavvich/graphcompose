@@ -1,4 +1,4 @@
-import { isSelf, labelOf } from "./flow.js";
+import { isSelf, isSkip, labelOf } from "./flow.js";
 import type { CollectedFlow, FlowNodeRef, NextDeclaration } from "./flow-nodes.js";
 import type { PromptSource, RouteDeclaration } from "./route.js";
 import { routerMetaOf, type RouterMeta } from "./router.decorator.js";
@@ -29,12 +29,13 @@ function textRules(router: FlowNodeRef, meta: RouterMeta): RuleViolation[] {
 /** A route's key: the target node's key, `Self`, or the class label when it is not in the flow. */
 function routeKey(flow: CollectedFlow, declaration: RouteDeclaration): string {
   if (isSelf(declaration.target)) return SELF_LABEL;
+  if (isSkip(declaration.target)) return "Skip";
   return flow.keyOf(declaration.target) ?? labelOf(declaration.target);
 }
 
 function chooseKeys(next: NextDeclaration | undefined): string[] {
   if (next?.kind !== "choose") return [];
-  return [...next.targets, ...(next.self ? [SELF_LABEL] : [])];
+  return [...next.targets, ...(next.self ? [SELF_LABEL] : []), ...((next as any).skip ? ["Skip"] : [])];
 }
 
 const chooseOf = (flow: CollectedFlow, routerKey: string): NextDeclaration | undefined =>

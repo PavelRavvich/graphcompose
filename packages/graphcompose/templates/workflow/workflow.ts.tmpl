@@ -14,9 +14,9 @@ import { MainRouter } from "./routers/main.router.js";
   version: "0.1.0",
   // the graph: the text goes to the main router, which picks an agent or finishes the run
   flow: [
-    from(TextWorkflowStart).to(MainRouter),
-    from(MainRouter).choose({{agents}}, TextWorkflowFinish),
-    from({{agents}}).to(MainRouter),
+    from(TextWorkflowStart).next(MainRouter),
+    from(MainRouter).routeOne({{agents}}, TextWorkflowFinish),
+    from({{agents}}).next(MainRouter),
   ],
   defaults: {
     // reasoning and caching: the model provider's (model-providers/), an agent may override them

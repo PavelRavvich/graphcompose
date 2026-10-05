@@ -65,9 +65,9 @@ class NoLimits implements WorkflowDefinition {
   name: "two-starts",
   version: "1.0.0",
   flow: [
-    from(TicketStart).to(Support),
-    from(ChatStart).to(Writer),
-    from(Support, Writer).to(Reply),
+    from(TicketStart).next(Support),
+    from(ChatStart).next(Writer),
+    from(Support, Writer).next(Reply),
   ],
   defaults: {
     chat: { temperature: 0, thinking: "default", cache: true },
@@ -83,7 +83,7 @@ class TwoStarts extends NoLimits {}
 @Workflow({
   name: "broken",
   version: "1.0.0",
-  flow: [from(ChatStart).to(Writer), from(Support).to(Reply)],
+  flow: [from(ChatStart).next(Writer), from(Support).next(Reply)],
   defaults: {
     chat: { temperature: 0, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-1.13" },

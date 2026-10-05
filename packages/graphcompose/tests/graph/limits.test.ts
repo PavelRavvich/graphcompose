@@ -24,12 +24,12 @@ import { A, B, Done, Gate, Pick, Start } from "./fixtures/rule-nodes.js";
 class Loop {}
 
 const selfFlow: Flow = [
-  from(Start).to(Pick),
-  from(Pick).choose(A, B),
-  from(A, B).to(Gate),
-  from(Gate).choose(Self, Done),
+  from(Start).next(Pick),
+  from(Pick).routeOne(A, B),
+  from(A, B).next(Gate),
+  from(Gate).routeOne(Self, Done),
 ];
-const loopFlow: Flow = [from(Start).to(A), from(A).to(Loop), from(Loop).choose(Self, Done)];
+const loopFlow: Flow = [from(Start).next(A), from(A).next(Loop), from(Loop).routeOne(Self, Done)];
 const forever = (name: string) => scriptedRouter(name, Array<string>(100).fill("self"));
 
 async function failureOf(
@@ -59,12 +59,12 @@ describe("AC1: limits fail the run with their key, path and spend", () => {
   });
 
   it("limits.perRun.steps: the last allowed visit passes, one more fails", async () => {
-    const flow: Flow = [from(Start).to(A), from(A).to(Done)];
+    const flow: Flow = [from(Start).next(A), from(A).next(Done)];
     const exact = await assembleFlowGraph(
       flow,
       testRuntime({}, { limits: { perRun: { steps: 1 } } }),
     );
-    const over = [from(Start).to(Pick), from(Pick).choose(A, B), from(A, B).to(Done)];
+    const over = [from(Start).next(Pick), from(Pick).routeOne(A, B), from(A, B).next(Done)];
 
     await expect(exact.graph.invoke({ task: "go" })).resolves.toMatchObject({ steps: 1 });
     await expect(
@@ -123,7 +123,7 @@ describe("AC1: limits fail the run with their key, path and spend", () => {
   it("the ledger is not read when there is no daily limit", async () => {
     const spentToday = vi.fn(() => Promise.resolve(0));
     const { graph } = await assembleFlowGraph(
-      [from(Start).to(A), from(A).to(Done)],
+      [from(Start).next(A), from(A).next(Done)],
       testRuntime({}, { spentToday }),
     );
 

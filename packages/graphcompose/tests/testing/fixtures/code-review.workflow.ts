@@ -59,9 +59,9 @@ export class Unused {}
   name: "code-review",
   version: "1.0.0",
   flow: [
-    from(TaskStart).to(Coder),
+    from(TaskStart).next(Coder),
     chain(Coder, Reviewer, ReviewGate),
-    from(ReviewGate).choose(Coder, PullRequest),
+    from(ReviewGate).routeOne(Coder, PullRequest),
   ],
   defaults: {
     chat: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },

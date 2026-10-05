@@ -51,9 +51,9 @@ export class TestMain {}
 
 /** The star: workflow start → main router → alpha / beta → main again → … → answer. */
 export const testFlow: Flow = [
-  from(TestChat).to(TestMain),
-  from(TestMain).choose(Alpha, Beta, TestAnswer),
-  from(Alpha, Beta).to(TestMain),
+  from(TestChat).next(TestMain),
+  from(TestMain).routeOne(Alpha, Beta, TestAnswer),
+  from(Alpha, Beta).next(TestMain),
 ];
 
 /** `TestMain` as assembly loads it (routes sorted by name). */

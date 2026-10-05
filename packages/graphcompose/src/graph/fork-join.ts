@@ -26,3 +26,12 @@ export interface JoinOutput {
 export interface JoinHandler<T extends Record<string, ForkOutput<unknown>>> {
   onJoin(outputs: T): JoinOutput | Promise<JoinOutput>;
 }
+
+/** Defines the expected output payload shape for an agent. */
+export interface AgentOutput<T> {
+  // Marker property to retain type info (could be implemented or not, it's just for TS)
+  __payloadType?: T;
+}
+
+/** Utility type for join handlers to cleanly expect an array of ForkOutputs. */
+export type JoinArray<T> = Array<ForkOutput<T>>;

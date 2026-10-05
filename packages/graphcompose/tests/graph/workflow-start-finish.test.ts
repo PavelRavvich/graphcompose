@@ -19,9 +19,9 @@ class TicketWorkflowStart {}
 
 /** Each workflow start leads to its own agent. */
 const twoStarts: Flow = [
-  from(TestChat).to(Alpha),
-  from(TicketWorkflowStart).to(Beta),
-  from(Alpha, Beta).to(TestAnswer),
+  from(TestChat).next(Alpha),
+  from(TicketWorkflowStart).next(Beta),
+  from(Alpha, Beta).next(TestAnswer),
 ];
 
 describe("AC1: minimal @WorkflowStart and @WorkflowFinish", () => {

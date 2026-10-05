@@ -159,7 +159,7 @@ const Editor = node(Writer, "editor");
 @Workflow({
   name: "named",
   version: "1.0.0",
-  flow: [from(ChatStart).to(Editor), from(Editor).to(Reply)],
+  flow: [from(ChatStart).next(Editor), from(Editor).next(Reply)],
   defaults: {
     chat: { temperature: 0, thinking: "default", cache: true },
     router: { kind: "jev", model: "typesafe/jev-1.13" },

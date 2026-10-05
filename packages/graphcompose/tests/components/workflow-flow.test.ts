@@ -45,10 +45,10 @@ describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
       ...base,
       name: "broken",
       flow: [
-        from(TestChat).to(Main),
-        from(Main).choose(Profiler, Scout, TestAnswer),
-        from(Profiler).to(Scout),
-        from(Scout).to(Profiler),
+        from(TestChat).next(Main),
+        from(Main).routeOne(Profiler, Scout, TestAnswer),
+        from(Profiler).next(Scout),
+        from(Scout).next(Profiler),
       ],
     })
     class Broken extends TestSettings {}
@@ -74,10 +74,10 @@ describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
       ...base,
       name: "two-places",
       flow: [
-        from(TestChat).to(Main),
-        from(Main).choose(Profiler, TestAnswer),
-        from(Profiler).to(SecondLook),
-        from(SecondLook).to(Main),
+        from(TestChat).next(Main),
+        from(Main).routeOne(Profiler, TestAnswer),
+        from(Profiler).next(SecondLook),
+        from(SecondLook).next(Main),
       ],
     })
     class TwoPlaces extends Limited {}
@@ -98,7 +98,7 @@ describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
       meta: {
         ...base,
         name: "no-settings",
-        flow: [from(TestChat).to(Profiler), from(Profiler).to(TestAnswer)],
+        flow: [from(TestChat).next(Profiler), from(Profiler).next(TestAnswer)],
       },
     });
 

@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { ComponentError } from "../components/metadata.js";
 import type { FlowModel } from "./check-flow.js";
-import { isSelf, labelOf } from "./flow.js";
+import { isSelf, isSkip, labelOf } from "./flow.js";
 import type { FlowNodeRef } from "./flow-nodes.js";
 import { SELF_OPTION, type PromptSource, type RouteDeclaration } from "./route.js";
 import { routerMetaOf, type RouterMeta } from "./router.decorator.js";
@@ -43,7 +43,7 @@ async function textOf(meta: RouterMeta, source: string | PromptSource): Promise<
 function optionOf(model: FlowModel, declaration: RouteDeclaration): string {
   return isSelf(declaration.target)
     ? SELF_OPTION
-    : (model.collected.keyOf(declaration.target) ?? labelOf(declaration.target));
+    : (model.collected.keyOf(declaration.target as any) ?? labelOf(declaration.target as any));
 }
 
 const byOption = (left: LoadedRoute, right: LoadedRoute): number =>

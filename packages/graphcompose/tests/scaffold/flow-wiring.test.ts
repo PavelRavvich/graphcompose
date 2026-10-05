@@ -11,32 +11,32 @@ const workflow = (flow: string) => ({ path: "src/desk/desk.workflow.ts", content
 describe("#116: gc g agent joins the star; gc g router", () => {
   it("adds the agent before the answer in choose(...) and to the agents going back to the router", () => {
     const file = workflow(
-      "flow: [\n  from(TextWorkflowStart).to(MainRouter),\n  from(MainRouter).choose(TriageAgent, TextWorkflowFinish),\n  from(TriageAgent).to(MainRouter),\n]",
+      "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routeOne(TriageAgent, TextWorkflowFinish),\n  from(TriageAgent).next(MainRouter),\n]",
     );
 
     expect(addAgentToFlow(file, "BillingAgent", "MainRouter").content).toBe(
-      "flow: [\n  from(TextWorkflowStart).to(MainRouter),\n  from(MainRouter).choose(TriageAgent, BillingAgent, TextWorkflowFinish),\n  from(TriageAgent, BillingAgent).to(MainRouter),\n]",
+      "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routeOne(TriageAgent, BillingAgent, TextWorkflowFinish),\n  from(TriageAgent, BillingAgent).next(MainRouter),\n]",
     );
   });
 
   it("a choice with one target gets the agent first", () => {
     const file = workflow(
-      "[from(MainRouter).choose(TextWorkflowFinish), from(TriageAgent).to(MainRouter)]",
+      "[from(MainRouter).routeOne(TextWorkflowFinish), from(TriageAgent).next(MainRouter)]",
     );
 
     expect(addAgentToFlow(file, "BillingAgent", "MainRouter").content).toBe(
-      "[from(MainRouter).choose(BillingAgent, TextWorkflowFinish), from(TriageAgent, BillingAgent).to(MainRouter)]",
+      "[from(MainRouter).routeOne(BillingAgent, TextWorkflowFinish), from(TriageAgent, BillingAgent).next(MainRouter)]",
     );
   });
 
   it("an unexpected flow is not guessed: an error naming the file", () => {
     const file = workflow(
-      "[from(TextWorkflowStart).to(TriageAgent), from(TriageAgent).to(TextWorkflowFinish)]",
+      "[from(TextWorkflowStart).next(TriageAgent), from(TriageAgent).next(TextWorkflowFinish)]",
     );
 
     expect(() => addAgentToFlow(file, "BillingAgent", "MainRouter")).toThrow(ScaffoldError);
     expect(() => addAgentToFlow(file, "BillingAgent", "MainRouter")).toThrow(
-      "src/desk/desk.workflow.ts: no from(MainRouter).choose(…)",
+      "src/desk/desk.workflow.ts: no from(MainRouter).routeOne(…)",
     );
   });
 

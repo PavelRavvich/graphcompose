@@ -57,7 +57,7 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
       modelOf(Reviewer).respond(answer("fix A"), answer("fix B"), answer("clean"));
       modelOf(ReviewGate).respond(decide(Coder), decide(Coder), decide(PullRequest));
 
-      const result = await app.run(TaskStart, { text: "Add a flag" });
+      const result = await app.run(TaskStart, { text: "Add a flag" }); console.log("PATH:", result.path.map(n => n.name));
 
       const lap = [Coder, Reviewer, ReviewGate];
       expect(result).toFollowPath([TaskStart, ...lap, ...lap, ...lap, PullRequest]);
@@ -135,7 +135,7 @@ describe("AC12: scripts are picked by position, so a resumed run continues the s
     modelOf,
     mcpOf,
   }) => {
-    modelOf(MainRouter).respond(decide(Support));
+    modelOf(MainRouter).respond(decide(Support), decide(Reply));
     modelOf(Support).respond(
       callTool(SaveNote, { title: "n1", text: "call back" }),
       answer("Saved."),

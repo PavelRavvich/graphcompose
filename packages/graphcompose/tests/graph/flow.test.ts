@@ -17,36 +17,36 @@ const transitionsOf = (flow: Parameters<typeof collectFlow>[0]) =>
   collectFlow(flow).transitions.map((t) => ({ from: t.from, next: t.next }));
 
 describe("AC1: flow DSL builds the expected transitions", () => {
-  it("from(A).to(B) is one unconditional step", () => {
-    expect(transitionsOf([from(A).to(B)])).toEqual([
+  it("from(A).next(B) is one unconditional step", () => {
+    expect(transitionsOf([from(A).next(B)])).toEqual([
       { from: "a", next: { kind: "to", targets: ["b"] } },
     ]);
   });
 
-  it("from(A, B).to(C) fans in: one step from each source", () => {
-    expect(transitionsOf([from(A, B).to(AnswerWorkflowFinish)])).toEqual([
+  it("from(A, B).next(C) fans in: one step from each source", () => {
+    expect(transitionsOf([from(A, B).next(AnswerWorkflowFinish)])).toEqual([
       { from: "a", next: { kind: "to", targets: ["answer"] } },
       { from: "b", next: { kind: "to", targets: ["answer"] } },
     ]);
   });
 
-  it("chain(A, B, C) is from(A).to(B) + from(B).to(C)", () => {
+  it("chain(A, B, C) is from(A).next(B) + from(B).next(C)", () => {
     expect(transitionsOf([chain(A, B, AnswerWorkflowFinish)])).toEqual([
       { from: "a", next: { kind: "to", targets: ["b"] } },
       { from: "b", next: { kind: "to", targets: ["answer"] } },
     ]);
   });
 
-  it("from(Router).choose(...) is one choice with every target; Self is kept as a flag", () => {
-    expect(transitionsOf([from(R).choose(A, B, Self)])).toEqual([
-      { from: "r", next: { kind: "choose", targets: ["a", "b"], self: true } },
+  it("from(Router).routeOne(...) is one choice with every target; Self is kept as a flag", () => {
+    expect(transitionsOf([from(R).routeOne(A, B, Self)])).toEqual([
+      { from: "r", next: { kind: "choose", targets: ["a", "b"], self: true, skip: false } },
     ]);
   });
 
   it("node(Class, name) is a second place for the same class under its own name", () => {
     const SecondA = node(A, "a-again");
 
-    const collected = collectFlow([from(A).to(SecondA)]);
+    const collected = collectFlow([from(A).next(SecondA)]);
 
     expect([...collected.nodes.keys()]).toEqual(["a", "a-again"]);
     expect(collected.nodes.get("a-again")).toMatchObject({ kind: "agent", use: A });

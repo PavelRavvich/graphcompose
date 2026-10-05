@@ -43,7 +43,7 @@ export function planAgent(root: string, name: string, o: GenerateOptions): Chang
 
 /**
  * `gc g router <name> --workflow …`: a router with the finish route, ready for routes of its own. It is
- * not put into the flow — where it sits (`from(…).to(Router)`, `from(Router).choose(…)`) is a choice.
+ * not put into the flow — where it sits (`from(…).next(Router)`, `from(Router).routeOne(…)`) is a choice.
  */
 export function planRouter(root: string, name: string, o: GenerateOptions): Changes {
   const { dir } = targetWorkflow(root, o.workflow ?? "", "router");

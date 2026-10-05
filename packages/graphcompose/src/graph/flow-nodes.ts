@@ -2,6 +2,7 @@ import type { Class } from "../components/injection.js";
 import {
   isNamedNode,
   isSelf,
+  isSkip,
   labelOf,
   type ChoiceTarget,
   type Flow,
@@ -31,8 +32,11 @@ export interface FlowNodeRef {
 /** A node's declared next step: one unconditional target, or a router's choice. */
 export type NextDeclaration =
   | { readonly kind: "to"; readonly targets: readonly string[] }
-  | { readonly kind: "choose"; readonly targets: readonly string[]; readonly self: boolean }
-  | { readonly kind: "join"; readonly target: string; readonly joinSources: readonly string[] };
+  | { readonly kind: "scatter"; readonly target: string }
+  | { readonly kind: "choose"; readonly targets: readonly string[]; readonly self: boolean; readonly skip: boolean }
+  | { readonly kind: "join"; readonly target: string; readonly joinSources: readonly string[] }
+  | { readonly kind: "joinAny"; readonly target: string; readonly joinSources: readonly string[] }
+  | { readonly kind: "joinQuorum"; readonly target: string; readonly joinSources: readonly string[]; readonly count: number };
 
 /** A declared next step of one node (both ends are node keys). */
 export interface Transition {
@@ -102,11 +106,12 @@ const defined = (names: readonly (string | undefined)[]): string[] =>
   names.filter((name): name is string => name !== undefined);
 
 function chooseTargets(targets: readonly ChoiceTarget[], resolve: Resolve): NextDeclaration {
-  const nodesOnly = targets.filter((target): target is FlowNode => !isSelf(target));
+  const nodesOnly = targets.filter((target): target is FlowNode => !isSelf(target) && !isSkip(target));
   return {
     kind: "choose",
     targets: defined(nodesOnly.map(resolve)),
     self: targets.some(isSelf),
+    skip: targets.some(isSkip),
   };
 }
 
@@ -124,12 +129,18 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
       const next = chooseTargets(step.targets, resolve);
       return sources.map((from) => ({ from, next }));
     }
+    
+    case "scatter": {
+      const sources = defined(step.from.map(resolve));
+      const target = resolve(step.target);
+      return target === undefined ? [] : sources.map(from => ({ from, next: { kind: "scatter", target, extractor: step.extractor } }));
+    }
+    case "joinAny":
+    case "joinQuorum":
     case "join": {
       const sources = defined(step.from.map(resolve));
       const target = resolve(step.target);
-      return target === undefined
-        ? []
-        : sources.map((from) => ({ from, next: { kind: "join", target, joinSources: sources } }));
+      return target === undefined ? [] : sources.map((from) => ({ from, next: { kind: step.kind, target, joinSources: sources, count: (step as any).count } }));
     }
     case "chain":
       return step.nodes.slice(1).flatMap((to, index) => {
@@ -139,6 +150,7 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
           : transitionsOf({ kind: "to", from: [source], targets: [to] }, resolve);
       });
   }
+  return [];
 }
 
 /** Every node and transition of the flow, in declaration order. */

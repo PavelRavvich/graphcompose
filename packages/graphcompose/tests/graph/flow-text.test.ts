@@ -21,10 +21,10 @@ describe("AC1: describe lists the flow as transitions (text)", () => {
   it("Self and classes that are not nodes are shown as people read them", () => {
     expect(
       flowLines([
-        from(Start).to(A),
-        from(A).to(Gate),
-        from(Gate).choose(Self, Done),
-        from(A).to(SomeTool),
+        from(Start).next(A),
+        from(A).next(Gate),
+        from(Gate).routeOne(Self, Done),
+        from(A).next(SomeTool),
       ]),
     ).toEqual([
       "start (workflow start) → a",

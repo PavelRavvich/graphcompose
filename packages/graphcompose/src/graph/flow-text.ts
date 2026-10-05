@@ -1,5 +1,6 @@
 import {
   isSelf,
+  isSkip,
   labelOf,
   type ChoiceTarget,
   type Flow,
@@ -26,18 +27,24 @@ function nodeText(collected: CollectedFlow, target: FlowNode): string {
 const nameIn =
   (collected: CollectedFlow) =>
   (target: ChoiceTarget): string =>
-    isSelf(target) ? "Self" : nodeText(collected, target);
+    isSelf(target) ? "Self" : isSkip(target) ? "Skip" : nodeText(collected, target as FlowNode);
 
 function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): string {
   switch (step.kind) {
     case "to":
       return `${step.from.map(name).join(", ")} → ${step.targets.map(name).join(", ")}`;
+    case "scatter":
+      return `${step.from.map(name).join(", ")} ⇉ [scatter] ${name(step.target)}`;
     case "choose":
       return `${step.from.map(name).join(", ")} → ${step.targets.map(name).join(" | ")}`;
     case "chain":
       return step.nodes.map(name).join(" → ");
     case "join":
       return `${step.from.map(name).join(", ")} → join(${name(step.target)})`;
+    case "joinAny":
+      return `${step.from.map(name).join(", ")} → joinAny(${name(step.target)})`;
+    case "joinQuorum":
+      return `${step.from.map(name).join(", ")} → joinQuorum(${step.count}, ${name(step.target)})`;
   }
 }
 
