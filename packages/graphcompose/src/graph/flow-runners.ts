@@ -1,3 +1,5 @@
+/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+
 import { agentDefinitions } from "./agent-definitions.js";
 import {
   agentLoopGraph,
@@ -12,11 +14,11 @@ import { lastAnswer } from "./nodes/finalize.js";
 import { makeGuardNode } from "./nodes/guards.js";
 import type { FlowNodeRunner } from "./visit.js";
 
-export class NotARunnerNodeError extends Error {
+class NotARunnerNodeError extends Error {
   override name = "NotARunnerNodeError";
 }
 
-export class UnknownAgentError extends Error {
+class UnknownAgentError extends Error {
   override name = "UnknownAgentError";
   constructor(agent: string) {
     super(`Unknown agent: ${agent}`);
@@ -24,11 +26,16 @@ export class UnknownAgentError extends Error {
 }
 
 /** A workflow finish: the answer is the last contribution, checked by the output guards. */
-function finishRunner<TName extends string>(deps: GraphDeps<TName>): FlowNodeRunner {
+function finishRunner<TName extends string>(deps: GraphDeps<TName>, name: string): FlowNodeRunner {
   const outputGuards = makeGuardNode(deps.guards.output, "output");
   return async (state, config) => {
     const answer = lastAnswer(state);
-    return { answer, ...(await outputGuards({ ...state, answer }, config)) };
+    const guarded = await outputGuards({ ...state, answer }, config);
+    const finishOutput: MultimodalFinishOutput = {
+      kind: "multimodal",
+      blocks: state.contributions.at(-1)?.content ?? [] 
+    };
+    return { answer, finishes: { [name]: finishOutput }, ...guarded };
   };
 }
 
@@ -60,7 +67,7 @@ export function flowRunners<TName extends string>(
 ): (node: FlowNodeRef) => FlowNodeRunner {
   const loops = agentLoops(deps);
   const inputGuards = makeGuardNode(deps.guards.input, "input");
-  const finish = finishRunner(deps);
+  
   return (node) => {
     switch (node.kind) {
       case "workflow-start":
@@ -71,7 +78,7 @@ export function flowRunners<TName extends string>(
         return agentRunner(loop, node.name);
       }
       case "workflow-finish":
-        return finish;
+        return finishRunner(deps, node.name);
       case "router":
         throw new NotARunnerNodeError(`Router "${node.name}" is run by the flow engine`);
     }

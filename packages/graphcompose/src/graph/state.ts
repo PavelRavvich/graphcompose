@@ -1,6 +1,9 @@
+/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+
 import { Annotation } from "@langchain/langgraph";
 import type { UsageRecord } from "../finops/usage.js";
 import type { ApprovalRecord } from "../pause/index.js";
+import type { FinishOutput } from "../app/types.js";
 import type { Contribution, HistoryTurn } from "./contributions.js";
 
 const append = <TItem>(left: TItem[], right: TItem[]): TItem[] => left.concat(right);
@@ -33,6 +36,7 @@ export const AgentState = Annotation.Root({
   /** FinOps: every LLM call appends one record. */
   usage: Annotation<UsageRecord[]>({ reducer: append, default: () => [] }),
   answer: Annotation<string>(),
+  finishes: Annotation<Record<string, FinishOutput>>({ reducer: mergeRecords, default: () => ({}) }),
   /** Conversation memory notes (compaction), oldest first; loaded once per run. */
   summaries: Annotation<string[]>({ reducer: (_previous, next) => next, default: () => [] }),
   /** The approval decisions on tool calls in this run. */

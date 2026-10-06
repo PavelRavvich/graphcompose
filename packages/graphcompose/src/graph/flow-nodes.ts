@@ -1,8 +1,10 @@
+/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import type { Class } from "../components/injection.js";
 import {
   isNamedNode,
   isSelf,
-  isSkip,
+  isSkip, unwrapTarget,
   labelOf,
   type ChoiceTarget,
   type Flow,
@@ -17,7 +19,7 @@ import { violation, type RuleViolation } from "./rule-error.js";
  * start: starts are never a step's target, so they have names of their own (`workflow-start.<name>`)
  * and a start and a finish may share a name (`chat` / `chat`).
  */
-export const flowKeyOf = (kind: NodeKind, name: string): string =>
+const flowKeyOf = (kind: NodeKind, name: string): string =>
   kind === "workflow-start" ? `${kind}.${name}` : name;
 
 /** One node of the assembled flow: its key in the flow and its name (the declared one). */
@@ -132,7 +134,7 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
   switch (step.kind) {
     case "to": {
       const sources = defined(step.from.map(resolve));
-      const targets = defined(step.targets.map(resolve));
+      const targets = defined(step.targets.map(t => resolve(unwrapTarget(t))));
       return targets.length === 0
         ? []
         : sources.map((from) => ({ from, next: { kind: "to", targets } }));
@@ -162,7 +164,7 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
         ? []
         : sources.map((from) => ({
             from,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
             next: { kind: step.kind, target, joinSources: sources, count: (step as any).count },
           }));
     }

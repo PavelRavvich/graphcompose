@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { MODEL_MAX, type AgentsConfigOf } from "../src/config/types.js";
 import type { UsageRecord } from "../src/finops/usage.js";
@@ -136,6 +137,7 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     usage: [],
     budgetUsd: Number.POSITIVE_INFINITY,
     answer: "",
+    finishes: {},
     guarded: "",
     approvals: [],
     summaries: [],

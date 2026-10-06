@@ -16,6 +16,8 @@ describe("AC1: graphcompose/graph and graphcompose/units", () => {
       "WorkflowSettings",
       "WorkflowSettingsError",
       "WorkflowStart",
+      "background",
+      "required",
       "chain",
       "from",
       "node",

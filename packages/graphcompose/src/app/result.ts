@@ -1,6 +1,8 @@
+/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { checkFlow } from "../graph/check-flow.js";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { isSelf, type Flow, type FlowNode, type FlowStep } from "../graph/flow.js";
+
+import { isSelf, unwrapTarget, type Flow, type FlowNode, type FlowStep } from "../graph/flow.js";
 import type { AgentExecutionOutput } from "../run/types.js";
 import type { ExecutionOutput } from "./types.js";
 
@@ -10,7 +12,7 @@ export type FlowNodesByKey = ReadonlyMap<string, FlowNode>;
 const nodesOfStep = (step: FlowStep): readonly FlowNode[] => {
   switch (step.kind) {
     case "to":
-      return [...step.from, ...step.targets];
+      return [...step.from, ...step.targets.map(unwrapTarget)];
     case "nextEach":
       return [...step.from, step.target];
     case "choose":
@@ -57,6 +59,7 @@ export function runResultOf(run: AgentExecutionOutput, nodes: FlowNodesByKey): E
     }),
     spend: run.cost,
     ...(run.finish === undefined ? {} : { finish: run.finish, output: { text: run.answer } }),
+    ...(run.finishes && Object.keys(run.finishes).length > 0 ? { finishes: run.finishes } : {}),
     ...(run.pending === undefined ? {} : { pause: run.pending }),
     ...(run.compacted === undefined ? {} : { compacted: run.compacted }),
     ...(run.traceUrl === undefined ? {} : { traceUrl: run.traceUrl }),

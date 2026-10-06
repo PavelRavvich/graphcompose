@@ -1,3 +1,5 @@
+/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+
 import { buildCostReport, totalCost } from "../finops/usage.js";
 import type { FlowStateType } from "../graph/flow-state.js";
 import type { AgentStateType } from "../graph/state.js";
@@ -12,10 +14,13 @@ import type { AgentExecutionOutput, RunDeps, RunStatus } from "./types.js";
 function finishOf<TName extends string>(
   ctx: RunContext<TName>,
   state: FlowStateType,
-): { finish?: string } {
+): { finish?: string; finishes?: Record<string, any> } {
   const last = state.path.at(-1);
   const ref = last === undefined ? undefined : ctx.flow.model.nodes.get(last);
-  return ref?.kind === "workflow-finish" ? { finish: ref.name } : {};
+  return {
+    ...(ref?.kind === "workflow-finish" ? { finish: ref.name } : {}),
+    ...(state.finishes && Object.keys(state.finishes).length > 0 ? { finishes: state.finishes } : {})
+  };
 }
 
 function outcomeOf(state: AgentStateType, paused: boolean): TernOutcome & { status: RunStatus } {

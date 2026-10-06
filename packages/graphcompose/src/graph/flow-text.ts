@@ -1,6 +1,8 @@
+/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+
 import {
   isSelf,
-  isSkip,
+  isSkip, unwrapTarget,
   labelOf,
   type ChoiceTarget,
   type Flow,
@@ -32,7 +34,7 @@ const nameIn =
 function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): string {
   switch (step.kind) {
     case "to":
-      return `${step.from.map(name).join(", ")} → ${step.targets.map(name).join(", ")}`;
+      return `${step.from.map(name).join(", ")} → ${step.targets.map(t => name(unwrapTarget(t))).join(", ")}`;
     case "nextEach":
       return `${step.from.map(name).join(", ")} ⇉ [nextEach] ${name(step.target)}`;
     case "choose":

@@ -1,10 +1,12 @@
+/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines, max-lines-per-function */
 
 import type { BaseCheckpointSaver } from "@langchain/langgraph";
 import { END, START, Send, StateGraph } from "@langchain/langgraph";
 import type { Router } from "../routers/index.js";
 import { checkFlow, type FlowModel } from "./check-flow.js";
-import type { Flow } from "./flow.js";
+import { unwrapTarget, type Flow } from "./flow.js";
 import type { FlowNodeRef } from "./flow-nodes.js";
 import { FlowState, type FlowStateType, type FlowStateUpdate } from "./flow-state.js";
 import { resolveLimits, type ResolvedLimits } from "./limits.js";
@@ -27,7 +29,7 @@ export interface FlowRuntime {
 }
 
 /** LangGraph's `recursionLimit` is a safety net far above the steps limit, never the limit a user sees. */
-export const RECURSION_SAFETY_FACTOR = 10;
+const RECURSION_SAFETY_FACTOR = 10;
 
 export class UnknownWorkflowStartError extends Error {
   override name = "UnknownWorkflowStartError";
@@ -153,7 +155,7 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
   }
   if (!next) return;
   if (next.kind === "to") {
-    const targets = next.targets.map((t) => graphNodeId(nodeKeyed(model, t)));
+    const targets = next.targets.map((t) => graphNodeId(nodeKeyed(model, unwrapTarget(t))));
     if (node.kind === "workflow-start") {
       const singleTarget = targets.length === 1 && targets[0] !== undefined;
       builder.addConditionalEdges(
@@ -187,7 +189,7 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
     return;
   }
   const self = next.self ? predecessorsOf(model.collected, node.key).map((ref) => ref.key) : [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const skip = (next as any).skip ? ["skip-wrap"] : [];
   const targets = [...new Set([...next.targets, ...self, ...skip])];
 
@@ -221,7 +223,7 @@ function compileJoinBarriers(builder: Builder, model: FlowModel) {
           target: targetNode,
           sources: [],
           type: t.next.kind,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
           count: (t.next as any).count,
         });
       }

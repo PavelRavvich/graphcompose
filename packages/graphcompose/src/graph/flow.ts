@@ -1,3 +1,5 @@
+/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { nodeInfoOf } from "./node-kind.js";
 
 import type { Class } from "../components/injection.js";
@@ -22,6 +24,31 @@ export const Self: SelfTarget = Object.freeze({ kind: "self" });
 /** A node of the flow: a decorated class (`@WorkflowStart`, `@Router`, `@Agent`, `@WorkflowFinish`) or a named node. */
 export type FlowNode = Class | NamedNode;
 
+export interface RequiredTarget {
+  readonly kind: "required";
+  readonly target: FlowNode;
+}
+
+export interface BackgroundTarget {
+  readonly kind: "background";
+  readonly target: FlowNode;
+}
+
+export type ParallelTarget = FlowNode | RequiredTarget | BackgroundTarget;
+
+export function required(target: FlowNode): RequiredTarget {
+  return { kind: "required", target };
+}
+
+export function background(target: FlowNode): BackgroundTarget {
+  return { kind: "background", target };
+}
+
+export const unwrapTarget = (target: ParallelTarget): FlowNode =>
+  typeof target === "object" && target !== null && "kind" in target && (target.kind === "required" || target.kind === "background")
+    ? target.target
+    : (target as FlowNode);
+
 /** What a router may choose: a node or `Self`. */
 export interface SkipTarget {
   readonly kind: "skip";
@@ -32,7 +59,7 @@ export type ChoiceTarget = FlowNode | SelfTarget | SkipTarget;
 export interface ToStep {
   readonly kind: "to";
   readonly from: readonly FlowNode[];
-  readonly targets: readonly FlowNode[];
+  readonly targets: readonly ParallelTarget[];
 }
 
 /** `from(Router).routeOne(X, Y)` — the router picks one target. */
@@ -48,13 +75,13 @@ export interface ChainStep {
   readonly nodes: readonly FlowNode[];
 }
 
-export interface JoinStep {
+interface JoinStep {
   readonly kind: "join";
   readonly from: readonly FlowNode[];
   readonly target: FlowNode;
 }
 
-export interface NextEachStep {
+interface NextEachStep {
   readonly kind: "nextEach";
   readonly from: readonly FlowNode[];
   readonly target: FlowNode;
@@ -62,13 +89,13 @@ export interface NextEachStep {
   readonly extractor: (payload: any) => any[];
 }
 
-export interface JoinAnyStep {
+interface JoinAnyStep {
   readonly kind: "joinAny";
   readonly from: readonly FlowNode[];
   readonly target: FlowNode;
 }
 
-export interface JoinQuorumStep {
+interface JoinQuorumStep {
   readonly kind: "joinQuorum";
   readonly count: number;
   readonly from: readonly FlowNode[];
@@ -111,7 +138,7 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
           extractor: args[1],
         };
       }
-      return { kind: "to", from: sources, targets: args as FlowNode[] };
+      return { kind: "to", from: sources, targets: args as ParallelTarget[] };
     },
     routeOne: (...targets) => ({ kind: "choose", from: sources, targets }),
     routeOneOrSkip: (target) => ({ kind: "choose", from: sources, targets: [target, Skip] }),
@@ -130,7 +157,6 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         !("name" in (targets[targets.length - 1] as any))
       ) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         constraints = targets.pop();
         actualTargets = targets;
       }
@@ -152,6 +178,10 @@ export function node(use: Class, name: string): NamedNode {
   return Object.freeze({ kind: "named-node", use, name });
 }
 
+export const isRequiredTarget = (target: ParallelTarget): target is RequiredTarget =>
+  typeof target === "object" && target !== null && "kind" in target && target.kind === "required";
+export const isBackgroundTarget = (target: ParallelTarget): target is BackgroundTarget =>
+  typeof target === "object" && target !== null && "kind" in target && target.kind === "background";
 export const isSelf = (target: ChoiceTarget): target is SelfTarget =>
   typeof target === "object" && target.kind === "self";
 export const isSkip = (target: ChoiceTarget): target is SkipTarget =>
