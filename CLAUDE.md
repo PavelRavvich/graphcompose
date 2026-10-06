@@ -172,8 +172,7 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
   by script, MCP servers stubbed, network blocked); units use fakes from `@langchain/core/utils/testing`.
 - Read existing code before planning — the spec may be stale, the code is not.
 - **No specs, plans or docs as files.** Specs and implementation plans → GitHub Issues (bodies via
-  stdin). Docs → GitHub Wiki via `scripts/wiki.sh`, updated right after the merge; decisions →
-  wiki pages `ADR-NNNN-Title`.
+  stdin). Docs → GitHub Wiki via `scripts/wiki.sh`. **ALWAYS update the `../<repo>.wiki` repository directly whenever making API, DSL, or architectural changes so that the wiki is always up-to-date.** Decisions → wiki pages `ADR-NNNN-Title`.
 - Routers never import graph/agents/prompts; import routers only via `src/routers/index.ts`.
 - **Example code before spec**: a new decorator or a new parameter enters a spec only after example
   code using it is agreed.
