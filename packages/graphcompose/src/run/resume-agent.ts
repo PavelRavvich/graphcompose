@@ -67,7 +67,7 @@ export async function resumeAgent<TName extends string>(
     const streaming = streamConfig(
       deps,
       { threadId: paused.threadId, runId: paused.runId },
-      options.signal,
+      options,
     );
     const states = await flow.graph.stream(new Command({ resume: decision }), streaming);
     const state = await drainRun(states, record, before.usage.length);

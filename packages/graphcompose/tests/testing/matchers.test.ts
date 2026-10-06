@@ -33,7 +33,7 @@ const paused = run({
   path: [ChatStart, MainRouter, Support],
   finish: undefined,
   output: undefined,
-  pause: { agent: "support", callId: "call-1", tool: "save_note", args: {} },
+  pending: { agent: "support", callId: "call-1", tool: "save_note", args: {} },
 });
 
 describe("AC12: matchers by class — a passing and a failing case, readable failures", () => {

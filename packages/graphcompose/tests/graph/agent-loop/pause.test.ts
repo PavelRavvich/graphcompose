@@ -51,7 +51,7 @@ class Talker {}
 @Workflow({
   name: "test-pause",
   version: "1.0",
-  agents: [Talker],
+  agents: [Talker] as unknown as any,
   defaults: {
     models: { maxTokens: 100, temperature: 0 },
     history: { limit: 1 },

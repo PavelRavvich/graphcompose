@@ -24,12 +24,19 @@ export interface SpendAccount {
   readonly dailyCap: number;
 }
 
+/** A stream event for real-time UI/CLI updates. */
+export type RunStreamEvent =
+  | { readonly kind: "textDelta"; readonly delta: string }
+  | { readonly kind: "toolCall"; readonly tool: string; readonly args?: unknown };
+
 export interface RunOptions {
   /** Id of the Tern this run replays (eval). */
   readonly replayOf?: string;
   readonly account?: SpendAccount;
   /** Aborts the run (graph and in-flight model calls), e.g. when the user presses Esc. */
   readonly signal?: AbortSignal | undefined;
+  /** Callback to receive token streaming and tool calls in real time. */
+  readonly onStream?: (event: RunStreamEvent) => void;
 }
 
 /** How a run ended for its caller. Failures are thrown, not returned. */

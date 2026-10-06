@@ -53,7 +53,7 @@ export async function runAgent<TName extends string>(
     const { budgetUsd, run } = await allowedBudget(deps, account);
     const runId = deps.newRunId?.() ?? randomUUID();
     const flow = await flowGraphOf(deps, run);
-    const config = streamConfig(deps, { threadId, runId }, options.signal);
+    const config = streamConfig(deps, { threadId, runId }, options);
     const record = recorder(deps, account, spent);
     const initial = {
       task,

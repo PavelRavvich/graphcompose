@@ -8,6 +8,7 @@ const ctx = (signal: AbortSignal = new AbortController().signal): ToolContext =>
   agent: "alpha",
   callId: "call-1",
   signal,
+  pause: () => ({}),
   reportCost: vi.fn(),
 });
 

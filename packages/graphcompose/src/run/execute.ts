@@ -1,4 +1,3 @@
-import type { BaseCallbackHandler } from "@langchain/core/callbacks/base";
 import { drainRecordingUsage } from "../finops/record-stream.js";
 import { totalCost, type UsageRecord } from "../finops/usage.js";
 import type { FlowGraph } from "../graph/build.js";
@@ -43,10 +42,27 @@ export interface RunContext<TName extends string> {
  * Stream config: checkpoint thread = run id, every step checkpointed before the next one starts
  * (`durability: "sync"` — what a resume after a crash continues from); tracing callbacks when on.
  */
+import type { Serialized } from "@langchain/core/load/serializable";
+import { BaseCallbackHandler } from "@langchain/core/callbacks/base";
+import type { RunOptions, RunStreamEvent } from "./types.js";
+
+class StreamingCallbackHandler extends BaseCallbackHandler {
+  name = "StreamingCallbackHandler";
+  constructor(private readonly onStream: (event: RunStreamEvent) => void) {
+    super();
+  }
+  override handleLLMNewToken(token: string) {
+    this.onStream({ kind: "textDelta", delta: token });
+  }
+  override handleToolStart(tool: Serialized, input: string) {
+    this.onStream({ kind: "toolCall", tool: tool.id.at(-1) ?? "unknown", args: input });
+  }
+}
+
 export function streamConfig<TName extends string>(
   deps: RunDeps<TName>,
   context: { readonly threadId: string; readonly runId: string },
-  signal?: AbortSignal,
+  options?: RunOptions,
 ): ReturnType<typeof runConfig> & {
   streamMode: "values";
   durability: "sync";
@@ -55,13 +71,16 @@ export function streamConfig<TName extends string>(
   signal?: AbortSignal;
 } {
   const callbacks = deps.tracing?.callbacks({ bundle: deps.config.name, ...context }) ?? [];
+  if (options?.onStream !== undefined) {
+    callbacks.push(new StreamingCallbackHandler(options.onStream));
+  }
   return {
     ...runConfig(context.runId),
     streamMode: "values",
     durability: "sync",
     runName: deps.config.name,
     callbacks,
-    ...(signal === undefined ? {} : { signal }),
+    ...(options?.signal === undefined ? {} : { signal: options.signal }),
   };
 }
 
