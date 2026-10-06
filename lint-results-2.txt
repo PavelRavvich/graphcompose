@@ -1,0 +1,201 @@
+npm notice run graphcompose-monorepo@0.1.0 lint
+npm notice run eslint .
+
+/Users/pavelravvich/projects/langgraph-ts-template/examples/job-scout/src/agents/profiler.agent.ts
+  7:3   error  Unsafe assignment of an error typed value         @typescript-eslint/no-unsafe-assignment
+  7:17  error  Unsafe call of a type that could not be resolved  @typescript-eslint/no-unsafe-call
+
+/Users/pavelravvich/projects/langgraph-ts-template/examples/job-scout/src/agents/scout.agent.ts
+  8:3   error  Unsafe assignment of an error typed value         @typescript-eslint/no-unsafe-assignment
+  8:17  error  Unsafe call of a type that could not be resolved  @typescript-eslint/no-unsafe-call
+
+/Users/pavelravvich/projects/langgraph-ts-template/examples/job-scout/src/agents/shortlist.agent.ts
+  8:3   error  Unsafe assignment of an error typed value         @typescript-eslint/no-unsafe-assignment
+  8:17  error  Unsafe call of a type that could not be resolved  @typescript-eslint/no-unsafe-call
+
+/Users/pavelravvich/projects/langgraph-ts-template/examples/job-scout/src/job-scout.workflow.ts
+  33:5   error  Unsafe call of a type that could not be resolved                        @typescript-eslint/no-unsafe-call
+  33:5   error  Unsafe call of a type that could not be resolved                        @typescript-eslint/no-unsafe-call
+  33:29  error  Unsafe member access .next on a type that cannot be resolved            @typescript-eslint/no-unsafe-member-access
+  34:5   error  Unsafe call of a type that could not be resolved                        @typescript-eslint/no-unsafe-call
+  34:5   error  Unsafe call of a type that could not be resolved                        @typescript-eslint/no-unsafe-call
+  34:22  error  Unsafe member access .routeOne on a type that cannot be resolved        @typescript-eslint/no-unsafe-member-access
+  35:5   error  Unsafe call of a type that could not be resolved                        @typescript-eslint/no-unsafe-call
+  35:5   error  Unsafe call of a type that could not be resolved                        @typescript-eslint/no-unsafe-call
+  35:38  error  Unsafe member access .next on a type that cannot be resolved            @typescript-eslint/no-unsafe-member-access
+  54:12  error  Unsafe call of a type that could not be resolved                        @typescript-eslint/no-unsafe-call
+  54:12  error  Unsafe call of a type that could not be resolved                        @typescript-eslint/no-unsafe-call
+  54:12  error  Unsafe call of a type that could not be resolved                        @typescript-eslint/no-unsafe-call
+  54:12  error  Unsafe call of a type that could not be resolved                        @typescript-eslint/no-unsafe-call
+  54:29  error  Unsafe member access .builder on a type that cannot be resolved         @typescript-eslint/no-unsafe-member-access
+  55:8   error  Unsafe member access .limits on a type that cannot be resolved          @typescript-eslint/no-unsafe-member-access
+  56:8   error  Unsafe member access .modelProviders on a type that cannot be resolved  @typescript-eslint/no-unsafe-member-access
+  57:8   error  Unsafe member access .build on a type that cannot be resolved           @typescript-eslint/no-unsafe-member-access
+
+/Users/pavelravvich/projects/langgraph-ts-template/examples/job-scout/src/routers/main.router.ts
+   9:2   error  Unsafe call of a type that could not be resolved            @typescript-eslint/no-unsafe-call
+  17:5   error  Unsafe call of a type that could not be resolved            @typescript-eslint/no-unsafe-call
+  17:5   error  Unsafe call of a type that could not be resolved            @typescript-eslint/no-unsafe-call
+  17:62  error  Unsafe member access .to on a type that cannot be resolved  @typescript-eslint/no-unsafe-member-access
+  18:5   error  Unsafe call of a type that could not be resolved            @typescript-eslint/no-unsafe-call
+  18:5   error  Unsafe call of a type that could not be resolved            @typescript-eslint/no-unsafe-call
+  18:39  error  Unsafe member access .to on a type that cannot be resolved  @typescript-eslint/no-unsafe-member-access
+  19:5   error  Unsafe call of a type that could not be resolved            @typescript-eslint/no-unsafe-call
+  19:5   error  Unsafe call of a type that could not be resolved            @typescript-eslint/no-unsafe-call
+  19:65  error  Unsafe member access .to on a type that cannot be resolved  @typescript-eslint/no-unsafe-member-access
+  20:5   error  Unsafe call of a type that could not be resolved            @typescript-eslint/no-unsafe-call
+  20:5   error  Unsafe call of a type that could not be resolved            @typescript-eslint/no-unsafe-call
+  22:7   error  Unsafe member access .to on a type that cannot be resolved  @typescript-eslint/no-unsafe-member-access
+
+/Users/pavelravvich/projects/langgraph-ts-template/examples/job-scout/src/workflow-finishes/chat.workflow-finish.ts
+  5:2  error  Unsafe call of a type that could not be resolved  @typescript-eslint/no-unsafe-call
+
+/Users/pavelravvich/projects/langgraph-ts-template/examples/job-scout/src/workflow-starts/chat.workflow-start.ts
+  5:2  error  Unsafe call of a type that could not be resolved  @typescript-eslint/no-unsafe-call
+
+/Users/pavelravvich/projects/langgraph-ts-template/examples/job-scout/tests/job-scout-config.test.ts
+  50:12  error  Unsafe call of an `any` typed value                                              @typescript-eslint/no-unsafe-call
+  50:22  error  Unexpected any. Specify a different type                                         @typescript-eslint/no-explicit-any
+  50:27  error  Unsafe member access .indexOf on an `any` value                                  @typescript-eslint/no-unsafe-member-access
+  51:7   error  Unsafe argument of type `any` assigned to a parameter of type `number | bigint`  @typescript-eslint/no-unsafe-argument
+  51:7   error  Unsafe call of an `any` typed value                                              @typescript-eslint/no-unsafe-call
+  51:17  error  Unexpected any. Specify a different type                                         @typescript-eslint/no-explicit-any
+  51:22  error  Unsafe member access .indexOf on an `any` value                                  @typescript-eslint/no-unsafe-member-access
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/app/app-deps.ts
+   74:18  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  159:9   error  Unsafe assignment of an `any` value                                         @typescript-eslint/no-unsafe-assignment
+  160:86  error  Unsafe argument of type `any` assigned to a parameter of type `ProcessEnv`  @typescript-eslint/no-unsafe-argument
+  163:49  error  Unsafe argument of type `any` assigned to a parameter of type `ProcessEnv`  @typescript-eslint/no-unsafe-argument
+  170:5   error  Unsafe argument of type `any` assigned to a parameter of type `ProcessEnv`  @typescript-eslint/no-unsafe-argument
+  172:72  error  Unsafe argument of type `any` assigned to a parameter of type `ProcessEnv`  @typescript-eslint/no-unsafe-argument
+  173:35  error  Unsafe argument of type `any` assigned to a parameter of type `ProcessEnv`  @typescript-eslint/no-unsafe-argument
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/app/result.ts
+   2:10  error  'isSelf' is defined but never used                  @typescript-eslint/no-unused-vars
+  21:39  error  Unnecessary conditional, the types have no overlap  @typescript-eslint/no-unnecessary-condition
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/chat.ts
+  24:7  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+  27:3  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/cli.ts
+  23:7  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+  26:3  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/cli/load-workflow.ts
+  49:86  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/components/assemble.ts
+  1:10  error  'basename' is defined but never used  @typescript-eslint/no-unused-vars
+  1:20  error  'dirname' is defined but never used   @typescript-eslint/no-unused-vars
+  1:29  error  'join' is defined but never used      @typescript-eslint/no-unused-vars
+  1:35  error  'resolve' is defined but never used   @typescript-eslint/no-unused-vars
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/components/runtime.ts
+  17:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/eval/cli.ts
+  37:7  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/graph/build.ts
+  144:1   error  Function 'nodeEdges' has a complexity of 16. Maximum allowed is 10             complexity
+  159:24  error  Forbidden non-null assertion                                                   @typescript-eslint/no-non-null-assertion
+  161:25  error  Forbidden non-null assertion                                                   @typescript-eslint/no-non-null-assertion
+  185:25  error  Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+  185:30  error  Unsafe member access .skip on an `any` value                                   @typescript-eslint/no-unsafe-member-access
+  200:1   error  Function 'compileJoinBarriers' has too many lines (60). Maximum allowed is 50  max-lines-per-function
+  218:11  error  Unsafe assignment of an `any` value                                            @typescript-eslint/no-unsafe-assignment
+  218:29  error  Unexpected any. Specify a different type                                       @typescript-eslint/no-explicit-any
+  218:34  error  Unsafe member access .count on an `any` value                                  @typescript-eslint/no-unsafe-member-access
+  242:1   error  File has too many lines (267). Maximum allowed is 200                          max-lines
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/graph/flow-nodes.ts
+  130:1   error  Function 'transitionsOf' has a complexity of 11. Maximum allowed is 10  complexity
+  164:68  error  Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  164:84  error  Unexpected any. Specify a different type                                @typescript-eslint/no-explicit-any
+  164:89  error  Unsafe member access .count on an `any` value                           @typescript-eslint/no-unsafe-member-access
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/graph/flow-text.ts
+  47:64  error  Invalid type "number" of template literal expression  @typescript-eslint/restrict-template-expressions
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/graph/flow.ts
+   61:33  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+   61:41  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+   86:36  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  102:77  error  Unsafe argument of type `any` assigned to a parameter of type `Class`         @typescript-eslint/no-unsafe-argument
+  107:11  error  Unsafe assignment of an `any` value                                           @typescript-eslint/no-unsafe-assignment
+  122:17  error  Unsafe argument of type `any` assigned to a parameter of type `ChoiceTarget`  @typescript-eslint/no-unsafe-argument
+  122:48  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  123:17  error  Unsafe argument of type `any` assigned to a parameter of type `ChoiceTarget`  @typescript-eslint/no-unsafe-argument
+  123:48  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  124:53  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  126:9   error  'constraints' is assigned a value but never used                              @typescript-eslint/no-unused-vars
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/graph/route.ts
+  14:47  error  Missing return type on function  @typescript-eslint/explicit-module-boundary-types
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/graph/router-rules.ts
+  14:11  error  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined  @typescript-eslint/no-unnecessary-condition
+  44:18  error  Unexpected any. Specify a different type                                                            @typescript-eslint/no-explicit-any
+  44:23  error  Unsafe member access .skip on an `any` value                                                        @typescript-eslint/no-unsafe-member-access
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/graph/router-texts.ts
+   6:29  error  'RouterMeta' is defined but never used                                    @typescript-eslint/no-unused-vars
+  30:30  error  Unsafe argument of type `any` assigned to a parameter of type `FlowNode`  @typescript-eslint/no-unsafe-argument
+  30:52  error  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+  54:8   error  Async function 'loadRouters' has no 'await' expression                    @typescript-eslint/require-await
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/run/strip-functions.ts
+  1:32  error  Argument 'obj' should be typed with a non-any type                                                              @typescript-eslint/explicit-module-boundary-types
+  1:37  error  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  1:43  error  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  5:32  error  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  6:41  error  Unsafe argument of type `any` assigned to a parameter of type `{ [s: string]: unknown; } | ArrayLike<unknown>`  @typescript-eslint/no-unsafe-argument
+  7:7   error  Unsafe assignment of an `any` value                                                                             @typescript-eslint/no-unsafe-assignment
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/run/versions.ts
+  18:3  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+  21:3  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+  22:3  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+  45:7  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+  50:9  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/testing/setup.ts
+  1:1  error  Unexpected console statement  no-console
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/testing/slices.ts
+  65:30  error  Unsafe argument of type `any` assigned to a parameter of type `StateType<{ start: BaseChannel<string, string | OverwriteValue<string>, unknown>; previousAgent: BaseChannel<string, string | OverwriteValue<string>, unknown>; ... 17 more ...; payload: BaseChannel<...>; }>`  @typescript-eslint/no-unsafe-argument
+  65:36  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  73:33  error  Unsafe argument of type `any` assigned to a parameter of type `StateType<{ start: BaseChannel<string, string | OverwriteValue<string>, unknown>; previousAgent: BaseChannel<string, string | OverwriteValue<string>, unknown>; ... 17 more ...; payload: BaseChannel<...>; }>`  @typescript-eslint/no-unsafe-argument
+  73:39  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/src/workflow.ts
+  15:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/tests/components/assemble.test.ts
+    8:3   error  'ComponentError' is defined but never used                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+   84:40  error  Unsafe argument of type `any` assigned to a parameter of type `StateType<{ start: BaseChannel<string, string | OverwriteValue<string>, unknown>; previousAgent: BaseChannel<string, string | OverwriteValue<string>, unknown>; ... 17 more ...; payload: BaseChannel<...>; }>`  @typescript-eslint/no-unsafe-argument
+   84:46  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  125:28  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  132:9   error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                             @typescript-eslint/no-unsafe-assignment
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/tests/components/workflow-flow.test.ts
+  15:7  error  'prompt' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/tests/graph/router.test.ts
+   5:10  error  'ComponentError' is defined but never used             @typescript-eslint/no-unused-vars
+  27:3   error  Async method 'instructions' has no 'await' expression  @typescript-eslint/require-await
+  29:27  error  Async arrow function has no 'await' expression         @typescript-eslint/require-await
+  40:7   error  'Lost' is defined but never used                       @typescript-eslint/no-unused-vars
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/tests/models/wire.test.ts
+  185:62  error  Unsafe argument of type `any` assigned to a parameter of type `StateType<{ start: BaseChannel<string, string | OverwriteValue<string>, unknown>; previousAgent: BaseChannel<string, string | OverwriteValue<string>, unknown>; ... 17 more ...; payload: BaseChannel<...>; }>`  @typescript-eslint/no-unsafe-argument
+  185:68  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  186:32  error  Forbidden non-null assertion                                                                                                                                                                                                                                                    @typescript-eslint/no-non-null-assertion
+
+/Users/pavelravvich/projects/langgraph-ts-template/packages/graphcompose/tests/testing/scripted.test.ts
+  61:7  error  Unexpected console statement  no-console
+
+✖ 130 problems (130 errors, 0 warnings)
+

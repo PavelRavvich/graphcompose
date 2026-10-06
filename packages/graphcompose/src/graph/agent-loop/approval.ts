@@ -4,7 +4,7 @@ import {
   ToolCallApprovalDecision,
   type ToolCallApprovalAsk,
 } from "../../dto/standard/framework.js";
-import type { PendingApproval } from "../../pause/index.js";
+import type { PendingPause } from "../../pause/index.js";
 import type { AnyTool } from "../../tools/index.js";
 
 /**
@@ -27,7 +27,8 @@ export function pauseSeamApproval(needsApproval: (tool: AnyTool) => boolean): To
   return {
     needsApproval,
     requestApproval: (ask, agent) => {
-      const pending: PendingApproval = {
+      const pending: PendingPause = {
+        kind: "approval",
         agent,
         callId: ask.callId,
         tool: ask.tool,

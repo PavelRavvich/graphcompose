@@ -22,7 +22,11 @@ export interface AgentToolCall {
 }
 
 /** A tool call waiting for an approval — one call per pause. */
-export interface PendingApproval extends AgentToolCall {
+export type PendingPauseKind = "approval" | "interactive";
+
+export interface PendingPause extends AgentToolCall {
+  readonly kind: PendingPauseKind;
+  readonly payload?: unknown;
   /** The call's id (the idempotency key its tool gets). */
   readonly callId: string;
 }

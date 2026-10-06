@@ -16,6 +16,12 @@ export interface ToolContext {
   readonly signal: AbortSignal;
   /** Paid tools report their own cost in USD; it counts against the budgets. */
   readonly reportCost: (usd: number) => void;
+  /**
+   * Pauses the run to wait for external input. The run stops here; when `app.resume` is called
+   * with the answer, the tool runs again from the start, and `pause` instantly returns the answer.
+   * **Do not put side effects before `pause`** — they will run twice!
+   */
+  readonly pause: (ask: unknown) => unknown;
 }
 
 /** Tool failures are values, not exceptions: the model sees them and can recover. */

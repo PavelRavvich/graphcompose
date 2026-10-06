@@ -4,7 +4,7 @@ import type { AgentStateType } from "../graph/state.js";
 import type { TernOutcome } from "../terns/index.js";
 import { compactIfDue } from "./compaction.js";
 import type { RunContext } from "./execute.js";
-import type { PendingApproval } from "../pause/index.js";
+import type { PendingPause } from "../pause/index.js";
 import { isWaiting, pausedLoopOf } from "./paused.js";
 import type { AgentExecutionOutput, RunDeps, RunStatus } from "./types.js";
 
@@ -31,7 +31,7 @@ function outcomeOf(state: AgentStateType, paused: boolean): TernOutcome & { stat
 }
 
 /** The visited nodes; a paused run waits in an agent whose visit has not finished yet. */
-const pathOf = (state: FlowStateType, pending: PendingApproval | undefined): readonly string[] =>
+const pathOf = (state: FlowStateType, pending: PendingPause | undefined): readonly string[] =>
   pending === undefined ? state.path : [...state.path, pending.agent];
 
 const traceUrlOf = <TName extends string>(
@@ -66,7 +66,7 @@ async function stoppedState<TName extends string>(
 ): Promise<{
   readonly current: AgentStateType;
   readonly paused: boolean;
-  readonly pending?: PendingApproval;
+  readonly pending?: PendingPause;
 }> {
   const pause = ctx.deps.pause;
   if (pause === undefined || !(await isWaiting(ctx.flow.graph, ctx.runId))) {

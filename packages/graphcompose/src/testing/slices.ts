@@ -42,6 +42,9 @@ export function toolSlice<TInput, TOutput>(
     callId: "tool-slice",
     signal: new AbortController().signal,
     reportCost: () => undefined,
+    pause: () => {
+      throw new Error("Cannot pause in isolated tests");
+    },
   };
   return {
     // the tool validates its result against the output DTO that `run` returns

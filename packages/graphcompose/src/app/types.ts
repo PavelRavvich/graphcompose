@@ -1,12 +1,8 @@
 import type { Class } from "../components/injection.js";
-import type {
-  ToolCallApprovalDecision,
-  WorkflowFinishText,
-  WorkflowStartText,
-} from "../dto/standard/framework.js";
+import type { WorkflowFinishText, WorkflowStartText } from "../dto/standard/framework.js";
 import type { CostReport } from "../finops/usage.js";
 import type { FlowNode } from "../graph/flow.js";
-import type { PendingApproval } from "../pause/index.js";
+import type { PendingPause } from "../pause/index.js";
 import type { AgentExecutionOutput } from "../run/types.js";
 
 /** Per call: the conversation to continue (omit for a new one) and a signal to stop the run. */
@@ -29,7 +25,7 @@ export interface ExecutionOutput extends Pick<
   /** The finish's data. */
   readonly output?: WorkflowFinishText;
   /** What the run waits for (until #117: the tool call waiting for approval). */
-  readonly pause?: PendingApproval;
+  readonly pause?: PendingPause;
   /** Flow nodes in the order the run visited them: node classes, or named nodes. */
   readonly path: readonly FlowNode[];
   readonly spend: CostReport;
@@ -56,7 +52,7 @@ export interface App {
   ): Promise<ExecutionOutput>;
   resume(
     thread: string,
-    decision: ToolCallApprovalDecision,
+    decision: unknown,
     options?: Pick<ExecutionOptions, "signal">,
   ): Promise<ExecutionOutput>;
   close(): Promise<void>;

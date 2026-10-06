@@ -72,10 +72,10 @@ export function knowledgeFor(
 export const pauseFor = (
   bundle: AssembledWorkflow,
   checkpointer: BaseCheckpointSaver,
-): PauseSeam | undefined =>
-  bundle.needsApproval === undefined
-    ? undefined
-    : { checkpointer, needsApproval: bundle.needsApproval };
+): PauseSeam | undefined => ({
+  checkpointer,
+  needsApproval: bundle.needsApproval ?? (() => false),
+});
 
 /** Guards from config + their texts; each guard is a router (Jev unless it sets a model). */
 export const guardsFor = (config: AgentsConfigOf<string>, gateway: ModelGateway): GuardSet =>

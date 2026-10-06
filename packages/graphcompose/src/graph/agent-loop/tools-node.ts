@@ -1,8 +1,10 @@
+import { interrupt } from "@langchain/langgraph";
 import type { RunnableConfig } from "@langchain/core/runnables";
 import { recordReportedCost, type UsageRecord } from "../../finops/usage.js";
 import { renderToolResult, type AnyTool, type ToolContext } from "../../tools/index.js";
 import { toolNamed, type AgentLoopDeps } from "./deps.js";
 import type { AgentLoopUpdate, ToolTask } from "./state.js";
+import type { PendingPause } from "../../pause/index.js";
 
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -18,6 +20,9 @@ async function runTool(tool: AnyTool, args: unknown, context: ToolContext): Prom
   try {
     return renderToolResult(await tool.invoke(args, context));
   } catch (error) {
+    if (error && typeof error === "object" && "name" in error && error.name === "GraphInterrupt") {
+      throw error;
+    }
     return renderToolResult({ kind: "error", message: errorMessage(error) });
   }
 }
@@ -32,7 +37,9 @@ export function makeToolNode(
 ): (task: ToolTask, config?: RunnableConfig) => Promise<AgentLoopUpdate> {
   return async (task, config) => {
     const tool = toolNamed(deps.agent, task.tool);
-    if (tool === undefined) return {};
+    if (tool === undefined) {
+      return {};
+    }
     const usage: UsageRecord[] = [];
     const context: ToolContext = {
       runId: task.runId,
@@ -42,6 +49,17 @@ export function makeToolNode(
       signal: signalFor(tool, config),
       reportCost: (usd) => {
         usage.push(recordReportedCost(tool, usd));
+      },
+      pause: (ask: unknown): unknown => {
+        const pending: PendingPause = {
+          kind: "interactive",
+          agent: deps.agent.name,
+          tool: tool.name,
+          callId: task.callId,
+          args: task.args,
+          payload: ask,
+        };
+        return interrupt(pending);
       },
     };
     const content = await runTool(tool, task.args, context);

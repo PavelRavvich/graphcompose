@@ -218,9 +218,7 @@ describe("terminal approval (CLI and chat)", () => {
     const paused = await runAgent({ task: "Email the boss" }, deps);
     const old: unknown = { approve: true };
 
-    await expect(
-      resumeAgent(paused, old as Parameters<typeof resumeAgent>[1], deps),
-    ).rejects.toBeInstanceOf(DtoValidationError);
+    await expect(resumeAgent(paused, old, deps)).rejects.toBeInstanceOf(DtoValidationError);
     expect(sent).toEqual([]);
   });
 

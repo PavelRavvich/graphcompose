@@ -42,7 +42,10 @@ function agentLoops<TName extends string>(
   return new Map(
     [...agentDefinitions(deps)].map(([name, agent]) => [
       name,
-      agentLoopGraph({ agent, bundle: deps.config.name, runBudgetCap, approval, judges: noJudges }),
+      agentLoopGraph(
+        { agent, bundle: deps.config.name, runBudgetCap, approval, judges: noJudges },
+        deps.pause?.checkpointer,
+      ),
     ]),
   );
 }

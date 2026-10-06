@@ -3,5 +3,5 @@ export {
   writeToolsNeedApproval,
   type ApprovalRecord,
   type PauseSeam,
-  type PendingApproval,
+  type PendingPause,
 } from "./types.js";

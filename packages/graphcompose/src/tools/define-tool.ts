@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import { pathOf } from "../dto/errors.js";
 import type { Tool, ToolContext, ToolEffect, ToolOutput } from "./types.js";
+import { isGraphInterrupt } from "@langchain/langgraph";
 
 export const DEFAULT_TOOL_TIMEOUT_MS = 30_000;
 
@@ -89,6 +90,12 @@ export function defineTool<TName extends string, TInput, TOutput>(
         timeoutMs,
       );
     } catch (error) {
+      if (
+        isGraphInterrupt(error) ||
+        (error && typeof error === "object" && "name" in error && error.name === "GraphInterrupt")
+      ) {
+        throw error;
+      }
       return failure(errorMessage(error));
     }
     const output = definition.output.safeParse(produced);

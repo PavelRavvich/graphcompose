@@ -49,6 +49,9 @@ export abstract class McpServerClient<TTools extends ServerTools> {
       callId: "",
       signal,
       reportCost: noCost,
+      pause: () => {
+        throw new Error("MCP tools cannot pause locally");
+      },
     });
     if (result.kind === "error") throw new Error(result.message);
     // the facade validated the value against the declared output DTO

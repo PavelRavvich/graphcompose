@@ -2,7 +2,7 @@ import type { SpendLedger } from "../finops/ledger.js";
 import type { CostReport } from "../finops/usage.js";
 import type { GraphDeps } from "../graph/deps.js";
 import type { Compacted } from "./compaction.js";
-import type { PendingApproval } from "../pause/index.js";
+import type { PendingPause } from "../pause/index.js";
 import type { TernStore } from "../terns/index.js";
 import type { RunTracing } from "../tracing/index.js";
 
@@ -56,5 +56,5 @@ export interface AgentExecutionOutput {
   /** Checkpoint id of this run — used to resume a paused run. */
   readonly runId: string;
   /** Present only when `status` is "paused": the tool call waiting for an approval. */
-  readonly pending?: PendingApproval;
+  readonly pending?: PendingPause;
 }
