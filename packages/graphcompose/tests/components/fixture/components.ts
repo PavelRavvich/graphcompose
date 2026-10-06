@@ -1,17 +1,8 @@
 import { file } from "../../../src/components/file.js";
 
-import {
-  Agent,
-  Workflow,
-  Injectable,
-  InjectionToken,
-  McpServer,
-  McpServerClient,
-  McpTool,
-  ROUTER_FACTORY,
-  Tool,
-  type ToolHandler,
-} from "../../../src/components/index.js";
+import { Agent, Workflow, Injectable, InjectionToken, ROUTER_FACTORY } from "../../../src/core/index.js";
+import { McpServer, McpServerClient, McpTool } from "../../../src/mcp/index.js";
+import { Tool, type ToolHandler } from "../../../src/tool/index.js";
 import { Text } from "../../../src/dto/index.js";
 import type { Router } from "../../../src/routers/index.js";
 import { testConfig } from "../../helpers.js";

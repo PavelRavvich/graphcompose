@@ -1,4 +1,6 @@
-import { Agent, MODEL_MAX, Tool, Workflow, type ToolHandler } from "../../../src/index.js";
+import { Agent, Workflow } from "../../../src/core/index.js";
+import { MODEL_MAX } from "../../../src/index.js";
+import { Tool, type ToolHandler } from "../../../src/tool/index.js";
 import { DateTime, TimeZone } from "../../../src/dto/index.js";
 import { starOf, TestSettings } from "../test-flow/star.js";
 

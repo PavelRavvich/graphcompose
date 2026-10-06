@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { TestWorkflow } from "./fixtures/test-workflow/test.workflow.js";
-import { workflowOf } from "../src/components/index.js";
+import { workflowOf } from "../src/testing/index.js";
 import {
   deepMerge,
   loadProfile,

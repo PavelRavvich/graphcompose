@@ -30,7 +30,7 @@ describe("framework and examples apart (#91)", () => {
   it("AC5: the public API and the command help say workflow, not bundle", () => {
     expect(Object.keys(publicApi).filter((name) => /bundle/i.test(name))).toEqual([]);
     expect(Object.keys(publicApi)).toEqual(
-      expect.arrayContaining(["Workflow", "workflowOf", "createAppDeps", "loadWorkflow"]),
+      expect.arrayContaining(["createAppDeps", "loadWorkflow"]),
     );
     expect(USAGE).not.toMatch(/bundle/i);
     expect(USAGE).toContain("--workflow");

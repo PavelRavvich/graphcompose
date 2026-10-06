@@ -20,7 +20,8 @@ import { modelProviderOf } from "../../src/models/model-provider.decorator.js";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Agent, Workflow, workflowOf } from "../../src/index.js";
+import { Agent, Workflow } from "../../src/core/index.js";
+import { workflowOf } from "../../src/testing/index.js";
 import { WorkflowFinishText, WorkflowStartText } from "../../src/dto/index.js";
 import {
   chain,

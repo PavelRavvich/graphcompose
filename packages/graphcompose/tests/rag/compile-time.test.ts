@@ -3,7 +3,8 @@
  * `make check`); an `@ts-expect-error` on a line that compiles would fail the build.
  */
 import { describe, expect, it } from "vitest";
-import { Agent, Rag } from "../../src/components/index.js";
+import { Agent } from "../../src/core/index.js";
+import { Rag } from "../../src/rag/index.js";
 import type { RagRetrieval } from "../../src/rag/index.js";
 import { testConfig } from "../helpers.js";
 

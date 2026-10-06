@@ -1,6 +1,7 @@
 import { file } from "../../../src/components/file.js";
 
-import { Agent, MODEL_MAX, Workflow } from "../../../src/index.js";
+import { Agent, Workflow } from "../../../src/core/index.js";
+import { MODEL_MAX } from "../../../src/index.js";
 import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
   chain,

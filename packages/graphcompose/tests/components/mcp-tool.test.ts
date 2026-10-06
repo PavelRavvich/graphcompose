@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { mcpServerStub, toolOf, workflowOf } from "../../src/components/index.js";
+import { mcpServerStub } from "../../src/testing/index.js";
+import { toolOf, workflowOf } from "../../src/testing/index.js";
 import { connectMcpServers, type ToolContext } from "../../src/tools/index.js";
 import { resolveTools, type WorkflowServices } from "../../src/workflow.js";
 import { fakeMcpServer, type FakeTool } from "../tools/mcp/fake-server.js";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MemorySaver } from "@langchain/langgraph";
-import { Agent, Workflow } from "../../../src/components/index.js";
+import { Agent, Workflow } from "../../../src/core/index.js";
 import { workflowOf } from "../../../src/components/assemble.js";
 import { assembleFlowGraph } from "../../../src/graph/build.js";
 import {

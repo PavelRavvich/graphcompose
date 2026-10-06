@@ -1,13 +1,5 @@
 import { describe, expect } from "vitest";
-import {
-  answer,
-  callTool,
-  decide,
-  failWith,
-  ModelFailure,
-  TestSetupError,
-  testWith,
-} from "../../src/testing/index.js";
+import { answer, callTool, decide, failWith, ModelFailure, TestSetupError, testWith } from "../../src/testing/index.js";
 import {
   ChatStart,
   Desk,

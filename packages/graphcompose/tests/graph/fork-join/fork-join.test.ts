@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Workflow, Agent } from "../../../src/components/index.js";
+import { Workflow, Agent } from "../../../src/core/index.js";
 import { workflowOf } from "../../../src/components/assemble.js";
 import { WorkflowStart, WorkflowFinish, from } from "../../../src/graph/index.js";
 import { recordNode } from "../../../src/graph/node-kind.js";

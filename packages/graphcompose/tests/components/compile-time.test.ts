@@ -3,7 +3,8 @@
  * line compiles would itself fail the build — so every line below must stay an error.
  */
 import { describe, expect, it } from "vitest";
-import { Agent, InjectionToken, Tool, type ToolHandler } from "../../src/components/index.js";
+import { Agent, InjectionToken } from "../../src/core/index.js";
+import { Tool, type ToolHandler } from "../../src/tool/index.js";
 import { Text } from "../../src/dto/index.js";
 import { testConfig } from "../helpers.js";
 import type { FilesServer } from "./fixture/components.js";

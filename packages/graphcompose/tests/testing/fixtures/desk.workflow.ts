@@ -3,20 +3,11 @@ import { file } from "../../../src/components/file.js";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import {
-  Agent,
-  Injectable,
-  McpServer,
-  McpServerClient,
-  McpTool,
-  MODEL_MAX,
-  Tool,
-  Workflow,
-  writeToolsNeedApproval,
-  type OnStart,
-  type OnStop,
-  type ToolHandler,
-} from "../../../src/index.js";
+import { Agent, Injectable, Workflow } from "../../../src/core/index.js";
+import { McpServer, McpServerClient, McpTool } from "../../../src/mcp/index.js";
+import { type OnStart, type OnStop } from "../../../src/core/index.js";
+import { MODEL_MAX, writeToolsNeedApproval } from "../../../src/index.js";
+import { Tool, type ToolHandler } from "../../../src/tool/index.js";
 import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
   from,

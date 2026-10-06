@@ -1,15 +1,9 @@
 import { file } from "../../src/components/file.js";
 
 import { describe, expect, it } from "vitest";
-import {
-  Agent,
-  Workflow,
-  workflowOf,
-  ComponentError,
-  Injectable,
-  ROUTER_FACTORY,
-  toolOf,
-} from "../../src/components/index.js";
+import { Agent, Workflow, Injectable, ROUTER_FACTORY } from "../../src/core/index.js";
+import { workflowOf, toolOf } from "../../src/testing/index.js";
+import { ComponentError } from "../../src/core/index.js";
 import { checkGraph, createContainer } from "../../src/components/container.js";
 import { recordComponent } from "../../src/components/metadata.js";
 import type { WorkflowServices } from "../../src/workflow.js";

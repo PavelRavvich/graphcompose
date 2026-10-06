@@ -15,7 +15,7 @@ import { usd } from "../src/units/index.js";
 import { testFlow, testRouters } from "./fixtures/test-flow/test.flow.js";
 import { NO_GUARDS } from "../src/guards/index.js";
 import { createSqliteTernStore } from "../src/terns/index.js";
-import { toolOf } from "../src/components/index.js";
+import { toolOf } from "../src/testing/index.js";
 import type { AnyTool } from "../src/tools/index.js";
 import { Clock } from "./fixtures/test-workflow/test.workflow.js";
 

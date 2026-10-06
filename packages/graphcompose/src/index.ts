@@ -4,7 +4,6 @@
  */
 import "./polyfills/symbol-metadata.js";
 
-export * from "./components/index.js";
 export {
   resolveTools,
   type AssembledWorkflow,
@@ -21,7 +20,6 @@ export {
 export { createApp, NotAWorkflowStartError, type AppOptions } from "./app/create-app.js";
 export type { PausedRunRepository } from "./app/paused-runs.js";
 export type { App, ExecutionOptions, ExecutionOutput } from "./app/types.js";
-export { studioGraphOf } from "./studio.js";
 export { loadWorkflow, loadWorkflowClass, WorkflowLoadError } from "./cli/load-workflow.js";
 export { withProfile } from "./profile-workflow.js";
 export { describeWorkflow } from "./cli/describe.js";
@@ -37,16 +35,6 @@ export type {
   SpendAccount,
 } from "./run/types.js";
 export { runVersions } from "./run/versions.js";
-export * from "./rag/index.js";
-export {
-  defineTool,
-  type AnyTool,
-  type Tool as TypedTool,
-  type ToolContext,
-  type ToolEffect,
-  type ToolOutput,
-} from "./tools/index.js";
-export type { RouteOutcome, RouteRequest, Router } from "./routers/index.js";
 export type { UsageRecord } from "./finops/usage.js";
 export {
   MODEL_MAX,
@@ -55,4 +43,3 @@ export {
   type CompactionSettings,
 } from "./config/types.js";
 export { writeToolsNeedApproval } from "./pause/index.js";
-export { file } from "./components/file.js";

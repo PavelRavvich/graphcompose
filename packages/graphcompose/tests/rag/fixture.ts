@@ -1,4 +1,6 @@
-import { Agent, Workflow, Rag, type Class } from "../../src/components/index.js";
+import { Agent, Workflow } from "../../src/core/index.js";
+import { Rag } from "../../src/rag/index.js";
+import { type Class } from "../../src/core/index.js";
 import type { RagConnector, RagRetrieval } from "../../src/rag/index.js";
 import { testConfig } from "../helpers.js";
 import { starOf, TestSettings } from "../fixtures/test-flow/star.js";

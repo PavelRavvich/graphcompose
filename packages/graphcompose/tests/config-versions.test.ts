@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { createAppDeps } from "../src/app/app-deps.js";
 import { providerStub } from "./models/stub.js";
 import { TestWorkflow } from "./fixtures/test-workflow/test.workflow.js";
-import { workflowOf } from "../src/components/index.js";
+import { workflowOf } from "../src/testing/index.js";
 import { runAgent } from "../src/index.js";
 import { createSqliteTernStore } from "../src/terns/index.js";
 import { runVersions } from "../src/run/versions.js";

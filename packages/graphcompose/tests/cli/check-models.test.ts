@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { checkWorkflowModels } from "../../src/cli/check-models.js";
-import { workflowOf } from "../../src/components/index.js";
+import { workflowOf } from "../../src/testing/index.js";
 import { COMMANDS } from "../../src/cli/usage.js";
 import { Priced } from "../models/fixtures/priced.workflow.js";
 import { KIMI_ENTRY, providerStub } from "../models/stub.js";

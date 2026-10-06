@@ -1,5 +1,5 @@
 import { TestWorkflow } from "./fixtures/test-workflow/test.workflow.js";
-import { workflowOf } from "../src/components/index.js";
+import { workflowOf } from "../src/testing/index.js";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

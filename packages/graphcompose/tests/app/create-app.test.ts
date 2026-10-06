@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createApp, NotAWorkflowStartError, type AppOptions } from "../../src/app/create-app.js";
-import { Workflow, NotPausedError } from "../../src/index.js";
+import { Workflow } from "../../src/core/index.js";
+import { NotPausedError } from "../../src/index.js";
 import { DtoValidationError, Text, WorkflowStartText } from "../../src/dto/index.js";
 import { createMemoryLedger } from "../../src/finops/ledger.js";
 import {
