@@ -75,6 +75,8 @@ export function planProject(spec: WorkflowSpec): FileToWrite[] {
     { path: ".env.example", content: render("project/env.example.tmpl", {}) },
     { path: ".gitignore", content: render("project/gitignore.tmpl", {}) },
     { path: "README.md", content: render("project/README.md.tmpl", variables) },
+    { path: "src/environments/environment.ts", content: render("project/environment.ts.tmpl", {}) },
+    { path: "src/environments/environment.staging.ts", content: render("project/environment.staging.ts.tmpl", {}) },
     ...planWorkflow(spec),
     workflowTest(spec),
   ];
