@@ -1,28 +1,36 @@
 import "dotenv/config";
-import { stdin, stderr } from "node:process";
+import { stdin, stderr, stdout } from "node:process";
 import { createInterface } from "node:readline";
-import { parseArgs } from "node:util";
+import { parseArgs, styleText } from "node:util";
 import { createApp } from "./app/create-app.js";
 import { loadWorkflowClass, loadEnvironment } from "./cli/load-workflow.js";
 import { memoryLine, summaryLine, threadLine, untilDone } from "./cli/approve.js";
 import { costSummary, costTotal, costTrace } from "./cli/finops.js";
 import { askWith } from "./cli/ask.js";
-import { withSpinner } from "./cli/spinner.js";
 import { textStartOrFail } from "./cli/text-start.js";
+import type { RunStreamEvent } from "./run/types.js";
 
-// graphcompose run --workflow <path> [--thread <id>] [--env <id>] "your task"   (interactive: graphcompose chat)
+// graphcompose run <workflow.ts> --input "Start text" [--thread <id>] [--env <id>]
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
-    workflow: { type: "string", default: "./src/workflow.ts" },
+    input: { type: "string" },
     profile: { type: "string" },
     thread: { type: "string" },
     env: { type: "string" },
   },
 });
+
+const workflowPath = positionals[0] ?? "./src/workflow.ts";
+const inputText = values.input ?? positionals.slice(1).join(" ");
+if (!inputText) {
+  stderr.write(`Usage: gc run <workflow.ts> --input "Your task here"\n`);
+  process.exit(1);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const env = await loadEnvironment(values.workflow, values.env);
-const app = await createApp(await loadWorkflowClass(values.workflow), {
+const env = await loadEnvironment(workflowPath, values.env);
+const app = await createApp(await loadWorkflowClass(workflowPath), {
   profile: values.profile,
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   env,
@@ -30,12 +38,24 @@ const app = await createApp(await loadWorkflowClass(values.workflow), {
 app.warnings.forEach((warning) => {
   stderr.write(`warning: ${warning}\n`);
 });
+
 const rl = createInterface({ input: stdin, terminal: false });
+
+const onStream = (event: RunStreamEvent) => {
+  if (event.kind === "textDelta") {
+    stdout.write(event.delta);
+  } else {
+    stderr.write(styleText("dim", `\n[Agent is using tool: ${event.tool}]\n`));
+  }
+};
+
 const busy = <T>(work: (signal: AbortSignal | undefined) => Promise<T>): Promise<T> =>
-  withSpinner(stderr, "thinking", () => work(undefined));
+  work(undefined);
+
 const thread = values.thread === undefined ? {} : { thread: values.thread };
+
 const result = await busy(() =>
-  app.execute(textStartOrFail(app), { text: positionals.join(" ") }, thread),
+  app.execute(textStartOrFail(app), { text: inputText }, { ...thread, onStream }),
 )
   .then((first) =>
     untilDone(
@@ -50,11 +70,11 @@ const result = await busy(() =>
     await app.close();
   });
 
-process.stdout.write(`${result.answer}\n`);
-process.stderr.write(`${threadLine(result)}  (continue with --thread ${result.thread})\n`);
-process.stderr.write(`config: ${app.name} | ${summaryLine(result)}\n`);
+stdout.write(`\n`);
+stderr.write(`${threadLine(result)}  (continue with --thread ${result.thread})\n`);
+stderr.write(`config: ${app.name} | ${summaryLine(result)}\n`);
 const memory = memoryLine(result);
-if (memory !== undefined) process.stderr.write(`${memory}\n`);
-process.stderr.write(`cost: ${costSummary(result.spend)}\n`);
-costTrace(result.spend).forEach((line) => process.stderr.write(`  ${line}\n`));
-process.stderr.write(`${costTotal(result.spend)}\n`);
+if (memory !== undefined) stderr.write(`${memory}\n`);
+stderr.write(`cost: ${costSummary(result.spend)}\n`);
+costTrace(result.spend).forEach((line) => stderr.write(`  ${line}\n`));
+stderr.write(`${costTotal(result.spend)}\n`);
