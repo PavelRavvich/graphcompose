@@ -13,16 +13,38 @@ export interface FinishOutput {
   readonly kind: string;
 }
 
+export interface TextFinishOutput extends FinishOutput {
+  readonly kind: "text";
+  readonly text: string;
+}
+
 export interface MultimodalFinishOutput extends FinishOutput {
   readonly kind: "multimodal";
-  // The actual multimodal blocks implementation will go here when available.
-  // For now we'll just allow any as blocks to prevent type errors.
+  // Content blocks: mixed text, tool calls, images, etc.
   readonly blocks: readonly any[];
 }
 
 export interface JsonFinishOutput<T = unknown> extends FinishOutput {
   readonly kind: "json";
   readonly data: T;
+}
+
+export interface ImageFinishOutput extends FinishOutput {
+  readonly kind: "image";
+  readonly mimeType: string;
+  readonly data: Uint8Array;
+}
+
+export interface AudioFinishOutput extends FinishOutput {
+  readonly kind: "audio";
+  readonly mimeType: string;
+  readonly data: Uint8Array;
+}
+
+export interface VideoFinishOutput extends FinishOutput {
+  readonly kind: "video";
+  readonly mimeType: string;
+  readonly data: Uint8Array;
 }
 
 export interface BinaryFinishOutput extends FinishOutput {
