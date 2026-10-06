@@ -6,7 +6,6 @@ import {
   UnknownWorkflowStartError,
 } from "../../src/graph/build.js";
 import { from, Self, type Flow } from "../../src/graph/flow.js";
-import { route } from "../../src/graph/route.js";
 import { Router } from "../../src/graph/router.decorator.js";
 import { codeReviewFlow } from "./fixtures/code-review.js";
 import { scriptedRouter, testNode, testRuntime } from "./fixtures/nodes.js";
@@ -18,20 +17,20 @@ class WebhookWorkflowStart {}
 @Router({
   name: "spin",
   description: "Loops back to the agent",
-  instructions: "Again?",
+  prompt: "Again?",
   model: "typesafe/jev-1.13",
   maxVisits: 25,
-  routes: [route("Once more").to(Self), route("Enough").to(Done)],
+  routes: [{ prompt: "Once more", target: Self }, { prompt: "Enough", target: Done }],
 })
 class Spin {}
 
 @Router({
   name: "star",
   description: "Sends the message to an agent, or sends the answer",
-  instructions: "Pick who handles the message.",
+  prompt: "Pick who handles the message.",
   model: "typesafe/jev-1.13",
   maxVisits: 3,
-  routes: [route("A work").to(A), route("B work").to(B), route("The answer covers it").to(Done)],
+  routes: [{ prompt: "A work", target: A }, { prompt: "B work", target: B }, { prompt: "The answer covers it", target: Done }],
 })
 class Star {}
 

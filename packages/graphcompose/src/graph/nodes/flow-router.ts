@@ -48,8 +48,7 @@ export class RouterDecisionError extends PaidStepError {
 }
 
 async function resolvePrompt(input: PromptInput, state: FlowStateType): Promise<string> {
-  const text = typeof input === "function" ? await input(state) : input;
-  return normalisePromptText(text);
+  return normalisePromptText(await input(state));
 }
 
 /** Routes in canonical order (already sorted at load) as the router's options. */

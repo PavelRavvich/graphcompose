@@ -50,7 +50,8 @@ export function runVersions<TName extends string>(
       routers: routerPromptTexts,
       flowRouters: deps.routers.map(({ name, instructions, routes }) => ({
         name,
-        instructions,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        instructions: stripFunctions(instructions),
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         routes: stripFunctions(routes),
       })),

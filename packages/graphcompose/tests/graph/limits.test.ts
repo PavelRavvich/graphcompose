@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { assembleFlowGraph } from "../../src/graph/build.js";
 import { from, Self, type Flow } from "../../src/graph/flow.js";
 import { LimitExceededError } from "../../src/graph/limits.js";
-import { route } from "../../src/graph/route.js";
 import { Router } from "../../src/graph/router.decorator.js";
 import {
   WorkflowSettings,
@@ -16,10 +15,10 @@ import { A, B, Done, Gate, Pick, Start } from "./fixtures/rule-nodes.js";
 @Router({
   name: "loop",
   description: "At most twice",
-  instructions: "Again?",
+  prompt: "Again?",
   model: "typesafe/jev-1.13",
   maxVisits: 2,
-  routes: [route("Once more").to(Self), route("Enough").to(Done)],
+  routes: [{ prompt: "Once more", target: Self }, { prompt: "Enough", target: Done }],
 })
 class Loop {}
 

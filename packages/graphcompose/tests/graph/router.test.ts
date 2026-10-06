@@ -7,7 +7,6 @@ import { ComponentError } from "../../src/components/metadata.js";
 import { assembleFlowGraph } from "../../src/graph/build.js";
 import { from, Self, type Flow } from "../../src/graph/flow.js";
 import { RouterDecisionError } from "../../src/graph/nodes/flow-router.js";
-import { route } from "../../src/graph/route.js";
 import { Router } from "../../src/graph/router.decorator.js";
 import { flowRouterFactory, routerModelOf } from "../../src/graph/router-model.js";
 import type { Router as RoutingStrategy } from "../../src/routers/index.js";
@@ -26,19 +25,19 @@ writeFileSync(routeFile, "﻿The work is finished.\r\n");
   name: "texts",
   description: "Texts from files",
   // eslint-disable-next-line @typescript-eslint/require-await
-  instructions: async () => "Decide carefully.\n\nLook at the review.\n  Keep indentation.",
+  prompt: "Decide carefully.\n\nLook at the review.\n  Keep indentation.",
   model: "typesafe/jev-1.13",
   // eslint-disable-next-line @typescript-eslint/require-await
-  routes: [route(async () => "Done:\n\nThe work is finished.").to(Done), route("Café work").to(A)],
+  routes: [{ prompt: "Done:\n\nThe work is finished.", target: Done }, { prompt: "Café work", target: A }],
 })
 class Texts {}
 
 @Router({
   name: "lost",
-  instructions: "",
+  prompt: "",
   description: "Its prompt file is missing",
   model: "typesafe/jev-1.13",
-  routes: [route("Finished").to(Done)],
+  routes: [{ prompt: "Finished", target: Done }],
 })
 class Lost {}
 
@@ -134,9 +133,9 @@ describe("AC1: routers", () => {
   @Router({
     name: "chatty",
     description: "Chatty",
-    instructions: "Pick.",
+    prompt: "Pick.",
     model: "test/router",
-    routes: [route("A").to(A), route("Finished").to(Done)],
+    routes: [{ prompt: "A", target: A }, { prompt: "Finished", target: Done }],
   })
   class Chatty {}
 

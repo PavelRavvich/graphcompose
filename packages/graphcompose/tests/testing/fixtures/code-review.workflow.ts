@@ -3,7 +3,6 @@ import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js
 import {
   chain,
   from,
-  route,
   Router,
   WorkflowFinish,
   WorkflowStart,
@@ -15,7 +14,7 @@ const price = { inputPerMTok: 1, outputPerMTok: 2 };
 
 @Agent({
   name: "coder",
-  instructions: "./coder.prompt.md",
+  prompt: "./coder.prompt.md",
   description: "Writes the code",
   model: "test/coder",
   price,
@@ -24,7 +23,7 @@ export class Coder {}
 
 @Agent({
   name: "reviewer",
-  instructions: "./reviewer.prompt.md",
+  prompt: "./reviewer.prompt.md",
   description: "Reviews the code",
   model: "test/reviewer",
   price,
@@ -40,12 +39,12 @@ export class PullRequest {}
 @Router({
   name: "review-gate",
   description: "Sends the code back to the coder or opens the pull request",
-  instructions: "Is the review clean?",
+  prompt: "Is the review clean?",
   model: "typesafe/jev-1.13",
   maxVisits: 3,
   routes: [
-    route("The review asks for changes").to(Coder),
-    route("Stop and send the answer: the review is clean").to(PullRequest),
+    { prompt: "The review asks for changes", target: Coder },
+    { prompt: "Stop and send the answer: the review is clean", target: PullRequest },
   ],
 })
 export class ReviewGate {}

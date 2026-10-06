@@ -1,6 +1,6 @@
 import { isSelf, isSkip, labelOf } from "./flow.js";
 import type { CollectedFlow, FlowNodeRef, NextDeclaration } from "./flow-nodes.js";
-import type { PromptInput } from "../components/prompt-input.js";
+import type { PromptOptions } from "../components/prompt-options.js";
 
 import type { RouteDeclaration } from "./route.js";
 import { routerMetaOf, type RouterMeta } from "./router.decorator.js";
@@ -9,17 +9,16 @@ import { targetsOf } from "./rules.js";
 
 const SELF_LABEL = "Self";
 
-const hasText = (source: PromptInput): boolean => {
-  if (typeof source === "function") return true;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return (source ?? "").trim() !== "";
+const hasText = (source: PromptOptions): boolean => {
+  if (source.promptUrls && source.promptUrls.length > 0) return true;
+  return (source.prompt ?? "").trim() !== "";
 };
 
-const routeHasText = (declaration: RouteDeclaration): boolean => hasText(declaration.condition);
+const routeHasText = (declaration: RouteDeclaration): boolean => hasText(declaration);
 
 function textRules(router: FlowNodeRef, meta: RouterMeta): RuleViolation[] {
   const found: RuleViolation[] = [];
-  if (!hasText(meta.instructions)) {
+  if (!hasText(meta)) {
     const message = `router ${router.label} has no instructions`;
     found.push(violation("router.no-prompt", message, [router.label]));
   }

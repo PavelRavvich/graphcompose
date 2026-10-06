@@ -134,7 +134,7 @@ describe("versions", () => {
 
   it("AC4: same config → same versions; a prompt change → a new prompt version only", () => {
     const deps = fakeDeps({});
-    const changed = { ...deps, prompts: { ...deps.prompts, alpha: "You are alpha, now terse." } };
+    const changed = { ...deps, prompts: { ...deps.prompts, alpha: Object.assign(async () => "You are alpha, now terse.", { options: { prompt: "You are alpha, now terse." } }) } };
 
     expect(runVersions(deps)).toEqual(runVersions(fakeDeps({})));
     expect(runVersions(changed).promptVersion).not.toBe(runVersions(deps).promptVersion);

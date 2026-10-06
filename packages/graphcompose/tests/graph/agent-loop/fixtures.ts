@@ -67,7 +67,7 @@ export function harness(
       agent: {
         name: AGENT,
         binding: { model, settings },
-        instructions: "You change files in the repository.",
+        instructions: async () => "You change files in the repository.",
         tools: (options.tools ?? repoTools)(log),
         limits: { modelCalls: 12, toolCalls: 20, ...options.limits },
         historyLimit: 0,

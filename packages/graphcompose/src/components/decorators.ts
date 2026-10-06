@@ -17,6 +17,8 @@ export interface ToolHandler<TInput, TOutput> {
   run(input: TInput, ctx: ToolContext): Promise<TOutput>;
 }
 
+import type { PromptOptions } from "./prompt-options.js";
+
 export interface ToolOptions<
   In extends DtoClass,
   Out extends DtoClass,
@@ -24,6 +26,8 @@ export interface ToolOptions<
 > {
   readonly name: string;
   readonly description: string;
+  readonly prompt?: string;
+  readonly promptUrls?: readonly string[];
   readonly effect?: ToolEffect;
   readonly timeoutMs?: number;
   readonly input: In;
@@ -100,6 +104,8 @@ export function Rag<const D extends readonly Token[] = []>(options: {
   readonly name: string;
   readonly description: string;
   readonly topK: number;
+  readonly prompt?: string;
+  readonly promptUrls?: readonly string[];
   readonly deps?: D;
 }) {
   return <C extends new (...args: ResolvedAll<D>) => RagConnector>(value: C): C => {

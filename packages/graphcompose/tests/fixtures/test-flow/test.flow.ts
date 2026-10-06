@@ -2,7 +2,6 @@ import { WorkflowStartText, WorkflowFinishText } from "../../../src/dto/index.js
 import { WorkflowFinish } from "../../../src/graph/workflow-finish.decorator.js";
 import { WorkflowStart } from "../../../src/graph/workflow-start.decorator.js";
 import { from, type Flow } from "../../../src/graph/flow.js";
-import { route } from "../../../src/graph/index.js";
 import { Router } from "../../../src/graph/router.decorator.js";
 import type { LoadedRouter } from "../../../src/graph/router-texts.js";
 import { recordNode } from "../../../src/graph/node-kind.js";
@@ -42,13 +41,13 @@ const ROUTES = {
 @Router({
   name: "main",
   description: "Sends the task to an agent, or sends the answer",
-  instructions: "Pick who handles the task.",
+  prompt: "Pick who handles the task.",
   model: "test/router",
   maxVisits: 10,
   routes: [
-    route(ROUTES.alpha).to(Alpha),
-    route(ROUTES.beta).to(Beta),
-    route(ROUTES.answer).to(TestAnswer),
+    { prompt: ROUTES.alpha, target: Alpha },
+    { prompt: ROUTES.beta, target: Beta },
+    { prompt: ROUTES.answer, target: TestAnswer },
   ],
 })
 export class TestMain {}
@@ -66,11 +65,11 @@ export const testRouters: readonly LoadedRouter[] = [
     name: "main",
     description: "Sends the task to an agent, or sends the answer",
     model: "test/router",
-    instructions: "Pick who handles the task.",
+    instructions: async () => "Pick who handles the task.",
     routes: [
-      { option: "alpha", condition: ROUTES.alpha },
-      { option: "answer", condition: ROUTES.answer },
-      { option: "beta", condition: ROUTES.beta },
+      { option: "alpha", condition: async () => ROUTES.alpha },
+      { option: "answer", condition: async () => ROUTES.answer },
+      { option: "beta", condition: async () => ROUTES.beta },
     ],
   },
 ];

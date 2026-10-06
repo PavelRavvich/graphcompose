@@ -104,7 +104,7 @@ export function fakeDeps(
     config: testConfig,
     registry: createModelRegistry(testConfig, fakeGateway(chatModel)),
     ...flowDeps(chatModel),
-    prompts: { alpha: "You are alpha.", beta: "You are beta." },
+    prompts: { alpha: async () => "You are alpha.", beta: async () => "You are beta." },
     tools: libraryTool,
     ledger,
     terns: createSqliteTernStore(":memory:"),

@@ -19,7 +19,7 @@ describe("config versions", () => {
     if (main === undefined) throw new Error("test router missing");
     const base = runVersions(deps);
 
-    const reworded = runVersions({ ...deps, routers: [{ ...main, instructions: "Choose well." }] });
+    const reworded = runVersions({ ...deps, routers: [{ ...main, instructions: Object.assign(async () => "Choose well.", { options: { prompt: "Choose well." } }) }] });
     const otherModel = runVersions({ ...deps, routers: [{ ...main, model: "typesafe/jev-2" }] });
     const limited = runVersions({ ...deps, limits: { perRun: { steps: 3, cost: usd(1) } } });
 
@@ -73,7 +73,7 @@ describe("config versions", () => {
     await first.close();
     const changed = {
       ...base,
-      prompts: { ...base.prompts, coder: "A different coder prompt." },
+      prompts: { ...base.prompts, coder: async () => "A different coder prompt." },
     };
 
     const second = await createAppDeps(changed, { env, providerFetch });

@@ -20,7 +20,7 @@ const quoted = (text: string): string => text.replace(/\\/g, "\\\\").replace(/"/
 
 /** `route(BillingAgent, "Handles invoices")` — how `gc` writes a route. */
 export const routeLine = (target: string, text: string): string =>
-  `route("${quoted(text)}").to(${target})`;
+  `{ prompt: "${quoted(text)}", target: ${target} }`;
 
 /** An agent's route in the main router: the agent class and its description. */
 export const agentRoute = (agent: Names, description: string): RouteSpec => ({
@@ -46,7 +46,7 @@ export function endpointFiles(dir: string): FileToWrite[] {
 /** What a generated router says, and how many times one run may pass through it. */
 export interface RouterFileSpec {
   readonly description: string;
-  readonly instructions: string;
+  readonly prompt: string;
   /** Required: a router on a cycle without it breaks `router.unbounded-cycle`. */
   readonly maxVisits: number;
 }
@@ -64,7 +64,7 @@ export function routerFile(
     content: render("router/router.ts.tmpl", {
       ...vars(router),
       description: quoted(spec.description),
-      instructions: quoted(spec.instructions),
+      prompt: quoted(spec.prompt),
       maxVisits: String(spec.maxVisits),
       imports,
       routes: routes.map((r) => `    ${routeLine(r.target, r.text)},`).join("\n"),
@@ -75,7 +75,7 @@ export function routerFile(
 /** What the main router of a generated workflow says; the star around it is a cycle. */
 export const MAIN_ROUTER: RouterFileSpec = {
   description: "Sends the message to the right agent, or sends the answer",
-  instructions:
+  prompt:
     "Pick who handles the message next. Send the answer when the contributions so far already cover the message.",
   maxVisits: 3,
 };

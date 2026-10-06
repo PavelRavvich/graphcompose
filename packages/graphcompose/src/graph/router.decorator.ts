@@ -1,7 +1,7 @@
 import { callerFile } from "../components/call-site.js";
 import type { Class } from "../components/injection.js";
 import { recordNode } from "./node-kind.js";
-import type { PromptInput } from "../components/prompt-input.js";
+import type { PromptOptions } from "../components/prompt-options.js";
 import type { RouteDeclaration } from "./route.js";
 
 /**
@@ -11,7 +11,8 @@ import type { RouteDeclaration } from "./route.js";
 export interface RouterOptions {
   readonly name: string;
   readonly description: string;
-  readonly instructions: PromptInput;
+  readonly prompt?: string;
+  readonly promptUrls?: readonly string[];
   /** The router's own model: Jev (`typesafe/jev-*`) or any chat model. */
   readonly model: string;
   /** How many times one run may pass through this router; no limit when absent. */

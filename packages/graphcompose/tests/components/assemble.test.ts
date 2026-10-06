@@ -132,7 +132,7 @@ describe("components — errors at assembly", () => {
         price: testConfig.agents.alpha.price,
         tools,
 
-        instructions: prompt,
+        prompt: prompt,
       })
       class A {}
       return A;

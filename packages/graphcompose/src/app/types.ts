@@ -3,12 +3,13 @@ import type { WorkflowFinishText, WorkflowStartText } from "../dto/standard/fram
 import type { CostReport } from "../finops/usage.js";
 import type { FlowNode } from "../graph/flow.js";
 import type { PendingPause } from "../pause/index.js";
-import type { AgentExecutionOutput } from "../run/types.js";
+import type { AgentExecutionOutput, RunStreamEvent } from "../run/types.js";
 
 /** Per call: the conversation to continue (omit for a new one) and a signal to stop the run. */
 export interface ExecutionOptions {
   readonly thread?: string;
   readonly signal?: AbortSignal | undefined;
+  readonly onStream?: (event: RunStreamEvent) => void;
 }
 
 /**

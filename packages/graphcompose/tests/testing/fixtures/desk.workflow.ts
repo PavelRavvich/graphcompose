@@ -20,7 +20,6 @@ import {
 import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
   from,
-  route,
   Router,
   WorkflowFinish,
   WorkflowSettings,
@@ -169,7 +168,7 @@ const price = { inputPerMTok: 1, outputPerMTok: 10 };
 
 @Agent({
   name: "support",
-  instructions: "./support.prompt.md",
+  prompt: "./support.prompt.md",
   description: "Answers questions about orders and keeps notes",
   model: "test/support",
   price,
@@ -179,7 +178,7 @@ export class Support {}
 
 @Agent({
   name: "writer",
-  instructions: file("./writer.prompt.md"),
+  promptUrls: ["./writer.prompt.md"],
   description: "Writes replies",
   model: "test/writer",
   price,
@@ -195,13 +194,13 @@ export class Reply {}
 @Router({
   name: "main",
   description: "Sends the message to an agent, or sends the reply",
-  instructions: "Pick who handles the message.",
+  prompt: "Pick who handles the message.",
   model: "typesafe/jev-1.13",
   maxVisits: 4,
   routes: [
-    route("Orders and notes").to(Support),
-    route("Writing replies").to(Writer),
-    route("Stop and send the answer: the contributions answer the message").to(Reply),
+    { prompt: "Orders and notes", target: Support },
+    { prompt: "Writing replies", target: Writer },
+    { prompt: "Stop and send the answer: the contributions answer the message", target: Reply },
   ],
 })
 export class MainRouter {}

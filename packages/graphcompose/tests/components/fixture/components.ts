@@ -97,7 +97,7 @@ export class ReadFile implements ToolHandler<FileRead, FileContent> {
   price: testConfig.agents.alpha.price,
   thinking: "low",
   tools: [GreetTool, ReadFile],
-  instructions: file("./greeter.prompt.md"),
+  promptUrls: ["./greeter.prompt.md"],
 })
 export class GreeterAgent {}
 

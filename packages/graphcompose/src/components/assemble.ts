@@ -159,7 +159,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
       (agent) =>
         [
           agent.name,
-          renderPromptVariables(agent.name, agent.instructions, bundle.promptVariables),
+          renderPromptVariables(agent.name, agent, agent.source, bundle.promptVariables),
         ] as const,
     ),
   );

@@ -25,7 +25,7 @@ describe("replay", () => {
     const deps = fakeDeps(script);
     await runAgent({ task: "Explain X" }, deps);
     const oldVersion = runVersions(deps).promptVersion;
-    const changed = { ...deps, prompts: { ...deps.prompts, alpha: "You are alpha, now precise." } };
+    const changed = { ...deps, prompts: { ...deps.prompts, alpha: Object.assign(async () => "You are alpha, now precise.", { options: { prompt: "You are alpha, now precise." } }) } };
     const ledger = memoryLedger();
     const evaluation: EvalDeps = {
       terns: deps.terns,

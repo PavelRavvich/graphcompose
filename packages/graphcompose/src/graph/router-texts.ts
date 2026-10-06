@@ -5,6 +5,8 @@ import type { FlowNodeRef } from "./flow-nodes.js";
 import { SELF_OPTION, type RouteDeclaration } from "./route.js";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { routerMetaOf, type RouterMeta } from "./router.decorator.js";
+import type { PromptOptions } from "../components/prompt-options.js";
+import { renderPromptVariables } from "../components/prompt-render.js";
 import type { PromptInput } from "../components/prompt-input.js";
 
 /** One route as the router's model sees it: the option name and what choosing it means. */
@@ -40,14 +42,14 @@ function loadRouter(model: FlowModel, ref: FlowNodeRef): LoadedRouter {
   if (meta === undefined) throw new ComponentError(`${ref.label} is not a @Router component`);
   const routes = meta.routes.map((declaration) => ({
     option: optionOf(model, declaration),
-    condition: declaration.condition,
+    condition: renderPromptVariables(ref.name, declaration, meta.source, undefined),
   }));
   return {
     name: ref.name,
     description: meta.description,
     model: meta.model,
     ...(meta.maxVisits === undefined ? {} : { maxVisits: meta.maxVisits }),
-    instructions: meta.instructions,
+    instructions: renderPromptVariables(ref.name, meta, meta.source, undefined),
     routes: [...routes].sort(byOption),
   };
 }

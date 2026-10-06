@@ -104,7 +104,7 @@ describe("tools on DTOs (#118)", () => {
       model: "test/alpha",
       price: testConfig.agents.alpha.price,
       tools: [LooseTool],
-      instructions: "./fixture/greeter.prompt.md",
+      prompt: "./fixture/greeter.prompt.md",
     })
     class LooseAgent {}
     @Workflow({

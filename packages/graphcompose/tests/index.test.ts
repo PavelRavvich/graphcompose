@@ -7,7 +7,7 @@ const deps = () =>
   fakeDeps({ "test/router": [decide("alpha"), decide("answer", "done")], "test/alpha": ["42"] });
 
 describe("runAgent", () => {
-  it("returns answer, route, stop reason and cost report", async () => {
+  it("returns answer, stop reason and cost report", async () => {
     const result = await runAgent({ task: "Answer" }, deps());
 
     expect(result).toMatchObject({

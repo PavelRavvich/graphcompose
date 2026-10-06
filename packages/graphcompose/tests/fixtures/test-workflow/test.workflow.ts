@@ -38,7 +38,7 @@ export class Clock implements ToolHandler<ClockQuery, ClockTime> {
   model: "test/researcher",
   price,
   tools: [Clock],
-  instructions: "./researcher.prompt.md",
+  prompt: "./researcher.prompt.md",
 })
 export class Researcher {}
 
@@ -48,7 +48,7 @@ export class Researcher {}
   model: "test/coder",
   price,
   thinking: "low",
-  instructions: "./coder.prompt.md",
+  prompt: "./coder.prompt.md",
 })
 export class Coder {}
 

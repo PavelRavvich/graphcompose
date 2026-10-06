@@ -128,7 +128,7 @@ describe("AC12: everything external is replaced; a live call fails the test befo
     expect(result).toHavePausedAt(Support);
     expect(result.pause).toEqual({
       agent: "support",
-      callId: "call-1",
+      callId: "call-1", kind: "approval",
       tool: "save_note",
       args: { title: "n2", text: "x" },
     });

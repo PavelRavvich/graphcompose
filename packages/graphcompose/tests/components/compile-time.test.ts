@@ -76,7 +76,7 @@ function usesMissing(): unknown {
     price: testConfig.agents.alpha.price,
     // @ts-expect-error — a component that is not imported / does not exist
     tools: [NotImported],
-    instructions: "./x.md",
+    prompt: "./x.md",
   })
   class UsesMissing {}
   return UsesMissing;

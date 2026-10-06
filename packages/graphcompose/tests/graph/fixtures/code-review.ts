@@ -1,5 +1,4 @@
 import { chain, from, type Flow } from "../../../src/graph/flow.js";
-import { route } from "../../../src/graph/route.js";
 import { Router } from "../../../src/graph/router.decorator.js";
 import { testNode } from "./nodes.js";
 
@@ -24,21 +23,21 @@ export class PullRequestWorkflowFinish {}
 @Router({
   name: "main",
   description: "Sends the message to the right agent",
-  instructions: "Pick who handles the message.",
+  prompt: "Pick who handles the message.",
   model: "typesafe/jev-1.13",
-  routes: [route("Explaining code").to(ExplainerAgent), route("Writing code").to(CoderAgent)],
+  routes: [{ prompt: "Explaining code", target: ExplainerAgent }, { prompt: "Writing code", target: CoderAgent }],
 })
 export class MainRouter {}
 
 @Router({
   name: "review-gate",
   description: "Sends the code back or opens the pull request",
-  instructions: "Is the review clean?",
+  prompt: "Is the review clean?",
   model: "typesafe/jev-1.13",
   maxVisits: 3,
   routes: [
-    route("The review asks for changes").to(CoderAgent),
-    route("The review is clean").to(PullRequestWorkflowFinish),
+    { prompt: "The review asks for changes", target: CoderAgent },
+    { prompt: "The review is clean", target: PullRequestWorkflowFinish },
   ],
 })
 export class ReviewGateRouter {}

@@ -1,4 +1,3 @@
-import { route } from "../../../src/graph/route.js";
 import { Router } from "../../../src/graph/router.decorator.js";
 import { Self } from "../../../src/graph/flow.js";
 import { testNode } from "./nodes.js";
@@ -35,46 +34,46 @@ const jev = "typesafe/jev-1.13";
 @Router({
   name: "pick",
   description: "Picks A or B",
-  instructions: "Pick.",
+  prompt: "Pick.",
   model: jev,
-  routes: [route("A").to(A), route("B").to(B)],
+  routes: [{ prompt: "A", target: A }, { prompt: "B", target: B }],
 })
 export class Pick {}
 
 @Router({
   name: "gate",
   description: "Back or done",
-  instructions: "Gate.",
+  prompt: "Gate.",
   model: jev,
   maxVisits: 10,
-  routes: [route("Again").to(Self), route("Finished").to(Done)],
+  routes: [{ prompt: "Again", target: Self }, { prompt: "Finished", target: Done }],
 })
 export class Gate {}
 
 @Router({
   name: "only",
   description: "One route",
-  instructions: "Only.",
+  prompt: "Only.",
   model: jev,
-  routes: [route("Finished").to(Done)],
+  routes: [{ prompt: "Finished", target: Done }],
 })
 export class Only {}
 
 @Router({
   name: "second",
   description: "Done too",
-  instructions: "Second.",
+  prompt: "Second.",
   model: jev,
-  routes: [route("A").to(A), route("Finished").to(Done)],
+  routes: [{ prompt: "A", target: A }, { prompt: "Finished", target: Done }],
 })
 export class Second {}
 
 @Router({
   name: "mute",
-  instructions: "",
+  prompt: "",
   description: "No texts",
   model: jev,
-  routes: [route("").to(Done), route("").to(A)],
+  routes: [{ prompt: "", target: Done }, { prompt: "", target: A }],
 })
 export class Mute {}
 
@@ -82,9 +81,9 @@ export class Mute {}
 @Router({
   name: "loop",
   description: "A again or done",
-  instructions: "Loop.",
+  prompt: "Loop.",
   model: jev,
-  routes: [route("A").to(A), route("Finished").to(Done)],
+  routes: [{ prompt: "A", target: A }, { prompt: "Finished", target: Done }],
 })
 export class Loop {}
 
@@ -92,18 +91,18 @@ export class Loop {}
 @Router({
   name: "ping",
   description: "A or done",
-  instructions: "Ping.",
+  prompt: "Ping.",
   model: jev,
-  routes: [route("A").to(A), route("Finished").to(Done)],
+  routes: [{ prompt: "A", target: A }, { prompt: "Finished", target: Done }],
 })
 export class Ping {}
 
 @Router({
   name: "pong",
   description: "B or done",
-  instructions: "Pong.",
+  prompt: "Pong.",
   model: jev,
-  routes: [route("B").to(B), route("Finished").to(Done)],
+  routes: [{ prompt: "B", target: B }, { prompt: "Finished", target: Done }],
 })
 export class Pong {}
 
@@ -111,8 +110,8 @@ export class Pong {}
 @Router({
   name: "unbounded-gate",
   description: "Back or done",
-  instructions: "Gate.",
+  prompt: "Gate.",
   model: jev,
-  routes: [route("Again").to(Self), route("Finished").to(Done)],
+  routes: [{ prompt: "Again", target: Self }, { prompt: "Finished", target: Done }],
 })
 export class UnboundedGate {}

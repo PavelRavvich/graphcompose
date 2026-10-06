@@ -6,7 +6,6 @@ import { WorkflowStartText, WorkflowFinishText } from "../../../src/dto/index.js
 import { WorkflowFinish } from "../../../src/graph/workflow-finish.decorator.js";
 import { WorkflowStart } from "../../../src/graph/workflow-start.decorator.js";
 import { from, type Flow } from "../../../src/graph/flow.js";
-import { route } from "../../../src/graph/route.js";
 import { Router } from "../../../src/graph/router.decorator.js";
 import { flowRouterFactory } from "../../../src/graph/router-model.js";
 import { NO_GUARDS, type GuardSet } from "../../../src/guards/index.js";
@@ -44,14 +43,14 @@ class ChatWorkflowFinish {}
 @Router({
   name: "main",
   description: "Sends the job seeker's message to the right agent, or sends the answer",
-  instructions: "Pick who handles the job seeker's message.",
+  prompt: "Pick who handles the job seeker's message.",
   model: "test/router",
   maxVisits: 3,
   routes: [
-    route("Reading the resume and proposing a search brief").to(Profiler),
-    route("Finding and ranking jobs").to(Scout),
-    route("Saving chosen jobs to the shortlist, or showing it").to(Shortlist),
-    route("The last answer fully covers the message").to(ChatWorkflowFinish),
+    { prompt: "Reading the resume and proposing a search brief", target: Profiler },
+    { prompt: "Finding and ranking jobs", target: Scout },
+    { prompt: "Saving chosen jobs to the shortlist, or showing it", target: Shortlist },
+    { prompt: "The last answer fully covers the message", target: ChatWorkflowFinish },
   ],
 })
 class MainRouter {}
@@ -124,7 +123,7 @@ export function jobScoutDeps(script: JobScoutScript): JobScoutRun {
   const deps: RunDeps<JobScoutAgent> = {
     config,
     registry: createModelRegistry(config, fakeGateway(chatModel)),
-    prompts: { profiler: "You profile.", scout: "You scout.", shortlist: "You save." },
+    prompts: { profiler: async () => "You profile.", scout: async () => "You scout.", shortlist: async () => "You save." },
     tools: () => saveShortlist,
     guards: script.guards ?? NO_GUARDS,
     pause: { checkpointer: new MemorySaver(), needsApproval: writeToolsNeedApproval },

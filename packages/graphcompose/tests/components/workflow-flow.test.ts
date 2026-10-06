@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { Agent, ComponentError, Workflow, workflowOf } from "../../src/components/index.js";
 import { recordComponent } from "../../src/components/metadata.js";
 import { from, node } from "../../src/graph/flow.js";
-import { route } from "../../src/graph/route.js";
 import { Router } from "../../src/graph/router.decorator.js";
 import { GraphRuleError } from "../../src/graph/rule-error.js";
 import { WorkflowSettings, type WorkflowDefinition } from "../../src/graph/settings.js";
@@ -15,19 +14,19 @@ const price = testConfig.agents.alpha.price;
 
 const prompt = "./fixture/greeter.prompt.md";
 
-@Agent({ name: "profiler", description: "Profiles", model: "test/alpha", price, instructions: "" })
+@Agent({ name: "profiler", description: "Profiles", model: "test/alpha", price, prompt: "" })
 class Profiler {}
 
-@Agent({ name: "scout", description: "Scouts", model: "test/alpha", price, instructions: "" })
+@Agent({ name: "scout", description: "Scouts", model: "test/alpha", price, prompt: "" })
 class Scout {}
 
 @Router({
   name: "main",
   description: "Picks an agent",
-  instructions: "Pick one.",
+  prompt: "Pick one.",
   model: "typesafe/jev-1.13",
   maxVisits: 3,
-  routes: [route("Profiling").to(Profiler), route("Done").to(TestAnswer)],
+  routes: [{ prompt: "Profiling", target: Profiler }, { prompt: "Done", target: TestAnswer }],
 })
 class Main {}
 
@@ -87,7 +86,8 @@ describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
 
     expect(Object.keys(workflow.config.agents)).toEqual(["profiler", "second-look"]);
     expect(workflow.limits).toEqual({ perDay: { cost: 3 } });
-    expect(workflow.routers.map((r) => [r.name, r.instructions])).toEqual([["main", "Pick one."]]);
+    const routerTexts = await Promise.all(workflow.routers.map(async (r) => [r.name, await r.instructions({} as any)]));
+    expect(routerTexts).toEqual([["main", "Pick one."]]);
   });
 
   it("a @Workflow class without settings() is refused", async () => {

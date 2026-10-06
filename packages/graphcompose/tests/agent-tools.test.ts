@@ -64,7 +64,7 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd 
       perRun: { cost: usd(runBudgetCap) },
       perDay: { cost: usd(10) },
     }),
-    prompts: { alpha: "You are alpha.", beta: "You are beta." },
+    prompts: { alpha: async () => "You are alpha.", beta: async () => "You are beta." },
     terns: createSqliteTernStore(":memory:"),
     guards: NO_GUARDS,
     tools: (name) => (name === "paid_search" ? paidSearch(toolCostUsd) : libraryTool(name)),

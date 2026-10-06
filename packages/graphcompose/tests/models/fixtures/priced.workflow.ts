@@ -16,7 +16,7 @@ import { LocalModelProvider, TestOpenRouterProvider } from "../providers.fixture
 /** Priced by its provider's table (local/llama), no price of its own. */
 @Agent({
   name: "summariser",
-  instructions: file("./summariser.prompt.md"),
+  promptUrls: ["./summariser.prompt.md"],
   description: "Summarises the task",
   model: "local/llama",
 })
@@ -25,7 +25,7 @@ export class Summariser {}
 /** Priced by its provider's answer (OpenRouter's usage.cost). */
 @Agent({
   name: "writer",
-  instructions: file("./writer.prompt.md"),
+  promptUrls: ["./writer.prompt.md"],
   description: "Writes the answer",
   model: "moonshotai/kimi-k2.6",
   thinking: "none",

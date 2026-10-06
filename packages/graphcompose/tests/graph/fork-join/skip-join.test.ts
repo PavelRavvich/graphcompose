@@ -5,7 +5,6 @@ import { workflowOf } from "../../../src/components/assemble.js";
 import { assembleFlowGraph } from "../../../src/graph/build.js";
 import {
   from,
-  route,
   Router,
   WorkflowFinish,
   WorkflowStart,
@@ -22,21 +21,21 @@ export class SkipStart {}
 @WorkflowFinish({ name: "skipFinish", description: "Finish", output: WorkflowFinishText })
 export class SkipFinish {}
 
-@Agent({ name: "skipA", model: "stub", description: "a", instructions: "" })
+@Agent({ name: "skipA", model: "stub", description: "a", prompt: "" })
 export class SkipA {}
 
-@Agent({ name: "skipB", model: "stub", description: "b", instructions: "" })
+@Agent({ name: "skipB", model: "stub", description: "b", prompt: "" })
 export class SkipB {}
 
-@Agent({ name: "skipAggregator", model: "stub", description: "aggregates", instructions: "" })
+@Agent({ name: "skipAggregator", model: "stub", description: "aggregates", prompt: "" })
 export class SkipAggregator {}
 
 @Router({
   name: "skipPicker",
   description: "Picks a branch",
-  instructions: "Which branch?",
+  prompt: "Which branch?",
   model: "stub",
-  routes: [route("branch A").to(SkipA), route("branch B").to(SkipB), route("skip").to(Skip)],
+  routes: [{ prompt: "branch A", target: SkipA }, { prompt: "branch B", target: SkipB }, { prompt: "skip", target: Skip }],
 })
 export class SkipPicker {}
 

@@ -162,7 +162,7 @@ describe("AC6: prompts are normalised at load and sent normalised", () => {
       name: "writer",
       description: "Writes",
       model: "local/llama",
-      instructions: file(join(dir, "writer.prompt.md")),
+      promptUrls: [join(dir, "writer.prompt.md")],
     })
     class Writer {}
     @Workflow({

@@ -42,7 +42,7 @@ describe("profiles — merge rules", () => {
     });
   });
 
-  it("AC1: a profile overrides only what it lists; prompts replaced per agent", () => {
+  it("AC1: a profile overrides only what it lists; prompts replaced per agent", async () => {
     const applied = applyProfile(
       base,
       profile({ agents: { coder: { thinking: "high" } }, defaults: { history: { limit: 2 } } }),
@@ -54,8 +54,8 @@ describe("profiles — merge rules", () => {
     expect(applied.config.agents.coder?.thinking).toBe("high");
     expect(applied.config.agents.coder?.model).toBe(base.config.agents.coder?.model);
     expect(applied.config.defaults.history.limit).toBe(2);
-    expect(applied.prompts.coder).toBe("You are a terse coder.");
-    expect(applied.prompts.researcher).toBe(base.prompts.researcher);
+    expect(await applied.prompts.coder!({} as any)).toBe("You are a terse coder.");
+    expect(await applied.prompts.researcher!({} as any)).toBe(await base.prompts.researcher!({} as any));
   });
 
   it("AC1: loads a YAML profile with a prompt file relative to it; base means no profile", async () => {
@@ -66,7 +66,7 @@ describe("profiles — merge rules", () => {
 
     const applied = await withProfile(base, "variant", root);
 
-    expect(applied.prompts.coder).toBe("From a file.");
+    expect(await applied.prompts.coder!({} as any)).toBe("From a file.");
     expect(await withProfile(base, "base", root)).toBe(base);
     expect(await loadProfile(file)).toMatchObject({ profile: "variant" });
   });

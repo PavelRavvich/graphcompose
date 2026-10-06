@@ -4,7 +4,7 @@ import type { RagMode } from "../rag/types.js";
 import type { Flow } from "../graph/flow.js";
 import type { Class, Provider } from "./injection.js";
 
-import type { PromptInput } from "./prompt-input.js";
+import type { PromptOptions } from "./prompt-options.js";
 
 type AgentSettings = AgentsConfig["agents"][string];
 
@@ -18,7 +18,8 @@ export interface RagBinding {
 export interface AgentMeta {
   readonly name: string;
   readonly description: string;
-  readonly instructions: PromptInput;
+  readonly prompt?: string;
+  readonly promptUrls?: readonly string[];
   readonly model: string;
   /** Overrides the model provider's price table; the provider's own reported cost comes first. */
   readonly price?: AgentSettings["price"];

@@ -1,11 +1,11 @@
-import { Router, route } from "graphcompose/graph";
+import { Router } from "graphcompose/graph";
 {{imports}}
 
 /** {{title}} — picks the next node; its prompt says how to choose, each route what it means. */
 @Router({
   name: "{{kebab}}",
   description: "{{description}}",
-  instructions: "{{instructions}}",
+  prompt: "{{prompt}}",
   model: "typesafe/jev-1.13",
   maxVisits: {{maxVisits}},
   routes: [
