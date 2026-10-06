@@ -38,7 +38,7 @@
 - **Rag Config:** Переименовать `k` в `topK` внутри конфигурации `@Rag`.
 - **Workflow Defaults:** В схеме `AgentsConfigSchema` переименовать `defaults.chat` в `defaults.models`. (Формат: `defaults: { models: { temperature: 0.5 }, history: { limit: 10 } }`).
 
-## 6. Улучшение: Angular-like Environments
+## 6. ~~Улучшение: Angular-like Environments~~ — ИСПРАВЛЕНО
 
 **Тип:** Feature / DX
 **Описание:** Внедрить паттерн работы с окружениями, идентичный Angular (`src/environments/environment.ts`, `environment.prod.ts`, `environment.staging.ts`).
