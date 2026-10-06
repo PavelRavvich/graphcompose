@@ -24,8 +24,8 @@ export {
   type NamedNode,
   type SelfTarget,
   type ToStep,
-  required,
   background,
+  bg,
 } from "./flow.js";
 export { SELF_OPTION, type RouteDeclaration } from "./route.js";
 export { WorkflowStart, type WorkflowStartOptions } from "./workflow-start.decorator.js";

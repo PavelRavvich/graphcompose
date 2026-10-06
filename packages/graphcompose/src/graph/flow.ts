@@ -24,28 +24,21 @@ export const Self: SelfTarget = Object.freeze({ kind: "self" });
 /** A node of the flow: a decorated class (`@WorkflowStart`, `@Router`, `@Agent`, `@WorkflowFinish`) or a named node. */
 export type FlowNode = Class | NamedNode;
 
-export interface RequiredTarget {
-  readonly kind: "required";
-  readonly target: FlowNode;
-}
-
 export interface BackgroundTarget {
   readonly kind: "background";
   readonly target: FlowNode;
 }
 
-export type ParallelTarget = FlowNode | RequiredTarget | BackgroundTarget;
-
-export function required(target: FlowNode): RequiredTarget {
-  return { kind: "required", target };
-}
+export type ParallelTarget = FlowNode | BackgroundTarget;
 
 export function background(target: FlowNode): BackgroundTarget {
   return { kind: "background", target };
 }
 
+export const bg = background;
+
 export const unwrapTarget = (target: ParallelTarget): FlowNode =>
-  typeof target === "object" && target !== null && "kind" in target && (target.kind === "required" || target.kind === "background")
+  typeof target === "object" && target !== null && "kind" in target && (target.kind === "background")
     ? target.target
     : (target as FlowNode);
 
