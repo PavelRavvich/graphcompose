@@ -35,6 +35,7 @@ import {
   pauseFor,
   servicesFor,
   toolLookup,
+  actionLookup,
 } from "./parts.js";
 
 /** Daily spend ledgers live outside the repo. */
@@ -185,6 +186,7 @@ export async function createAppDeps(
     prompts: bundle.prompts,
     guards: guardsFor(config, gateway),
     tools: toolLookup(tools),
+    actions: actionLookup(bundle, services),
     pause: pauseFor(bundle, checkpointer),
     compactionPrompt: bundle.compactionPrompt,
     ...knowledgeFor(bundle, services),

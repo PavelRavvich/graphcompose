@@ -3,7 +3,7 @@ import type { ToolEffect } from "../tools/index.js";
 import type { DtoClass } from "../dto/types.js";
 import type { ServerTools } from "./mcp-client.js";
 import type { Class, Token } from "./injection.js";
-import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
+import type { AgentMeta, WorkflowMeta, WorkflowActionMeta } from "./meta-types.js";
 
 export interface ToolMeta {
   readonly name: string;
@@ -33,6 +33,7 @@ export type ComponentMeta =
     }
   | { readonly kind: "mcp-tool"; readonly meta: McpToolMeta }
   | { readonly kind: "agent"; readonly meta: AgentMeta }
+  | { readonly kind: "action"; readonly meta: WorkflowActionMeta }
   | { readonly kind: "injectable"; readonly meta: { readonly deps: readonly Token[] } }
   | {
       readonly kind: "rag";
@@ -77,6 +78,7 @@ const kindName: Readonly<Record<ComponentMeta["kind"], string>> = {
   "mcp-server": "McpServer",
   "mcp-tool": "McpTool",
   agent: "Agent",
+  action: "WorkflowAction",
   injectable: "Injectable",
   rag: "Rag",
   workflow: "Workflow",

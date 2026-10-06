@@ -2,7 +2,7 @@ import type { Class } from "../components/injection.js";
 import { componentOf } from "../components/metadata.js";
 
 /** What a flow node is. Agents and routers are working nodes: their visits are steps. */
-export type NodeKind = "workflow-start" | "router" | "agent" | "workflow-finish";
+export type NodeKind = "workflow-start" | "router" | "agent" | "action" | "workflow-finish";
 
 /** What the flow knows about a node class: its kind and its name (the graph node's name). */
 export interface NodeInfo {
@@ -22,7 +22,9 @@ export function nodeInfoOf(target: Class): NodeInfo | undefined {
   const recorded = nodes.get(target);
   if (recorded !== undefined) return recorded;
   const component = componentOf(target);
-  return component?.kind === "agent" ? { kind: "agent", name: component.meta.name } : undefined;
+  if (component?.kind === "agent") return { kind: "agent", name: component.meta.name };
+  if (component?.kind === "action") return { kind: "action", name: component.meta.name };
+  return undefined;
 }
 
-export const isWorkingKind = (kind: NodeKind): boolean => kind === "agent" || kind === "router";
+export const isWorkingKind = (kind: NodeKind): boolean => kind === "agent" || kind === "router" || kind === "action";

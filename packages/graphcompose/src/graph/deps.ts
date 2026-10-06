@@ -7,6 +7,7 @@ import type { Router } from "../routers/index.js";
 import type { AnyTool } from "../tools/index.js";
 import type { Flow } from "./flow.js";
 import type { LoadedRouter } from "./router-texts.js";
+import type { IWorkflowAction } from "../components/decorators.js";
 import type { WorkflowLimits } from "./settings.js";
 
 /** What the workflow's graph is built from: its flow, its agents and the existing nodes' parts. */
@@ -17,6 +18,8 @@ export interface GraphDeps<TName extends string> {
   /** Resolves a tool name from an agent's config to the tool. */
   readonly tools: (name: string) => AnyTool;
   readonly guards: GuardSet;
+  /** Resolves an action name to the instantiated WorkflowAction */
+  readonly actions?: (name: string) => IWorkflowAction;
   /** Context-mode knowledge bases per agent (knowledge bases, #88). */
   readonly knowledge?: (agent: string) => readonly KnowledgeSource[];
   /** Optional pause seam (approval of tool calls). Off by default. */

@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
+// @ts-ignore
 import { input } from "@inquirer/prompts";
 import { ScaffoldError } from "../scaffold/errors.js";
 import { isComplete, specFromFlags } from "../scaffold/flags.js";

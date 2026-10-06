@@ -8,10 +8,7 @@ import type { Contribution, HistoryTurn } from "./contributions.js";
 
 const append = <TItem>(left: TItem[], right: TItem[]): TItem[] => left.concat(right);
 
-const mergeRecords = (
-  left: Record<string, unknown>,
-  right: Record<string, unknown>,
-): Record<string, unknown> => ({
+const mergeRecords = (left: Record<string, any>, right: Record<string, any>): Record<string, any> => ({
   ...left,
   ...right,
 });

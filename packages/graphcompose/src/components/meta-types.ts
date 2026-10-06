@@ -43,6 +43,13 @@ export interface AgentMeta {
  * `@Workflow` — the module: its graph (`flow`; the agents are the flow's agent nodes), workflow
  * settings, MCP servers and providers for DI. Limits come from the class's `settings()`.
  */
+
+/** `@WorkflowAction` — a programmatic node without LLM. */
+export interface WorkflowActionMeta {
+  readonly name: string;
+  readonly description?: string;
+}
+
 export interface WorkflowMeta {
   readonly name: string;
   readonly version: string;

@@ -17,6 +17,10 @@ export class UnknownToolError extends Error {
   override name = "UnknownToolError";
 }
 
+export class UnknownActionError extends Error {
+  override name = "UnknownActionError";
+}
+
 /** Tool lookup for the graph; an unknown name is a wiring bug. */
 export const toolLookup = (tools: readonly AnyTool[]): ((name: string) => AnyTool) => {
   const byName = new Map(tools.map((tool) => [tool.name, tool] as const));
@@ -28,6 +32,18 @@ export const toolLookup = (tools: readonly AnyTool[]): ((name: string) => AnyToo
 };
 
 /** Eval / replay: a Jev judge, spend on `<workflow>:eval` — its own day, capped like the workflow's. */
+
+/** Action lookup for the graph. */
+export const actionLookup = (bundle: AssembledWorkflow, services: WorkflowServices): ((name: string) => any) | undefined => {
+  const actionsMap = bundle.actions?.(services);
+  if (!actionsMap) return undefined;
+  return (name) => {
+    const action = actionsMap.get(name);
+    if (action === undefined) throw new UnknownActionError(`Unknown action "${name}"`);
+    return action;
+  };
+};
+
 export const evaluationFor = (
   bundle: AssembledWorkflow,
   stores: Pick<EvalDeps, "terns" | "ledger">,

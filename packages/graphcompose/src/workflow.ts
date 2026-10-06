@@ -1,5 +1,6 @@
 import type { AgentPrompts, AgentsConfigOf } from "./config/types.js";
 import type { KnowledgeSource, RagConnector } from "./rag/types.js";
+import type { IWorkflowAction } from "./components/decorators.js";
 import type { AnyTool, McpFacade, McpServerHandle } from "./tools/index.js";
 import type { Router } from "./routers/index.js";
 import type { Flow } from "./graph/flow.js";
@@ -41,6 +42,8 @@ export interface AssembledWorkflow<TName extends string = string> {
   readonly mcpServers: readonly McpServerHandle<string>[];
   /** Every declared server tool, checked against its server at startup (`@McpServer({ tools })`). */
   readonly serverTools?: readonly McpFacade[];
+  /** Action instances instantiated from DI container */
+  readonly actions?: (services: WorkflowServices) => ReadonlyMap<string, IWorkflowAction>;
   /** Context-mode knowledge bases per agent (retrieved before the agent runs). */
   readonly knowledge?: (
     services: WorkflowServices,

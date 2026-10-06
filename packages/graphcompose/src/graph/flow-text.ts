@@ -17,6 +17,7 @@ const KIND_TEXT: Readonly<Record<NodeKind, string>> = {
   "workflow-start": " (workflow start)",
   "workflow-finish": " (workflow finish)",
   agent: "",
+  action: " (action)",
   router: "",
 };
 

@@ -6,7 +6,8 @@ import type { Class, ResolvedAll, Token } from "./injection.js";
 import { callerFile } from "./call-site.js";
 import type { McpServerClient, ServerTools } from "./mcp-client.js";
 import { recordComponent } from "./metadata.js";
-import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
+import type { AgentMeta, WorkflowMeta, WorkflowActionMeta } from "./meta-types.js";
+import type { AgentState, AgentStateUpdate } from "../graph/state.js";
 import type { WorkflowDefinition } from "../graph/settings.js";
 
 /**
@@ -133,6 +134,25 @@ export function Agent(options: Omit<AgentMeta, "source">) {
 export function Workflow(options: WorkflowMeta) {
   return <C extends new () => WorkflowDefinition>(value: C): C => {
     recordComponent(value, { kind: "workflow", meta: options });
+    return value;
+  };
+}
+
+export interface WorkflowActionContext {
+  readonly runId: string;
+  readonly signal?: AbortSignal;
+}
+
+export interface IWorkflowAction<T = any> {
+  execute(state: AgentState<T>, context: WorkflowActionContext): Promise<Partial<AgentStateUpdate>> | Partial<AgentStateUpdate>;
+}
+
+export function WorkflowAction(options: WorkflowActionMeta) {
+  return <C extends Class>(value: C): C => {
+    recordComponent(value, {
+      kind: "action",
+      meta: options,
+    });
     return value;
   };
 }

@@ -98,6 +98,7 @@ const freshState = (task: string, runId: string): FlowStateType => ({
   usage: [],
   budgetUsd: Number.POSITIVE_INFINITY,
   answer: "",
+  finishes: {},
   guarded: "",
   approvals: [],
   summaries: [],

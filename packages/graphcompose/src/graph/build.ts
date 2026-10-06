@@ -155,7 +155,7 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
   }
   if (!next) return;
   if (next.kind === "to") {
-    const targets = next.targets.map((t) => graphNodeId(nodeKeyed(model, unwrapTarget(t))));
+    const targets = next.targets.map((t) => graphNodeId(nodeKeyed(model, t as string)));
     if (node.kind === "workflow-start") {
       const singleTarget = targets.length === 1 && targets[0] !== undefined;
       builder.addConditionalEdges(

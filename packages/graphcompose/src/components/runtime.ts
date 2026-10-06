@@ -63,7 +63,7 @@ export const rememberServers = (
 
 /** One container per workflow and app services: its tools, knowledge and index share instances. */
 const containers = new WeakMap<WorkflowMeta, WeakMap<WorkflowServices, Container>>();
-const containerFor = (bundle: WorkflowMeta, services: WorkflowServices): Container => {
+export const containerFor = (bundle: WorkflowMeta, services: WorkflowServices): Container => {
   const perBundle = containers.get(bundle) ?? new WeakMap<WorkflowServices, Container>();
   containers.set(bundle, perBundle);
   const existing = perBundle.get(services);

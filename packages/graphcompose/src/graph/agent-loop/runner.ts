@@ -13,6 +13,7 @@ export function loopInputOf(state: FlowStateType, agent: string): AgentLoopState
     next: agent,
     routeReason: state.routeReason,
     start: state.start,
+    finishes: state.finishes,
     previousAgent: state.previousAgent,
     visits: state.visits,
     steps: state.steps,

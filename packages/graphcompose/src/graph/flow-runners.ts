@@ -13,9 +13,14 @@ import type { FlowNodeRef } from "./flow-nodes.js";
 import { lastAnswer } from "./nodes/finalize.js";
 import { makeGuardNode } from "./nodes/guards.js";
 import type { FlowNodeRunner } from "./visit.js";
+import type { MultimodalFinishOutput } from "../app/types.js";
 
 class NotARunnerNodeError extends Error {
   override name = "NotARunnerNodeError";
+}
+
+export class UnknownActionError extends Error {
+  override name = "UnknownActionError";
 }
 
 class UnknownAgentError extends Error {
@@ -33,7 +38,7 @@ function finishRunner<TName extends string>(deps: GraphDeps<TName>, name: string
     const guarded = await outputGuards({ ...state, answer }, config);
     const finishOutput: MultimodalFinishOutput = {
       kind: "multimodal",
-      blocks: state.contributions.at(-1)?.content ?? [] 
+      blocks: Array.isArray(state.contributions.at(-1)?.content) ? (state.contributions.at(-1)?.content as any) : [] 
     };
     return { answer, finishes: { [name]: finishOutput }, ...guarded };
   };
@@ -72,6 +77,16 @@ export function flowRunners<TName extends string>(
     switch (node.kind) {
       case "workflow-start":
         return inputGuards;
+      case "action": {
+        if (!deps.actions) throw new Error("Workflow actions not wired in RunDeps");
+        const action = deps.actions(node.name);
+        if (!action) throw new UnknownActionError(`Unknown action: ${node.name}`);
+        return async (state, config) => {
+          const context = { runId: config?.configurable?.runId ?? "", signal: config?.signal };
+          const result = await action.execute(state, context);
+          return result as import("./flow-state.js").FlowStateUpdate;
+        };
+      }
       case "agent": {
         const loop = loops.get(node.name);
         if (loop === undefined) throw new UnknownAgentError(node.name);

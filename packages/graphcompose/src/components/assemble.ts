@@ -6,7 +6,8 @@ import { renderPromptVariables } from "./prompt-render.js";
 import type { AssembledWorkflow } from "../workflow.js";
 import { objectSchemaOf } from "../dto/schema.js";
 import { checkGraph, dependencyTree } from "./container.js";
-import { checkToolData, CORE_TOKENS, ragParts, rememberServers, toolBuilder } from "./runtime.js";
+import { checkToolData, CORE_TOKENS, ragParts, rememberServers, toolBuilder, containerFor } from "./runtime.js";
+import type { IWorkflowAction } from "./decorators.js";
 import type { McpServerClient, ServerTools } from "./mcp-client.js";
 import type { Token } from "./injection.js";
 import { ragClassesOf, ragMeta, ragSettings, searchToolName } from "./rag.js";
@@ -147,7 +148,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   const tools = toolsOf(bundle, agents);
   const mcp = mcpOf(bundle, tools.mcp);
   const rags = ragClassesOf(bundle, agents);
-  checkGraph([...tools.local, ...tools.mcp, ...rags], bundle.providers ?? [], [
+  checkGraph([...tools.local, ...tools.mcp, ...rags, ...graph.actions.map(a => a.cls)], bundle.providers ?? [], [
     ...CORE_TOKENS,
     ...mcp.instances.keys(),
   ]);
@@ -178,6 +179,10 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     routers: graph.routers,
     prompts,
     tools: toolBuilder(bundle, agents, tools.local, tools.mcp, mcp.names),
+    actions: (services) => {
+      const container = containerFor(bundle, services);
+      return new Map(graph.actions.map(a => [a.name, container.get(a.cls) as IWorkflowAction]));
+    },
     ...(rags.length === 0 ? {} : ragParts(bundle, agents, rags)),
     mcpServers: mcp.handles,
     serverTools: mcp.serverTools,

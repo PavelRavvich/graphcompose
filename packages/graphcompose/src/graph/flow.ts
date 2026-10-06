@@ -171,8 +171,7 @@ export function node(use: Class, name: string): NamedNode {
   return Object.freeze({ kind: "named-node", use, name });
 }
 
-export const isRequiredTarget = (target: ParallelTarget): target is RequiredTarget =>
-  typeof target === "object" && target !== null && "kind" in target && target.kind === "required";
+
 export const isBackgroundTarget = (target: ParallelTarget): target is BackgroundTarget =>
   typeof target === "object" && target !== null && "kind" in target && target.kind === "background";
 export const isSelf = (target: ChoiceTarget): target is SelfTarget =>

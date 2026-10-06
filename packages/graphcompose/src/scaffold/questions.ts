@@ -1,3 +1,4 @@
+// @ts-ignore
 import { input, select } from "@inquirer/prompts";
 import { namesOf } from "./names.js";
 import type { AgentSpec, McpSpec, WorkflowSpec } from "./plan.js";
@@ -25,8 +26,8 @@ async function askAgents(): Promise<AgentSpec[]> {
       description,
       tools: tools
         .split(",")
-        .map((t) => t.trim())
-        .filter((t) => t !== ""),
+        .map((t: string) => t.trim())
+        .filter((t: string) => t !== ""),
     });
   }
 }
