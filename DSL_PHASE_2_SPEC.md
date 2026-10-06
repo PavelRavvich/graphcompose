@@ -20,7 +20,7 @@ flow: [
 
   // Fork into 3 parallel branches
   // Note: you can use required() or background() to indicate if the main execution should wait for this branch
-  from(PreparationAgent).nextParallel(required(AgentA), required(AgentB), background(AgentC)),
+  from(PreparationAgent).nextParallel(AgentA, AgentB, bg(AgentC)),
 
   // Barrier: waits for all 3 branches to finish
   from(AgentA, AgentB, AgentC).join(AggregatorAgent),
