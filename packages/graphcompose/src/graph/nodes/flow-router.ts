@@ -91,14 +91,18 @@ function targetOf(
 }
 
 /** A flow router: asks the router's model, fails the run on any failure, sets `next` to the target. */
+import type { ObserverManager } from "../../core/observer-manager.js";
+
 export function makeFlowRouterNode(
-  deps: FlowRouterNodeDeps,
+  deps: FlowRouterNodeDeps & { observer?: ObserverManager },
 ): AsyncNode<FlowStateType, FlowStateUpdate> {
   return async (state) => {
     // a call was decided in this turn and the agent has answered since — the turn ends (#100)
     if (state.approvals.length > 0 && deps.finish !== undefined) {
       return { next: deps.finish, routeReason: AFTER_APPROVAL_DECISION };
     }
+    const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.loaded.name, variables: {}, history: state.history };
+    await deps.observer?.onRouterStart({ name: deps.loaded.name, input: state.task, state: appState });
     const request = await routeRequestOf(state, deps);
     const outcome = await deps.router.route(request);
     const usage = outcome.usage === undefined ? [] : [outcome.usage];
@@ -107,6 +111,8 @@ export function makeFlowRouterNode(
       throw new RouterDecisionError(deps.loaded.name, code, outcome.reason, usage);
     }
     const next = targetOf(outcome, state, deps, usage);
-    return { next, routeReason: outcome.decision.reason, usage };
+    const result = { next, routeReason: outcome.decision.reason, usage };
+    await deps.observer?.onRouterEnd({ name: deps.loaded.name, update: result, state: appState });
+    return result;
   };
 }

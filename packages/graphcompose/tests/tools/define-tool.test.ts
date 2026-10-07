@@ -104,7 +104,6 @@ describe("defineTool", () => {
     });
 
     expect(await tool.invoke({}, ctx())).toEqual({ kind: "ok", value: true });
-    expect(tool.effect).toBe("read");
     expect(tool.timeoutMs).toBe(30_000);
   });
 

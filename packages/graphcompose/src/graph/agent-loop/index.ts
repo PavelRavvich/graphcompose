@@ -1,6 +1,6 @@
 /** The agent's own loop (#150): a compiled subgraph per agent, added as one node of the workflow. */
 export { pauseSeamApproval, type ToolCallApproval } from "./approval.js";
-export type { AgentDefinition, AgentLoopDeps, LoopCall } from "./deps.js";
+export type { AgentDefinition, AgentLoopDeps, ToolCallRequest } from "./deps.js";
 export {
   JudgeOwner,
   JudgePoint,

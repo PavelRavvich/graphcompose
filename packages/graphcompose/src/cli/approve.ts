@@ -13,7 +13,7 @@ const idle: Busy = (work) => work(undefined);
 /** The terminal's decision on a call: `by` is the OS user who answered. */
 export function terminalDecision(approved: boolean): ToolCallApprovalDecision {
   const by = userInfo().username;
-  return approved ? { approved, by } : { approved, by, reason: "declined in the terminal" };
+  return approved ? { approved, by } : { approved, by, feedback: "declined in the terminal" };
 }
 
 /** A paused run asks in the terminal, then continues in the same process. */

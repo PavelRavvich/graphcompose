@@ -1,8 +1,5 @@
 import type { z } from "zod";
 
-/** "write" tools change the outside world (PRs, mail…); confirmation will build on this flag. */
-export type ToolEffect = "read" | "write";
-
 /** What a tool may know about the run it serves. */
 export interface ToolContext {
   readonly runId: string;
@@ -33,7 +30,7 @@ export type ToolOutput<TOutput> =
 export interface Tool<TName extends string = string, TInput = unknown, TOutput = unknown> {
   readonly name: TName;
   readonly description: string;
-  readonly effect: ToolEffect;
+  readonly channel?: string;
   readonly timeoutMs: number;
   readonly input: z.ZodType<TInput>;
   readonly output: z.ZodType<TOutput>;

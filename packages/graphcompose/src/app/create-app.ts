@@ -80,7 +80,18 @@ export async function buildApp(
       const { text } = validate(meta.input, input);
       const thread = call.thread === undefined ? {} : { threadId: call.thread };
       const task = { task: text, start: meta.name, ...thread };
-      return settle(await runAgent(task, deps, { signal: call.signal }));
+      const runId = deps.newRunId?.() || `run-${Date.now()}`;
+      const state = { runId, threadId: call.thread };
+      
+      try {
+        await deps.observer.onWorkflowStart(state);
+        const result = settle(await runAgent(task, deps, { signal: call.signal }));
+        await deps.observer.onWorkflowEnd(result, state);
+        return result;
+      } catch (e) {
+        await deps.observer.onError(e as Error, state);
+        throw e;
+      }
     },
     resume: async (thread, decision, call = {}) => {
       const run = paused.get(thread);

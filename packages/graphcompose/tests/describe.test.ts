@@ -21,22 +21,32 @@ describe("describe a workflow", () => {
     const lines = after(describeWorkflow(greetings), "  greeter  ");
 
     expect(
-      lines.some((l) => l.includes("· greet (read, local) ← Greeter (GREETING, ROUTER_FACTORY)")),
+      lines.some((l) => l.includes("· greet (local) ← Greeter (GREETING, ROUTER_FACTORY)")),
     ).toBe(true);
-    expect(lines.some((l) => l.includes("· read_file (read, MCP files)"))).toBe(true);
+    expect(lines.some((l) => l.includes("· read_file (MCP files)"))).toBe(true);
     expect(after(describeWorkflow(test), "  coder  ")).toContain("    tools: none");
   });
 
   it("AC1: marks tools that wait for an approval when the pause seam is on", () => {
+    const resolvedGreetingsTools = Array.isArray(greetings.tools)
+      ? greetings.tools
+      : greetings.tools({});
     const paused: AssembledWorkflow = {
       ...greetings,
-      needsApproval: (tool) => tool.name === "greet",
+      tools: [
+        { ...resolvedGreetingsTools[0], channel: "terminal-user-channel" },
+        ...resolvedGreetingsTools.slice(1),
+      ],
     };
 
     expect(
-      describeWorkflow(paused).some((l) => l.includes("· greet (read, local, waits for approval)")),
+      describeWorkflow(paused).some((l) =>
+        l.includes("· greet (channel:terminal-user-channel, local, uses channel)"),
+      ),
     ).toBe(true);
-    expect(describeWorkflow(paused)).toContain("pause     on — marked tools wait for an approval");
+    expect(describeWorkflow(paused)).toContain(
+      "pause     on — tools with channel wait for external signal",
+    );
   });
 
   it("AC2: settings of the workflow and of each agent; the profile in the header", () => {

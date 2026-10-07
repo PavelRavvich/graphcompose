@@ -51,7 +51,7 @@ class Talker {}
 @Workflow({
   name: "test-pause",
   version: "1.0",
-    defaults: {
+  defaults: {
     models: { maxTokens: 100, temperature: 0 },
     history: { limit: 1 },
     tools: { maxToolCalls: 1 },

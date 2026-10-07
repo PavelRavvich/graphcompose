@@ -101,15 +101,17 @@ describe("AC2: tool errors are recoverable — the model reads them and the loop
 });
 
 describe("AC8: the judge points are called in the documented order", () => {
-  it("tool before → agent before (per call) → approval → run → tool after → agent after → before the answer", async () => {
+  it("beforeToolCall → approval → run → afterToolCall → beforeAgentAnswer", async () => {
     const visits: string[] = [];
-    const probe: JudgePoints = (visit: JudgeVisit) => {
-      visits.push(`${visit.point}:${visit.owner}:${visit.call?.callId ?? "-"}`);
-      return Promise.resolve();
+    const probe = {
+      beforeToolCall: async (ctx: any) => visits.push(`beforeToolCall:${ctx.call?.callId ?? "-"}`),
+      afterToolCall: async (ctx: any) => visits.push(`afterToolCall:${ctx.call?.callId ?? "-"}`),
+      onChannelDecision: async (decision: any, ctx: any) => visits.push(`onChannelDecision:${ctx.call?.callId ?? "-"}`),
+      beforeAgentAnswer: async (ctx: any) => visits.push(`beforeAgentAnswer:-`),
     };
     const h = harness({
       moves: [callTools(read("r1", "a.ts"), write("w1", "a.ts")), answer("done")],
-      judges: probe,
+      guardrails: [probe],
     });
 
     const paused = await runLoop(h.graph, startInput(), "t");
@@ -118,19 +120,16 @@ describe("AC8: the judge points are called in the documented order", () => {
 
     expect(paused.kind).toBe("paused");
     expect(atPause).toEqual([
-      "beforeToolCall:tool:r1",
-      "beforeToolCall:agent:r1",
-      "beforeToolCall:tool:w1",
-      "beforeToolCall:agent:w1",
+      "beforeToolCall:r1",
+      "beforeToolCall:w1",
     ]);
-    expect(visits.slice(4)).toEqual([
-      "afterToolCall:tool:r1",
-      "afterToolCall:agent:r1",
-      "afterToolCall:tool:w1",
-      "afterToolCall:agent:w1",
-      "beforeAgentAnswer:agent:-",
+    expect(visits.slice(2)).toEqual([
+      "onChannelDecision:w1",
+      "afterToolCall:r1",
+      "afterToolCall:w1",
+      "beforeAgentAnswer:-",
     ]);
-    expect(Object.values(JudgePoint)).toHaveLength(3);
+    expect(Object.values(JudgePoint)).toHaveLength(4);
     expect(Object.values(JudgeOwner)).toEqual(["tool", "agent"]);
   });
 });

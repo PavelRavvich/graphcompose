@@ -1,7 +1,9 @@
 import type { AsyncNode } from "../types.js";
 import { awaitingApproval } from "./boundary.js";
+import { toolNamed } from "./deps.js";
 import type { AgentLoopDeps } from "./deps.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
+import { JudgePoint, visitToolThenAgent, mergePolicies } from "./judge-points.js";
 
 /** One sentence on what the call will do (the ask's `summary`). */
 const summaryOf = (tool: string, args: Record<string, unknown>): string =>
@@ -15,22 +17,58 @@ const summaryOf = (tool: string, args: Record<string, unknown>): string =>
 export function makeApprovalNode(
   deps: AgentLoopDeps,
 ): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
-  return async (state) => {
+  return async (state, config) => {
     const [call] = awaitingApproval(state, deps);
     if (call === undefined || deps.approval === undefined) return {};
+    const tool = toolNamed(deps.agent, call.tool);
+    if (!tool || !tool.channel) return {};
+    const metadata = config?.configurable?.metadata ?? {};
+
     const decision = await deps.approval.requestApproval(
       {
         callId: call.callId,
         tool: call.tool,
-        arguments: call.args,
-        summary: summaryOf(call.tool, call.args),
+        arguments: call.args as Record<string, unknown>,
+        summary: summaryOf(call.tool, call.args as Record<string, unknown>),
       },
       deps.agent.name,
+      tool,
+      state.runId,
+      metadata,
     );
+    let feedback = decision.feedback;
+    let overrideArgs = decision.overrideArguments;
+    const combinedPii = mergePolicies(deps.workflowPiiPolicies, deps.piiPolicies, deps.toolPiiPolicies?.(call.tool));
+    for (const policy of combinedPii) {
+        if (feedback !== undefined && typeof policy.mask === 'function') {
+          feedback = await policy.mask(feedback);
+        }
+        if (overrideArgs !== undefined && typeof policy.maskJson === 'function') {
+          overrideArgs = await policy.maskJson(overrideArgs);
+        }
+      }
+
     const recorded =
-      decision.reason === undefined
-        ? { approved: decision.approved, by: decision.by }
-        : { approved: decision.approved, by: decision.by, reason: decision.reason };
+      feedback === undefined
+        ? {
+            approved: decision.approved,
+            by: decision.by,
+            overrideArguments: overrideArgs,
+          }
+        : {
+            approved: decision.approved,
+            by: decision.by,
+            feedback: feedback,
+            overrideArguments: overrideArgs,
+          };
+    const combinedGuardrails = mergePolicies(deps.workflowGuardrails, deps.guardrails, deps.toolGuardrails?.(call.tool));
+    const ctx = {
+      agent: deps.agent.name,
+      call,
+      runId: config?.configurable?.run_id ?? state.runId,
+      metadata: config?.configurable?.metadata ?? {}
+    };
+    await visitToolThenAgent(combinedGuardrails, JudgePoint.OnChannelDecision, ctx, recorded);
     return { decisions: { [call.callId]: recorded } };
   };
 }

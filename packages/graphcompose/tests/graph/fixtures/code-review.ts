@@ -25,7 +25,10 @@ export class PullRequestWorkflowFinish {}
   description: "Sends the message to the right agent",
   prompt: "Pick who handles the message.",
   model: "typesafe/jev-1.13",
-  routes: [{ prompt: "Explaining code", target: ExplainerAgent }, { prompt: "Writing code", target: CoderAgent }],
+  routes: [
+    { prompt: "Explaining code", target: ExplainerAgent },
+    { prompt: "Writing code", target: CoderAgent },
+  ],
 })
 export class MainRouter {}
 

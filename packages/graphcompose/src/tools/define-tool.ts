@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import { pathOf } from "../dto/errors.js";
-import type { Tool, ToolContext, ToolEffect, ToolOutput } from "./types.js";
+import type { Tool, ToolContext, ToolOutput } from "./types.js";
 import { isGraphInterrupt } from "@langchain/langgraph";
 
 export const DEFAULT_TOOL_TIMEOUT_MS = 30_000;
@@ -25,7 +25,7 @@ export interface ToolDefinition<TName extends string, TInput, TOutput> {
   readonly description: string;
   readonly input: z.ZodType<TInput>;
   readonly output: z.ZodType<TOutput>;
-  readonly effect?: ToolEffect;
+  readonly channel?: string;
   readonly timeoutMs?: number;
   readonly run: (input: TInput, ctx: ToolContext) => Promise<TOutput>;
 }
@@ -105,7 +105,9 @@ export function defineTool<TName extends string, TInput, TOutput>(
   return {
     name: definition.name,
     description: definition.description,
-    effect: definition.effect ?? "read",
+    ...(definition.channel === undefined
+      ? {}
+      : { channel: definition.channel }),
     timeoutMs,
     input: definition.input,
     output: definition.output,

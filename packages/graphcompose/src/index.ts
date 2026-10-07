@@ -42,4 +42,10 @@ export {
   type AgentsConfigOf,
   type CompactionSettings,
 } from "./config/types.js";
-export { writeToolsNeedApproval } from "./pause/index.js";
+export {
+  Channel,
+  type ChannelHandler,
+  type ChannelRequest,
+  type ChannelDecision,
+} from "./components/decorators.js";
+export { TerminalUserChannel } from "./channels/terminal-channel.js";

@@ -16,7 +16,9 @@ const ctx = {
   workflow: "b",
   agent: "a",
   callId: "call-1",
-  signal: new AbortController().signal, reportCost: vi.fn(), pause: () => ({}),
+  signal: new AbortController().signal,
+  reportCost: vi.fn(),
+  pause: () => ({}),
 };
 const stdio = { transport: "stdio" as const, command: "unused" };
 

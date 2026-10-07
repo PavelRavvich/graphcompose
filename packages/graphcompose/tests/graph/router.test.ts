@@ -24,11 +24,14 @@ writeFileSync(routeFile, "﻿The work is finished.\r\n");
 @Router({
   name: "texts",
   description: "Texts from files",
-  // eslint-disable-next-line @typescript-eslint/require-await
+
   prompt: "Decide carefully.\n\nLook at the review.\n  Keep indentation.",
   model: "typesafe/jev-1.13",
-  // eslint-disable-next-line @typescript-eslint/require-await
-  routes: [{ prompt: "Done:\n\nThe work is finished.", target: Done }, { prompt: "Café work", target: A }],
+
+  routes: [
+    { prompt: "Done:\n\nThe work is finished.", target: Done },
+    { prompt: "Café work", target: A },
+  ],
 })
 class Texts {}
 
@@ -135,7 +138,10 @@ describe("AC1: routers", () => {
     description: "Chatty",
     prompt: "Pick.",
     model: "test/router",
-    routes: [{ prompt: "A", target: A }, { prompt: "Finished", target: Done }],
+    routes: [
+      { prompt: "A", target: A },
+      { prompt: "Finished", target: Done },
+    ],
   })
   class Chatty {}
 

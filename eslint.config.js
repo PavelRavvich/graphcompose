@@ -56,6 +56,7 @@ export default tseslint.config(
       },
     },
     rules: {
+      "@typescript-eslint/require-await": "off",
       "max-lines": ["error", { max: 200, skipBlankLines: true, skipComments: true }],
       "max-lines-per-function": ["error", { max: 50, skipBlankLines: true, skipComments: true }],
       complexity: ["error", 10],

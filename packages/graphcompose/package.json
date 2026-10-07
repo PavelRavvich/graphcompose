@@ -18,6 +18,10 @@
       "types": "./dist/graph/index.d.ts",
       "import": "./dist/graph/index.js"
     },
+    "./channels": {
+      "types": "./dist/channels/index.d.ts",
+      "import": "./dist/channels/index.js"
+    },
     "./core": {
       "types": "./dist/core/index.d.ts",
       "import": "./dist/core/index.js"

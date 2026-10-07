@@ -160,7 +160,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
       (agent) =>
         [
           agent.name,
-          renderPromptVariables(agent.name, agent, agent.source, bundle.promptVariables),
+          renderPromptVariables(agent.name, agent, agent.source, agent.promptVars),
         ] as const,
     ),
   );
@@ -171,9 +171,44 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     ...names.values(),
     ...rags.map((cls) => searchToolName(ragMeta(cls))),
   ]);
+  const resolveMap = <T>(map: Map<string, readonly Class[]>, services: any) =>
+    new Map<string, readonly T[]>(
+      Array.from(map.entries()).map(([k, classes]) => [
+        k,
+        classes.map(cls => services.resolve(cls))
+      ])
+    );
+
+  const agentPii = new Map(agents.map(a => [a.name, a.overridePiiPolicies ? { override: true, classes: a.overridePiiPolicies, disable: a.disablePiiPolicies ?? [] } : { override: false, classes: a.piiPolicies ?? [], disable: a.disablePiiPolicies ?? [] }]));
+  const agentGuardrails = new Map(agents.map(a => [a.name, a.overrideGuardrails ? { override: true, classes: a.overrideGuardrails, disable: a.disableGuardrails ?? [] } : { override: false, classes: a.guardrails ?? [], disable: a.disableGuardrails ?? [] }]));
+  const toolPii = new Map(Array.from(tools.local).map(t => {
+    const meta = componentOf(t)?.meta as any;
+    return [names.get(t) ?? t.name, meta?.overridePiiPolicies ? { override: true, classes: meta.overridePiiPolicies, disable: meta.disablePiiPolicies ?? [] } : { override: false, classes: meta?.piiPolicies ?? [], disable: meta?.disablePiiPolicies ?? [] }];
+  }));
+  const toolGuardrails = new Map(Array.from(tools.local).map(t => {
+    const meta = componentOf(t)?.meta as any;
+    return [names.get(t) ?? t.name, meta?.overrideGuardrails ? { override: true, classes: meta.overrideGuardrails, disable: meta.disableGuardrails ?? [] } : { override: false, classes: meta?.guardrails ?? [], disable: meta?.disableGuardrails ?? [] }];
+  }));
+  const wfPii = bundle.piiPolicies ?? [];
+  const wfGuardrails = bundle.guardrails ?? [];
+  
+  const resolveComplexMap = (map: Map<string, { override: boolean; classes: readonly Class[]; disable: readonly Class[] }>, services: any) =>
+    new Map<string, { override: boolean; instances: readonly any[]; disable: readonly Class[] }>(
+      Array.from(map.entries()).map(([k, v]) => [
+        k,
+        { override: v.override, instances: v.classes.map(cls => services.resolve(cls)), disable: v.disable }
+      ])
+    );
+    
   return {
     config,
     flow: bundle.flow,
+    piiPolicies: (services: any) => resolveComplexMap(agentPii, services),
+    guardrails: (services: any) => resolveComplexMap(agentGuardrails, services),
+    toolPiiPolicies: (services: any) => resolveComplexMap(toolPii, services),
+    toolGuardrails: (services: any) => resolveComplexMap(toolGuardrails, services),
+    workflowPiiPolicies: (services: any) => wfPii.map(c => services.resolve(c)),
+    workflowGuardrails: (services: any) => wfGuardrails.map(c => services.resolve(c)),
     limits: settings.limits,
     models: settings.models,
     routers: graph.routers,
@@ -192,7 +227,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
         return tree === "" ? [] : [[names.get(cls) ?? cls.name, tree] as const];
       }),
     ),
-    ...(bundle.needsApproval === undefined ? {} : { needsApproval: bundle.needsApproval }),
+    
     ...(bundle.compactionPrompt === undefined ? {} : { compactionPrompt: bundle.compactionPrompt }),
   };
 }

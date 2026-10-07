@@ -1,4 +1,4 @@
-/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { buildCostReport, totalCost } from "../finops/usage.js";
 import type { FlowStateType } from "../graph/flow-state.js";
@@ -19,7 +19,9 @@ function finishOf<TName extends string>(
   const ref = last === undefined ? undefined : ctx.flow.model.nodes.get(last);
   return {
     ...(ref?.kind === "workflow-finish" ? { finish: ref.name } : {}),
-    ...(state.finishes && Object.keys(state.finishes).length > 0 ? { finishes: state.finishes } : {})
+    ...(state.finishes && Object.keys(state.finishes).length > 0
+      ? { finishes: state.finishes }
+      : {}),
   };
 }
 

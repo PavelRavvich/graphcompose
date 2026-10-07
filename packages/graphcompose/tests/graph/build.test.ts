@@ -20,7 +20,10 @@ class WebhookWorkflowStart {}
   prompt: "Again?",
   model: "typesafe/jev-1.13",
   maxVisits: 25,
-  routes: [{ prompt: "Once more", target: Self }, { prompt: "Enough", target: Done }],
+  routes: [
+    { prompt: "Once more", target: Self },
+    { prompt: "Enough", target: Done },
+  ],
 })
 class Spin {}
 
@@ -30,7 +33,11 @@ class Spin {}
   prompt: "Pick who handles the message.",
   model: "typesafe/jev-1.13",
   maxVisits: 3,
-  routes: [{ prompt: "A work", target: A }, { prompt: "B work", target: B }, { prompt: "The answer covers it", target: Done }],
+  routes: [
+    { prompt: "A work", target: A },
+    { prompt: "B work", target: B },
+    { prompt: "The answer covers it", target: Done },
+  ],
 })
 class Star {}
 

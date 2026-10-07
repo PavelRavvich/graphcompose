@@ -1,14 +1,15 @@
 import type { McpServerConfig } from "../config/types.js";
-import type { ToolEffect } from "../tools/index.js";
 import type { DtoClass } from "../dto/types.js";
 import type { ServerTools } from "./mcp-client.js";
 import type { Class, Token } from "./injection.js";
-import type { AgentMeta, WorkflowMeta, WorkflowActionMeta } from "./meta-types.js";
+import type { AgentMeta, WorkflowMeta, WorkflowActionMeta, ChannelMeta } from "./meta-types.js";
 
 export interface ToolMeta {
   readonly name: string;
   readonly description: string;
-  readonly effect?: ToolEffect;
+  readonly prompt?: string;
+  readonly promptUrls?: readonly string[];
+  readonly channel?: Class;
   readonly timeoutMs?: number;
   readonly input: DtoClass;
   readonly output: DtoClass;
@@ -33,6 +34,7 @@ export type ComponentMeta =
     }
   | { readonly kind: "mcp-tool"; readonly meta: McpToolMeta }
   | { readonly kind: "agent"; readonly meta: AgentMeta }
+  | { readonly kind: "channel"; readonly meta: ChannelMeta & { readonly deps: readonly Token[] } }
   | { readonly kind: "action"; readonly meta: WorkflowActionMeta }
   | { readonly kind: "injectable"; readonly meta: { readonly deps: readonly Token[] } }
   | {
@@ -40,10 +42,16 @@ export type ComponentMeta =
       readonly meta: {
         readonly name: string;
         readonly description: string;
+        readonly prompt?: string;
+        readonly promptUrls?: readonly string[];
         readonly topK: number;
         readonly deps: readonly Token[];
       };
     }
+  | { readonly kind: "pii-policy"; readonly meta: { readonly name: string; readonly deps: readonly Token[] } }
+  | { readonly kind: "guardrail"; readonly meta: { readonly name: string; readonly deps: readonly Token[] } }
+  | { readonly kind: "inbound-adapter"; readonly meta: { readonly name: string; readonly deps: readonly Token[] } }
+  | { readonly kind: "semantic-inbound-adapter"; readonly meta: { readonly name: string; readonly model: string; readonly prompt: string; readonly temperature?: number; readonly deps: readonly Token[] } }
   | { readonly kind: "workflow"; readonly meta: WorkflowMeta };
 
 /** Decorator metadata per class. Symbol.metadata is not available at runtime on Node 26. */
@@ -74,6 +82,10 @@ export function requireComponent<K extends ComponentMeta["kind"]>(
 }
 
 const kindName: Readonly<Record<ComponentMeta["kind"], string>> = {
+  "pii-policy": "@PiiPolicy",
+  "guardrail": "@Guardrail",
+  "inbound-adapter": "@InboundChannelAdapter",
+  "semantic-inbound-adapter": "@SemanticInboundChannelAdapter",
   tool: "Tool",
   "mcp-server": "McpServer",
   "mcp-tool": "McpTool",
@@ -82,4 +94,5 @@ const kindName: Readonly<Record<ComponentMeta["kind"], string>> = {
   injectable: "Injectable",
   rag: "Rag",
   workflow: "Workflow",
+  channel: "Channel",
 };

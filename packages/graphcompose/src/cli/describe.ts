@@ -23,9 +23,9 @@ const thinkingLabel = (thinking: Thinking | undefined): string =>
 
 function toolLine(tool: AnyTool, bundle: AssembledWorkflow): string {
   const kind = isMcpFacade(tool) ? `MCP ${tool.mcp.server}` : "local";
-  const waits = bundle.needsApproval?.(tool) === true ? ", waits for approval" : "";
+  const waits = tool.channel ? ", uses channel" : "";
   const deps = bundle.toolDependencies?.[tool.name];
-  return `${tool.name} (${tool.effect}, ${kind}${waits})${deps === undefined ? "" : ` ← ${deps}`} — ${tool.description}`;
+  return `${tool.name} (${tool.channel ? `channel:${tool.channel}, ` : ""}${kind}${waits})${deps === undefined ? "" : ` ← ${deps}`} — ${tool.description}`;
 }
 
 function bundleLines(bundle: AssembledWorkflow): string[] {
@@ -43,7 +43,7 @@ function bundleLines(bundle: AssembledWorkflow): string[] {
   return [
     `guards    input: ${inputGuards.join(", ") || "none"} · output: ${outputGuards.join(", ") || "none"}`,
     `memory    ${memory}`,
-    `pause     ${bundle.needsApproval === undefined ? "off" : "on — marked tools wait for an approval"}`,
+    `pause     on — tools with channel wait for external signal`,
     `limits    ${limitsLabel(bundle)}`,
   ];
 }

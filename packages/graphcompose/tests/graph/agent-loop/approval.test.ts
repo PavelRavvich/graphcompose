@@ -29,7 +29,8 @@ describe("AC6: approval at the move boundary — one call per pause", () => {
       kind: "paused",
       pending: {
         agent: "coder",
-        callId: "w1", kind: "approval",
+        callId: "w1",
+        kind: "approval",
         tool: "write_file",
         args: { path: "a.ts", content: "x" },
       },
@@ -62,7 +63,7 @@ describe("AC6: approval at the move boundary — one call per pause", () => {
 
     const done = await runLoop(
       h.graph,
-      decision({ approved: false, by: "lead", reason: "not now" }),
+      decision({ approved: false, by: "lead", feedback: "not now" }),
       "t",
     );
 

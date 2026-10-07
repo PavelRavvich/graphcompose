@@ -36,7 +36,10 @@ const jev = "typesafe/jev-1.13";
   description: "Picks A or B",
   prompt: "Pick.",
   model: jev,
-  routes: [{ prompt: "A", target: A }, { prompt: "B", target: B }],
+  routes: [
+    { prompt: "A", target: A },
+    { prompt: "B", target: B },
+  ],
 })
 export class Pick {}
 
@@ -46,7 +49,10 @@ export class Pick {}
   prompt: "Gate.",
   model: jev,
   maxVisits: 10,
-  routes: [{ prompt: "Again", target: Self }, { prompt: "Finished", target: Done }],
+  routes: [
+    { prompt: "Again", target: Self },
+    { prompt: "Finished", target: Done },
+  ],
 })
 export class Gate {}
 
@@ -64,7 +70,10 @@ export class Only {}
   description: "Done too",
   prompt: "Second.",
   model: jev,
-  routes: [{ prompt: "A", target: A }, { prompt: "Finished", target: Done }],
+  routes: [
+    { prompt: "A", target: A },
+    { prompt: "Finished", target: Done },
+  ],
 })
 export class Second {}
 
@@ -73,7 +82,10 @@ export class Second {}
   prompt: "",
   description: "No texts",
   model: jev,
-  routes: [{ prompt: "", target: Done }, { prompt: "", target: A }],
+  routes: [
+    { prompt: "", target: Done },
+    { prompt: "", target: A },
+  ],
 })
 export class Mute {}
 
@@ -83,7 +95,10 @@ export class Mute {}
   description: "A again or done",
   prompt: "Loop.",
   model: jev,
-  routes: [{ prompt: "A", target: A }, { prompt: "Finished", target: Done }],
+  routes: [
+    { prompt: "A", target: A },
+    { prompt: "Finished", target: Done },
+  ],
 })
 export class Loop {}
 
@@ -93,7 +108,10 @@ export class Loop {}
   description: "A or done",
   prompt: "Ping.",
   model: jev,
-  routes: [{ prompt: "A", target: A }, { prompt: "Finished", target: Done }],
+  routes: [
+    { prompt: "A", target: A },
+    { prompt: "Finished", target: Done },
+  ],
 })
 export class Ping {}
 
@@ -102,7 +120,10 @@ export class Ping {}
   description: "B or done",
   prompt: "Pong.",
   model: jev,
-  routes: [{ prompt: "B", target: B }, { prompt: "Finished", target: Done }],
+  routes: [
+    { prompt: "B", target: B },
+    { prompt: "Finished", target: Done },
+  ],
 })
 export class Pong {}
 
@@ -112,6 +133,9 @@ export class Pong {}
   description: "Back or done",
   prompt: "Gate.",
   model: jev,
-  routes: [{ prompt: "Again", target: Self }, { prompt: "Finished", target: Done }],
+  routes: [
+    { prompt: "Again", target: Self },
+    { prompt: "Finished", target: Done },
+  ],
 })
 export class UnboundedGate {}

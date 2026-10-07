@@ -26,6 +26,8 @@ export interface AgentMeta {
   readonly thinking?: AgentSettings["thinking"];
   readonly temperature?: number;
   readonly maxTokens?: AgentSettings["maxTokens"];
+  /** `{{key}}` in agent prompts is replaced with the value (assembly fails on unknown keys). */
+  readonly promptVars?: Readonly<Record<string, string>>;
   readonly cache?: boolean;
   readonly historyLimit?: number;
   readonly historySummaries?: number;
@@ -33,6 +35,12 @@ export interface AgentMeta {
   readonly maxToolCalls?: number;
   /** `@Tool` or `@McpTool` classes. */
   readonly tools?: readonly Class[];
+  readonly piiPolicies?: readonly Class[];
+  readonly guardrails?: readonly Class[];
+  readonly overridePiiPolicies?: readonly Class[];
+  readonly disablePiiPolicies?: readonly Class[];
+  readonly overrideGuardrails?: readonly Class[];
+  readonly disableGuardrails?: readonly Class[];
   /** Knowledge bases: `{ use: CompanyDocs, mode: "tool" | "context" }` — `mode` is required. */
   readonly rag?: readonly RagBinding[];
   /** Set by `@Agent` itself: the file the agent is declared in. */
@@ -48,6 +56,7 @@ export interface AgentMeta {
 export interface WorkflowActionMeta {
   readonly name: string;
   readonly description?: string;
+  readonly inboundAdapter?: Class;
 }
 
 export interface WorkflowMeta {
@@ -57,12 +66,19 @@ export interface WorkflowMeta {
   readonly flow: Flow;
   readonly defaults: AgentsConfig["defaults"];
   readonly guards?: AgentsConfig["guards"];
+  readonly piiPolicies?: readonly Class[];
+  readonly guardrails?: readonly Class[];
   readonly compaction?: AgentsConfig["compaction"];
   readonly mcp?: readonly Class[];
   readonly providers?: readonly Provider[];
-  /** `{{key}}` in agent prompts is replaced with the value (assembly fails on unknown keys). */
-  readonly promptVariables?: Readonly<Record<string, string>>;
   readonly compactionPrompt?: string;
-  /** Turns the pause seam on for tools it returns true for. */
-  readonly needsApproval?: (tool: AnyTool) => boolean;
+  readonly promptVars?: Readonly<Record<string, string>>;
+  readonly channelClasses?: readonly Class[];
+}
+
+/** `@Channel` — settings of a channel. */
+export interface ChannelMeta {
+  readonly name: string;
+  readonly description?: string;
+  readonly inboundAdapter?: Class;
 }

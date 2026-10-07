@@ -1,4 +1,4 @@
-/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { nodeInfoOf } from "./node-kind.js";
 
@@ -38,9 +38,9 @@ export function background(target: FlowNode): BackgroundTarget {
 export const bg = background;
 
 export const unwrapTarget = (target: ParallelTarget): FlowNode =>
-  typeof target === "object" && target !== null && "kind" in target && (target.kind === "background")
+  typeof target === "object" && target !== null && "kind" in target && target.kind === "background"
     ? target.target
-    : (target as FlowNode);
+    : target;
 
 /** What a router may choose: a node or `Self`. */
 export interface SkipTarget {
@@ -78,7 +78,7 @@ interface NextEachStep {
   readonly kind: "nextEach";
   readonly from: readonly FlowNode[];
   readonly target: FlowNode;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   readonly extractor: (payload: any) => any[];
 }
 
@@ -104,7 +104,7 @@ export type Flow = readonly FlowStep[];
 /** What `from(...)` returns: the step's kind is chosen next. */
 export interface FlowSource {
   readonly next: (target: FlowNode) => ToStep;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   readonly nextParallel: (...args: any[]) => ToStep | NextEachStep; // Simplified for runtime AST
   readonly routeOne: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
   readonly routeOneOrSkip: (target: ChoiceTarget) => ChooseStep;
@@ -116,18 +116,18 @@ export interface FlowSource {
 
 /** Starts a transition from one or more nodes (several = fan-in). */
 export const Skip: ChoiceTarget = Object.freeze({ kind: "skip" });
+export const End = Skip;
 
 export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource {
   return {
     next: (target) => ({ kind: "to", from: sources, targets: [target] }),
     nextParallel: (...args) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       if (args.length === 2 && typeof args[1] === "function" && !nodeInfoOf(args[1])) {
         return {
           kind: "nextEach",
           from: sources,
           target: args[0] as FlowNode,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
           extractor: args[1],
         };
       }
@@ -143,11 +143,8 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
       if (
         targets.length > 0 &&
         typeof targets[targets.length - 1] === "object" &&
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
         !isSkip(targets[targets.length - 1] as any) &&
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
         !isSelf(targets[targets.length - 1] as any) &&
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         !("name" in (targets[targets.length - 1] as any))
       ) {
         constraints = targets.pop();
@@ -170,7 +167,6 @@ export function chain(...nodes: readonly [FlowNode, FlowNode, ...FlowNode[]]): C
 export function node(use: Class, name: string): NamedNode {
   return Object.freeze({ kind: "named-node", use, name });
 }
-
 
 export const isBackgroundTarget = (target: ParallelTarget): target is BackgroundTarget =>
   typeof target === "object" && target !== null && "kind" in target && target.kind === "background";

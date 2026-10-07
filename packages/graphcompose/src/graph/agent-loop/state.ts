@@ -23,7 +23,8 @@ export interface StoredToolCall {
 export interface CallDecision {
   readonly approved: boolean;
   readonly by: string;
-  readonly reason?: string;
+  readonly feedback?: string;
+  readonly overrideArguments?: Record<string, unknown>;
 }
 
 /** How long the appended lists were when the flow handed the agent its work. */

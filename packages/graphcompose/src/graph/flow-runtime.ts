@@ -26,6 +26,7 @@ export function flowRuntimeOf<TName extends string>(
     limits: run.limits,
     spentToday: run.spentToday,
     ...(deps.pause === undefined ? {} : { checkpointer: deps.pause.checkpointer }),
+    observer: deps.observer,
   };
 }
 

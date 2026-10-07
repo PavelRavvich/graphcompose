@@ -1,6 +1,6 @@
 import type { AsyncNode } from "../types.js";
 import type { AgentLoopDeps } from "./deps.js";
-import { JudgeOwner, JudgePoint } from "./judge-points.js";
+import { JudgeOwner, JudgePoint, visitAgentAnswer, mergePolicies } from "./judge-points.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
 
 /** A move without tool calls is the agent's answer: `beforeAgentAnswer`, then it leaves the loop. */
@@ -8,8 +8,15 @@ export function makeAnswerNode(
   deps: AgentLoopDeps,
 ): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
   const agent = deps.agent.name;
-  return async (state) => {
-    await deps.judges({ point: JudgePoint.BeforeAgentAnswer, owner: JudgeOwner.Agent, agent });
+  return async (state, config) => {
+    const combinedGuardrails = mergePolicies(deps.workflowGuardrails, deps.guardrails);
+    const ctx = {
+      agent,
+      answer: typeof state.move?.content === "string" ? state.move.content : (state.move?.text ?? ""),
+      runId: config?.configurable?.run_id ?? state.runId,
+      metadata: config?.configurable?.metadata ?? {}
+    };
+    await visitAgentAnswer(combinedGuardrails, ctx);
     const content = state.move?.content ?? "";
     const isString = typeof content === "string";
     /* v8 ignore next */

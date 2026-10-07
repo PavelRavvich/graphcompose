@@ -8,11 +8,9 @@ import type { AnyTool } from "../tools/index.js";
  */
 export interface PauseSeam {
   readonly checkpointer: BaseCheckpointSaver;
-  readonly needsApproval: (tool: AnyTool) => boolean;
 }
 
 /** Default policy: tools that change the outside world need an approval. */
-export const writeToolsNeedApproval = (tool: AnyTool): boolean => tool.effect === "write";
 
 /** A tool call: which agent asked for which tool with which arguments. */
 export interface AgentToolCall {
@@ -36,5 +34,7 @@ export interface ApprovalRecord extends AgentToolCall {
   readonly approved: boolean;
   /** Who or what decided (`ToolCallApprovalDecision.by`). */
   readonly by: string;
-  readonly result: string;
+  readonly feedback?: string;
+  readonly overrideArguments?: Record<string, unknown>;
+  readonly result?: string;
 }

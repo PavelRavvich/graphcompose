@@ -31,6 +31,7 @@ npm i graphcompose
   model: "moonshotai/kimi-k2.6",
   price,
   tools: [GreenhouseJobs],
+  promptVars: { company_name: "OpenAI" },
 })
 export class Scout {}
 

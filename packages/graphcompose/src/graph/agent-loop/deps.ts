@@ -1,3 +1,4 @@
+import type { ObserverManager } from "../../core/observer-manager.js";
 import type { AIMessage } from "@langchain/core/messages";
 import type { ModelBinding } from "../../llm/registry.js";
 import type { KnowledgeSource } from "../../rag/types.js";
@@ -28,17 +29,24 @@ export interface AgentLoopDeps {
   /** Set only with a pause seam: which calls wait for a decision, and how it is asked. */
   readonly approval?: ToolCallApproval | undefined;
   readonly judges: JudgePoints;
+  readonly piiPolicies?: { override: boolean; instances: readonly any[]; disable: readonly any[] };
+  readonly guardrails?: { override: boolean; instances: readonly any[]; disable: readonly any[] };
+  readonly workflowPiiPolicies?: readonly any[];
+  readonly workflowGuardrails?: readonly any[];
+  readonly toolPiiPolicies?: (tool: string) => { override: boolean; instances: readonly any[]; disable: readonly any[] };
+  readonly toolGuardrails?: (tool: string) => { override: boolean; instances: readonly any[]; disable: readonly any[] };
+  readonly observer?: ObserverManager;
 }
 
 /** One tool call of a move, with its id (assigned by the loop when the model gives none). */
-export interface LoopCall {
+export interface ToolCallRequest {
   readonly callId: string;
   readonly tool: string;
   readonly args: Record<string, unknown>;
 }
 
 /** The tool calls of a move, in the model's order. */
-export const callsOf = (move: AIMessage | null): LoopCall[] =>
+export const callsOf = (move: AIMessage | null): ToolCallRequest[] =>
   (move?.tool_calls ?? []).map((call) => ({
     callId: call.id ?? "",
     tool: call.name,

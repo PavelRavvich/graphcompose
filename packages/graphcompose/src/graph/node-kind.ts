@@ -27,4 +27,5 @@ export function nodeInfoOf(target: Class): NodeInfo | undefined {
   return undefined;
 }
 
-export const isWorkingKind = (kind: NodeKind): boolean => kind === "agent" || kind === "router" || kind === "action";
+export const isWorkingKind = (kind: NodeKind): boolean =>
+  kind === "agent" || kind === "router" || kind === "action";

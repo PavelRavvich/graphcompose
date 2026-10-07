@@ -1,7 +1,2 @@
 /** Public API of the pause seam. See Wiki → Pause seam for the rules. */
-export {
-  writeToolsNeedApproval,
-  type ApprovalRecord,
-  type PauseSeam,
-  type PendingPause,
-} from "./types.js";
+export { type ApprovalRecord, type PauseSeam, type PendingPause } from "./types.js";

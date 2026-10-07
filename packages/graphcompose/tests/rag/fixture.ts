@@ -34,7 +34,6 @@ const prompt = "../components/fixture/greeter.prompt.md";
 const base = {
   version: "1.0.0",
   defaults: testConfig.defaults,
-  promptVariables: { language: "English" },
 };
 
 export function bundleWith(
@@ -48,6 +47,7 @@ export function bundleWith(
     price: testConfig.agents.alpha.price,
     rag: [{ use, mode }],
     prompt: prompt,
+    promptVars: { language: "English" },
   })
   class Helper {}
   @Workflow({ ...base, name: "handbook-bundle", flow: starOf(Helper) })

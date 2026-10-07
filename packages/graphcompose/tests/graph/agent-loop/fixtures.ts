@@ -18,7 +18,7 @@ import {
 } from "../../../src/graph/agent-loop/index.js";
 import type { FlowStateType } from "../../../src/graph/flow-state.js";
 import { resolveSettings } from "../../../src/llm/registry.js";
-import { writeToolsNeedApproval } from "../../../src/pause/index.js";
+
 import type { AnyTool } from "../../../src/tools/index.js";
 import { ConversationModel, repoTools, type ScriptedMove } from "./scripted.js";
 
@@ -30,7 +30,7 @@ export interface HarnessOptions {
   /** The pause seam's approval (default on: write tools wait for a decision). */
   readonly approval?: boolean;
   readonly limits?: Partial<AgentLoopLimits>;
-  readonly judges?: JudgePoints;
+  readonly guardrails?: any[];
   readonly tools?: (log: (effect: string) => void) => AnyTool[];
   readonly runBudgetCap?: number;
   readonly log?: (effect: string) => void;
@@ -76,8 +76,8 @@ export function harness(
       },
       bundle: "test-bundle",
       runBudgetCap: options.runBudgetCap ?? Number.POSITIVE_INFINITY,
-      approval: options.approval === false ? undefined : pauseSeamApproval(writeToolsNeedApproval),
-      judges: options.judges ?? noJudges,
+      approval: options.approval === false ? undefined : pauseSeamApproval(),
+      judges: noJudges, guardrails: options.guardrails ? { override: false, instances: options.guardrails } : undefined,
     },
     checkpointer,
   );

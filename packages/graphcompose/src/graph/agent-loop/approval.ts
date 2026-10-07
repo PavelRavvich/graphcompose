@@ -6,16 +6,19 @@ import {
 } from "../../dto/standard/framework.js";
 import type { PendingPause } from "../../pause/index.js";
 import type { AnyTool } from "../../tools/index.js";
+import type { ChannelRequest } from "../../components/decorators.js";
 
 /**
  * How the loop gets a decision on a tool call before it runs — one call per ask. Until #152 wires it
  * to channels, it is backed by the pause seam: the run pauses and `resume` brings the decision.
  */
 export interface ToolCallApproval {
-  readonly needsApproval: (tool: AnyTool) => boolean;
   readonly requestApproval: (
     ask: ToolCallApprovalAsk,
     agent: string,
+    tool: AnyTool,
+    runId: string,
+    metadata: Record<string, unknown>,
   ) => Promise<ToolCallApprovalDecision>;
 }
 
@@ -23,10 +26,12 @@ export interface ToolCallApproval {
  * The pause seam as an approval: `interrupt` pauses the run at the call (the checkpoint is the
  * boundary — nothing ran before it), the decision `resume` brings is validated like any external input.
  */
-export function pauseSeamApproval(needsApproval: (tool: AnyTool) => boolean): ToolCallApproval {
+export function pauseSeamApproval(
+  dispatchChannel?: (channelName: string, req: ChannelRequest) => Promise<void>,
+  channelAdapters?: (channel: string) => any
+): ToolCallApproval {
   return {
-    needsApproval,
-    requestApproval: (ask, agent) => {
+    requestApproval: async (ask, agent, tool, runId, metadata) => {
       const pending: PendingPause = {
         kind: "approval",
         agent,
@@ -34,7 +39,32 @@ export function pauseSeamApproval(needsApproval: (tool: AnyTool) => boolean): To
         tool: ask.tool,
         args: ask.arguments,
       };
-      return Promise.resolve(validate(ToolCallApprovalDecision, interrupt(pending)));
+
+      try {
+        let rawDecision = interrupt(pending);
+        
+        if (tool.channel && channelAdapters) {
+          const adapter = channelAdapters(tool.channel);
+          if (adapter) {
+            rawDecision = await adapter.interpret(rawDecision);
+          }
+        }
+        
+        return validate(ToolCallApprovalDecision, rawDecision);
+      } catch (e: any) {
+        if (e && e.name === "NodeInterrupt") {
+          if (tool.channel && dispatchChannel) {
+            await dispatchChannel(tool.channel, {
+              runId,
+              agentName: agent,
+              toolName: tool.name,
+              toolArguments: ask.arguments as Record<string, unknown>,
+              metadata,
+            });
+          }
+        }
+        throw e;
+      }
     },
   };
 }

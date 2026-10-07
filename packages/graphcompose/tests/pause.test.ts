@@ -8,7 +8,7 @@ import { inTerminal } from "./fakes/terminal.js";
 import { DtoValidationError } from "../src/dto/index.js";
 import { NotPausedError, resumeAgent, runAgent, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
-import { writeToolsNeedApproval } from "../src/pause/index.js";
+
 import { defineTool } from "../src/tools/index.js";
 import { ScriptedChatModel, type Reply } from "./fakes/scripted-model.js";
 import {
@@ -25,7 +25,7 @@ const sendEmail = (sent: string[]) =>
   defineTool({
     name: "send_email",
     description: "Send an email",
-    effect: "write",
+    channel: "terminal",
     input: z.object({ to: z.string() }),
     output: z.string(),
     run: ({ to }) => {
@@ -55,9 +55,7 @@ function setup(alphaReplies: readonly Reply[], withSeam = true) {
       ),
     ),
     tools: (name) => (name === "send_email" ? sendEmail(sent) : libraryTool(name)),
-    ...(withSeam
-      ? { pause: { checkpointer: new MemorySaver(), needsApproval: writeToolsNeedApproval } }
-      : {}),
+    ...(withSeam ? { pause: { checkpointer: new MemorySaver() } } : {}),
   };
   return { deps, sent, alpha, ledger };
 }
@@ -108,7 +106,7 @@ describe("pause seam", () => {
 
     const done = await resumeAgent(
       paused,
-      { approved: false, by: "tester", reason: "not now" },
+      { approved: false, by: "tester", feedback: "not now" },
       deps,
     );
 
@@ -209,7 +207,7 @@ describe("terminal approval (CLI and chat)", () => {
     expect(terminalDecision(false)).toEqual({
       approved: false,
       by,
-      reason: "declined in the terminal",
+      feedback: "declined in the terminal",
     });
   });
 

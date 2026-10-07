@@ -6,7 +6,8 @@ import { dirname, join } from "node:path";
 import { Agent, Injectable, Workflow } from "../../../src/core/index.js";
 import { McpServer, McpServerClient, McpTool } from "../../../src/mcp/index.js";
 import { type OnStart, type OnStop } from "../../../src/core/index.js";
-import { MODEL_MAX, writeToolsNeedApproval } from "../../../src/index.js";
+import { MODEL_MAX } from "../../../src/index.js";
+import { TerminalUserChannel } from "../../../src/channels/terminal-channel.js";
 import { Tool, type ToolHandler } from "../../../src/tool/index.js";
 import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
@@ -125,7 +126,7 @@ const notePath = (title: string): string => join(NOTES_DIR, `${title}.md`);
   server: NotesServer,
   name: "save_note",
   description: "Saves a note",
-  effect: "write",
+  channel: TerminalUserChannel,
   input: Note,
   output: NoteRef,
   deps: [NotesServer],
@@ -216,7 +217,6 @@ export class MainRouter {}
   },
   mcp: [NotesServer],
   providers: [OrderBook],
-  needsApproval: writeToolsNeedApproval,
 })
 export class Desk implements WorkflowDefinition {
   settings(): WorkflowSettings {

@@ -11,7 +11,7 @@ import { flowRouterFactory } from "../../../src/graph/router-model.js";
 import { NO_GUARDS, type GuardSet } from "../../../src/guards/index.js";
 import type { RunDeps } from "../../../src/index.js";
 import { createModelRegistry } from "../../../src/llm/registry.js";
-import { writeToolsNeedApproval } from "../../../src/pause/index.js";
+
 import type { KnowledgeSource } from "../../../src/rag/types.js";
 import { createSqliteTernStore } from "../../../src/terns/index.js";
 import { defineTool } from "../../../src/tools/index.js";
@@ -111,7 +111,7 @@ export function jobScoutDeps(script: JobScoutScript): JobScoutRun {
   const saveShortlist = defineTool({
     name: "save_shortlist",
     description: "Save jobs",
-    effect: "write",
+    channel: "terminal",
     input: z.object({ jobs: z.array(z.string()) }),
     output: z.string(),
     run: ({ jobs }) => {
@@ -123,10 +123,14 @@ export function jobScoutDeps(script: JobScoutScript): JobScoutRun {
   const deps: RunDeps<JobScoutAgent> = {
     config,
     registry: createModelRegistry(config, fakeGateway(chatModel)),
-    prompts: { profiler: async () => "You profile.", scout: async () => "You scout.", shortlist: async () => "You save." },
+    prompts: {
+      profiler: async () => "You profile.",
+      scout: async () => "You scout.",
+      shortlist: async () => "You save.",
+    },
     tools: () => saveShortlist,
     guards: script.guards ?? NO_GUARDS,
-    pause: { checkpointer: new MemorySaver(), needsApproval: writeToolsNeedApproval },
+    pause: { checkpointer: new MemorySaver() /* needsApproval removed */ },
     knowledge: (name) => (name === "scout" ? (script.knowledge ?? []) : []),
     flow: jobScoutFlow,
     limits: { perRun: { steps: 12, cost: usd(0.1) }, perDay: { cost: usd(1) } },

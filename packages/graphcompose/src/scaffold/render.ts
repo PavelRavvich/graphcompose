@@ -4,12 +4,12 @@
  */
 export function renderTemplate(
   text: string,
-  variables: Readonly<Record<string, string>>,
+  variables: Readonly<Record<string, unknown>>,
   unknown: (key: string) => Error,
 ): string {
   return text.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => {
     const value = variables[key];
     if (value === undefined) throw unknown(key);
-    return value;
+    return typeof value === "object" && value !== null ? JSON.stringify(value, null, 2) : String(value);
   });
 }

@@ -19,10 +19,12 @@ export interface FlowParts {
 export async function flowOf(bundle: WorkflowMeta): Promise<FlowParts> {
   const model = checkFlow(bundle.flow);
   const refs = [...model.nodes.values()];
-  const actions = refs.filter((ref) => ref.kind === "action").map((ref) => ({
-    name: ref.name,
-    cls: ref.use,
-  }));
+  const actions = refs
+    .filter((ref) => ref.kind === "action")
+    .map((ref) => ({
+      name: ref.name,
+      cls: ref.use,
+    }));
   const agents = refs
     .filter((ref) => ref.kind === "agent")
     .map((ref) => ({

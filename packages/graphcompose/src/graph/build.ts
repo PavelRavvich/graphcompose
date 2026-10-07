@@ -1,4 +1,4 @@
-/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines, max-lines-per-function */
 
@@ -26,6 +26,7 @@ export interface FlowRuntime {
   readonly limits: WorkflowLimits;
   readonly spentToday: SpentToday;
   readonly checkpointer?: BaseCheckpointSaver;
+  readonly observer?: import("../core/observer-manager.js").ObserverManager;
 }
 
 /** LangGraph's `recursionLimit` is a safety net far above the steps limit, never the limit a user sees. */
@@ -52,6 +53,7 @@ function runnerOf(
     router: runtime.routerFor(loaded),
     loaded,
     memory: runtime.routerMemory,
+    observer: runtime.observer,
     ...(finish === undefined ? {} : { finish }),
   });
   const skipping = reportingSkippedBranches(runner, loaded, joinSourceKeys(model));
@@ -145,7 +147,6 @@ const afterStart =
   (state: FlowStateType): string =>
     state.guarded === "" ? target : END;
 
-// eslint-disable-next-line complexity
 function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void {
   const next = model.next.get(node.key);
   const id = graphNodeId(node);
@@ -155,7 +156,7 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
   }
   if (!next) return;
   if (next.kind === "to") {
-    const targets = next.targets.map((t) => graphNodeId(nodeKeyed(model, t as string)));
+    const targets = next.targets.map((t) => graphNodeId(nodeKeyed(model, t)));
     if (node.kind === "workflow-start") {
       const singleTarget = targets.length === 1 && targets[0] !== undefined;
       builder.addConditionalEdges(
@@ -189,7 +190,7 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
     return;
   }
   const self = next.self ? predecessorsOf(model.collected, node.key).map((ref) => ref.key) : [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const skip = (next as any).skip ? ["skip-wrap"] : [];
   const targets = [...new Set([...next.targets, ...self, ...skip])];
 
@@ -223,7 +224,7 @@ function compileJoinBarriers(builder: Builder, model: FlowModel) {
           target: targetNode,
           sources: [],
           type: t.next.kind,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+
           count: (t.next as any).count,
         });
       }

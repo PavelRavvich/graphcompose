@@ -13,15 +13,23 @@ export async function gatherKnowledge(
   sources: readonly KnowledgeSource[],
   query: string,
   config: RunnableConfig | undefined,
+  deps?: import("../../core/observer-manager.js").ObserverManager,
+  appState?: import("../../core/observability.js").AppState
 ): Promise<{ readonly block: string; readonly records: UsageRecord[] }> {
   const records: UsageRecord[] = [];
   const blocks: string[] = [];
   const signal = config?.signal ?? new AbortController().signal;
   for (const source of sources) {
     try {
+      if (deps && appState) {
+        await deps.onRagStart({ name: source.name, input: query, state: appState });
+      }
       const retrieval = await RunnableLambda.from((q: string) =>
         source.retrieve(q, { topK: source.topK, signal }),
       ).invoke(query, { ...config, runName: `rag:${source.name}` });
+      if (deps && appState) {
+        await deps.onRagEnd({ name: source.name, update: retrieval, state: appState });
+      }
       records.push(
         recordReportedCost(
           { name: source.name, costCaller: `rag:${source.name}` },

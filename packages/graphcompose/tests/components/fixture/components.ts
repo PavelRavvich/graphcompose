@@ -1,6 +1,12 @@
 import { file } from "../../../src/components/file.js";
 
-import { Agent, Workflow, Injectable, InjectionToken, ROUTER_FACTORY } from "../../../src/core/index.js";
+import {
+  Agent,
+  Workflow,
+  Injectable,
+  InjectionToken,
+  ROUTER_FACTORY,
+} from "../../../src/core/index.js";
 import { McpServer, McpServerClient, McpTool } from "../../../src/mcp/index.js";
 import { Tool, type ToolHandler } from "../../../src/tool/index.js";
 import { Text } from "../../../src/dto/index.js";
@@ -21,12 +27,12 @@ export class Greeter {
   }
 }
 
-class Person {
+export class Person {
   @Text({ prompt: "who to greet" })
   name!: string;
 }
 
-class Greeting {
+export class Greeting {
   @Text()
   text!: string;
 }
@@ -89,6 +95,7 @@ export class ReadFile implements ToolHandler<FileRead, FileContent> {
   thinking: "low",
   tools: [GreetTool, ReadFile],
   promptUrls: ["./greeter.prompt.md"],
+  promptVars: { language: "Hebrew" },
 })
 export class GreeterAgent {}
 
@@ -99,6 +106,5 @@ export class GreeterAgent {}
   flow: starOf(GreeterAgent),
   mcp: [FilesServer],
   providers: [Greeter, { provide: GREETING, useValue: "Shalom" }],
-  promptVariables: { language: "Hebrew" },
 })
 export class Greetings extends TestSettings {}

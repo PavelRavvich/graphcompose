@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { startAll, stopAll } from "../../src/components/lifecycle.js";
+import { initAll, assembleAll, startAll, stopAll } from "../../src/components/lifecycle.js";
 
 describe("AC12: lifecycle hooks of components", () => {
   it("starts in creation order and stops dependants first; things without hooks are skipped", async () => {
     const log: string[] = [];
     const hooked = (name: string) => ({
+      onInit: () => {
+        log.push(`init ${name}`);
+      },
+      afterAssemble: () => {
+        log.push(`assemble ${name}`);
+      },
       onStart: () => {
         log.push(`start ${name}`);
       },
@@ -13,10 +19,17 @@ describe("AC12: lifecycle hooks of components", () => {
       },
     });
 
-    await startAll([hooked("dependency"), { plain: true }, hooked("dependant")]);
+    const instances = [hooked("dependency"), { plain: true }, hooked("dependant")];
+    await initAll(instances);
+    await assembleAll(instances);
+    await startAll(instances);
     await stopAll([hooked("dependency"), null, hooked("dependant")]);
 
     expect(log).toEqual([
+      "init dependency",
+      "init dependant",
+      "assemble dependency",
+      "assemble dependant",
       "start dependency",
       "start dependant",
       "stop dependant",

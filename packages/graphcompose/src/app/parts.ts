@@ -34,7 +34,10 @@ export const toolLookup = (tools: readonly AnyTool[]): ((name: string) => AnyToo
 /** Eval / replay: a Jev judge, spend on `<workflow>:eval` — its own day, capped like the workflow's. */
 
 /** Action lookup for the graph. */
-export const actionLookup = (bundle: AssembledWorkflow, services: WorkflowServices): ((name: string) => any) | undefined => {
+export const actionLookup = (
+  bundle: AssembledWorkflow,
+  services: WorkflowServices,
+): ((name: string) => any) | undefined => {
   const actionsMap = bundle.actions?.(services);
   if (!actionsMap) return undefined;
   return (name) => {
@@ -90,7 +93,6 @@ export const pauseFor = (
   checkpointer: BaseCheckpointSaver,
 ): PauseSeam | undefined => ({
   checkpointer,
-  needsApproval: bundle.needsApproval ?? (() => false),
 });
 
 /** Guards from config + their texts; each guard is a router (Jev unless it sets a model). */

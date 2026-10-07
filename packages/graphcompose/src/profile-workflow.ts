@@ -53,11 +53,8 @@ export function applyProfile(
     prompts: {
       ...bundle.prompts,
       ...Object.fromEntries(
-        Object.entries(prompts).map(([name, text]) => [
-          name,
-          async () => text,
-        ])
-      )
+        Object.entries(prompts).map(([name, text]) => [name, async () => text]),
+      ),
     },
   };
 }

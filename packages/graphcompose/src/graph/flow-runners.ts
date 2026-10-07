@@ -1,4 +1,4 @@
-/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 
 import { agentDefinitions } from "./agent-definitions.js";
 import {
@@ -38,7 +38,9 @@ function finishRunner<TName extends string>(deps: GraphDeps<TName>, name: string
     const guarded = await outputGuards({ ...state, answer }, config);
     const finishOutput: MultimodalFinishOutput = {
       kind: "multimodal",
-      blocks: Array.isArray(state.contributions.at(-1)?.content) ? (state.contributions.at(-1)?.content as any) : [] 
+      blocks: Array.isArray(state.contributions.at(-1)?.content)
+        ? (state.contributions.at(-1)?.content as any)
+        : [],
     };
     return { answer, finishes: { [name]: finishOutput }, ...guarded };
   };
@@ -48,14 +50,22 @@ function finishRunner<TName extends string>(deps: GraphDeps<TName>, name: string
 function agentLoops<TName extends string>(
   deps: GraphDeps<TName>,
 ): ReadonlyMap<string, AgentLoopGraph> {
-  const approval =
-    deps.pause === undefined ? undefined : pauseSeamApproval(deps.pause.needsApproval);
+  const approval = deps.pause === undefined ? undefined : pauseSeamApproval(deps.requestApproval, deps.channelAdapters);
   const runBudgetCap = deps.limits.perRun?.cost ?? Number.POSITIVE_INFINITY;
   return new Map(
     [...agentDefinitions(deps)].map(([name, agent]) => [
       name,
       agentLoopGraph(
-        { agent, bundle: deps.config.name, runBudgetCap, approval, judges: noJudges },
+        { 
+          agent, 
+          bundle: deps.config.name, 
+          runBudgetCap, 
+          approval, 
+          judges: noJudges,
+          piiPolicies: deps.piiPolicies?.(name),
+          guardrails: deps.guardrails?.(name),
+          observer: deps.observer
+        },
         deps.pause?.checkpointer,
       ),
     ]),
@@ -72,7 +82,7 @@ export function flowRunners<TName extends string>(
 ): (node: FlowNodeRef) => FlowNodeRunner {
   const loops = agentLoops(deps);
   const inputGuards = makeGuardNode(deps.guards.input, "input");
-  
+
   return (node) => {
     switch (node.kind) {
       case "workflow-start":
@@ -84,13 +94,21 @@ export function flowRunners<TName extends string>(
         return async (state, config) => {
           const context = { runId: config?.configurable?.runId ?? "", signal: config?.signal };
           const result = await action.execute(state, context);
-          return result as import("./flow-state.js").FlowStateUpdate;
+          return result;
         };
       }
       case "agent": {
         const loop = loops.get(node.name);
         if (loop === undefined) throw new UnknownAgentError(node.name);
-        return agentRunner(loop, node.name);
+        const runner = agentRunner(loop, node.name);
+        return async (state, config) => {
+          const runId = state.runId;
+          const appState = { runId, activeNode: node.name, variables: {}, history: state.history };
+          await deps.observer?.onAgentStart({ name: node.name, input: state.task, state: appState });
+          const result = await runner(state, config);
+          await deps.observer?.onAgentEnd({ name: node.name, update: result, state: appState });
+          return result;
+        };
       }
       case "workflow-finish":
         return finishRunner(deps, node.name);

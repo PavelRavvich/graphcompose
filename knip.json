@@ -1,0 +1,14 @@
+{
+  "ignoreDependencies": ["@modelcontextprotocol/server-filesystem", "vitest"],
+  "workspaces": {
+    "packages/graphcompose": {
+      "entry": ["src/index.ts", "src/cli/main.ts", "src/**/index.ts", "src/describe.ts"],
+      "project": ["src/**/*.ts", "tests/**/*.ts"],
+      "ignore": ["tests/fixtures/loader/none.workflow.ts", "tests/fixtures/loader/two.workflow.ts"]
+    },
+    "examples/job-scout": {
+      "entry": ["src/job-scout.workflow.ts"],
+      "project": ["src/**/*.ts", "tests/**/*.ts"]
+    }
+  }
+}

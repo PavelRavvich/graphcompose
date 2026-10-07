@@ -28,7 +28,10 @@ class Scout {}
   prompt: "Pick one.",
   model: "typesafe/jev-1.13",
   maxVisits: 3,
-  routes: [{ prompt: "Profiling", target: Profiler }, { prompt: "Done", target: TestAnswer }],
+  routes: [
+    { prompt: "Profiling", target: Profiler },
+    { prompt: "Done", target: TestAnswer },
+  ],
 })
 class Main {}
 
@@ -38,7 +41,6 @@ const SecondLook = node(Profiler, "second-look");
 const base = {
   version: "1.0.0",
   defaults: testConfig.defaults,
-  promptVariables: { language: "en" },
 };
 
 describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
@@ -88,7 +90,9 @@ describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
 
     expect(Object.keys(workflow.config.agents)).toEqual(["profiler", "second-look"]);
     expect(workflow.limits).toEqual({ perDay: { cost: 3 } });
-    const routerTexts = await Promise.all(workflow.routers.map(async (r) => [r.name, await r.instructions({} as any)]));
+    const routerTexts = await Promise.all(
+      workflow.routers.map(async (r) => [r.name, await r.instructions({} as any)]),
+    );
     expect(routerTexts).toEqual([["main", "Pick one."]]);
   });
 

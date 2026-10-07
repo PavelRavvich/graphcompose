@@ -55,7 +55,9 @@ describe("profiles — merge rules", () => {
     expect(applied.config.agents.coder?.model).toBe(base.config.agents.coder?.model);
     expect(applied.config.defaults.history.limit).toBe(2);
     expect(await applied.prompts.coder!({} as any)).toBe("You are a terse coder.");
-    expect(await applied.prompts.researcher!({} as any)).toBe(await base.prompts.researcher!({} as any));
+    expect(await applied.prompts.researcher!({} as any)).toBe(
+      await base.prompts.researcher!({} as any),
+    );
   });
 
   it("AC1: loads a YAML profile with a prompt file relative to it; base means no profile", async () => {

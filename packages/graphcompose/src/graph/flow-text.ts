@@ -1,8 +1,9 @@
-/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 
 import {
   isSelf,
-  isSkip, unwrapTarget,
+  isSkip,
+  unwrapTarget,
   labelOf,
   type ChoiceTarget,
   type Flow,
@@ -35,7 +36,7 @@ const nameIn =
 function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): string {
   switch (step.kind) {
     case "to":
-      return `${step.from.map(name).join(", ")} → ${step.targets.map(t => name(unwrapTarget(t))).join(", ")}`;
+      return `${step.from.map(name).join(", ")} → ${step.targets.map((t) => name(unwrapTarget(t))).join(", ")}`;
     case "nextEach":
       return `${step.from.map(name).join(", ")} ⇉ [nextEach] ${name(step.target)}`;
     case "choose":
@@ -47,7 +48,6 @@ function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): strin
     case "joinAny":
       return `${step.from.map(name).join(", ")} → joinAny(${name(step.target)})`;
     case "joinQuorum":
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       return `${step.from.map(name).join(", ")} → joinQuorum(${step.count}, ${name(step.target)})`;
   }
 }

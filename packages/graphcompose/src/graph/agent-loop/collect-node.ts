@@ -2,22 +2,22 @@ import { ToolMessage } from "@langchain/core/messages";
 import type { ApprovalRecord } from "../../pause/index.js";
 import { rejectionMessage } from "../../prompts/agents.js";
 import type { AsyncNode } from "../types.js";
-import { callsOf, toolNamed, type AgentLoopDeps, type LoopCall } from "./deps.js";
-import { JudgePoint, visitToolThenAgent } from "./judge-points.js";
+import { callsOf, toolNamed, type AgentLoopDeps, type ToolCallRequest } from "./deps.js";
+import { JudgePoint, visitToolThenAgent, mergePolicies } from "./judge-points.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
 
 /** What the model reads for a call: its stored result, or who rejected it and why. */
-function contentOf(state: AgentLoopStateType, call: LoopCall): string {
+function contentOf(state: AgentLoopStateType, call: ToolCallRequest): string {
   const stored = state.results[call.callId];
   if (stored !== undefined) return stored.content;
   const decision = state.decisions[call.callId];
-  return rejectionMessage(decision?.by ?? "the loop", decision?.reason);
+  return rejectionMessage(decision?.by ?? "the loop", decision?.feedback);
 }
 
 /** The decided calls of this move, as the flow keeps them (#100: the turn ends after a decision). */
 function decidedCalls(
   state: AgentLoopStateType,
-  calls: readonly LoopCall[],
+  calls: readonly ToolCallRequest[],
   agent: string,
 ): ApprovalRecord[] {
   return calls.flatMap((call) => {
@@ -45,13 +45,20 @@ function decidedCalls(
 export function makeCollectNode(
   deps: AgentLoopDeps,
 ): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
-  return async (state) => {
+  return async (state, config) => {
     const calls = callsOf(state.move);
     for (const call of calls) {
       const ran =
         state.results[call.callId] !== undefined && toolNamed(deps.agent, call.tool) !== undefined;
       if (!ran) continue;
-      await visitToolThenAgent(deps.judges, JudgePoint.AfterToolCall, deps.agent.name, call);
+      const combinedGuardrails = mergePolicies(deps.workflowGuardrails, deps.guardrails, deps.toolGuardrails?.(call.tool));
+      const ctx = {
+        agent: deps.agent.name,
+        call,
+        runId: config?.configurable?.run_id ?? state.runId,
+        metadata: config?.configurable?.metadata ?? {}
+      };
+      await visitToolThenAgent(combinedGuardrails, JudgePoint.AfterToolCall, ctx);
     }
     const messages = calls.map(
       (call) => new ToolMessage({ tool_call_id: call.callId, content: contentOf(state, call) }),

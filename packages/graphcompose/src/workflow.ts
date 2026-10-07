@@ -58,6 +58,14 @@ export interface AssembledWorkflow<TName extends string = string> {
   readonly compactionPrompt?: string;
   /** Set to turn the pause seam on; the app supplies an in-process checkpointer. */
   readonly needsApproval?: (tool: AnyTool) => boolean;
+  readonly channels?: (services: WorkflowServices) => ReadonlyMap<string, any>;
+  readonly piiPolicies?: (services: WorkflowServices) => ReadonlyMap<string, { override: boolean; instances: readonly any[]; disable: readonly any[] }>;
+  readonly guardrails?: (services: WorkflowServices) => ReadonlyMap<string, { override: boolean; instances: readonly any[]; disable: readonly any[] }>;
+  readonly toolPiiPolicies?: (services: WorkflowServices) => ReadonlyMap<string, { override: boolean; instances: readonly any[]; disable: readonly any[] }>;
+  readonly toolGuardrails?: (services: WorkflowServices) => ReadonlyMap<string, { override: boolean; instances: readonly any[]; disable: readonly any[] }>;
+  readonly workflowPiiPolicies?: (services: WorkflowServices) => readonly any[];
+  readonly workflowGuardrails?: (services: WorkflowServices) => readonly any[];
+  readonly channelAdapters?: (services: WorkflowServices) => ReadonlyMap<string, any>;
 }
 
 export const resolveTools = (

@@ -9,8 +9,3 @@ export interface RouteDeclaration extends PromptOptions {
 
 /** The option name a router sees for `Self`. */
 export const SELF_OPTION = "self";
-
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-
-
-

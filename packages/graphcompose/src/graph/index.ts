@@ -1,5 +1,3 @@
-/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, max-lines-per-function, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
-
 /**
  * `graphcompose/graph` — the workflow's graph: the flow DSL (`from`, `chain`, `node`, `Self`),
  * `@WorkflowStart`, `@Router`, `@WorkflowFinish`, workflow settings and limits, and the errors

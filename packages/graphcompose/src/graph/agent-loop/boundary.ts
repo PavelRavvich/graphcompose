@@ -1,8 +1,8 @@
 import { Send } from "@langchain/langgraph";
 import { unknownToolMessage } from "../../prompts/agents.js";
 import type { AsyncNode } from "../types.js";
-import { callsOf, toolNamed, type AgentLoopDeps, type LoopCall } from "./deps.js";
-import { JudgePoint, visitToolThenAgent } from "./judge-points.js";
+import { callsOf, toolNamed, type AgentLoopDeps, type ToolCallRequest } from "./deps.js";
+import { JudgePoint, visitToolThenAgent, mergePolicies } from "./judge-points.js";
 import {
   LOOP_NODE,
   type AgentLoopStateType,
@@ -12,14 +12,14 @@ import {
 } from "./state.js";
 
 /** Calls of the move that wait for a decision: their tool needs one and nobody decided yet. */
-export function awaitingApproval(state: AgentLoopStateType, deps: AgentLoopDeps): LoopCall[] {
+export function awaitingApproval(state: AgentLoopStateType, deps: AgentLoopDeps): ToolCallRequest[] {
   const approval = deps.approval;
   if (approval === undefined) return [];
   return callsOf(state.move).filter((call) => {
     const tool = toolNamed(deps.agent, call.tool);
     return (
       tool !== undefined &&
-      approval.needsApproval(tool) &&
+      tool.channel !== undefined &&
       state.decisions[call.callId] === undefined &&
       state.results[call.callId] === undefined
     );
@@ -27,7 +27,7 @@ export function awaitingApproval(state: AgentLoopStateType, deps: AgentLoopDeps)
 }
 
 /** Calls of the move allowed to run that have no stored result yet. */
-export const runnableCalls = (state: AgentLoopStateType): LoopCall[] =>
+export const runnableCalls = (state: AgentLoopStateType): ToolCallRequest[] =>
   callsOf(state.move).filter(
     (call) =>
       state.results[call.callId] === undefined && state.decisions[call.callId]?.approved !== false,
@@ -49,7 +49,7 @@ export function routeToActions(
         new Send(LOOP_NODE.tool, {
           callId: call.callId,
           tool: call.tool,
-          args: call.args,
+          args: state.decisions[call.callId]?.overrideArguments ?? call.args,
           runId: state.runId,
         } satisfies ToolTask),
     );
@@ -64,7 +64,7 @@ export function routeToActions(
 export function makeBoundaryNode(
   deps: AgentLoopDeps,
 ): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
-  return async (state) => {
+  return async (state, config) => {
     const results: Record<string, StoredToolCall> = {};
     for (const call of callsOf(state.move)) {
       if (toolNamed(deps.agent, call.tool) === undefined) {
@@ -72,7 +72,17 @@ export function makeBoundaryNode(
         results[call.callId] = { callId: call.callId, tool: call.tool, content };
         continue;
       }
-      await visitToolThenAgent(deps.judges, JudgePoint.BeforeToolCall, deps.agent.name, call);
+      
+      const ctx = {
+        agent: deps.agent.name,
+        call,
+        runId: config?.configurable?.run_id ?? state.runId,
+        metadata: config?.configurable?.metadata ?? {}
+      };
+      
+      const combinedGuardrails = mergePolicies(deps.workflowGuardrails, deps.guardrails, deps.toolGuardrails?.(call.tool));
+      
+      await visitToolThenAgent(combinedGuardrails, JudgePoint.BeforeToolCall, ctx);
     }
     return { messages: state.move === null ? [] : [state.move], results };
   };

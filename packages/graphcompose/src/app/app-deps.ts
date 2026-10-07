@@ -1,10 +1,11 @@
+import type { ChannelRequest } from "../components/decorators.js";
 import { MemorySaver, type BaseCheckpointSaver } from "@langchain/langgraph";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { resolveTools, type AssembledWorkflow } from "../workflow.js";
 import { validateAgentsConfig, type AgentsConfigOf } from "../config/types.js";
 import type { ContainerOptions } from "../components/container.js";
-import { startAll, stopAll } from "../components/lifecycle.js";
+import { initAll, assembleAll, startAll, stopAll } from "../components/lifecycle.js";
 import { createFileLedger, type Clock, type SpendLedger } from "../finops/ledger.js";
 import type { EvalDeps } from "../eval/eval.js";
 import type { RunDeps } from "../run/types.js";
@@ -45,7 +46,10 @@ export const DEFAULT_LEDGER_DIR = join(homedir(), ".langgraph-agents", "spend");
 export const DEFAULT_TERN_DB = join(homedir(), ".langgraph-agents", "terns.sqlite");
 
 /** Run dependencies, eval dependencies, and resources to release after the run. */
+import { ObserverManager } from "../core/observer-manager.js";
+
 export interface AppDeps extends RunDeps<string> {
+  readonly observer: ObserverManager;
   readonly evaluation: EvalDeps;
   /** Startup warnings, e.g. a config changed without a version bump. */
   readonly warnings: readonly string[];
@@ -188,12 +192,26 @@ export async function createAppDeps(
     tools: toolLookup(tools),
     actions: actionLookup(bundle, services),
     pause: pauseFor(bundle, checkpointer),
+    requestApproval: async (channelName: string, req: ChannelRequest) => {
+      const channels = bundle.channels?.(services);
+      const channel = channels?.get(channelName);
+      if (!channel) throw new Error(`Unknown channel: ${channelName}`);
+      await channel.requestApproval(req);
+    },
     compactionPrompt: bundle.compactionPrompt,
+    piiPolicies: (agent: string) => bundle.piiPolicies?.(services)?.get(agent) ?? { override: false, instances: [], disable: [] },
+    toolPiiPolicies: (tool: string) => bundle.toolPiiPolicies?.(services)?.get(tool) ?? { override: false, instances: [], disable: [] },
+    toolGuardrails: (tool: string) => bundle.toolGuardrails?.(services)?.get(tool) ?? { override: false, instances: [], disable: [] },
+    workflowPiiPolicies: bundle.workflowPiiPolicies?.(services) ?? [],
+    workflowGuardrails: bundle.workflowGuardrails?.(services) ?? [],
+    guardrails: (agent: string) => bundle.guardrails?.(services)?.get(agent) ?? { override: false, instances: [], disable: [] },
+    channelAdapters: (channel: string) => bundle.channelAdapters?.(services)?.get(channel),
     ...knowledgeFor(bundle, services),
     ledger,
     terns,
     evaluation: evaluationFor(bundle, { terns, ledger }, gateway),
     tracing,
+    observer: new ObserverManager(lifecycle.created),
     ...(options.newRunId === undefined ? {} : { newRunId: options.newRunId }),
     close: async () => {
       try {
@@ -205,6 +223,8 @@ export async function createAppDeps(
       }
     },
   };
+  await initAll(lifecycle.created);
+  await assembleAll(lifecycle.created);
   await startAll(lifecycle.created);
   return { ...deps, models: models.summary, warnings: await versionWarnings(deps) };
 }

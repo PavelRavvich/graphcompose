@@ -35,7 +35,11 @@ export class SkipAggregator {}
   description: "Picks a branch",
   prompt: "Which branch?",
   model: "stub",
-  routes: [{ prompt: "branch A", target: SkipA }, { prompt: "branch B", target: SkipB }, { prompt: "skip", target: Skip }],
+  routes: [
+    { prompt: "branch A", target: SkipA },
+    { prompt: "branch B", target: SkipB },
+    { prompt: "skip", target: Skip },
+  ],
 })
 export class SkipPicker {}
 

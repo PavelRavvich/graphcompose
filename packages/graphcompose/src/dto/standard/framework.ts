@@ -64,8 +64,11 @@ export class ToolCallApprovalDecision {
   @Text({ prompt: "who or what decided" })
   by!: string;
 
-  @Text({ prompt: "why, if a reason was given", optional: true })
-  reason?: string;
+  @Text({ prompt: "feedback or reason for rejection", optional: true })
+  feedback?: string;
+
+  @Nested(ToolArguments, { prompt: "arguments to override the call with", optional: true })
+  overrideArguments?: ToolArguments;
 }
 
 /**

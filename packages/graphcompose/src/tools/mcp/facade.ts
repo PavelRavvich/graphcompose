@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineTool } from "../define-tool.js";
-import type { Tool, ToolEffect } from "../types.js";
+import type { Tool } from "../types.js";
 import { McpUnavailableError } from "./errors.js";
 
 /** Calls a tool on a connected server and returns the raw MCP result. */
@@ -36,7 +36,6 @@ export interface McpFacadeDefinition<
   readonly input: z.ZodType<TInput>;
   /** Required. `z.string()` or an object of one field `text` for text only the model reads. */
   readonly output: z.ZodType<TOutput>;
-  readonly effect?: ToolEffect;
   readonly timeoutMs?: number;
 }
 
@@ -91,7 +90,6 @@ export function mcpServer<TServer extends string>(name: TServer): McpServerHandl
         description: definition.description,
         input: definition.input,
         output: definition.output,
-        effect: definition.effect,
         timeoutMs: definition.timeoutMs,
         run: async (input, ctx) => {
           if (caller === undefined)

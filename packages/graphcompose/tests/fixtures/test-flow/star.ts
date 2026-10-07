@@ -1,4 +1,3 @@
-
 import type { Class } from "../../../src/components/injection.js";
 import { from, type Flow } from "../../../src/graph/flow.js";
 import { Router } from "../../../src/graph/router.decorator.js";

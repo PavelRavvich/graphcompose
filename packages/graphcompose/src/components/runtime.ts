@@ -23,7 +23,7 @@ export const CORE_TOKENS = [ROUTER_FACTORY, ENV];
  * from its `run` — e.g. in tests: `toolOf(new GreenhouseJobs(fakeJudge, search, fakeFetch))`.
  */
 export function toolOf<TInput, TOutput>(instance: {
-  run(input: TInput, ctx: ToolContext): Promise<TOutput>;
+  run: (input: TInput, ctx: ToolContext) => Promise<TOutput>;
 }): Tool<string, TInput, TOutput> {
   const cls = instance.constructor as Class;
   const { meta } =
@@ -41,13 +41,15 @@ export const checkToolData = (cls: Class, kind: "tool" | "mcp-tool"): void => {
   schemaOf(meta.output);
 };
 
-export const adapt = (handler: ToolHandler<unknown, unknown>, meta: ToolMeta): AnyTool =>
+export const adapt = (handler: ToolHandler<any, any>, meta: ToolMeta): AnyTool =>
   defineTool({
     name: meta.name,
     description: meta.description,
     input: schemaOf(meta.input),
     output: schemaOf(meta.output),
-    ...(meta.effect === undefined ? {} : { effect: meta.effect }),
+    ...(meta.channel === undefined
+      ? {}
+      : { channel: requireComponent(meta.channel, "channel", "toolOf").meta.name }),
     ...(meta.timeoutMs === undefined ? {} : { timeoutMs: meta.timeoutMs }),
     run: (input, ctx) => handler.run(input, ctx),
   });
@@ -91,7 +93,7 @@ export const toolBuilder =
     const container = containerFor(bundle, services);
     const instances = local.map((cls) =>
       adapt(
-        container.get(cls) as ToolHandler<unknown, unknown>,
+        container.get(cls) as ToolHandler<any, any>,
         requireComponent(cls, "tool", "workflowOf").meta,
       ),
     );

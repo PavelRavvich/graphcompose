@@ -150,7 +150,7 @@ describe("#141 AC3: standard DTOs named by the hierarchy rule", () => {
   });
 
   it("ToolCallApprovalDecision takes a reason; it needs who decided", () => {
-    const refusal = { approved: false, by: "ci-bot", reason: "outside the change window" };
+    const refusal = { approved: false, by: "ci-bot", feedback: "outside the change window" };
     expect(validate(ToolCallApprovalDecision, refusal)).toEqual(refusal);
     expect(rejects(ToolCallApprovalDecision, { approved: true })).toBe(true);
   });

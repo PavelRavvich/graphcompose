@@ -83,8 +83,8 @@ describe("gc create / gc generate end to end", () => {
     expect(out).toMatch(
       /triage .*\n\s+Sorts requests\n\s+limits: .*\n\s+rag: desk_notes \(tool, k 3\)/,
     );
-    expect(out).toContain("· search_orders (read, local)");
-    expect(out).toContain("· read_desk_files (read, MCP desk_files)");
+    expect(out).toContain("· search_orders (local)");
+    expect(out).toContain("· read_desk_files (MCP desk_files)");
     // #107 AC2: files named by kind, the prompt next to its agent (no prompt parameter)
     for (const file of [
       "agents/answerer.agent.ts",
@@ -165,8 +165,8 @@ describe("gc create / gc generate end to end", () => {
       "maxVisits: 1,",
     );
     expect(out).toContain("rag: policies (tool, k 3)");
-    expect(out).toContain("· refund (read, local)");
-    expect(out).toContain("· tickets_search (read, MCP tickets)");
+    expect(out).toContain("· refund (local)");
+    expect(out).toContain("· tickets_search (MCP tickets)");
     // #141 AC3: a text-only MCP server tool replies with PlainText
     expect(readFileSync(join(project, "src/desk/mcp/tickets.server.ts"), "utf8")).toContain(
       "output: PlainText",

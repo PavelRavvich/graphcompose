@@ -1,0 +1,41 @@
+import type { Container } from "../components/container.js";
+import type { 
+  AppState, AgentContext, RouterContext, RagContext, AgentContextUpdate, RouterContextUpdate, RagContextUpdate, ToolContext, ToolContextUpdate, 
+  ModelRequest, ModelResponse 
+} from "./observability.js";
+
+export class ObserverManager {
+  private instances: any[] = [];
+
+  constructor(containerInstances: any[]) {
+    this.instances = containerInstances;
+  }
+
+  private async dispatch(methodName: string, ...args: any[]): Promise<void> { 
+    for (const instance of this.instances) {
+      if (typeof instance[methodName] === "function") {
+        await instance[methodName](...args);
+      }
+    }
+  }
+
+  async onWorkflowStart(state: AppState) { return this.dispatch("onWorkflowStart", state); }
+  async onWorkflowEnd(result: any, state: AppState) { return this.dispatch("onWorkflowEnd", result, state); }
+
+  async onAgentStart(ctx: AgentContext) { return this.dispatch("onAgentStart", ctx); }
+  async onAgentEnd(ctx: AgentContextUpdate) { return this.dispatch("onAgentEnd", ctx); }
+
+  async onRouterStart(ctx: RouterContext) { return this.dispatch("onRouterStart", ctx); }
+  async onRouterEnd(ctx: RouterContextUpdate) { return this.dispatch("onRouterEnd", ctx); }
+
+  async onToolStart(ctx: ToolContext) { return this.dispatch("onToolStart", ctx); }
+  async onToolEnd(ctx: ToolContextUpdate) { return this.dispatch("onToolEnd", ctx); }
+
+  async onModelStart(req: ModelRequest) { return this.dispatch("onModelStart", req); }
+  async onModelEnd(res: ModelResponse) { return this.dispatch("onModelEnd", res); }
+
+  async onRagStart(ctx: RagContext) { return this.dispatch("onRagStart", ctx); }
+  async onRagEnd(ctx: RagContextUpdate) { return this.dispatch("onRagEnd", ctx); }
+
+  async onError(error: Error, state: AppState) { return this.dispatch("onError", error, state); }
+}

@@ -85,3 +85,84 @@ Conventional commits with the issue number: `feat(#12): …`, `fix(#13): …`, `
       checklist posted on the issue
 
 **Done** is the human's call after the manual checklist passes.
+
+## Tool Call Approvals (Channels)
+
+The `@Channel` decorator provides a unified way to handle human-in-the-loop and out-of-band tool call approvals. It decouples the workflow's business logic from the specific mechanism (CLI, Slack, Webhooks, gRPC) used to obtain the approval.
+
+### 1. Define a Channel
+
+A channel is a class that implements `ChannelHandler`. It must provide a `requestApproval` method that takes a `ChannelRequest` and returns `void`.
+
+```typescript
+import { Channel, type ChannelHandler, type ChannelRequest } from "graphcompose";
+
+@Channel({
+  name: "slack_approval",
+  description: "Sends an approval request to a Slack channel.",
+})
+export class SlackChannel implements ChannelHandler {
+  async requestApproval(req: ChannelRequest): Promise<void> {
+    // req contains: runId, agentName, toolName, toolArguments, summary, metadata
+    console.log(`Sending slack message for run ${req.runId} to approve ${req.toolName}`);
+    // You can pass req.metadata.approverEmail to direct the message to a specific user.
+  }
+}
+```
+
+### 2. Attach the Channel to a Tool
+
+Use the `channel` property in the `@Tool` decorator to specify which channel should handle approvals for this tool.
+
+```typescript
+@Tool({
+  name: "delete_user",
+  description: "Deletes a user account.",
+  channel: "slack_approval", // This tool will trigger an interrupt!
+})
+export class DeleteUserTool {
+  // ...
+}
+```
+
+### 3. Provide Metadata and Execute
+
+When starting the graph, you can pass arbitrary context (like user ID, tenant, etc.) using the `metadata` parameter. This metadata is seamlessly passed to the `requestApproval` method of your channel.
+
+```typescript
+const result = await app.execute(
+  { task: "Delete user 123" },
+  { metadata: { approverEmail: "admin@example.com" } },
+);
+```
+
+### 4. Resume the Run
+
+Once the approval is obtained out-of-band (e.g., the user clicks "Approve" in Slack), resume the run by providing a `ChannelDecision` payload.
+
+```typescript
+// Approve as-is
+await app.resume(runId, {
+  approved: true,
+  by: "admin@example.com",
+});
+
+// Reject with feedback for the LLM
+await app.resume(runId, {
+  approved: false,
+  by: "admin@example.com",
+  feedback: "Please double check the user ID, 123 belongs to the CEO.",
+});
+
+// Approve but override the arguments (bypassing the LLM)
+await app.resume(runId, {
+  approved: true,
+  by: "admin@example.com",
+  overrideArguments: { userId: "456" }, // Corrected argument!
+});
+```
+
+### Important Concepts
+
+- **Override Arguments**: If the user modifies the tool arguments during the approval step, returning `overrideArguments` in the decision will inject those modified arguments straight into the tool, bypassing the LLM.
+- **Timeouts and Rejections**: Channels are asynchronous fire-and-forget mechanisms. If a run should timeout, use an external cron job or scheduler to call `app.resume(runId, { approved: false, feedback: "Timeout" })`.

@@ -100,7 +100,7 @@ export function repoTools(log: (effect: string) => void): AnyTool[] {
     defineTool({
       name: "write_file",
       description: "Write a file",
-      effect: "write",
+      channel: "terminal",
       input: z.object({ path: z.string(), content: z.string() }),
       output: z.string(),
       run: ({ path, content }) => {

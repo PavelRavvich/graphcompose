@@ -141,10 +141,14 @@ describe("compare — report", () => {
           alpha: { ...a.config.agents.alpha, thinking: "low" as const },
         },
       },
-      prompts: { ...a.prompts, alpha: Object.assign(async () => "changed", { options: { prompt: "changed" } }) },
+      prompts: {
+        ...a.prompts,
+        alpha: Object.assign(async () => "changed", { options: { prompt: "changed" } }),
+      },
     };
 
-    const diff = configDiff(a, b); console.log("DIFF:", diff);
+    const diff = configDiff(a, b);
+    console.log("DIFF:", diff);
 
     expect(diff).toContain('agents.alpha.thinking: — → "low"');
     expect(diff).toContain("prompts.alpha.prompt: changed");
