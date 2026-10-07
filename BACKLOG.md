@@ -68,4 +68,4 @@
   - `graphcompose/testing` — утилиты для тестов (`workflowOf`, `toolOf`).
   - `graphcompose/dto` — (уже существует).
 
-- [ ] **Observability/Telemetry Subsystem (Ticket 169)**: Implement non-blocking `AgentObserver` hooks (`onAgentStart`, `onAgentEnd`, `onLlmStart`, `onLlmEnd`, `onError`) for logging and tracing without mutating core loop logic. See `ticket-169-observability.md` for architecture specifics.
+- [x] **Observability/Telemetry Subsystem (Ticket 169)**: Implement non-blocking `AgentObserver` hooks (`onAgentStart`, `onAgentEnd`, `onLlmStart`, `onLlmEnd`, `onError`) for logging and tracing without mutating core loop logic. See `ticket-169-observability.md` for architecture specifics.
