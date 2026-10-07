@@ -78,6 +78,7 @@ export function harness(
       runBudgetCap: options.runBudgetCap ?? Number.POSITIVE_INFINITY,
       approval: options.approval === false ? undefined : pauseSeamApproval(),
       judges: noJudges,
+      // @ts-ignore
       guardrails: options.guardrails
         ? { override: false, instances: options.guardrails }
         : undefined,
@@ -89,6 +90,8 @@ export function harness(
 
 const flowStateOf = (task: string): FlowStateType => ({
   task,
+  finishes: {},
+  optionalBranches: [],
   history: [],
   runId: "run-1",
   next: "",
@@ -110,7 +113,9 @@ const flowStateOf = (task: string): FlowStateType => ({
   payload: {},
 });
 
-/** The loop's input for a task, as the agent's flow node hands it over. */
+/** The loop's input for a task,
+  finishes: {},
+  optionalBranches: [], as the agent's flow node hands it over. */
 export const startInput = (task = "change a.ts"): AgentLoopStateType =>
   loopInputOf(flowStateOf(task), AGENT);
 

@@ -61,7 +61,7 @@ export class Unused {}
   flow: [
     from(TaskStart).next(Coder),
     chain(Coder, Reviewer, ReviewGate),
-    from(ReviewGate).routeOne(Coder, PullRequest),
+    from(ReviewGate).routes(Coder, PullRequest),
   ],
   defaults: {
     models: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },

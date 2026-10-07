@@ -11,21 +11,21 @@ const workflow = (flow: string) => ({ path: "src/desk/desk.workflow.ts", content
 describe("#116: gc g agent joins the star; gc g router", () => {
   it("adds the agent before the answer in choose(...) and to the agents going back to the router", () => {
     const file = workflow(
-      "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routeOne(TriageAgent, TextWorkflowFinish),\n  from(TriageAgent).next(MainRouter),\n]",
+      "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routes(TriageAgent, TextWorkflowFinish),\n  from(TriageAgent).next(MainRouter),\n]",
     );
 
     expect(addAgentToFlow(file, "BillingAgent", "MainRouter").content).toBe(
-      "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routeOne(TriageAgent, BillingAgent, TextWorkflowFinish),\n  from(TriageAgent, BillingAgent).next(MainRouter),\n]",
+      "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routes(TriageAgent, BillingAgent, TextWorkflowFinish),\n  from(TriageAgent, BillingAgent).next(MainRouter),\n]",
     );
   });
 
   it("a choice with one target gets the agent first", () => {
     const file = workflow(
-      "[from(MainRouter).routeOne(TextWorkflowFinish), from(TriageAgent).next(MainRouter)]",
+      "[from(MainRouter).routes(TextWorkflowFinish), from(TriageAgent).next(MainRouter)]",
     );
 
     expect(addAgentToFlow(file, "BillingAgent", "MainRouter").content).toBe(
-      "[from(MainRouter).routeOne(BillingAgent, TextWorkflowFinish), from(TriageAgent, BillingAgent).next(MainRouter)]",
+      "[from(MainRouter).routes(BillingAgent, TextWorkflowFinish), from(TriageAgent, BillingAgent).next(MainRouter)]",
     );
   });
 
@@ -36,7 +36,7 @@ describe("#116: gc g agent joins the star; gc g router", () => {
 
     expect(() => addAgentToFlow(file, "BillingAgent", "MainRouter")).toThrow(ScaffoldError);
     expect(() => addAgentToFlow(file, "BillingAgent", "MainRouter")).toThrow(
-      "src/desk/desk.workflow.ts: no from(MainRouter).routeOne(…)",
+      "src/desk/desk.workflow.ts: no from(MainRouter).routes(…)",
     );
   });
 

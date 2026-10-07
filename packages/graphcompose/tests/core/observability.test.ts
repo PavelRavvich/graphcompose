@@ -127,12 +127,12 @@ class ObsTool {
   }
 }
 
-@WorkflowStart({ name: "Start", input: WorkflowStartText })
+@WorkflowStart({ name: "Start", description: "Start", input: WorkflowStartText })
 class ObsStart {
   constructor(public obs: GlobalObserver) {}
 }
 
-@WorkflowFinish({ name: "ObsFinish", output: WorkflowFinishText })
+@WorkflowFinish({ name: "ObsFinish", description: "Finish", output: WorkflowFinishText })
 class ObsFinish {}
 
 @Rag({ name: "ObsRag", description: "test rag", topK: 5 })
@@ -146,19 +146,21 @@ class ObsRag {
   name: "ObsAgent",
   description: "test agent",
   model: "test",
-  instructions: "You are testing.",
+
   tools: [ObsTool],
   rag: [{ use: ObsRag, mode: "context" }],
 })
 class ObsAgent {}
 
 @Router({
+  description: "Router",
+  model: "stub",
   name: "ObsRouter",
   prompt: "Decide.",
   maxVisits: 10,
   routes: [
-    { option: "ObsAgent", prompt: "go", target: ObsAgent },
-    { option: "ObsFinish", prompt: "stop", target: ObsFinish },
+    { prompt: "go", target: ObsAgent },
+    { prompt: "stop", target: ObsFinish },
   ],
 })
 class ObsRouter {}
@@ -170,7 +172,7 @@ class ObsRouter {}
   providers: [GlobalObserver],
   flow: [
     from(ObsStart).next(ObsRouter),
-    from(ObsRouter).routeOne(ObsAgent, ObsFinish),
+    from(ObsRouter).routes(ObsAgent, ObsFinish),
     from(ObsAgent).next(ObsRouter),
   ],
 })
@@ -214,7 +216,7 @@ describe("Global Observability Hooks", () => {
     expect(hookEvents).toContain("RagEnd:ObsRag");
 
     expect(capturedState).not.toBeNull();
-    expect(capturedState?.runId).toBeDefined();
+    expect((capturedState as any)?.runId).toBeDefined();
 
     await app.close();
   });

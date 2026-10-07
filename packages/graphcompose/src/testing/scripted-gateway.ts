@@ -1,5 +1,5 @@
 import type { ChatModelUser, DecisionSpec, ModelGateway } from "../llm/gateway.js";
-import { isSelf, isSkip, type ChoiceTarget } from "../graph/flow.js";
+import { isSelf, isReturn, isEnd, type ChoiceTarget } from "../graph/flow.js";
 import { SELF_OPTION } from "../graph/route.js";
 import { routerCaller, type RouteOutcome } from "../routers/index.js";
 import type { UsageRecord } from "../finops/usage.js";
@@ -20,11 +20,13 @@ export const routerKeyOf = (router: string): string => `router:${router}`;
 export const optionOf = (target: ChoiceTarget): string =>
   isSelf(target)
     ? SELF_OPTION
-    : isSkip(target)
-      ? "Skip"
-      : (target as any).kind === "parallel" || (target as any).kind === "optional"
-        ? (target as any).kind
-        : nodeNameOf(target as any);
+    : isReturn(target)
+      ? "Return"
+      : isEnd(target)
+        ? "End"
+        : (target as any).kind === "parallel" || (target as any).kind === "optional"
+          ? (target as any).kind
+          : nodeNameOf(target as any);
 
 const failed = (reason: string): RouteOutcome => ({ kind: "failed", reason });
 

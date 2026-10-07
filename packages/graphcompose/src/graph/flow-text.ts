@@ -2,7 +2,8 @@
 
 import {
   isSelf,
-  isSkip,
+  isReturn,
+  isEnd,
   unwrapTarget,
   labelOf,
   type ChoiceTarget,
@@ -33,11 +34,13 @@ const nameIn =
   (target: ChoiceTarget): string =>
     isSelf(target)
       ? "Self"
-      : isSkip(target)
-        ? "Skip"
-        : (target as any).kind === "parallel" || (target as any).kind === "optional"
-          ? (target as any).kind
-          : nodeText(collected, target as any);
+      : isReturn(target)
+        ? "Return"
+        : isEnd(target)
+          ? "Skip"
+          : (target as any).kind === "parallel" || (target as any).kind === "optional"
+            ? (target as any).kind
+            : nodeText(collected, target as any);
 
 function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): string {
   switch (step.kind) {

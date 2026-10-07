@@ -203,7 +203,7 @@ export class MainRouter {}
   version: "1.0.0",
   flow: [
     from(ChatStart).next(MainRouter),
-    from(MainRouter).routeOne(Support, Writer, Reply),
+    from(MainRouter).routes(Support, Writer, Reply),
     from(Support, Writer).next(MainRouter),
   ],
   defaults: {

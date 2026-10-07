@@ -23,7 +23,7 @@ describe("AC1: describe lists the flow as transitions (text)", () => {
       flowLines([
         from(Start).next(A),
         from(A).next(Gate),
-        from(Gate).routeOne(Self, Done),
+        from(Gate).routes(Self, Done),
         from(A).next(SomeTool),
       ]),
     ).toEqual([

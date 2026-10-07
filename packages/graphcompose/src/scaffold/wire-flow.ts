@@ -65,7 +65,7 @@ const applyInserts = (text: string, inserts: readonly Insert[]): string =>
     );
 
 /**
- * Puts a new agent into a star flow: `from(Router).routeOne(…, Agent, Finish)` and
+ * Puts a new agent into a star flow: `from(Router).routes(…, Agent, Finish)` and
  * `from(…, Agent).next(Router)`; an unexpected shape → an error naming the file — never a guess.
  */
 export function addAgentToFlow(file: FileToWrite, agent: string, router: string): FileToWrite {
@@ -84,7 +84,7 @@ export function addAgentToFlow(file: FileToWrite, agent: string, router: string)
   const intoReturn = back === undefined ? undefined : insertion(back.sources, agent, false);
   if (intoChoice === undefined || intoReturn === undefined) {
     throw new ScaffoldError(
-      `${file.path}: no from(${router}).routeOne(…) and from(…).next(${router}) in the flow — add ${agent} by hand`,
+      `${file.path}: no from(${router}).routes(…) and from(…).next(${router}) in the flow — add ${agent} by hand`,
     );
   }
   return { path: file.path, content: applyInserts(file.content, [intoChoice, intoReturn]) };

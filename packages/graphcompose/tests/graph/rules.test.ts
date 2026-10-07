@@ -40,9 +40,9 @@ describe("AC1: assembly rules", () => {
   it("a router with one route and a workflow finish reached from two routers assemble", () => {
     const flow: Flow = [
       from(Start).next(Second),
-      from(Second).routeOne(A, Done),
+      from(Second).routes(A, Done),
       from(A).next(Only),
-      from(Only).routeOne(Done),
+      from(Only).routes(Done),
     ];
 
     expect(checkFlow(flow).next.get("only")).toEqual({
@@ -56,7 +56,7 @@ describe("AC1: assembly rules", () => {
   it.each<[RuleCode, Flow]>([
     ["graph.not-a-node", [from(Start).next(SomeTool)]],
     ["graph.two-next-steps", [from(Start).next(A), from(A).next(Done), from(A).next(OtherDone)]],
-    ["graph.choose-from-non-router", [from(Start).next(A), from(A).routeOne(Done)]],
+    ["graph.choose-from-non-router", [from(Start).next(A), from(A).routes(Done)]],
     [
       "graph.router-not-last-in-chain",
       [chain(Start, Pick, A), from(A).next(Done), from(B).next(Done)],
@@ -72,9 +72,9 @@ describe("AC1: assembly rules", () => {
     ["graph.next-after-workflow-finish", [from(Start).next(Done), from(Done).next(OtherDone)]],
     [
       "router.routes-mismatch",
-      [from(Start).next(Pick), from(Pick).routeOne(A, Done), from(A).next(Done)],
+      [from(Start).next(Pick), from(Pick).routes(A, Done), from(A).next(Done)],
     ],
-    ["router.self-without-agent-before", [from(Start).next(Gate), from(Gate).routeOne(Self, Done)]],
+    ["router.self-without-agent-before", [from(Start).next(Gate), from(Gate).routes(Self, Done)]],
   ])("%s", (code, flow) => {
     expect(codesOf(flow)).toContain(code);
   });
@@ -89,7 +89,7 @@ describe("AC1: assembly rules", () => {
   });
 
   it("router texts: a router needs a prompt and every route a text", () => {
-    const flow: Flow = [from(Start).next(Mute), from(Mute).routeOne(A, Done), from(A).next(Done)];
+    const flow: Flow = [from(Start).next(Mute), from(Mute).routes(A, Done), from(A).next(Done)];
 
     expect(codesOf(flow)).toEqual([
       "router.no-prompt",
@@ -101,7 +101,7 @@ describe("AC1: assembly rules", () => {
   it("reports several violations together, naming the classes involved", () => {
     const error = violationsOf([
       from(Start).next(Pick),
-      from(Pick).routeOne(A),
+      from(Pick).routes(A),
       from(A).next(B),
       from(B).next(A),
     ]);
@@ -119,9 +119,9 @@ describe("AC1: assembly rules", () => {
   it("Self after two different agents is allowed", () => {
     const flow: Flow = [
       from(Start).next(Pick),
-      from(Pick).routeOne(A, B),
+      from(Pick).routes(A, B),
       from(A, B).next(Gate),
-      from(Gate).routeOne(Self, Done),
+      from(Gate).routes(Self, Done),
     ];
 
     expect(checkFlow(flow).next.get("gate")).toEqual({
@@ -133,7 +133,7 @@ describe("AC1: assembly rules", () => {
   });
 
   it("a route to a class outside the flow is a mismatch", () => {
-    const flow: Flow = [from(Start).next(Second), from(Second).routeOne(Done)];
+    const flow: Flow = [from(Start).next(Second), from(Second).routes(Done)];
 
     expect(violationsOf(flow).violations[0]?.message).toContain("routes not in its choose(...): A");
   });

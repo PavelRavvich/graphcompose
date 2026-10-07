@@ -173,6 +173,7 @@ export function recordingRouters<TDeps extends RunDeps<TestAgent>>(
 /** A flow state: `baseState` plus the engine's fields, before any node ran. */
 export function flowState(overrides: Partial<FlowStateType> = {}): FlowStateType {
   return {
+    optionalBranches: [],
     ...baseState(),
     start: "",
     previousAgent: "",

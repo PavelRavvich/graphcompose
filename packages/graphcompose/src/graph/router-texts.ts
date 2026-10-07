@@ -1,6 +1,6 @@
 import { ComponentError } from "../components/metadata.js";
 import type { FlowModel } from "./check-flow.js";
-import { isSelf, isSkip, labelOf, isOptional, isParallel } from "./flow.js";
+import { isSelf, isReturn, isEnd, labelOf, isOptional, isParallel } from "./flow.js";
 import type { FlowNodeRef } from "./flow-nodes.js";
 import { SELF_OPTION, type RouteDeclaration } from "./route.js";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -33,7 +33,8 @@ function optionOf(
   declaration: RouteDeclaration,
 ): { option: string; optionalBranches: string[] } {
   if (isSelf(declaration.target)) return { option: SELF_OPTION, optionalBranches: [] };
-  if (isSkip(declaration.target)) return { option: "Skip", optionalBranches: [] };
+  if (isReturn(declaration.target)) return { option: "Return", optionalBranches: [] };
+  if (isEnd(declaration.target)) return { option: "End", optionalBranches: [] };
 
   const getLabel = (t: any): string => model.collected.keyOf(t as any) ?? labelOf(t);
 

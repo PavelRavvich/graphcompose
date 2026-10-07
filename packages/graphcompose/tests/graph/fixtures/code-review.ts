@@ -48,8 +48,8 @@ export class ReviewGateRouter {}
 /** The code-review shape: workflow start → router → agents → gate router cycle → workflow finishes. */
 export const codeReviewFlow: Flow = [
   from(ChatWorkflowStart).next(MainRouter),
-  from(MainRouter).routeOne(ExplainerAgent, CoderAgent),
+  from(MainRouter).routes(ExplainerAgent, CoderAgent),
   from(ExplainerAgent).next(AnswerWorkflowFinish),
   chain(CoderAgent, ReviewerAgent, ReviewGateRouter),
-  from(ReviewGateRouter).routeOne(CoderAgent, PullRequestWorkflowFinish),
+  from(ReviewGateRouter).routes(CoderAgent, PullRequestWorkflowFinish),
 ];

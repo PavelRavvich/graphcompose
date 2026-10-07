@@ -7,7 +7,8 @@ export {
   from,
   chain,
   Self,
-  Skip,
+  Return,
+  End,
   type ChainStep,
   type ChoiceTarget,
   type ChooseStep,
@@ -17,7 +18,8 @@ export {
   type FlowStep,
   type NamedNode,
   type SelfTarget,
-  type SkipTarget,
+  type ReturnTarget,
+  type EndTarget,
   type ToStep,
 } from "../graph/flow.js";
 export type { RouteDeclaration } from "../graph/route.js";

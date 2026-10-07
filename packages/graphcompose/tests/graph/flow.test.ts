@@ -37,8 +37,8 @@ describe("AC1: flow DSL builds the expected transitions", () => {
     ]);
   });
 
-  it("from(Router).routeOne(...) is one choice with every target; Self is kept as a flag", () => {
-    expect(transitionsOf([from(R).routeOne(A, B, Self)])).toEqual([
+  it("from(Router).routes(...) is one choice with every target; Self is kept as a flag", () => {
+    expect(transitionsOf([from(R).routes(A, B, Self)])).toEqual([
       { from: "r", next: { kind: "choose", targets: ["a", "b"], self: true, skip: false } },
     ]);
   });

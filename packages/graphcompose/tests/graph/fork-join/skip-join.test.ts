@@ -12,7 +12,7 @@ import {
   type WorkflowDefinition,
 } from "../../../src/graph/index.js";
 import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
-import { Skip } from "../../../src/graph/index.js";
+import { Return } from "../../../src/graph/flow.js";
 import type { Router as RoutingStrategy } from "../../../src/routers/index.js";
 
 @WorkflowStart({ name: "skipStart", description: "Start", input: WorkflowStartText })
@@ -38,7 +38,7 @@ export class SkipAggregator {}
   routes: [
     { prompt: "branch A", target: SkipA },
     { prompt: "branch B", target: SkipB },
-    { prompt: "skip", target: Skip },
+    { prompt: "skip", target: Return },
   ],
 })
 export class SkipPicker {}
@@ -54,7 +54,7 @@ export class SkipPicker {}
   },
   flow: [
     from(SkipStart).next(SkipPicker),
-    from(SkipPicker).routeOne(SkipA, SkipB, Skip),
+    from(SkipPicker).routes(SkipA, SkipB, Return),
     from(SkipA, SkipB).join(SkipAggregator),
     from(SkipAggregator).next(SkipFinish),
   ],
@@ -71,7 +71,7 @@ const picking = (next: string): RoutingStrategy => ({
 });
 
 it("does not leave the join waiting when explicitly skipping", async () => {
-  const { visited, state } = await run("Skip");
+  const { visited, state } = await run("Return");
   expect(visited).toContain("skipAggregator");
 });
 

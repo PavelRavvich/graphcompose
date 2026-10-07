@@ -13,10 +13,10 @@ import type { AgentState, AgentStateUpdate } from "../../src/graph/state.js";
 
 // --- Fixtures ---
 
-@Agent({ name: "alpha", description: "Does something before action" })
+@Agent({ name: "alpha", description: "Does something before action", model: "stub" })
 class AlphaAgent {}
 
-@Agent({ name: "beta", description: "Does something after action" })
+@Agent({ name: "beta", description: "Does something after action", model: "stub" })
 class BetaAgent {}
 
 // Spies for actions

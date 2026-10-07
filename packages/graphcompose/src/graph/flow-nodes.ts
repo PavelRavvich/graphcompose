@@ -4,7 +4,8 @@ import type { Class } from "../components/injection.js";
 import {
   isNamedNode,
   isSelf,
-  isSkip,
+  isReturn,
+  isEnd,
   isParallel,
   isOptional,
   unwrapTarget,
@@ -123,28 +124,29 @@ const defined = (names: readonly (string | undefined)[]): string[] =>
 
 function chooseTargets(targets: readonly ChoiceTarget[], resolve: Resolve): NextDeclaration {
   const nodesOnly: FlowNode[] = [];
-  const parallelTargets: { optionName: string, targets: string[] }[] = [];
+  const parallelTargets: { optionName: string; targets: string[] }[] = [];
   const optionNames: string[] = [];
   let hasSelf = false;
-  let hasSkip = false;
+  let hasReturn = false;
+  let hasEnd = false;
 
   const extract = (t: ChoiceTarget) => {
     if (isSelf(t)) hasSelf = true;
-    else if (isSkip(t)) hasSkip = true;
+    else if (isReturn(t)) hasReturn = true;
+    else if (isEnd(t)) hasEnd = true;
     else if ((t as any).kind === "parallel") {
       const pTargets = (t as any).targets.map((inner: any) => {
-        if (isSelf(inner) || isSkip(inner) || inner.kind === "parallel") throw new Error("Invalid parallel target");
+        if (isSelf(inner) || isReturn(inner) || isEnd(inner) || inner.kind === "parallel")
+          throw new Error("Invalid parallel target");
         let actual = inner;
         if (inner.kind === "optional") actual = inner.target;
         nodesOnly.push(actual as FlowNode);
         return resolve(actual as FlowNode);
       });
       parallelTargets.push({ optionName: labelOf(t), targets: defined(pTargets) });
-    }
-    else if ((t as any).kind === "optional") {
+    } else if ((t as any).kind === "optional") {
       extract((t as any).target);
-    }
-    else {
+    } else {
       nodesOnly.push(t as FlowNode);
       const res = resolve(t as FlowNode);
       if (res) optionNames.push(res);
@@ -159,7 +161,8 @@ function chooseTargets(targets: readonly ChoiceTarget[], resolve: Resolve): Next
     parallelTargets,
     optionNames,
     self: hasSelf,
-    skip: hasSkip,
+    return: hasReturn,
+    end: hasEnd,
   } as any;
 }
 

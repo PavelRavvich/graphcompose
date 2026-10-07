@@ -50,7 +50,7 @@ describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
       name: "broken",
       flow: [
         from(TestChat).next(Main),
-        from(Main).routeOne(Profiler, Scout, TestAnswer),
+        from(Main).routes(Profiler, Scout, TestAnswer),
         from(Profiler).next(Scout),
         from(Scout).next(Profiler),
       ],
@@ -79,7 +79,7 @@ describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
       name: "two-places",
       flow: [
         from(TestChat).next(Main),
-        from(Main).routeOne(Profiler, TestAnswer),
+        from(Main).routes(Profiler, TestAnswer),
         from(Profiler).next(SecondLook),
         from(SecondLook).next(Main),
       ],

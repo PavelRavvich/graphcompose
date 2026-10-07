@@ -120,9 +120,10 @@ const pathMap = (
   Object.fromEntries([
     ...keys.map((key) => {
       if (key === "skip-wrap") return ["skip-wrap", "skip-wrap"];
+      if (key === END) return [END, END];
       return [key, graphNodeId(nodeKeyed(model, key))];
     }),
-    ]);
+  ]);
 
 function startEdges(builder: Builder, model: FlowModel): void {
   const starts = [...model.nodes.values()].filter((ref) => ref.kind === "workflow-start");
@@ -195,15 +196,17 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
   }
   const self = next.self ? predecessorsOf(model.collected, node.key).map((ref) => ref.key) : [];
 
-  const skip = (next as any).skip ? ["skip-wrap"] : [];
-  const targets = [...new Set([...next.targets, ...self, ...skip])];
+  const ret = (next as any).return ? ["skip-wrap"] : [];
+  const end = (next as any).end ? [END] : [];
+  const targets = [...new Set([...next.targets, ...self, ...ret, ...end])];
   const parallels = (next as any).parallelTargets || [];
 
   builder.addConditionalEdges(
     id,
     (state: FlowStateType) => {
       // If the router chose "skip", we map it to "skip-wrap"
-      if (state.next === "Skip" || state.next === "skip") return "skip-wrap";
+      if (state.next === "Return") return "skip-wrap";
+      if (state.next === "End") return END;
       const pMatch = parallels.find((p: any) => p.optionName === state.next);
       if (pMatch) {
         return pMatch.targets.map((t: any) => new Send(graphNodeId(nodeKeyed(model, t)), state));

@@ -55,7 +55,7 @@ export class TestMain {}
 /** The star: workflow start → main router → alpha / beta → main again → … → answer. */
 export const testFlow: Flow = [
   from(TestChat).next(TestMain),
-  from(TestMain).routeOne(Alpha, Beta, TestAnswer),
+  from(TestMain).routes(Alpha, Beta, TestAnswer),
   from(Alpha, Beta).next(TestMain),
 ];
 

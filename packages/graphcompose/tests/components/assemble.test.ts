@@ -125,7 +125,7 @@ describe("components — policy overrides and disables", () => {
     class W extends TestSettings {}
 
     const bundle = await workflowOf(W);
-    const mockServices = { resolve: (cls: any) => new cls() };
+    const mockServices = { resolve: (cls: any) => new cls(), router: () => ({}) as any };
     const agentMap = bundle.guardrails?.(mockServices);
 
     const over = agentMap?.get("override_agent");
@@ -151,7 +151,7 @@ describe("components — policy overrides and disables", () => {
       disableGuardrails: [WDisable],
     })
     class T1 {
-      async invoke() {
+      async run(input: any, ctx: any): Promise<any> {
         return { kind: "ok", value: {} as any };
       }
     }
@@ -175,7 +175,7 @@ describe("components — policy overrides and disables", () => {
     class W2 extends TestSettings {}
 
     const bundle = await workflowOf(W2);
-    const mockServices = { resolve: (cls: any) => new cls() };
+    const mockServices = { resolve: (cls: any) => new cls(), router: () => ({}) as any };
     const toolMap = bundle.toolGuardrails?.(mockServices);
 
     const tGuard = toolMap?.get("t1");

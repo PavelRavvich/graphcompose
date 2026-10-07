@@ -46,7 +46,13 @@ class AskTool {
 @Agent({ name: "agentA", description: "fast agent", prompt: "Just answer.", model: "stub" })
 class AgentA {}
 
-@Agent({ name: "agentB", description: "slow agent", prompt: "Use ask tool.", tools: [AskTool], model: "stub" })
+@Agent({
+  name: "agentB",
+  description: "slow agent",
+  prompt: "Use ask tool.",
+  tools: [AskTool],
+  model: "stub",
+})
 class AgentB {}
 
 @Router({
@@ -69,7 +75,7 @@ class TestRouter {}
   },
   flow: [
     from(Start).next(TestRouter),
-    from(TestRouter).routeOne(parallel(AgentA, optional(AgentB))),
+    from(TestRouter).routes(parallel(AgentA, optional(AgentB))),
     from(AgentA, AgentB).join(Finish),
   ],
 })
@@ -93,35 +99,34 @@ describe("Ticket 174: Parallel routing with Human-in-the-loop pauses", () => {
     const book = new ScriptBook();
     book.scriptOf("router:router").respond(answer("parallel(agentA, optional(agentB))"));
     book.scriptOf("agent:agentA").respond(answer("done A"));
-    book.scriptOf("agent:agentB").respond(callTool(AskTool, { question: "Wait!" }), answer("done B"));
+    book
+      .scriptOf("agent:agentB")
+      .respond(callTool(AskTool, { question: "Wait!" }), answer("done B"));
 
     const app = await createApp(ParallelFlow, offline(book));
     const input = new WorkflowStartText();
     input.text = "go";
     const run = await app.execute(Start, { text: "go" });
 
-    
     expect(run.status).toBe("paused");
     const pause = run.pause!;
     expect(pause.agent).toBe("agentB");
 
     const resumed = await app.resume(run.thread, "ok");
     expect(resumed.status).toBe("answered");
-    
   });
 
   it("should swallow errors from optional agents and merge successful branches", async () => {
     const book = new ScriptBook();
-    book
-      book.scriptOf("router:router").respond(answer("parallel(AgentA, optional(AgentB))"));
+    book;
+    book.scriptOf("router:router").respond(answer("parallel(AgentA, optional(AgentB))"));
     book.scriptOf("agent:agentA").respond(answer("done A"));
-    book.scriptOf("agent:agentB").respond(new Error("Network failed"));
+    book.scriptOf("agent:agentB").respond(new Error("Network failed") as any);
 
     const app = await createApp(ParallelFlow, offline(book));
     const run = await app.execute(Start, { text: "go" });
-    
+
     // The run should finish successfully, as AgentB error was swallowed
     expect(run.status).toBe("answered");
   });
-
 });

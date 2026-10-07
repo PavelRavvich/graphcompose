@@ -30,7 +30,7 @@ describe("describe a workflow", () => {
   it("AC1: marks tools that wait for an approval when the pause seam is on", () => {
     const resolvedGreetingsTools = Array.isArray(greetings.tools)
       ? greetings.tools
-      : greetings.tools({});
+      : (greetings.tools as any)({});
     const paused: AssembledWorkflow = {
       ...greetings,
       tools: [

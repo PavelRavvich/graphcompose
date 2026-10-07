@@ -43,8 +43,11 @@ export const unwrapTarget = (target: ParallelTarget): FlowNode =>
     : target;
 
 /** What a router may choose: a node or `Self`. */
-export interface SkipTarget {
-  readonly kind: "skip";
+export interface ReturnTarget {
+  readonly kind: "return";
+}
+export interface EndTarget {
+  readonly kind: "end";
 }
 
 export interface ParallelGroup {
@@ -60,7 +63,7 @@ export interface OptionalTarget {
 export function parallel(...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]): ParallelGroup {
   // Validate no Self or Skip inside
   for (const t of targets) {
-    if (isSelf(t) || isSkip(t)) {
+    if (isSelf(t) || isReturn(t) || isEnd(t)) {
       throw new Error("Cannot use Self or Skip inside parallel()");
     }
   }
@@ -76,7 +79,8 @@ export const isParallel = (t: any): t is ParallelGroup =>
 export const isOptional = (t: any): t is OptionalTarget =>
   typeof t === "object" && t !== null && t.kind === "optional";
 
-export type ChoiceTarget = FlowNode | SelfTarget | SkipTarget | ParallelGroup | OptionalTarget;
+export type ChoiceTarget =
+  FlowNode | SelfTarget | ReturnTarget | EndTarget | ParallelGroup | OptionalTarget;
 
 /** `from(A, B).next(C)` — an unconditional step from every source. */
 export interface ToStep {
@@ -134,19 +138,16 @@ export type Flow = readonly FlowStep[];
 /** What `from(...)` returns: the step's kind is chosen next. */
 export interface FlowSource {
   readonly next: (target: FlowNode) => ToStep;
-
   readonly nextParallel: (...args: any[]) => ToStep | NextEachStep; // Simplified for runtime AST
-  readonly routeOne: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
-  readonly routeOneOrSkip: (target: ChoiceTarget) => ChooseStep;
-  readonly routeManyOrSkip: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
+  readonly routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
   readonly join: (target: FlowNode) => JoinStep;
   readonly joinAny: (target: FlowNode) => JoinAnyStep;
   readonly joinQuorum: (count: number, target: FlowNode) => JoinQuorumStep;
 }
 
 /** Starts a transition from one or more nodes (several = fan-in). */
-export const Skip: ChoiceTarget = Object.freeze({ kind: "skip" });
-export const End = Skip;
+export const Return: ChoiceTarget = Object.freeze({ kind: "return" });
+export const End: ChoiceTarget = Object.freeze({ kind: "end" });
 
 export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource {
   return {
@@ -163,25 +164,7 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
       }
       return { kind: "to", from: sources, targets: args as ParallelTarget[] };
     },
-    routeOne: (...targets) => ({ kind: "choose", from: sources, targets }),
-    routeOneOrSkip: (target) => ({ kind: "choose", from: sources, targets: [target, Skip] }),
-    routeManyOrSkip: (...targets) => {
-      // If the last argument is an object (constraints), we can parse it.
-      // For now we just ignore it in AST or we can extract it.
-      let actualTargets = targets;
-      let constraints = undefined;
-      if (
-        targets.length > 0 &&
-        typeof targets[targets.length - 1] === "object" &&
-        !isSkip(targets[targets.length - 1] as any) &&
-        !isSelf(targets[targets.length - 1] as any) &&
-        !("name" in (targets[targets.length - 1] as any))
-      ) {
-        constraints = targets.pop();
-        actualTargets = targets;
-      }
-      return { kind: "choose", from: sources, targets: [...actualTargets, Skip] };
-    },
+    routes: (...targets) => ({ kind: "choose", from: sources, targets }),
     join: (target) => ({ kind: "join", from: sources, target }),
     joinAny: (target) => ({ kind: "joinAny", from: sources, target }),
     joinQuorum: (count, target) => ({ kind: "joinQuorum", from: sources, target, count }),
@@ -202,8 +185,10 @@ export const isBackgroundTarget = (target: ParallelTarget): target is Background
   typeof target === "object" && target !== null && "kind" in target && target.kind === "background";
 export const isSelf = (target: ChoiceTarget): target is SelfTarget =>
   typeof target === "object" && target.kind === "self";
-export const isSkip = (target: ChoiceTarget): target is SkipTarget =>
-  typeof target === "object" && target.kind === "skip";
+export const isReturn = (target: ChoiceTarget): target is ReturnTarget =>
+  typeof target === "object" && target !== null && target.kind === "return";
+export const isEnd = (target: ChoiceTarget): target is EndTarget =>
+  typeof target === "object" && target !== null && target.kind === "end";
 
 export const isNamedNode = (target: ChoiceTarget): target is NamedNode =>
   typeof target === "object" && target.kind === "named-node";
@@ -211,7 +196,8 @@ export const isNamedNode = (target: ChoiceTarget): target is NamedNode =>
 /** The label a person reads in an error: the class name, or the named node's name and class. */
 export function labelOf(target: ChoiceTarget): string {
   if (isSelf(target)) return "Self";
-  if (isSkip(target)) return "Skip";
+  if (isReturn(target)) return "Return";
+  if (isEnd(target)) return "End";
   if (isNamedNode(target)) return `node(${target.use.name}, "${target.name}")`;
   if (isParallel(target)) return `parallel(${target.targets.map(labelOf).join(", ")})`;
   if (isOptional(target)) return `optional(${labelOf(target.target)})`;

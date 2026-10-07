@@ -46,9 +46,9 @@ class Lost {}
 
 const selfFlow: Flow = [
   from(Start).next(Pick),
-  from(Pick).routeOne(A, B),
+  from(Pick).routes(A, B),
   from(A, B).next(Gate),
-  from(Gate).routeOne(Self, Done),
+  from(Gate).routes(Self, Done),
 ];
 
 async function run(flow: Flow, routers: Readonly<Record<string, RoutingStrategy>>) {
@@ -79,7 +79,7 @@ describe("AC1: routers", () => {
   it("joins prompt then files with one blank line, normalised (BOM, CRLF, edges, NFC)", async () => {
     const texts = scriptedRouter("texts", ["done"]);
 
-    await run([from(Start).next(Texts), from(Texts).routeOne(A, Done), from(A).next(Done)], {
+    await run([from(Start).next(Texts), from(Texts).routes(A, Done), from(A).next(Done)], {
       texts,
     });
 
@@ -168,7 +168,7 @@ describe("AC1: routers", () => {
     });
 
     it("a router with one route decides without a model call", async () => {
-      const flow: Flow = [from(Start).next(A), from(A).next(Only), from(Only).routeOne(Done)];
+      const flow: Flow = [from(Start).next(A), from(A).next(Only), from(Only).routes(Done)];
       const { graph } = await assembleFlowGraph(flow, runtime);
 
       const state = await graph.invoke({ task: "go" });
@@ -180,7 +180,7 @@ describe("AC1: routers", () => {
     it("a chat-model router decides from the model's JSON and records its usage", async () => {
       const flow: Flow = [
         from(Start).next(Chatty),
-        from(Chatty).routeOne(A, Done),
+        from(Chatty).routes(A, Done),
         from(A).next(Done),
       ];
       const { graph } = await assembleFlowGraph(flow, runtime);
