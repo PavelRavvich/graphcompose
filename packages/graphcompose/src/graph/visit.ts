@@ -91,6 +91,8 @@ function mergeJoinUpdate(update: FlowStateUpdate, joinUpdate: FlowStateUpdate): 
 export interface QuorumContext {
   quorumId: string;
   min: number;
+  max?: number;
+  timeoutSeconds?: number;
   routerClass: string;
 }
 
@@ -122,7 +124,7 @@ export function visitNode(
     if (quorumContext && config?.configurable?.quorumManager) {
       manager = config.configurable.quorumManager as QuorumManager;
       branchCancelToken = { cancelled: false };
-      manager.registerBranch(quorumContext.quorumId, quorumContext.min, branchCancelToken);
+      manager.registerBranch(quorumContext.quorumId, quorumContext.min, branchCancelToken, quorumContext.max, quorumContext.timeoutSeconds);
       
       if (branchCancelToken.cancelled) return {};
       
@@ -148,9 +150,7 @@ export function visitNode(
         const strategy = deps.quorumRouters(quorumContext.routerClass);
         if (strategy) {
           const isVoteValid = await strategy.filterVote({ ...state, ...update });
-          if (isVoteValid) {
-            manager.addVote(quorumContext.quorumId);
-          }
+          manager.addVote(quorumContext.quorumId, isVoteValid);
         }
       }
 

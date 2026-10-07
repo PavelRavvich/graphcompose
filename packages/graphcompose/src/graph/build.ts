@@ -394,10 +394,14 @@ function compileFlow(
     );
     if (isQuorumTarget && isQuorumTarget.next && isQuorumTarget.next.kind === "choose" && isQuorumTarget.next.quorumRouter) {
       const min = isQuorumTarget.next.quorumMin!;
+      const max = isQuorumTarget.next.quorumMax;
+      const timeoutSeconds = isQuorumTarget.next.quorumTimeoutSeconds;
       if (min !== undefined) {
         quorumContext = {
           quorumId: isQuorumTarget.next.quorumRouter!,
           min: min,
+          max: max,
+          timeoutSeconds: timeoutSeconds,
           routerClass: isQuorumTarget.next.quorumRouter!
         };
       }

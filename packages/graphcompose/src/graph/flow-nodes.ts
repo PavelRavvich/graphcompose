@@ -48,6 +48,8 @@ export type NextDeclaration =
       readonly skip: boolean;
       readonly quorumRouter?: string;
       readonly quorumMin?: number;
+      readonly quorumMax?: number;
+      readonly quorumTimeoutSeconds?: number;
     }
 
 /** A declared next step of one node (both ends are node keys). */
@@ -181,7 +183,7 @@ case "to": {
     }
     case "choose": {
       const sources = defined(step.from.map(resolve));
-      const next = { ...chooseTargets(step.targets, resolve), quorumRouter: step.quorumRouter?.name, quorumMin: step.quorumMin };
+      const next = { ...chooseTargets(step.targets, resolve), quorumRouter: step.quorumRouter?.name, quorumMin: step.quorumMin, quorumMax: step.quorumMax, quorumTimeoutSeconds: step.quorumTimeoutSeconds };
       return sources.map((from) => ({ from, next }));
     }
 
