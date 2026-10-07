@@ -47,6 +47,7 @@ export type NextDeclaration =
       readonly self: boolean;
       readonly skip: boolean;
       readonly quorumRouter?: string;
+      readonly quorumMin?: number;
     }
 
 /** A declared next step of one node (both ends are node keys). */
@@ -180,7 +181,7 @@ case "to": {
     }
     case "choose": {
       const sources = defined(step.from.map(resolve));
-      const next = chooseTargets(step.targets, resolve);
+      const next = { ...chooseTargets(step.targets, resolve), quorumRouter: step.quorumRouter?.name, quorumMin: step.quorumMin };
       return sources.map((from) => ({ from, next }));
     }
 

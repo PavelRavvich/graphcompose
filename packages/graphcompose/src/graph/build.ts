@@ -57,13 +57,13 @@ function runnerOf(
         const strategy = runtime.quorumRouters?.(node.use.name);
         if (!strategy) throw new Error("Missing QuorumStrategy in AppDeps for " + node.use.name);
         
-        let isMet = false;
+        let hasQuorum = false;
         if (config?.configurable?.quorumManager) {
           const manager = config.configurable.quorumManager as import("../concurrency/quorum-manager.js").QuorumManager;
-          isMet = manager.isQuorumMet(node.key);
+          hasQuorum = manager.isQuorumMet(node.key);
         }
         
-        const target = await strategy.route(state, isMet);
+        const target = await strategy.route(state, hasQuorum);
         return { next: typeof target === "string" ? target : ("name" in target ? target.name : (target as any).kind) };
       }
     };
@@ -393,11 +393,11 @@ function compileFlow(
       t.from === node.key && t.next && t.next.kind === "choose" && t.next.quorumRouter
     );
     if (isQuorumTarget && isQuorumTarget.next && isQuorumTarget.next.kind === "choose" && isQuorumTarget.next.quorumRouter) {
-      const meta = quorumRouterMetaOf(model.nodes.get(isQuorumTarget.next.quorumRouter!)!.use);
-      if (meta) {
+      const min = isQuorumTarget.next.quorumMin!;
+      if (min !== undefined) {
         quorumContext = {
           quorumId: isQuorumTarget.next.quorumRouter!,
-          min: meta.min,
+          min: min,
           routerClass: isQuorumTarget.next.quorumRouter!
         };
       }

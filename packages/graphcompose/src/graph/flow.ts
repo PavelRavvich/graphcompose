@@ -54,6 +54,7 @@ export interface ParallelGroup {
   readonly kind: "parallel";
   readonly targets: readonly ChoiceTarget[];
   readonly quorumRouter?: Class;
+  readonly quorumMin?: number;
 }
 
 export interface OptionalTarget {
@@ -96,6 +97,7 @@ export interface ChooseStep {
   readonly from: readonly FlowNode[];
   readonly targets: readonly ChoiceTarget[];
   readonly quorumRouter?: Class;
+  readonly quorumMin?: number;
 }
 
 /** `chain(A, B, C)` = `from(A).next(B)` + `from(B).next(C)`; a router only as the last element. */
@@ -144,7 +146,7 @@ export interface FlowSource {
   readonly join: (target: FlowNode) => JoinStep;
   readonly batchParallel: <T>(target: FlowNode, extractor: (payload: any) => T[], options?: { concurrency?: number }) => BatchParallelStep; // Simplified for runtime AST
   readonly routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
-  readonly joinQuorum: (router: Class) => {
+  readonly joinQuorum: (min: number, router: Class) => {
     routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
   };
 
@@ -161,12 +163,13 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
     join: (target) => ({ kind: "join", from: sources, target }),
     batchParallel: (target, extractor, options) => ({ kind: "batchParallel", from: sources, target, extractor, options }),
     routes: (...targets) => ({ kind: "choose", from: sources, targets }),
-    joinQuorum: (router) => ({
+    joinQuorum: (min, router) => ({
       routes: (...targets) => ({
         kind: "choose",
         from: sources,
         targets,
         quorumRouter: router,
+        quorumMin: min,
       }),
     }),
   };

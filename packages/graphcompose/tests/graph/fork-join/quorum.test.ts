@@ -3,7 +3,7 @@ import { Workflow, Agent, Tool } from "../../../src/components/decorators.js";
 import { from } from "../../../src/router/index.js";
 import { type WorkflowDefinition } from "../../../src/core/index.js";
 import { testWith } from "../../../src/testing/test-with.js";
-import { QuorumRouter } from "../../../src/concurrency/quorum.decorator.js";
+import { QuorumRouter, type QuorumStrategy } from "../../../src/concurrency/quorum.decorator.js";
 import { ComponentScript } from "../../../src/testing/script-book.js";
 import { z } from "zod";
 
@@ -19,31 +19,37 @@ class FastAgent {}
 @Agent({ name: "slow_agent", prompt: "You are slow", tools: [SlowTool] })
 class SlowAgent {}
 
-@QuorumRouter({ name: "quorum_router", min: 1, filterVote: (state: any) => true })
-class MyQuorumRouter {}
+@QuorumRouter({ name: "quorum_router" })
+class MyQuorumRouter implements QuorumStrategy {
+  filterVote(state: any) { return true; }
+  route(state: any, hasQuorum: boolean) { return "workflow_finish"; }
+}
 
 @Workflow({
   name: "quorum-test",
   version: "1.0.0",
   flow: [
     from("workflow_start").nextParallel(FastAgent, SlowAgent),
-    from(FastAgent, SlowAgent).joinQuorum(MyQuorumRouter).routes("workflow_finish"),
+    from(FastAgent, SlowAgent).joinQuorum(1, MyQuorumRouter).routes("workflow_finish"),
   ]
 })
-class QuorumTestWorkflow implements WorkflowDefinition {}
+class QuorumTestWorkflow implements WorkflowDefinition {
+  settings = () => ({});
+}
 
 describe("QuorumRouter", () => {
   it("aborts the slower branch when the quorum is met, saving an LLM call", async () => {
     await testWith(QuorumTestWorkflow, async (app) => {
-      // Script FastAgent to finish immediately
       app.script(FastAgent, ComponentScript.turns([{}]));
-      
-      // Script SlowAgent to finish, but it shouldn't be called because it is aborted!
-      // If the runtime didn't abort it, it would throw script exhausted.
-      app.script(SlowAgent, ComponentScript.turns([{}]).delay(100));
+      app.script(SlowAgent, ComponentScript.turns([{}, {}]));
 
-      const run = await app.run("Hello");
-      expect(run.status).toBe("finished");
+      const { events } = await app.execute("workflow_start", {});
+      
+      const fastAgentEnd = events.find(e => e.type === "AgentFinish" && e.agent === "fast_agent");
+      expect(fastAgentEnd).toBeDefined();
+
+      const slowAgentEnd = events.find(e => e.type === "AgentFinish" && e.agent === "slow_agent");
+      expect(slowAgentEnd).toBeUndefined();
     });
   });
 });
