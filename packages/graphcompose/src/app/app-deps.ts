@@ -199,12 +199,24 @@ export async function createAppDeps(
       await channel.requestApproval(req);
     },
     compactionPrompt: bundle.compactionPrompt,
-    piiPolicies: (agent: string) => bundle.piiPolicies?.(services)?.get(agent) ?? { override: false, instances: [], disable: [] },
-    toolPiiPolicies: (tool: string) => bundle.toolPiiPolicies?.(services)?.get(tool) ?? { override: false, instances: [], disable: [] },
-    toolGuardrails: (tool: string) => bundle.toolGuardrails?.(services)?.get(tool) ?? { override: false, instances: [], disable: [] },
+    piiPolicies: (agent: string) =>
+      bundle.piiPolicies?.(services)?.get(agent) ?? { override: false, instances: [], disable: [] },
+    toolPiiPolicies: (tool: string) =>
+      bundle.toolPiiPolicies?.(services)?.get(tool) ?? {
+        override: false,
+        instances: [],
+        disable: [],
+      },
+    toolGuardrails: (tool: string) =>
+      bundle.toolGuardrails?.(services)?.get(tool) ?? {
+        override: false,
+        instances: [],
+        disable: [],
+      },
     workflowPiiPolicies: bundle.workflowPiiPolicies?.(services) ?? [],
     workflowGuardrails: bundle.workflowGuardrails?.(services) ?? [],
-    guardrails: (agent: string) => bundle.guardrails?.(services)?.get(agent) ?? { override: false, instances: [], disable: [] },
+    guardrails: (agent: string) =>
+      bundle.guardrails?.(services)?.get(agent) ?? { override: false, instances: [], disable: [] },
     channelAdapters: (channel: string) => bundle.channelAdapters?.(services)?.get(channel),
     ...knowledgeFor(bundle, services),
     ledger,

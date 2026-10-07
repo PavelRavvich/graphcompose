@@ -51,14 +51,26 @@ export function makeCollectNode(
       const ran =
         state.results[call.callId] !== undefined && toolNamed(deps.agent, call.tool) !== undefined;
       if (!ran) continue;
-      const combinedGuardrails = mergePolicies(deps.workflowGuardrails, deps.guardrails, deps.toolGuardrails?.(call.tool));
+      const combinedGuardrails = mergePolicies(
+        deps.workflowGuardrails,
+        deps.guardrails,
+        deps.toolGuardrails?.(call.tool),
+      );
       const ctx = {
         agent: deps.agent.name,
         call,
         runId: config?.configurable?.run_id ?? state.runId,
-        metadata: config?.configurable?.metadata ?? {}
+        metadata: config?.configurable?.metadata ?? {},
       };
-      await visitToolThenAgent(combinedGuardrails, JudgePoint.AfterToolCall, ctx);
+      const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
+      await visitToolThenAgent(
+        combinedGuardrails,
+        JudgePoint.AfterToolCall,
+        ctx,
+        undefined,
+        deps.observer,
+        appState,
+      );
     }
     const messages = calls.map(
       (call) => new ToolMessage({ tool_call_id: call.callId, content: contentOf(state, call) }),

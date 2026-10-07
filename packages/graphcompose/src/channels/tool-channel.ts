@@ -9,16 +9,16 @@ export abstract class ToolChannel implements ChannelHandler {
   public async requestApproval(req: ChannelRequest): Promise<void> {
     const handlers = getBoundTools(Object.getPrototypeOf(this));
     const configs = handlers[req.toolName] || [];
-    
+
     let methodName: string | undefined;
-    
+
     // First try to find a handler specific to this agent
-    const specificHandler = configs.find(c => c.agent === req.agentName);
+    const specificHandler = configs.find((c) => c.agent === req.agentName);
     if (specificHandler) {
       methodName = specificHandler.methodName;
     } else {
       // Fallback to a default handler (one without a specific agent)
-      const defaultHandler = configs.find(c => !c.agent);
+      const defaultHandler = configs.find((c) => !c.agent);
       if (defaultHandler) {
         methodName = defaultHandler.methodName;
       }

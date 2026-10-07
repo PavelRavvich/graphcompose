@@ -50,21 +50,24 @@ function finishRunner<TName extends string>(deps: GraphDeps<TName>, name: string
 function agentLoops<TName extends string>(
   deps: GraphDeps<TName>,
 ): ReadonlyMap<string, AgentLoopGraph> {
-  const approval = deps.pause === undefined ? undefined : pauseSeamApproval(deps.requestApproval, deps.channelAdapters);
+  const approval =
+    deps.pause === undefined
+      ? undefined
+      : pauseSeamApproval(deps.requestApproval, deps.channelAdapters, deps.observer);
   const runBudgetCap = deps.limits.perRun?.cost ?? Number.POSITIVE_INFINITY;
   return new Map(
     [...agentDefinitions(deps)].map(([name, agent]) => [
       name,
       agentLoopGraph(
-        { 
-          agent, 
-          bundle: deps.config.name, 
-          runBudgetCap, 
-          approval, 
+        {
+          agent,
+          bundle: deps.config.name,
+          runBudgetCap,
+          approval,
           judges: noJudges,
           piiPolicies: deps.piiPolicies?.(name),
           guardrails: deps.guardrails?.(name),
-          observer: deps.observer
+          observer: deps.observer,
         },
         deps.pause?.checkpointer,
       ),
@@ -93,7 +96,10 @@ export function flowRunners<TName extends string>(
         if (!action) throw new UnknownActionError(`Unknown action: ${node.name}`);
         return async (state, config) => {
           const context = { runId: config?.configurable?.runId ?? "", signal: config?.signal };
+          const appState = { runId: config?.configurable?.runId ?? "", activeNode: node.name };
+          await deps.observer?.onActionStart({ name: node.name, input: state, state: appState });
           const result = await action.execute(state, context);
+          await deps.observer?.onActionEnd({ name: node.name, update: result, state: appState });
           return result;
         };
       }
@@ -104,10 +110,24 @@ export function flowRunners<TName extends string>(
         return async (state, config) => {
           const runId = state.runId;
           const appState = { runId, activeNode: node.name, variables: {}, history: state.history };
-          await deps.observer?.onAgentStart({ name: node.name, input: state.task, state: appState });
-          const result = await runner(state, config);
-          await deps.observer?.onAgentEnd({ name: node.name, update: result, state: appState });
-          return result;
+          await deps.observer?.onAgentStart({
+            name: node.name,
+            input: state.task,
+            state: appState,
+          });
+          try {
+            const result = await runner(state, config);
+            await deps.observer?.onAgentEnd({ name: node.name, update: result, state: appState });
+            return result;
+          } catch (e: any) {
+            if (e && e.name === "NodeInterrupt") throw e; // Let pauses bubble up
+            if (state.optionalBranches?.includes(node.name)) {
+              // Supress error for optional branches
+              await deps.observer?.onError(e, appState);
+              return {};
+            }
+            throw e;
+          }
         };
       }
       case "workflow-finish":

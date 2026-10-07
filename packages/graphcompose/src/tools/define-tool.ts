@@ -105,9 +105,7 @@ export function defineTool<TName extends string, TInput, TOutput>(
   return {
     name: definition.name,
     description: definition.description,
-    ...(definition.channel === undefined
-      ? {}
-      : { channel: definition.channel }),
+    ...(definition.channel === undefined ? {} : { channel: definition.channel }),
     timeoutMs,
     input: definition.input,
     output: definition.output,

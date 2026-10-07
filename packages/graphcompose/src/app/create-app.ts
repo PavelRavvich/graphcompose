@@ -82,7 +82,7 @@ export async function buildApp(
       const task = { task: text, start: meta.name, ...thread };
       const runId = deps.newRunId?.() || `run-${Date.now()}`;
       const state = { runId, threadId: call.thread };
-      
+
       try {
         await deps.observer.onWorkflowStart(state);
         const result = settle(await runAgent(task, deps, { signal: call.signal }));

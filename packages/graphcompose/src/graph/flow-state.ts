@@ -26,8 +26,12 @@ const mergeForks = (
  * keeps — the workflow start the run begins at, the previous working node (for `Self`), visits per node,
  * steps per run, the path, and the day's spend when the run started (for `limits.perDay.cost`).
  */
+const mergeOptional = (left: string[], right: string[]): string[] =>
+  Array.from(new Set([...left, ...right]));
+
 export const FlowState = Annotation.Root({
   ...AgentState.spec,
+  optionalBranches: Annotation<string[]>({ reducer: mergeOptional, default: () => [] }),
   /** The workflow start this run begins at (name); may be empty when the flow has one start. */
   start: Annotation<string>({ reducer: replace, default: () => "" }),
   /** The last agent that ran ("" before any) — where `Self` leads. */

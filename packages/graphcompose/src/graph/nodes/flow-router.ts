@@ -76,18 +76,19 @@ function targetOf(
   state: FlowStateType,
   deps: FlowRouterNodeDeps,
   usage: readonly UsageRecord[],
-): string {
+): { next: string; optionalBranches: readonly string[] } {
   const { next } = outcome.decision;
   const fail = (code: RouterFailureCode, reason: string): never => {
     throw new RouterDecisionError(deps.loaded.name, code, reason, usage);
   };
-  if (!deps.loaded.routes.some((item) => item.option === next)) {
+  const route = deps.loaded.routes.find((item) => item.option === next);
+  if (!route) {
     return fail("router.unknown-route", `"${next}" is not one of its routes`);
   }
-  if (next !== SELF_OPTION) return next;
+  if (next !== SELF_OPTION) return { next, optionalBranches: route.optionalBranches || [] };
   return state.previousAgent === ""
     ? fail("router.failed", "Self, but no agent ran yet")
-    : state.previousAgent;
+    : { next: state.previousAgent, optionalBranches: [] };
 }
 
 /** A flow router: asks the router's model, fails the run on any failure, sets `next` to the target. */
@@ -101,8 +102,18 @@ export function makeFlowRouterNode(
     if (state.approvals.length > 0 && deps.finish !== undefined) {
       return { next: deps.finish, routeReason: AFTER_APPROVAL_DECISION };
     }
-    const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.loaded.name, variables: {}, history: state.history };
-    await deps.observer?.onRouterStart({ name: deps.loaded.name, input: state.task, state: appState });
+    const appState = {
+      runId: state.runId,
+      threadId: state.runId,
+      activeNode: deps.loaded.name,
+      variables: {},
+      history: state.history,
+    };
+    await deps.observer?.onRouterStart({
+      name: deps.loaded.name,
+      input: state.task,
+      state: appState,
+    });
     const request = await routeRequestOf(state, deps);
     const outcome = await deps.router.route(request);
     const usage = outcome.usage === undefined ? [] : [outcome.usage];
@@ -110,8 +121,13 @@ export function makeFlowRouterNode(
       const code = outcome.unknownOption === undefined ? "router.failed" : "router.unknown-route";
       throw new RouterDecisionError(deps.loaded.name, code, outcome.reason, usage);
     }
-    const next = targetOf(outcome, state, deps, usage);
-    const result = { next, routeReason: outcome.decision.reason, usage };
+    const target = targetOf(outcome, state, deps, usage);
+    const result = {
+      next: target.next,
+      optionalBranches: target.optionalBranches as string[],
+      routeReason: outcome.decision.reason,
+      usage,
+    };
     await deps.observer?.onRouterEnd({ name: deps.loaded.name, update: result, state: appState });
     return result;
   };

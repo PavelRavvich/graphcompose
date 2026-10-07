@@ -38,7 +38,13 @@ export function makeToolNode(
   return async (task, config) => {
     const tool = toolNamed(deps.agent, task.tool);
     const runId = config?.configurable?.runId || "unknown";
-    const appState = { runId, threadId: runId, activeNode: deps.agent.name, variables: {}, history: [] }; // AppState stub
+    const appState = {
+      runId,
+      threadId: runId,
+      activeNode: deps.agent.name,
+      variables: {},
+      history: [],
+    }; // AppState stub
     if (tool === undefined) {
       return {};
     }
@@ -64,9 +70,19 @@ export function makeToolNode(
         return interrupt(pending);
       },
     };
-    await deps.observer?.onToolStart({ toolName: task.tool, agentName: deps.agent.name, arguments: task.args, state: appState });
+    await deps.observer?.onToolStart({
+      toolName: task.tool,
+      agentName: deps.agent.name,
+      arguments: task.args,
+      state: appState,
+    });
     const content = await runTool(tool, task.args, context);
-    await deps.observer?.onToolEnd({ toolName: task.tool, agentName: deps.agent.name, update: content, state: appState });
+    await deps.observer?.onToolEnd({
+      toolName: task.tool,
+      agentName: deps.agent.name,
+      update: content,
+      state: appState,
+    });
     return { results: { [task.callId]: { callId: task.callId, tool: task.tool, content } }, usage };
   };
 }

@@ -20,7 +20,12 @@ export interface JudgeVisit {
   readonly owner: JudgeOwner;
   readonly agent: string;
   readonly call?: ToolCallRequest;
-  readonly decision?: { approved: boolean; by?: string; feedback?: string; overrideArguments?: any };
+  readonly decision?: {
+    approved: boolean;
+    by?: string;
+    feedback?: string;
+    overrideArguments?: any;
+  };
 }
 
 /**
@@ -36,49 +41,70 @@ export const noJudges: JudgePoints = () => Promise.resolve();
 export function mergePolicies(
   wPolicies: readonly any[] | undefined,
   aPolicies: { override: boolean; instances: readonly any[]; disable: readonly any[] } | undefined,
-  tPolicies?: { override: boolean; instances: readonly any[]; disable: readonly any[] }
+  tPolicies?: { override: boolean; instances: readonly any[]; disable: readonly any[] },
 ): any[] {
   const wGuard = wPolicies ?? [];
-  
-  const combined = tPolicies?.override 
-    ? tPolicies.instances 
+
+  const combined = tPolicies?.override
+    ? tPolicies.instances
     : [
         ...(aPolicies?.override ? [] : wGuard),
         ...(aPolicies?.instances ?? []),
-        ...(tPolicies?.instances ?? [])
+        ...(tPolicies?.instances ?? []),
       ];
-      
+
   const disabled = new Set([...(aPolicies?.disable ?? []), ...(tPolicies?.disable ?? [])]);
   if (disabled.size === 0) return combined as any[];
-  return combined.filter(g => !disabled.has(g.constructor));
+  return combined.filter((g) => !disabled.has(g.constructor));
 }
 
 export async function visitToolThenAgent(
   guardrails: readonly any[] | undefined,
   point: JudgePoint,
   ctx: any,
-  decision?: any
+  decision?: any,
+  observer?: any,
+  appState?: any,
 ): Promise<void> {
   if (!guardrails) return;
   for (const g of guardrails) {
-    if (typeof g[point] === 'function') {
-      const result = await g[point](point === JudgePoint.OnChannelDecision ? decision : ctx, point === JudgePoint.OnChannelDecision ? ctx : undefined);
-      if (result && typeof result === 'object' && result.overrideArguments) {
+    if (typeof g[point] === "function") {
+      const gName = g.constructor.name || "UnknownGuardrail";
+      await observer?.onGuardrailStart({
+        name: gName,
+        input: { point, ctx, decision },
+        state: appState,
+      });
+      const result = await g[point](
+        point === JudgePoint.OnChannelDecision ? decision : ctx,
+        point === JudgePoint.OnChannelDecision ? ctx : undefined,
+      );
+      if (result && typeof result === "object" && result.overrideArguments) {
         if (!ctx.call.args) ctx.call.args = {};
         ctx.call.args = { ...ctx.call.args, ...result.overrideArguments };
       }
+      await observer?.onGuardrailEnd({ name: gName, update: result, state: appState });
     }
   }
 }
 
 export async function visitAgentAnswer(
   guardrails: readonly any[] | undefined,
-  ctx: any
+  ctx: any,
+  observer?: any,
+  appState?: any,
 ): Promise<void> {
   if (!guardrails) return;
   for (const g of guardrails) {
-    if (typeof g.beforeAgentAnswer === 'function') {
-      await g.beforeAgentAnswer(ctx);
+    if (typeof g.beforeAgentAnswer === "function") {
+      const gName = g.constructor.name || "UnknownGuardrail";
+      await observer?.onGuardrailStart({
+        name: gName,
+        input: { point: "beforeAgentAnswer", ctx },
+        state: appState,
+      });
+      const result = await g.beforeAgentAnswer(ctx);
+      await observer?.onGuardrailEnd({ name: gName, update: result, state: appState });
     }
   }
 }

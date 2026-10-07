@@ -18,7 +18,13 @@ export const routerKeyOf = (router: string): string => `router:${router}`;
 
 /** The option a router sees for a target: its node name, or `self`. */
 export const optionOf = (target: ChoiceTarget): string =>
-  isSelf(target) ? SELF_OPTION : isSkip(target) ? "Skip" : nodeNameOf(target);
+  isSelf(target)
+    ? SELF_OPTION
+    : isSkip(target)
+      ? "Skip"
+      : (target as any).kind === "parallel" || (target as any).kind === "optional"
+        ? (target as any).kind
+        : nodeNameOf(target as any);
 
 const failed = (reason: string): RouteOutcome => ({ kind: "failed", reason });
 

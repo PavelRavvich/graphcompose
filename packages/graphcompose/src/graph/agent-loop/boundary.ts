@@ -12,7 +12,10 @@ import {
 } from "./state.js";
 
 /** Calls of the move that wait for a decision: their tool needs one and nobody decided yet. */
-export function awaitingApproval(state: AgentLoopStateType, deps: AgentLoopDeps): ToolCallRequest[] {
+export function awaitingApproval(
+  state: AgentLoopStateType,
+  deps: AgentLoopDeps,
+): ToolCallRequest[] {
   const approval = deps.approval;
   if (approval === undefined) return [];
   return callsOf(state.move).filter((call) => {
@@ -72,17 +75,29 @@ export function makeBoundaryNode(
         results[call.callId] = { callId: call.callId, tool: call.tool, content };
         continue;
       }
-      
+
       const ctx = {
         agent: deps.agent.name,
         call,
         runId: config?.configurable?.run_id ?? state.runId,
-        metadata: config?.configurable?.metadata ?? {}
+        metadata: config?.configurable?.metadata ?? {},
       };
-      
-      const combinedGuardrails = mergePolicies(deps.workflowGuardrails, deps.guardrails, deps.toolGuardrails?.(call.tool));
-      
-      await visitToolThenAgent(combinedGuardrails, JudgePoint.BeforeToolCall, ctx);
+
+      const combinedGuardrails = mergePolicies(
+        deps.workflowGuardrails,
+        deps.guardrails,
+        deps.toolGuardrails?.(call.tool),
+      );
+
+      const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
+      await visitToolThenAgent(
+        combinedGuardrails,
+        JudgePoint.BeforeToolCall,
+        ctx,
+        undefined,
+        deps.observer,
+        appState,
+      );
     }
     return { messages: state.move === null ? [] : [state.move], results };
   };

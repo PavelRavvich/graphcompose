@@ -12,11 +12,13 @@ export function makeAnswerNode(
     const combinedGuardrails = mergePolicies(deps.workflowGuardrails, deps.guardrails);
     const ctx = {
       agent,
-      answer: typeof state.move?.content === "string" ? state.move.content : (state.move?.text ?? ""),
+      answer:
+        typeof state.move?.content === "string" ? state.move.content : (state.move?.text ?? ""),
       runId: config?.configurable?.run_id ?? state.runId,
-      metadata: config?.configurable?.metadata ?? {}
+      metadata: config?.configurable?.metadata ?? {},
     };
-    await visitAgentAnswer(combinedGuardrails, ctx);
+    const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
+    await visitAgentAnswer(combinedGuardrails, ctx, deps.observer, appState);
     const content = state.move?.content ?? "";
     const isString = typeof content === "string";
     /* v8 ignore next */

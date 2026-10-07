@@ -10,6 +10,7 @@ export function loopInputOf(state: FlowStateType, agent: string): AgentLoopState
     task: state.task,
     history: state.history,
     runId: state.runId,
+    optionalBranches: [],
     next: agent,
     routeReason: state.routeReason,
     start: state.start,

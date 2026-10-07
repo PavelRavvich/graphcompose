@@ -48,10 +48,28 @@ export type ComponentMeta =
         readonly deps: readonly Token[];
       };
     }
-  | { readonly kind: "pii-policy"; readonly meta: { readonly name: string; readonly deps: readonly Token[] } }
-  | { readonly kind: "guardrail"; readonly meta: { readonly name: string; readonly deps: readonly Token[] } }
-  | { readonly kind: "inbound-adapter"; readonly meta: { readonly name: string; readonly deps: readonly Token[] } }
-  | { readonly kind: "semantic-inbound-adapter"; readonly meta: { readonly name: string; readonly model: string; readonly prompt: string; readonly temperature?: number; readonly deps: readonly Token[] } }
+  | {
+      readonly kind: "pii-policy";
+      readonly meta: { readonly name: string; readonly deps: readonly Token[] };
+    }
+  | {
+      readonly kind: "guardrail";
+      readonly meta: { readonly name: string; readonly deps: readonly Token[] };
+    }
+  | {
+      readonly kind: "inbound-adapter";
+      readonly meta: { readonly name: string; readonly deps: readonly Token[] };
+    }
+  | {
+      readonly kind: "semantic-inbound-adapter";
+      readonly meta: {
+        readonly name: string;
+        readonly model: string;
+        readonly prompt: string;
+        readonly temperature?: number;
+        readonly deps: readonly Token[];
+      };
+    }
   | { readonly kind: "workflow"; readonly meta: WorkflowMeta };
 
 /** Decorator metadata per class. Symbol.metadata is not available at runtime on Node 26. */
@@ -83,7 +101,7 @@ export function requireComponent<K extends ComponentMeta["kind"]>(
 
 const kindName: Readonly<Record<ComponentMeta["kind"], string>> = {
   "pii-policy": "@PiiPolicy",
-  "guardrail": "@Guardrail",
+  guardrail: "@Guardrail",
   "inbound-adapter": "@InboundChannelAdapter",
   "semantic-inbound-adapter": "@SemanticInboundChannelAdapter",
   tool: "Tool",

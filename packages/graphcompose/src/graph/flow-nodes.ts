@@ -5,6 +5,8 @@ import {
   isNamedNode,
   isSelf,
   isSkip,
+  isParallel,
+  isOptional,
   unwrapTarget,
   labelOf,
   type ChoiceTarget,
@@ -39,6 +41,7 @@ export type NextDeclaration =
   | {
       readonly kind: "choose";
       readonly targets: readonly string[];
+      readonly parallelTargets: readonly { optionName: string; targets: string[] }[];
       readonly self: boolean;
       readonly skip: boolean;
     }
@@ -119,14 +122,39 @@ const defined = (names: readonly (string | undefined)[]): string[] =>
   names.filter((name): name is string => name !== undefined);
 
 function chooseTargets(targets: readonly ChoiceTarget[], resolve: Resolve): NextDeclaration {
-  const nodesOnly = targets.filter(
-    (target): target is FlowNode => !isSelf(target) && !isSkip(target),
-  );
+  const nodesOnly: FlowNode[] = [];
+  const parallelTargets: { optionName: string; targets: string[] }[] = [];
+  let hasSelf = false;
+  let hasSkip = false;
+
+  const extract = (t: ChoiceTarget) => {
+    if (isSelf(t)) hasSelf = true;
+    else if (isSkip(t)) hasSkip = true;
+    else if ((t as any).kind === "parallel") {
+      const pTargets = (t as any).targets.map((inner: any) => {
+        if (isSelf(inner) || isSkip(inner) || inner.kind === "parallel")
+          throw new Error("Invalid parallel target");
+        let actual = inner;
+        if (inner.kind === "optional") actual = inner.target;
+        nodesOnly.push(actual as FlowNode);
+        return resolve(actual as FlowNode);
+      });
+      parallelTargets.push({ optionName: labelOf(t), targets: defined(pTargets) });
+    } else if ((t as any).kind === "optional") {
+      extract((t as any).target);
+    } else {
+      nodesOnly.push(t as FlowNode);
+    }
+  };
+
+  targets.forEach(extract);
+
   return {
     kind: "choose",
     targets: defined(nodesOnly.map(resolve)),
-    self: targets.some(isSelf),
-    skip: targets.some(isSkip),
+    parallelTargets,
+    self: hasSelf,
+    skip: hasSkip,
   };
 }
 

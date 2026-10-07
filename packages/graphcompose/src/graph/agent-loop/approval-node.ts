@@ -18,6 +18,7 @@ export function makeApprovalNode(
   deps: AgentLoopDeps,
 ): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
   return async (state, config) => {
+    const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
     const [call] = awaitingApproval(state, deps);
     if (call === undefined || deps.approval === undefined) return {};
     const tool = toolNamed(deps.agent, call.tool);
@@ -38,15 +39,31 @@ export function makeApprovalNode(
     );
     let feedback = decision.feedback;
     let overrideArgs = decision.overrideArguments;
-    const combinedPii = mergePolicies(deps.workflowPiiPolicies, deps.piiPolicies, deps.toolPiiPolicies?.(call.tool));
+    const combinedPii = mergePolicies(
+      deps.workflowPiiPolicies,
+      deps.piiPolicies,
+      deps.toolPiiPolicies?.(call.tool),
+    );
+
     for (const policy of combinedPii) {
-        if (feedback !== undefined && typeof policy.mask === 'function') {
-          feedback = await policy.mask(feedback);
-        }
-        if (overrideArgs !== undefined && typeof policy.maskJson === 'function') {
-          overrideArgs = await policy.maskJson(overrideArgs);
-        }
+      const pName = policy.constructor.name || "UnknownPiiPolicy";
+      await deps.observer?.onPiiPolicyStart({
+        name: pName,
+        input: { feedback, overrideArgs },
+        state: appState,
+      });
+      if (feedback !== undefined && typeof policy.mask === "function") {
+        feedback = await policy.mask(feedback);
       }
+      if (overrideArgs !== undefined && typeof policy.maskJson === "function") {
+        overrideArgs = await policy.maskJson(overrideArgs);
+      }
+      await deps.observer?.onPiiPolicyEnd({
+        name: pName,
+        update: { feedback, overrideArgs },
+        state: appState,
+      });
+    }
 
     const recorded =
       feedback === undefined
@@ -61,14 +78,25 @@ export function makeApprovalNode(
             feedback: feedback,
             overrideArguments: overrideArgs,
           };
-    const combinedGuardrails = mergePolicies(deps.workflowGuardrails, deps.guardrails, deps.toolGuardrails?.(call.tool));
+    const combinedGuardrails = mergePolicies(
+      deps.workflowGuardrails,
+      deps.guardrails,
+      deps.toolGuardrails?.(call.tool),
+    );
     const ctx = {
       agent: deps.agent.name,
       call,
       runId: config?.configurable?.run_id ?? state.runId,
-      metadata: config?.configurable?.metadata ?? {}
+      metadata: config?.configurable?.metadata ?? {},
     };
-    await visitToolThenAgent(combinedGuardrails, JudgePoint.OnChannelDecision, ctx, recorded);
+    await visitToolThenAgent(
+      combinedGuardrails,
+      JudgePoint.OnChannelDecision,
+      ctx,
+      recorded,
+      deps.observer,
+      appState,
+    );
     return { decisions: { [call.callId]: recorded } };
   };
 }

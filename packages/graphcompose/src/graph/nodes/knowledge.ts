@@ -14,7 +14,7 @@ export async function gatherKnowledge(
   query: string,
   config: RunnableConfig | undefined,
   deps?: import("../../core/observer-manager.js").ObserverManager,
-  appState?: import("../../core/observability.js").AppState
+  appState?: import("../../core/observability.js").AppState,
 ): Promise<{ readonly block: string; readonly records: UsageRecord[] }> {
   const records: UsageRecord[] = [];
   const blocks: string[] = [];

@@ -83,7 +83,6 @@ describe("components — assembly", () => {
   });
 });
 
-
 import { Guardrail, Tool } from "../../src/core/index.js";
 import { Person, Greeting } from "./fixture/components.js";
 
@@ -102,10 +101,10 @@ describe("components — policy overrides and disables", () => {
       tools: [],
       prompt: "hi",
       overrideGuardrails: [AGuard],
-      disableGuardrails: [WDisable]
+      disableGuardrails: [WDisable],
     })
     class OverrideAgent {}
-    
+
     @Agent({
       name: "normal_agent",
       description: "d",
@@ -113,7 +112,7 @@ describe("components — policy overrides and disables", () => {
       price: testConfig.agents.alpha.price,
       tools: [],
       prompt: "hi",
-      guardrails: [AGuard]
+      guardrails: [AGuard],
     })
     class NormalAgent {}
 
@@ -121,36 +120,41 @@ describe("components — policy overrides and disables", () => {
       ...baseBundle,
       name: "w",
       flow: starOf(OverrideAgent, NormalAgent),
-      guardrails: [WGuard, WDisable]
+      guardrails: [WGuard, WDisable],
     })
     class W extends TestSettings {}
 
     const bundle = await workflowOf(W);
     const mockServices = { resolve: (cls: any) => new cls() };
     const agentMap = bundle.guardrails?.(mockServices);
-    
+
     const over = agentMap?.get("override_agent");
     expect(over?.override).toBe(true);
     expect(over?.instances.length).toBe(1);
     expect(over?.instances[0]).toBeInstanceOf(AGuard);
     expect(over?.disable).toEqual([WDisable]);
-    
+
     const norm = agentMap?.get("normal_agent");
     expect(norm?.override).toBe(false);
     expect(norm?.instances.length).toBe(1);
     expect(norm?.instances[0]).toBeInstanceOf(AGuard);
     expect(norm?.disable).toEqual([]);
   });
-  
+
   it("Tool inherits workflow and agent guardrails by default, or overrides them", async () => {
     @Tool({
       name: "t1",
       description: "d",
-      input: Person, output: Greeting,
+      input: Person,
+      output: Greeting,
       overrideGuardrails: [TGuard],
-      disableGuardrails: [WDisable]
+      disableGuardrails: [WDisable],
     })
-    class T1 { async invoke() { return { kind: "ok", value: {} as any}; } }
+    class T1 {
+      async invoke() {
+        return { kind: "ok", value: {} as any };
+      }
+    }
 
     @Agent({
       name: "a1",
@@ -158,7 +162,7 @@ describe("components — policy overrides and disables", () => {
       model: "test/alpha",
       price: testConfig.agents.alpha.price,
       tools: [T1],
-      prompt: "hi"
+      prompt: "hi",
     })
     class A1 {}
 
@@ -166,14 +170,14 @@ describe("components — policy overrides and disables", () => {
       ...baseBundle,
       name: "w2",
       flow: starOf(A1),
-      guardrails: [WGuard, WDisable]
+      guardrails: [WGuard, WDisable],
     })
     class W2 extends TestSettings {}
 
     const bundle = await workflowOf(W2);
     const mockServices = { resolve: (cls: any) => new cls() };
     const toolMap = bundle.toolGuardrails?.(mockServices);
-    
+
     const tGuard = toolMap?.get("t1");
     expect(tGuard?.override).toBe(true);
     expect(tGuard?.instances.length).toBe(1);
@@ -181,7 +185,6 @@ describe("components — policy overrides and disables", () => {
     expect(tGuard?.disable).toEqual([WDisable]);
   });
 });
-
 
 describe("components — errors at assembly", () => {
   it("AC3: unknown prompt variables fail at assembly", async () => {

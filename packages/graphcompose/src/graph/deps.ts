@@ -27,12 +27,28 @@ export interface GraphDeps<TName extends string> {
   readonly pause?: PauseSeam | undefined;
   /** Dispatches an approval request to the specified channel. */
   readonly requestApproval?: (channelName: string, req: ChannelRequest) => Promise<void>;
-  readonly piiPolicies?: (agent: string) => { override: boolean; instances: readonly any[]; disable: readonly any[] };
-  readonly toolPiiPolicies?: (tool: string) => { override: boolean; instances: readonly any[]; disable: readonly any[] };
-  readonly toolGuardrails?: (tool: string) => { override: boolean; instances: readonly any[]; disable: readonly any[] };
+  readonly piiPolicies?: (agent: string) => {
+    override: boolean;
+    instances: readonly any[];
+    disable: readonly any[];
+  };
+  readonly toolPiiPolicies?: (tool: string) => {
+    override: boolean;
+    instances: readonly any[];
+    disable: readonly any[];
+  };
+  readonly toolGuardrails?: (tool: string) => {
+    override: boolean;
+    instances: readonly any[];
+    disable: readonly any[];
+  };
   readonly workflowPiiPolicies?: readonly any[];
   readonly workflowGuardrails?: readonly any[];
-  readonly guardrails?: (agent: string) => { override: boolean; instances: readonly any[]; disable: readonly any[] };
+  readonly guardrails?: (agent: string) => {
+    override: boolean;
+    instances: readonly any[];
+    disable: readonly any[];
+  };
   readonly channelAdapters?: (channel: string) => any;
   /** The workflow's graph: its transitions (`@Workflow({ flow })`). */
   readonly flow: Flow;

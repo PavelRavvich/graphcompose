@@ -106,7 +106,8 @@ describe("AC8: the judge points are called in the documented order", () => {
     const probe = {
       beforeToolCall: async (ctx: any) => visits.push(`beforeToolCall:${ctx.call?.callId ?? "-"}`),
       afterToolCall: async (ctx: any) => visits.push(`afterToolCall:${ctx.call?.callId ?? "-"}`),
-      onChannelDecision: async (decision: any, ctx: any) => visits.push(`onChannelDecision:${ctx.call?.callId ?? "-"}`),
+      onChannelDecision: async (decision: any, ctx: any) =>
+        visits.push(`onChannelDecision:${ctx.call?.callId ?? "-"}`),
       beforeAgentAnswer: async (ctx: any) => visits.push(`beforeAgentAnswer:-`),
     };
     const h = harness({
@@ -119,10 +120,7 @@ describe("AC8: the judge points are called in the documented order", () => {
     await runLoop(h.graph, decision({ approved: true, by: "lead" }), "t");
 
     expect(paused.kind).toBe("paused");
-    expect(atPause).toEqual([
-      "beforeToolCall:r1",
-      "beforeToolCall:w1",
-    ]);
+    expect(atPause).toEqual(["beforeToolCall:r1", "beforeToolCall:w1"]);
     expect(visits.slice(2)).toEqual([
       "onChannelDecision:w1",
       "afterToolCall:r1",

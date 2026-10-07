@@ -7,6 +7,7 @@ import {
 import type { PendingPause } from "../../pause/index.js";
 import type { AnyTool } from "../../tools/index.js";
 import type { ChannelRequest } from "../../components/decorators.js";
+import type { ObserverManager } from "../../core/observer-manager.js";
 
 /**
  * How the loop gets a decision on a tool call before it runs — one call per ask. Until #152 wires it
@@ -28,7 +29,8 @@ export interface ToolCallApproval {
  */
 export function pauseSeamApproval(
   dispatchChannel?: (channelName: string, req: ChannelRequest) => Promise<void>,
-  channelAdapters?: (channel: string) => any
+  channelAdapters?: (channel: string) => any,
+  observer?: ObserverManager,
 ): ToolCallApproval {
   return {
     requestApproval: async (ask, agent, tool, runId, metadata) => {
@@ -42,18 +44,30 @@ export function pauseSeamApproval(
 
       try {
         let rawDecision = interrupt(pending);
-        
+
         if (tool.channel && channelAdapters) {
+          const appState = { runId, threadId: runId, activeNode: agent };
+          await observer?.onChannelEnd({
+            name: tool.channel,
+            update: rawDecision,
+            state: appState,
+          });
           const adapter = channelAdapters(tool.channel);
           if (adapter) {
             rawDecision = await adapter.interpret(rawDecision);
           }
         }
-        
+
         return validate(ToolCallApprovalDecision, rawDecision);
       } catch (e: any) {
         if (e && e.name === "NodeInterrupt") {
           if (tool.channel && dispatchChannel) {
+            const appState = { runId, threadId: runId, activeNode: agent };
+            await observer?.onChannelStart({
+              name: tool.channel,
+              input: ask.arguments,
+              state: appState,
+            });
             await dispatchChannel(tool.channel, {
               runId,
               agentName: agent,

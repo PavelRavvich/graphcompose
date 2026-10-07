@@ -30,7 +30,8 @@ Based on discussions, we are migrating from the strict, single-line `fork(...).j
 
 This covers all Acceptance Criteria of #168 in a scalable way that supports future distributed/remote execution patterns.
 
-### Update: 
+### Update:
+
 - Renamed \`Interceptor\` to \`Adapter\` (e.g. \`InboundChannelAdapter\`) to distinguish from servlet-like filter chains.
 - Exported \`End = Skip\` in routing for better workflow readability.
 - Guardrails and PiiPolicies can now be applied globally at the \`@Workflow\` level.
@@ -40,22 +41,26 @@ This covers all Acceptance Criteria of #168 in a scalable way that supports futu
 - Added \`disableGuardrails\` and \`disablePiiPolicies\` to Agent and Tool definitions to allow pinpoint disabling of specific inherited policy classes without needing to override the entire chain.
 
 ### Update 2: Lifecycle Hooks (OnInit, AfterAssemble)
-Added Angular-style lifecycle hooks for all DI components, enabling components (Tools, Services, Knowledge Bases, Guardrails, etc.) to hook into the workflow assembly process without blocking synchronous instantiation. 
+
+Added Angular-style lifecycle hooks for all DI components, enabling components (Tools, Services, Knowledge Bases, Guardrails, etc.) to hook into the workflow assembly process without blocking synchronous instantiation.
 
 Available hooks (all can return `Promise<void>` or `void`):
+
 1. `onInit()` — Triggered for every created DI component in dependency-first order immediately after the container resolves all singletons.
 2. `afterAssemble()` — Triggered for every created component after all `onInit` hooks complete.
 3. `onStart()` — Triggered when the graph/app execution actually starts serving/running.
 4. `onStop()` — Triggered when the app/graph stops, in reverse-dependency order.
 
 ### Agent Loop Lifecycle Sequence
+
 The exact lifecycle of a paused tool call is as follows:
+
 1. Agent decides to call a tool.
 2. All `Guardrail.beforeToolCall` hooks are triggered.
 3. The graph encounters a defined channel, pauses execution, and waits for user input.
 4. The system resumes execution via `app.resume(payload)`.
 5. The `Adapter.interpret(payload)` runs (formerly `Interceptor`), translating raw input into a decision.
 6. All `PiiPolicy.mask` and `maskJson` hooks run, masking the feedback and arguments.
-7. All `Guardrail.onChannelDecision` hooks run, evaluating the *already masked* data.
+7. All `Guardrail.onChannelDecision` hooks run, evaluating the _already masked_ data.
 8. The underlying Tool code executes.
 9. All `Guardrail.afterToolCall` hooks run.

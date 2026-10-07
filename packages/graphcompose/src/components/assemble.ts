@@ -6,7 +6,14 @@ import { renderPromptVariables } from "./prompt-render.js";
 import type { AssembledWorkflow } from "../workflow.js";
 import { objectSchemaOf } from "../dto/schema.js";
 import { checkGraph, dependencyTree } from "./container.js";
-import { checkToolData, CORE_TOKENS, ragParts, rememberServers, toolBuilder, containerFor } from "./runtime.js";
+import {
+  checkToolData,
+  CORE_TOKENS,
+  ragParts,
+  rememberServers,
+  toolBuilder,
+  containerFor,
+} from "./runtime.js";
 import type { IWorkflowAction } from "./decorators.js";
 import type { McpServerClient, ServerTools } from "./mcp-client.js";
 import type { Token } from "./injection.js";
@@ -148,10 +155,11 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   const tools = toolsOf(bundle, agents);
   const mcp = mcpOf(bundle, tools.mcp);
   const rags = ragClassesOf(bundle, agents);
-  checkGraph([...tools.local, ...tools.mcp, ...rags, ...graph.actions.map(a => a.cls)], bundle.providers ?? [], [
-    ...CORE_TOKENS,
-    ...mcp.instances.keys(),
-  ]);
+  checkGraph(
+    [...tools.local, ...tools.mcp, ...rags, ...graph.actions.map((a) => a.cls)],
+    bundle.providers ?? [],
+    [...CORE_TOKENS, ...mcp.instances.keys()],
+  );
   rememberServers(bundle, mcp.instances);
   const names = toolNames(tools);
 
@@ -175,31 +183,82 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     new Map<string, readonly T[]>(
       Array.from(map.entries()).map(([k, classes]) => [
         k,
-        classes.map(cls => services.resolve(cls))
-      ])
+        classes.map((cls) => services.resolve(cls)),
+      ]),
     );
 
-  const agentPii = new Map(agents.map(a => [a.name, a.overridePiiPolicies ? { override: true, classes: a.overridePiiPolicies, disable: a.disablePiiPolicies ?? [] } : { override: false, classes: a.piiPolicies ?? [], disable: a.disablePiiPolicies ?? [] }]));
-  const agentGuardrails = new Map(agents.map(a => [a.name, a.overrideGuardrails ? { override: true, classes: a.overrideGuardrails, disable: a.disableGuardrails ?? [] } : { override: false, classes: a.guardrails ?? [], disable: a.disableGuardrails ?? [] }]));
-  const toolPii = new Map(Array.from(tools.local).map(t => {
-    const meta = componentOf(t)?.meta as any;
-    return [names.get(t) ?? t.name, meta?.overridePiiPolicies ? { override: true, classes: meta.overridePiiPolicies, disable: meta.disablePiiPolicies ?? [] } : { override: false, classes: meta?.piiPolicies ?? [], disable: meta?.disablePiiPolicies ?? [] }];
-  }));
-  const toolGuardrails = new Map(Array.from(tools.local).map(t => {
-    const meta = componentOf(t)?.meta as any;
-    return [names.get(t) ?? t.name, meta?.overrideGuardrails ? { override: true, classes: meta.overrideGuardrails, disable: meta.disableGuardrails ?? [] } : { override: false, classes: meta?.guardrails ?? [], disable: meta?.disableGuardrails ?? [] }];
-  }));
+  const agentPii = new Map(
+    agents.map((a) => [
+      a.name,
+      a.overridePiiPolicies
+        ? { override: true, classes: a.overridePiiPolicies, disable: a.disablePiiPolicies ?? [] }
+        : { override: false, classes: a.piiPolicies ?? [], disable: a.disablePiiPolicies ?? [] },
+    ]),
+  );
+  const agentGuardrails = new Map(
+    agents.map((a) => [
+      a.name,
+      a.overrideGuardrails
+        ? { override: true, classes: a.overrideGuardrails, disable: a.disableGuardrails ?? [] }
+        : { override: false, classes: a.guardrails ?? [], disable: a.disableGuardrails ?? [] },
+    ]),
+  );
+  const toolPii = new Map(
+    Array.from(tools.local).map((t) => {
+      const meta = componentOf(t)?.meta as any;
+      return [
+        names.get(t) ?? t.name,
+        meta?.overridePiiPolicies
+          ? {
+              override: true,
+              classes: meta.overridePiiPolicies,
+              disable: meta.disablePiiPolicies ?? [],
+            }
+          : {
+              override: false,
+              classes: meta?.piiPolicies ?? [],
+              disable: meta?.disablePiiPolicies ?? [],
+            },
+      ];
+    }),
+  );
+  const toolGuardrails = new Map(
+    Array.from(tools.local).map((t) => {
+      const meta = componentOf(t)?.meta as any;
+      return [
+        names.get(t) ?? t.name,
+        meta?.overrideGuardrails
+          ? {
+              override: true,
+              classes: meta.overrideGuardrails,
+              disable: meta.disableGuardrails ?? [],
+            }
+          : {
+              override: false,
+              classes: meta?.guardrails ?? [],
+              disable: meta?.disableGuardrails ?? [],
+            },
+      ];
+    }),
+  );
   const wfPii = bundle.piiPolicies ?? [];
   const wfGuardrails = bundle.guardrails ?? [];
-  
-  const resolveComplexMap = (map: Map<string, { override: boolean; classes: readonly Class[]; disable: readonly Class[] }>, services: any) =>
+
+  const resolveComplexMap = (
+    map: Map<string, { override: boolean; classes: readonly Class[]; disable: readonly Class[] }>,
+    services: any,
+  ) =>
     new Map<string, { override: boolean; instances: readonly any[]; disable: readonly Class[] }>(
       Array.from(map.entries()).map(([k, v]) => [
         k,
-        { override: v.override, instances: v.classes.map(cls => services.resolve(cls)), disable: v.disable }
-      ])
+        {
+          override: v.override,
+          instances: v.classes.map((cls) => services.resolve(cls)),
+          disable: v.disable,
+        },
+      ]),
     );
-    
+
   return {
     config,
     flow: bundle.flow,
@@ -207,8 +266,8 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     guardrails: (services: any) => resolveComplexMap(agentGuardrails, services),
     toolPiiPolicies: (services: any) => resolveComplexMap(toolPii, services),
     toolGuardrails: (services: any) => resolveComplexMap(toolGuardrails, services),
-    workflowPiiPolicies: (services: any) => wfPii.map(c => services.resolve(c)),
-    workflowGuardrails: (services: any) => wfGuardrails.map(c => services.resolve(c)),
+    workflowPiiPolicies: (services: any) => wfPii.map((c) => services.resolve(c)),
+    workflowGuardrails: (services: any) => wfGuardrails.map((c) => services.resolve(c)),
     limits: settings.limits,
     models: settings.models,
     routers: graph.routers,
@@ -216,7 +275,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     tools: toolBuilder(bundle, agents, tools.local, tools.mcp, mcp.names),
     actions: (services) => {
       const container = containerFor(bundle, services);
-      return new Map(graph.actions.map(a => [a.name, container.get(a.cls) as IWorkflowAction]));
+      return new Map(graph.actions.map((a) => [a.name, container.get(a.cls) as IWorkflowAction]));
     },
     ...(rags.length === 0 ? {} : ragParts(bundle, agents, rags)),
     mcpServers: mcp.handles,
@@ -227,7 +286,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
         return tree === "" ? [] : [[names.get(cls) ?? cls.name, tree] as const];
       }),
     ),
-    
+
     ...(bundle.compactionPrompt === undefined ? {} : { compactionPrompt: bundle.compactionPrompt }),
   };
 }

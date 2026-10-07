@@ -88,14 +88,36 @@ export function makeModelNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
       } as const;
       throw agentLimitError(state, breach);
     }
-    const appState = { runId: state.runId, threadId: state.runId, activeNode: name, variables: {}, history: state.messages }; // AppState stub
-    await deps.observer?.onModelStart({ modelName: binding.settings.model ?? "unknown", callerName: name, rawPayload: state.messages, state: appState });
+    const appState = {
+      runId: state.runId,
+      threadId: state.runId,
+      activeNode: name,
+      variables: {},
+      history: state.messages,
+    }; // AppState stub
+    await deps.observer?.onModelStart({
+      modelName: binding.settings.model ?? "unknown",
+      callerName: name,
+      rawPayload: state.messages,
+      state: appState,
+    });
     const response = await callModel(state, deps, config).catch((error: unknown) => {
       throw new AgentFailedError(name, loopUsage(state), error);
     });
     const usageRecord = recordUsage(name, binding.settings, response);
     const spent = [usageRecord];
-    await deps.observer?.onModelEnd({ model: binding.settings.model ?? "unknown", callerName: name, rawContent: response.content, usage: { promptTokens: usageRecord.inputTokens, completionTokens: usageRecord.outputTokens, totalTokens: usageRecord.inputTokens + usageRecord.outputTokens }, calculatedCost: usageRecord.costUsd, state: appState });
+    await deps.observer?.onModelEnd({
+      model: binding.settings.model ?? "unknown",
+      callerName: name,
+      rawContent: response.content,
+      usage: {
+        promptTokens: usageRecord.inputTokens,
+        completionTokens: usageRecord.outputTokens,
+        totalTokens: usageRecord.inputTokens + usageRecord.outputTokens,
+      },
+      calculatedCost: usageRecord.costUsd,
+      state: appState,
+    });
     const move = withCallIds(response, state);
     const toolCalls = state.toolCalls + callsOf(move).length;
     if (toolCalls > limits.toolCalls) {

@@ -31,7 +31,13 @@ function nodeText(collected: CollectedFlow, target: FlowNode): string {
 const nameIn =
   (collected: CollectedFlow) =>
   (target: ChoiceTarget): string =>
-    isSelf(target) ? "Self" : isSkip(target) ? "Skip" : nodeText(collected, target);
+    isSelf(target)
+      ? "Self"
+      : isSkip(target)
+        ? "Skip"
+        : (target as any).kind === "parallel" || (target as any).kind === "optional"
+          ? (target as any).kind
+          : nodeText(collected, target as any);
 
 function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): string {
   switch (step.kind) {

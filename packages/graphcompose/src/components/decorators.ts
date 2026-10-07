@@ -229,7 +229,7 @@ export function BindTool(tool: Class | string, options?: BindToolOptions) {
       }
       toolName = meta.meta.name;
     }
-    
+
     let agentName: string | undefined;
     if (options?.agent) {
       if (typeof options.agent === "string") {
@@ -270,20 +270,35 @@ export interface GuardrailContext {
 export interface Guardrail {
   beforeToolCall?: (ctx: GuardrailContext) => Promise<void | { overrideArguments?: any }>;
   afterToolCall?: (ctx: GuardrailContext) => Promise<void>;
-  onChannelDecision?: (decision: any, ctx: GuardrailContext) => Promise<void | { overrideArguments?: any }>;
+  onChannelDecision?: (
+    decision: any,
+    ctx: GuardrailContext,
+  ) => Promise<void | { overrideArguments?: any }>;
   beforeAgentAnswer?: (ctx: GuardrailContext) => Promise<void>;
 }
 
-export function PiiPolicy<const D extends readonly Token[] = []>(options: { name: string; deps?: D }) {
+export function PiiPolicy<const D extends readonly Token[] = []>(options: {
+  name: string;
+  deps?: D;
+}) {
   return <C extends new (...args: ResolvedAll<D>) => PiiPolicy>(value: C): C => {
-    recordComponent(value, { kind: "pii-policy", meta: { name: options.name, deps: options.deps ?? [] } });
+    recordComponent(value, {
+      kind: "pii-policy",
+      meta: { name: options.name, deps: options.deps ?? [] },
+    });
     return value;
   };
 }
 
-export function Guardrail<const D extends readonly Token[] = []>(options: { name: string; deps?: D }) {
+export function Guardrail<const D extends readonly Token[] = []>(options: {
+  name: string;
+  deps?: D;
+}) {
   return <C extends new (...args: ResolvedAll<D>) => Guardrail>(value: C): C => {
-    recordComponent(value, { kind: "guardrail", meta: { name: options.name, deps: options.deps ?? [] } });
+    recordComponent(value, {
+      kind: "guardrail",
+      meta: { name: options.name, deps: options.deps ?? [] },
+    });
     return value;
   };
 }
@@ -294,9 +309,15 @@ export interface InboundChannelAdapter<T = unknown> {
   interpret(input: T): Promise<any>; // any is ChannelDecision
 }
 
-export function InboundChannelAdapter<const D extends readonly Token[] = []>(options: { name: string; deps?: D }) {
+export function InboundChannelAdapter<const D extends readonly Token[] = []>(options: {
+  name: string;
+  deps?: D;
+}) {
   return <C extends new (...args: ResolvedAll<D>) => InboundChannelAdapter<any>>(value: C): C => {
-    recordComponent(value, { kind: "inbound-adapter", meta: { name: options.name, deps: options.deps ?? [] } });
+    recordComponent(value, {
+      kind: "inbound-adapter",
+      meta: { name: options.name, deps: options.deps ?? [] },
+    });
     return value;
   };
 }
@@ -309,9 +330,14 @@ export interface SemanticAdapterOptions<D extends readonly Token[] = []> {
   deps?: D;
 }
 
-export function SemanticInboundChannelAdapter<const D extends readonly Token[] = []>(options: SemanticAdapterOptions<D>) {
+export function SemanticInboundChannelAdapter<const D extends readonly Token[] = []>(
+  options: SemanticAdapterOptions<D>,
+) {
   return <C extends new (...args: ResolvedAll<D>) => InboundChannelAdapter<any>>(value: C): C => {
-    recordComponent(value, { kind: "semantic-inbound-adapter", meta: { ...options, deps: options.deps ?? [] } });
+    recordComponent(value, {
+      kind: "semantic-inbound-adapter",
+      meta: { ...options, deps: options.deps ?? [] },
+    });
     return value;
   };
 }

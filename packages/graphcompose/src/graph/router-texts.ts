@@ -1,6 +1,6 @@
 import { ComponentError } from "../components/metadata.js";
 import type { FlowModel } from "./check-flow.js";
-import { isSelf, labelOf } from "./flow.js";
+import { isSelf, isSkip, labelOf, isOptional, isParallel } from "./flow.js";
 import type { FlowNodeRef } from "./flow-nodes.js";
 import { SELF_OPTION, type RouteDeclaration } from "./route.js";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -14,6 +14,7 @@ export interface LoadedRoute {
   /** The target node's key (its name — a route never leads to a workflow start), or `SELF_OPTION`. */
   readonly option: string;
   readonly condition: PromptInput;
+  readonly optionalBranches?: readonly string[];
 }
 
 /** A router with its texts loaded and normalised; routes sorted by option name. */
@@ -27,11 +28,27 @@ export interface LoadedRouter {
   readonly routes: readonly LoadedRoute[];
 }
 
-function optionOf(model: FlowModel, declaration: RouteDeclaration): string {
-  return isSelf(declaration.target)
-    ? SELF_OPTION
-    : // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-      (model.collected.keyOf(declaration.target as any) ?? labelOf(declaration.target));
+function optionOf(
+  model: FlowModel,
+  declaration: RouteDeclaration,
+): { option: string; optionalBranches: string[] } {
+  if (isSelf(declaration.target)) return { option: SELF_OPTION, optionalBranches: [] };
+  if (isSkip(declaration.target)) return { option: "Skip", optionalBranches: [] };
+
+  const getLabel = (t: any): string => model.collected.keyOf(t as any) ?? labelOf(t);
+
+  const optionalBranches: string[] = [];
+  const walk = (t: any) => {
+    if (isOptional(t)) {
+      optionalBranches.push(getLabel(t.target));
+      walk(t.target);
+    } else if (isParallel(t)) {
+      t.targets.forEach(walk);
+    }
+  };
+  walk(declaration.target);
+
+  return { option: getLabel(declaration.target), optionalBranches };
 }
 
 const byOption = (left: LoadedRoute, right: LoadedRoute): number =>
@@ -41,7 +58,7 @@ function loadRouter(model: FlowModel, ref: FlowNodeRef): LoadedRouter {
   const meta = routerMetaOf(ref.use);
   if (meta === undefined) throw new ComponentError(`${ref.label} is not a @Router component`);
   const routes = meta.routes.map((declaration) => ({
-    option: optionOf(model, declaration),
+    ...optionOf(model, declaration),
     condition: renderPromptVariables(ref.name, declaration, meta.source, undefined),
   }));
   return {

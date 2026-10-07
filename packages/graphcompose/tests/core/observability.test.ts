@@ -7,8 +7,12 @@ import {
   type AppState,
   type ModelRequest,
   type ModelResponse,
-  type AgentContext, RouterContext, RagContext,
-  type AgentContextUpdate, RouterContextUpdate, RagContextUpdate,
+  type AgentContext,
+  RouterContext,
+  RagContext,
+  type AgentContextUpdate,
+  RouterContextUpdate,
+  RagContextUpdate,
   type OnAgentEnd,
   type OnAgentStart,
   type OnError,
@@ -38,8 +42,9 @@ import { answer, callTool, decide } from "../../src/testing/index.js";
 import { testConfig } from "../helpers.js";
 import { TestSettings } from "../fixtures/test-flow/star.js";
 
-
-class ToolInput { @Text() text!: string; }
+class ToolInput {
+  @Text() text!: string;
+}
 
 const hookEvents: string[] = [];
 let capturedState: AppState | null = null;
@@ -47,54 +52,115 @@ let capturedState: AppState | null = null;
 @Injectable()
 class GlobalObserver
   implements
-    OnWorkflowStart, OnWorkflowEnd,
-    OnAgentStart, OnAgentEnd,
-    OnRouterStart, OnRouterEnd,
-    OnToolStart, OnToolEnd,
-    OnModelStart, OnModelEnd,
-    OnRagStart, OnRagEnd,
+    OnWorkflowStart,
+    OnWorkflowEnd,
+    OnAgentStart,
+    OnAgentEnd,
+    OnRouterStart,
+    OnRouterEnd,
+    OnToolStart,
+    OnToolEnd,
+    OnModelStart,
+    OnModelEnd,
+    OnRagStart,
+    OnRagEnd,
     OnError
 {
-  async onWorkflowStart(state: AppState) { hookEvents.push("WorkflowStart"); capturedState = state; }
-  async onWorkflowEnd(res: any, state: AppState) { hookEvents.push("WorkflowEnd"); }
-  
-  async onAgentStart(ctx: AgentContext) { hookEvents.push(`AgentStart:${ctx.name}`); }
-  async onAgentEnd(ctx: AgentContextUpdate) { hookEvents.push(`AgentEnd:${ctx.name}`); }
-  
-  async onRouterStart(ctx: RouterContext) { hookEvents.push(`RouterStart:${ctx.name}`); }
-  async onRouterEnd(ctx: RouterContextUpdate) { hookEvents.push(`RouterEnd:${ctx.name}`); }
-  
-  async onToolStart(ctx: ToolContext) { hookEvents.push(`ToolStart:${ctx.toolName}`); }
-  async onToolEnd(ctx: ToolContextUpdate) { hookEvents.push(`ToolEnd:${ctx.toolName}`); }
-  
-  async onModelStart(req: ModelRequest) { hookEvents.push(`ModelStart:${req.callerName}`); }
-  async onModelEnd(res: ModelResponse) { hookEvents.push(`ModelEnd:${res.callerName}`); }
-  
-  async onRagStart(ctx: RagContext) { hookEvents.push(`RagStart:${ctx.name}`); }
-  async onRagEnd(ctx: RagContextUpdate) { hookEvents.push(`RagEnd:${ctx.name}`); }
-  async onError(err: Error, state: AppState) { hookEvents.push("Error"); }
+  async onWorkflowStart(state: AppState) {
+    hookEvents.push("WorkflowStart");
+    capturedState = state;
+  }
+  async onWorkflowEnd(res: any, state: AppState) {
+    hookEvents.push("WorkflowEnd");
+  }
+
+  async onAgentStart(ctx: AgentContext) {
+    hookEvents.push(`AgentStart:${ctx.name}`);
+  }
+  async onAgentEnd(ctx: AgentContextUpdate) {
+    hookEvents.push(`AgentEnd:${ctx.name}`);
+  }
+
+  async onRouterStart(ctx: RouterContext) {
+    hookEvents.push(`RouterStart:${ctx.name}`);
+  }
+  async onRouterEnd(ctx: RouterContextUpdate) {
+    hookEvents.push(`RouterEnd:${ctx.name}`);
+  }
+
+  async onToolStart(ctx: ToolContext) {
+    hookEvents.push(`ToolStart:${ctx.toolName}`);
+  }
+  async onToolEnd(ctx: ToolContextUpdate) {
+    hookEvents.push(`ToolEnd:${ctx.toolName}`);
+  }
+
+  async onModelStart(req: ModelRequest) {
+    hookEvents.push(`ModelStart:${req.callerName}`);
+  }
+  async onModelEnd(res: ModelResponse) {
+    hookEvents.push(`ModelEnd:${res.callerName}`);
+  }
+
+  async onRagStart(ctx: RagContext) {
+    hookEvents.push(`RagStart:${ctx.name}`);
+  }
+  async onRagEnd(ctx: RagContextUpdate) {
+    hookEvents.push(`RagEnd:${ctx.name}`);
+  }
+  async onError(err: Error, state: AppState) {
+    hookEvents.push("Error");
+  }
 }
 
-@Tool({ name: "ObsTool", description: "Does things", input: ToolInput, output: ToolInput, deps: [GlobalObserver] })
-class ObsTool { constructor(public obs: GlobalObserver) {}
+@Tool({
+  name: "ObsTool",
+  description: "Does things",
+  input: ToolInput,
+  output: ToolInput,
+  deps: [GlobalObserver],
+})
+class ObsTool {
+  constructor(public obs: GlobalObserver) {}
   async run(input: ToolInput) {
     return { text: "done" };
   }
 }
 
 @WorkflowStart({ name: "Start", input: WorkflowStartText })
-class ObsStart { constructor(public obs: GlobalObserver) {} }
+class ObsStart {
+  constructor(public obs: GlobalObserver) {}
+}
 
 @WorkflowFinish({ name: "ObsFinish", output: WorkflowFinishText })
 class ObsFinish {}
 
 @Rag({ name: "ObsRag", description: "test rag", topK: 5 })
-class ObsRag { async retrieve(): Promise<RagRetrieval> { return { results: [] }; } }
+class ObsRag {
+  async retrieve(): Promise<RagRetrieval> {
+    return { results: [] };
+  }
+}
 
-@Agent({ name: "ObsAgent", description: "test agent", model: "test", instructions: "You are testing.", tools: [ObsTool], rag: [{ use: ObsRag, mode: "context" }] })
+@Agent({
+  name: "ObsAgent",
+  description: "test agent",
+  model: "test",
+  instructions: "You are testing.",
+  tools: [ObsTool],
+  rag: [{ use: ObsRag, mode: "context" }],
+})
 class ObsAgent {}
 
-@Router({ name: "ObsRouter", prompt: "Decide.", maxVisits: 10, routes: [{ option: "ObsAgent", prompt: "go", target: ObsAgent }, { option: "ObsFinish", prompt: "stop", target: ObsFinish }] })
+@Router({
+  name: "ObsRouter",
+  prompt: "Decide.",
+  maxVisits: 10,
+  routes: [
+    { option: "ObsAgent", prompt: "go", target: ObsAgent },
+    { option: "ObsFinish", prompt: "stop", target: ObsFinish },
+  ],
+})
 class ObsRouter {}
 
 @Workflow({
@@ -102,31 +168,38 @@ class ObsRouter {}
   version: "1.0.0",
   defaults: testConfig.defaults,
   providers: [GlobalObserver],
-  flow: [from(ObsStart).next(ObsRouter), from(ObsRouter).routeOne(ObsAgent, ObsFinish), from(ObsAgent).next(ObsRouter)],
+  flow: [
+    from(ObsStart).next(ObsRouter),
+    from(ObsRouter).routeOne(ObsAgent, ObsFinish),
+    from(ObsAgent).next(ObsRouter),
+  ],
 })
 class ObsWorkflow extends TestSettings {}
 
 describe("Global Observability Hooks", () => {
   it("fires hooks in correct order and provides AppState", async () => {
-    
     hookEvents.length = 0; // reset
     capturedState = null;
 
     const book = new ScriptBook();
     book.scriptOf("router:ObsRouter").respond(decide(ObsAgent), decide(ObsFinish));
-    book.scriptOf("agent:ObsAgent").respond(callTool(ObsTool, { text: "hello" }), answer("Hello user!"));
+    book
+      .scriptOf("agent:ObsAgent")
+      .respond(callTool(ObsTool, { text: "hello" }), answer("Hello user!"));
 
     const { app, deps } = await buildApp(await workflowOf(ObsWorkflow), {
       gateway: createScriptedGateway(book),
     });
 
-            // Eagerly instantiate ObsTool to ensure GlobalObserver is in lifecycle.created
+    // Eagerly instantiate ObsTool to ensure GlobalObserver is in lifecycle.created
     deps.tools("ObsTool");
     book.scriptOf("router:ObsRouter").respond(decide(ObsAgent), decide(ObsFinish));
-    book.scriptOf("agent:ObsAgent").respond(callTool(ObsTool, { text: "hello" }), answer("Hello user!"));
+    book
+      .scriptOf("agent:ObsAgent")
+      .respond(callTool(ObsTool, { text: "hello" }), answer("Hello user!"));
     await app.execute(ObsStart, { text: "Hi" });
 
-        // Ensure all hook types fired
+    // Ensure all hook types fired
     expect(hookEvents).toContain("WorkflowStart");
     expect(hookEvents).toContain("WorkflowEnd");
     expect(hookEvents).toContain("RouterStart:ObsRouter");
@@ -142,7 +215,7 @@ describe("Global Observability Hooks", () => {
 
     expect(capturedState).not.toBeNull();
     expect(capturedState?.runId).toBeDefined();
-    
+
     await app.close();
   });
 });

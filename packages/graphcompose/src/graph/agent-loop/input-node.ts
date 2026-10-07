@@ -15,8 +15,20 @@ import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
 export function makeInputNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
   const { agent } = deps;
   return async (state, config) => {
-    const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name, variables: {}, history: [] }; // AppState stub
-    const knowledge = await gatherKnowledge(agent.knowledge, state.task, config, deps.observer, appState);
+    const appState = {
+      runId: state.runId,
+      threadId: state.runId,
+      activeNode: deps.agent.name,
+      variables: {},
+      history: [],
+    }; // AppState stub
+    const knowledge = await gatherKnowledge(
+      agent.knowledge,
+      state.task,
+      config,
+      deps.observer,
+      appState,
+    );
     const renderedInput = renderAgentInput(
       state.task,
       formatContributions(state.contributions),

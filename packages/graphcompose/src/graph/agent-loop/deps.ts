@@ -33,8 +33,16 @@ export interface AgentLoopDeps {
   readonly guardrails?: { override: boolean; instances: readonly any[]; disable: readonly any[] };
   readonly workflowPiiPolicies?: readonly any[];
   readonly workflowGuardrails?: readonly any[];
-  readonly toolPiiPolicies?: (tool: string) => { override: boolean; instances: readonly any[]; disable: readonly any[] };
-  readonly toolGuardrails?: (tool: string) => { override: boolean; instances: readonly any[]; disable: readonly any[] };
+  readonly toolPiiPolicies?: (tool: string) => {
+    override: boolean;
+    instances: readonly any[];
+    disable: readonly any[];
+  };
+  readonly toolGuardrails?: (tool: string) => {
+    override: boolean;
+    instances: readonly any[];
+    disable: readonly any[];
+  };
   readonly observer?: ObserverManager;
 }
 

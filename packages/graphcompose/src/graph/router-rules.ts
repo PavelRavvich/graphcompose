@@ -33,7 +33,7 @@ function textRules(router: FlowNodeRef, meta: RouterMeta): RuleViolation[] {
 function routeKey(flow: CollectedFlow, declaration: RouteDeclaration): string {
   if (isSelf(declaration.target)) return SELF_LABEL;
   if (isSkip(declaration.target)) return "Skip";
-  return flow.keyOf(declaration.target) ?? labelOf(declaration.target);
+  return flow.keyOf(declaration.target as any) ?? labelOf(declaration.target);
 }
 
 function chooseKeys(next: NextDeclaration | undefined): string[] {

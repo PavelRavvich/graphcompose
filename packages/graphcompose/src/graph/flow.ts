@@ -46,7 +46,37 @@ export const unwrapTarget = (target: ParallelTarget): FlowNode =>
 export interface SkipTarget {
   readonly kind: "skip";
 }
-export type ChoiceTarget = FlowNode | SelfTarget | SkipTarget;
+
+export interface ParallelGroup {
+  readonly kind: "parallel";
+  readonly targets: readonly ChoiceTarget[];
+}
+
+export interface OptionalTarget {
+  readonly kind: "optional";
+  readonly target: ChoiceTarget;
+}
+
+export function parallel(...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]): ParallelGroup {
+  // Validate no Self or Skip inside
+  for (const t of targets) {
+    if (isSelf(t) || isSkip(t)) {
+      throw new Error("Cannot use Self or Skip inside parallel()");
+    }
+  }
+  return { kind: "parallel", targets };
+}
+
+export function optional(target: ChoiceTarget): OptionalTarget {
+  return { kind: "optional", target };
+}
+
+export const isParallel = (t: any): t is ParallelGroup =>
+  typeof t === "object" && t !== null && t.kind === "parallel";
+export const isOptional = (t: any): t is OptionalTarget =>
+  typeof t === "object" && t !== null && t.kind === "optional";
+
+export type ChoiceTarget = FlowNode | SelfTarget | SkipTarget | ParallelGroup | OptionalTarget;
 
 /** `from(A, B).next(C)` — an unconditional step from every source. */
 export interface ToStep {
@@ -183,5 +213,7 @@ export function labelOf(target: ChoiceTarget): string {
   if (isSelf(target)) return "Self";
   if (isSkip(target)) return "Skip";
   if (isNamedNode(target)) return `node(${target.use.name}, "${target.name}")`;
+  if (isParallel(target)) return `parallel(${target.targets.map(labelOf).join(", ")})`;
+  if (isOptional(target)) return `optional(${labelOf(target.target)})`;
   return target.name || "(anonymous class)";
 }

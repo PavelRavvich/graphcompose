@@ -77,7 +77,10 @@ export function harness(
       bundle: "test-bundle",
       runBudgetCap: options.runBudgetCap ?? Number.POSITIVE_INFINITY,
       approval: options.approval === false ? undefined : pauseSeamApproval(),
-      judges: noJudges, guardrails: options.guardrails ? { override: false, instances: options.guardrails } : undefined,
+      judges: noJudges,
+      guardrails: options.guardrails
+        ? { override: false, instances: options.guardrails }
+        : undefined,
     },
     checkpointer,
   );
