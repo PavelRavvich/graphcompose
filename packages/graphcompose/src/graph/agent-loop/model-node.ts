@@ -1,3 +1,4 @@
+import { QuorumCancelledError, type BranchCancelToken } from "../../concurrency/quorum-manager.js";
 import { AIMessage, SystemMessage, type AIMessageChunk } from "@langchain/core/messages";
 import type { RunnableConfig } from "@langchain/core/runnables";
 import { recordUsage, totalCost } from "../../finops/usage.js";
@@ -71,6 +72,9 @@ function withCallIds(response: AIMessageChunk, state: AgentLoopStateType): AIMes
 export function makeModelNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
   const { name, limits, binding } = deps.agent;
   return async (state, config) => {
+    if (config?.configurable?.branchCancelToken?.cancelled) {
+      throw new QuorumCancelledError();
+    }
     if (isBudgetSpent(state, deps)) {
       return {
         reply: BUDGET_STOP_MESSAGE,

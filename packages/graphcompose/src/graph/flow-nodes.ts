@@ -38,6 +38,7 @@ export interface FlowNodeRef {
 /** A node's declared next step: one unconditional target, or a router's choice. */
 export type NextDeclaration =
   | { readonly kind: "to"; readonly targets: readonly string[] }
+  | { readonly kind: "join"; readonly target: string; readonly joinSources: string[] }
   | { readonly kind: "batchParallel"; readonly target: string; readonly extractor: (payload: any) => any[]; readonly options?: { concurrency?: number } }
   | {
       readonly kind: "choose";
@@ -161,12 +162,20 @@ function chooseTargets(targets: readonly ChoiceTarget[], resolve: Resolve): Next
 
 function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
   switch (step.kind) {
-    case "to": {
+case "to": {
       const sources = defined(step.from.map(resolve));
       const targets = defined(step.targets.map((t) => resolve(unwrapTarget(t))));
-      return targets.length === 0
-        ? []
-        : sources.map((from) => ({ from, next: { kind: "to", targets } }));
+      if (targets.length === 0) return [];
+      
+      if (sources.length > 1) {
+        // Standard join
+        return sources.map((from) => ({
+          from,
+          next: { kind: "join", target: targets[0]!, joinSources: sources }
+        }));
+      }
+
+      return sources.map((from) => ({ from, next: { kind: "to", targets } }));
     }
     case "choose": {
       const sources = defined(step.from.map(resolve));
@@ -182,19 +191,6 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
         : sources.map((from) => ({
             from,
             next: { kind: "batchParallel", options: step.options, target, extractor: step.extractor },
-          }));
-    }
-
-
- {
-      const sources = defined(step.from.map(resolve));
-      const target = resolve(step.target);
-      return target === undefined
-        ? []
-        : sources.map((from) => ({
-            from,
-
-            next: { kind: step.kind, target, joinSources: sources, count: (step as any).count },
           }));
     }
     case "chain":

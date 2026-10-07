@@ -1,3 +1,5 @@
+import type { QuorumContext } from "./visit.js";
+import { quorumRouterMetaOf } from "../concurrency/quorum.decorator.js";
 /* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable max-lines, max-lines-per-function */
@@ -27,6 +29,7 @@ export interface FlowRuntime {
   readonly spentToday: SpentToday;
   readonly checkpointer?: BaseCheckpointSaver;
   readonly observer?: import("../core/observer-manager.js").ObserverManager;
+  readonly quorumRouters?: (name: string) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
 }
 
 /** LangGraph's `recursionLimit` is a safety net far above the steps limit, never the limit a user sees. */
@@ -46,6 +49,25 @@ function runnerOf(
 ): { readonly runner: FlowNodeRunner; readonly maxVisits?: number } {
   const loaded = routers.get(node.key);
   if (node.kind !== "router" || loaded === undefined) return { runner: runtime.runnerFor(node) };
+  
+  const isQuorumRouter = Array.from(model.nodes.values()).some(n => n.key === node.key && quorumRouterMetaOf(n.use));
+  if (isQuorumRouter) {
+    return {
+      runner: async (state, config) => {
+        const strategy = runtime.quorumRouters?.(node.use.name);
+        if (!strategy) throw new Error("Missing QuorumStrategy in AppDeps for " + node.use.name);
+        
+        let isMet = false;
+        if (config?.configurable?.quorumManager) {
+          const manager = config.configurable.quorumManager as import("../concurrency/quorum-manager.js").QuorumManager;
+          isMet = manager.isQuorumMet(node.key);
+        }
+        
+        const target = await strategy.route(state, isMet);
+        return { next: typeof target === "string" ? target : target.name || target.kind };
+      }
+    };
+  }
   const finish = loaded.routes.find(
     (item) => model.nodes.get(item.option)?.kind === "workflow-finish",
   )?.option;
@@ -66,7 +88,7 @@ function runnerOf(
 function joinSourceKeys(model: FlowModel): ReadonlySet<string> {
   const keys = new Set<string>();
   for (const t of model.collected.transitions) {
-    if (t.next.kind === "join" || t.next.kind === "joinAny" || t.next.kind === "joinQuorum") {
+    if (t.next.kind === "join") {
       keys.add(t.from);
     }
   }
@@ -278,7 +300,7 @@ function compileJoinBarriers(builder: Builder, model: FlowModel) {
     }
   >();
   for (const t of model.collected.transitions) {
-    if (t.next.kind === "join" || t.next.kind === "joinAny" || t.next.kind === "joinQuorum") {
+    if (t.next.kind === "join") {
       const targetNode = nodeKeyed(model, t.next.target);
       if (!joins.has(targetNode.key)) {
         joins.set(targetNode.key, {
@@ -362,13 +384,30 @@ function compileFlow(
     const deps = {
       limits,
       spentToday: runtime.spentToday,
+      quorumRouters: runtime.quorumRouters,
       ...(maxVisits === undefined ? {} : { maxVisits }),
     };
-    builder.addNode(graphNodeId(node), visitNode(node, runner, deps));
+    
+    let quorumContext: QuorumContext | undefined;
+    const isQuorumTarget = model.collected.transitions.find(t => 
+      t.from === node.key && t.next && t.next.kind === "choose" && t.next.quorumRouter
+    );
+    if (isQuorumTarget && isQuorumTarget.next && isQuorumTarget.next.kind === "choose" && isQuorumTarget.next.quorumRouter) {
+      const meta = quorumRouterMetaOf(model.nodes.get(isQuorumTarget.next.quorumRouter!)!.use);
+      if (meta) {
+        quorumContext = {
+          quorumId: isQuorumTarget.next.quorumRouter!,
+          min: meta.min,
+          routerClass: isQuorumTarget.next.quorumRouter!
+        };
+      }
+    }
+
+    builder.addNode(graphNodeId(node), visitNode(node, runner, deps, quorumContext));
 
     const isBatchTarget = model.collected.transitions.some(t => t.next.kind === "batchParallel" && t.next.target === node.key);
     if (isBatchTarget) {
-      builder.addNode(`${graphNodeId(node)}_batch_clone`, visitNode(node, runner, deps));
+      builder.addNode(`${graphNodeId(node)}_batch_clone`, visitNode(node, runner, deps, quorumContext));
     }
   }
   startEdges(builder, model);

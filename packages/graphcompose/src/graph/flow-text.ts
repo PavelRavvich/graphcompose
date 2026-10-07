@@ -21,6 +21,7 @@ const KIND_TEXT: Readonly<Record<NodeKind, string>> = {
   agent: "",
   action: " (action)",
   router: "",
+  quorumRouter: "",
 };
 
 function nodeText(collected: CollectedFlow, target: FlowNode): string {

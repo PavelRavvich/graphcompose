@@ -88,6 +88,9 @@ export function flowRunners<TName extends string>(
 
   return (node) => {
     switch (node.kind) {
+      case "quorumRouter":
+      case "router":
+        return undefined as any;
       case "workflow-start":
         return inputGuards;
       case "action": {

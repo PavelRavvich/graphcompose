@@ -19,8 +19,6 @@ export const targetsOf = (transition: Transition): readonly string[] => {
       return transition.next.targets;
     case "batchParallel":
     case "join":
-    case "joinAny":
-    case "joinQuorum":
       return [transition.next.target];
   }
 };

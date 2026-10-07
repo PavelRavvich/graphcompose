@@ -2,7 +2,8 @@ import type { Class } from "../components/injection.js";
 import { componentOf } from "../components/metadata.js";
 
 /** What a flow node is. Agents and routers are working nodes: their visits are steps. */
-export type NodeKind = "workflow-start" | "router" | "agent" | "action" | "workflow-finish";
+export type NodeKind =
+  | "quorumRouter" | "workflow-start" | "router" | "agent" | "action" | "workflow-finish";
 
 /** What the flow knows about a node class: its kind and its name (the graph node's name). */
 export interface NodeInfo {
