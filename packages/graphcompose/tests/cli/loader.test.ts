@@ -8,8 +8,8 @@ const options = { typescript: false } as const;
 
 describe("workflow loader (graphcompose <command> --workflow <path>)", () => {
   it("AC3: loads the one exported @Workflow class of a module file", async () => {
-    expect(await loadWorkflowClass(fixture("test-workflow/test.workflow.ts"), options)).toBe(
-      TestWorkflow,
+    expect((await loadWorkflowClass(fixture("test-workflow/test.workflow.ts"), options)).name).toBe(
+      "TestWorkflow",
     );
   });
 

@@ -108,12 +108,12 @@ interface JoinStep {
   readonly target: FlowNode;
 }
 
-interface NextEachStep {
-  readonly kind: "nextEach";
+export interface BatchParallelStep {
+  readonly kind: "batchParallel";
   readonly from: readonly FlowNode[];
   readonly target: FlowNode;
-
   readonly extractor: (payload: any) => any[];
+  readonly options?: { concurrency?: number };
 }
 
 interface JoinAnyStep {
@@ -130,7 +130,7 @@ interface JoinQuorumStep {
 }
 
 export type FlowStep =
-  ToStep | ChooseStep | ChainStep | JoinStep | NextEachStep | JoinAnyStep | JoinQuorumStep;
+  ToStep | ChooseStep | ChainStep | JoinStep | BatchParallelStep | JoinAnyStep | JoinQuorumStep;
 
 /** The graph of a workflow: its transitions, in the workflow file. */
 export type Flow = readonly FlowStep[];
@@ -138,7 +138,8 @@ export type Flow = readonly FlowStep[];
 /** What `from(...)` returns: the step's kind is chosen next. */
 export interface FlowSource {
   readonly next: (target: FlowNode) => ToStep;
-  readonly nextParallel: (...args: any[]) => ToStep | NextEachStep; // Simplified for runtime AST
+  readonly fanOut: (...targets: readonly [FlowNode, ...FlowNode[]]) => ToStep;
+  readonly batchParallel: <T>(target: FlowNode, extractor: (payload: any) => T[], options?: { concurrency?: number }) => BatchParallelStep; // Simplified for runtime AST
   readonly routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
   readonly join: (target: FlowNode) => JoinStep;
   readonly joinAny: (target: FlowNode) => JoinAnyStep;
@@ -152,18 +153,8 @@ export const End: ChoiceTarget = Object.freeze({ kind: "end" });
 export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource {
   return {
     next: (target) => ({ kind: "to", from: sources, targets: [target] }),
-    nextParallel: (...args) => {
-      if (args.length === 2 && typeof args[1] === "function" && !nodeInfoOf(args[1])) {
-        return {
-          kind: "nextEach",
-          from: sources,
-          target: args[0] as FlowNode,
-
-          extractor: args[1],
-        };
-      }
-      return { kind: "to", from: sources, targets: args as ParallelTarget[] };
-    },
+    fanOut: (...targets) => ({ kind: "to", from: sources, targets }),
+    batchParallel: (target, extractor, options) => ({ kind: "batchParallel", from: sources, target, extractor, options }),
     routes: (...targets) => ({ kind: "choose", from: sources, targets }),
     join: (target) => ({ kind: "join", from: sources, target }),
     joinAny: (target) => ({ kind: "joinAny", from: sources, target }),

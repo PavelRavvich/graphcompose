@@ -1,0 +1,55 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { componentOf, workflowOf } from "../components/index.js";
+export class WorkflowLoadError extends Error {
+    name = "WorkflowLoadError";
+}
+let tsxRegistered = false;
+/** Workflows are TypeScript with decorators: Node's type stripping cannot run them, tsx can. */
+async function registerTypeScript() {
+    if (tsxRegistered)
+        return;
+    const { register } = await import("tsx/esm/api");
+    register();
+    tsxRegistered = true;
+}
+const isWorkflowClass = (value) => typeof value === "function" && componentOf(value)?.kind === "workflow";
+/** The one exported `@Workflow` class of a module file (`--workflow ./src/x.workflow.ts`). */
+export async function loadWorkflowClass(path, options = {}) {
+    const file = resolve(path);
+    if (!existsSync(file))
+        throw new WorkflowLoadError(`Workflow file not found: ${file}`);
+    if (options.typescript !== false)
+        await registerTypeScript();
+    const module = (await import(pathToFileURL(file).href));
+    const found = Object.values(module).filter(isWorkflowClass);
+    const [workflow] = found;
+    if (found.length !== 1 || workflow === undefined) {
+        throw new WorkflowLoadError(`${file}: expected exactly one exported @Workflow class, found ${String(found.length)}`);
+    }
+    return workflow;
+}
+/** Loads and assembles the workflow of a module file. */
+export const loadWorkflow = async (path) => workflowOf(await loadWorkflowClass(path));
+import { dirname, join } from "node:path";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function loadEnvironment(workflowPath, envId) {
+    if (envId === undefined)
+        return process.env;
+    const workflowDir = dirname(resolve(workflowPath));
+    const tsPath = join(workflowDir, "environments", `environment.${envId}.ts`);
+    const jsPath = join(workflowDir, "environments", `environment.${envId}.js`);
+    let envPath = tsPath;
+    if (!existsSync(envPath)) {
+        envPath = jsPath;
+        if (!existsSync(envPath))
+            throw new WorkflowLoadError(`Environment file not found: ${tsPath} or ${jsPath}`);
+    }
+    await registerTypeScript();
+    const module = (await import(pathToFileURL(envPath).href));
+    if (!("environment" in module)) {
+        throw new WorkflowLoadError(`Environment file ${envPath} must export 'environment'`);
+    }
+    return module.environment;
+}

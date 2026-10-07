@@ -72,7 +72,7 @@ export function addAgentToFlow(file: FileToWrite, agent: string, router: string)
   const source = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true);
   const calls = flowCalls(source);
   const choose = calls.find(
-    (c) => c.method === "routeOne" && names(c.sources, source).join() === router,
+    (c) => c.method === "routes" && names(c.sources, source).join() === router,
   );
   const back = calls.find(
     (c) =>

@@ -38,7 +38,7 @@ export interface FlowNodeRef {
 /** A node's declared next step: one unconditional target, or a router's choice. */
 export type NextDeclaration =
   | { readonly kind: "to"; readonly targets: readonly string[] }
-  | { readonly kind: "nextEach"; readonly target: string }
+  | { readonly kind: "batchParallel"; readonly target: string; readonly extractor: (payload: any) => any[]; readonly options?: { concurrency?: number } }
   | {
       readonly kind: "choose";
       readonly targets: readonly string[];
@@ -181,14 +181,14 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
       return sources.map((from) => ({ from, next }));
     }
 
-    case "nextEach": {
+    case "batchParallel": {
       const sources = defined(step.from.map(resolve));
       const target = resolve(step.target);
       return target === undefined
         ? []
         : sources.map((from) => ({
             from,
-            next: { kind: "nextEach", target, extractor: step.extractor },
+            next: { kind: "batchParallel", options: step.options, target, extractor: step.extractor },
           }));
     }
     case "joinAny":

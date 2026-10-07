@@ -53,7 +53,7 @@ const actionFlow: Flow = [
 ];
 
 const parallelFlow: Flow = [
-  from(TestChat).nextParallel(AlphaAgent, NotifyAction),
+  from(TestChat).fanOut(AlphaAgent, NotifyAction),
   from(AlphaAgent, NotifyAction).next(TestAnswer),
 ];
 

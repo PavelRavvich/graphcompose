@@ -125,6 +125,8 @@ const pathMap = (
     }),
   ]);
 
+
+
 function startEdges(builder: Builder, model: FlowModel): void {
   const starts = [...model.nodes.values()].filter((ref) => ref.kind === "workflow-start");
   const [only] = starts;
@@ -152,16 +154,16 @@ const afterStart =
   (state: FlowStateType): string =>
     state.guarded === "" ? target : END;
 
-function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void {
-  const next = model.next.get(node.key);
-  const id = graphNodeId(node);
-  if (node.kind === "workflow-finish" || (next === undefined && node.kind !== "agent")) {
+
+function wireEdgesForId(builder: Builder, model: FlowModel, node: FlowNodeRef, next: any, id: string): void {
+
+    if (node.kind === "workflow-finish" || (next === undefined && node.kind !== "agent")) {
     builder.addEdge(id, END);
     return;
   }
   if (!next) return;
   if (next.kind === "to") {
-    const targets = next.targets.map((t) => graphNodeId(nodeKeyed(model, t)));
+    const targets = next.targets.map((t: any) => graphNodeId(nodeKeyed(model, t)));
     if (node.kind === "workflow-start") {
       const singleTarget = targets.length === 1 && targets[0] !== undefined;
       builder.addConditionalEdges(
@@ -178,16 +180,52 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
     builder.addConditionalEdges(id, () => targets);
     return;
   }
-  if (next.kind === "nextEach") {
-    const targetId = graphNodeId(nodeKeyed(model, next.target));
-    builder.addConditionalEdges(id, (state) => {
-      // In a real implementation we would extract items from state payload here
-      // For now, we simulate map-reduce by sending 1 item to the target
-      // This allows the graph to compile correctly
-      return [new Send(targetId, state)];
+  
+  if (next.kind === "batchParallel") {
+    const targetNode = nodeKeyed(model, next.target);
+    const targetId = graphNodeId(targetNode);
+    const concurrency = next.options?.concurrency ?? 5;
+    const cloneId = `${targetId}_batch_clone`;
+    const managerId = `batch_manager.${targetId}.${node.key}`;
+    const loopId = `batch_loop.${targetId}.${node.key}`;
+
+    builder.addEdge(id, managerId);
+
+    builder.addNode(managerId, (state) => {
+      const existing = state._batchCursor?.[managerId];
+      if (existing) return {};
+      const items = next.extractor(state.payload);
+      return { _batchCursor: { [managerId]: { queue: items, offset: 0 } } };
     });
+
+    builder.addConditionalEdges(managerId, (state) => {
+      const cursor = state._batchCursor[managerId];
+      if (!cursor) return [END];
+      const batch = cursor.queue.slice(cursor.offset, cursor.offset + concurrency);
+      if (batch.length === 0) return [loopId];
+      return batch.map(item => new Send(cloneId, { ...state, batchItem: item }));
+    });
+
+    builder.addNode(loopId, (state) => {
+      const cursor = state._batchCursor[managerId];
+      return { _batchCursor: { [managerId]: { queue: cursor!.queue, offset: cursor!.offset + concurrency } } };
+    });
+
+    builder.addEdge(cloneId, loopId);
+
+    const finishId = `${targetId}_batch_finish`;
+    builder.addConditionalEdges(loopId, (state) => {
+      const cursor = state._batchCursor[managerId];
+      if (cursor && cursor.offset < cursor.queue.length) {
+        return managerId;
+      }
+      return finishId;
+    });
+
+    builder.addNode(finishId, () => ({}));
     return;
   }
+
   if (next.kind === "join" || next.kind === "joinAny" || next.kind === "joinQuorum") {
     const targetId = graphNodeId(nodeKeyed(model, next.target));
     const wrapperId = `join-wrap.${targetId}.${node.key}`;
@@ -216,8 +254,19 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
     pathMap(model, targets, parallels),
   );
   return;
+
 }
 
+function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void {
+  const next = model.next.get(node.key);
+  const id = graphNodeId(node);
+  wireEdgesForId(builder, model, node, next, id);
+
+  const isBatchTarget = model.collected.transitions.some(t => t.next.kind === "batchParallel" && t.next.target === node.key);
+  if (isBatchTarget) {
+    wireEdgesForId(builder, model, node, next, `${id}_batch_finish`);
+  }
+}
 function compileJoinBarriers(builder: Builder, model: FlowModel) {
   const joins = new Map<
     string,
@@ -316,6 +365,11 @@ function compileFlow(
       ...(maxVisits === undefined ? {} : { maxVisits }),
     };
     builder.addNode(graphNodeId(node), visitNode(node, runner, deps));
+
+    const isBatchTarget = model.collected.transitions.some(t => t.next.kind === "batchParallel" && t.next.target === node.key);
+    if (isBatchTarget) {
+      builder.addNode(`${graphNodeId(node)}_batch_clone`, visitNode(node, runner, deps));
+    }
   }
   startEdges(builder, model);
   for (const node of model.nodes.values()) nodeEdges(builder, model, node);

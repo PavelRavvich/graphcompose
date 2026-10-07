@@ -49,7 +49,10 @@ describe("AC1: assembly rules", () => {
       kind: "choose",
       targets: ["done"],
       self: false,
-      skip: false,
+      end: false,
+      return: false,
+      optionNames: ["done"],
+      parallelTargets: [],
     });
   });
 
@@ -128,7 +131,10 @@ describe("AC1: assembly rules", () => {
       kind: "choose",
       targets: ["done"],
       self: true,
-      skip: false,
+      end: false,
+      return: false,
+      optionNames: ["done"],
+      parallelTargets: [],
     });
   });
 

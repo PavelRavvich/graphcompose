@@ -142,6 +142,8 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     approvals: [],
     summaries: [],
     payload: {},
+    batchItem: undefined,
+    _batchCursor: {},
     ...overrides,
   };
 }

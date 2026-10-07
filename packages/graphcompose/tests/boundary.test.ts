@@ -54,9 +54,10 @@ describe("framework and examples apart (#91)", () => {
     const files = readdirSync(root, { recursive: true, encoding: "utf8" }).filter(
       (file) => !skip.test(file) && /\.(ts|js|cjs|mjs|json|md|ya?ml|sh)$|Makefile$/.test(file),
     );
-    const self = "packages/graphcompose/tests/boundary.test.ts"; // names the old name on purpose
+    const self = "packages/graphcompose/tests/boundary.test.ts";
+    const selfJs = "packages/graphcompose/tests/boundary.test.js"; // names the old name on purpose
     const left = files.filter(
-      (file) => file !== self && /graphinject/i.test(readFileSync(join(root, file), "utf8")),
+      (file) => file !== self && file !== selfJs && /graphinject/i.test(readFileSync(join(root, file), "utf8")),
     );
 
     expect(left).toEqual([]);

@@ -111,6 +111,8 @@ const freshState = (task: string, runId: string): FlowStateType => ({
   steps: 0,
   path: [],
   daySpentBeforeRunUsd: null,
+batchItem: undefined,
+_batchCursor: {},
 });
 
 export function agentSlice(built: BuiltApp, target: FlowNode): AgentSlice {

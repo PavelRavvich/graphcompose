@@ -16,7 +16,7 @@ import { MainRouter } from "./routers/main.router.js";
   // the graph: the text goes to the main router, which picks an agent or finishes the run
   flow: [
     from(TextWorkflowStart).next(MainRouter),
-    from(MainRouter).routeOne({{agents}}, TextWorkflowFinish),
+    from(MainRouter).routes({{agents}}, TextWorkflowFinish),
     from({{agents}}).next(MainRouter),
   ],
   defaults: {

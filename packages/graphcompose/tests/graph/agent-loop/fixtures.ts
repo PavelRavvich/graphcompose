@@ -111,6 +111,8 @@ const flowStateOf = (task: string): FlowStateType => ({
   daySpentBeforeRunUsd: null,
   forks: {},
   payload: {},
+batchItem: undefined,
+_batchCursor: {},
 });
 
 /** The loop's input for a task,
