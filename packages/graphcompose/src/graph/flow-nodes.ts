@@ -45,15 +45,8 @@ export type NextDeclaration =
       readonly parallelTargets: readonly { optionName: string; targets: string[] }[];
       readonly self: boolean;
       readonly skip: boolean;
+      readonly quorumRouter?: string;
     }
-  | { readonly kind: "join"; readonly target: string; readonly joinSources: readonly string[] }
-  | { readonly kind: "joinAny"; readonly target: string; readonly joinSources: readonly string[] }
-  | {
-      readonly kind: "joinQuorum";
-      readonly target: string;
-      readonly joinSources: readonly string[];
-      readonly count: number;
-    };
 
 /** A declared next step of one node (both ends are node keys). */
 export interface Transition {
@@ -191,9 +184,9 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
             next: { kind: "batchParallel", options: step.options, target, extractor: step.extractor },
           }));
     }
-    case "joinAny":
-    case "joinQuorum":
-    case "join": {
+
+
+ {
       const sources = defined(step.from.map(resolve));
       const target = resolve(step.target);
       return target === undefined

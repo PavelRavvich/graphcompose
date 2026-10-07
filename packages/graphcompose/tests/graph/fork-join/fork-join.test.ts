@@ -50,7 +50,7 @@ export class JoinNodeAgent implements JoinHandler<
     router: { kind: "llm", model: "stub" },
   },
   flow: [
-    from(StartNode).fanOut(BranchAAgent, BranchBAgent),
+    from(StartNode).nextParallel(BranchAAgent, BranchBAgent),
     from(BranchAAgent, BranchBAgent).join(JoinNodeAgent),
     from(JoinNodeAgent).next(FinishNode),
   ],

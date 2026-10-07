@@ -53,6 +53,7 @@ export interface EndTarget {
 export interface ParallelGroup {
   readonly kind: "parallel";
   readonly targets: readonly ChoiceTarget[];
+  readonly quorumRouter?: Class;
 }
 
 export interface OptionalTarget {
@@ -94,6 +95,7 @@ export interface ChooseStep {
   readonly kind: "choose";
   readonly from: readonly FlowNode[];
   readonly targets: readonly ChoiceTarget[];
+  readonly quorumRouter?: Class;
 }
 
 /** `chain(A, B, C)` = `from(A).next(B)` + `from(B).next(C)`; a router only as the last element. */
@@ -138,12 +140,14 @@ export type Flow = readonly FlowStep[];
 /** What `from(...)` returns: the step's kind is chosen next. */
 export interface FlowSource {
   readonly next: (target: FlowNode) => ToStep;
-  readonly fanOut: (...targets: readonly [FlowNode, ...FlowNode[]]) => ToStep;
+  readonly nextParallel: (...targets: readonly [FlowNode, ...FlowNode[]]) => ToStep;
+  readonly join: (target: FlowNode) => ToStep;
   readonly batchParallel: <T>(target: FlowNode, extractor: (payload: any) => T[], options?: { concurrency?: number }) => BatchParallelStep; // Simplified for runtime AST
   readonly routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
-  readonly join: (target: FlowNode) => JoinStep;
-  readonly joinAny: (target: FlowNode) => JoinAnyStep;
-  readonly joinQuorum: (count: number, target: FlowNode) => JoinQuorumStep;
+  readonly joinQuorum: (router: Class) => {
+    routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
+  };
+
 }
 
 /** Starts a transition from one or more nodes (several = fan-in). */
@@ -153,12 +157,18 @@ export const End: ChoiceTarget = Object.freeze({ kind: "end" });
 export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource {
   return {
     next: (target) => ({ kind: "to", from: sources, targets: [target] }),
-    fanOut: (...targets) => ({ kind: "to", from: sources, targets }),
+    nextParallel: (...targets) => ({ kind: "to", from: sources, targets }),
+    join: (target) => ({ kind: "to", from: sources, targets: [target] }),
     batchParallel: (target, extractor, options) => ({ kind: "batchParallel", from: sources, target, extractor, options }),
     routes: (...targets) => ({ kind: "choose", from: sources, targets }),
-    join: (target) => ({ kind: "join", from: sources, target }),
-    joinAny: (target) => ({ kind: "joinAny", from: sources, target }),
-    joinQuorum: (count, target) => ({ kind: "joinQuorum", from: sources, target, count }),
+    joinQuorum: (router) => ({
+      routes: (...targets) => ({
+        kind: "choose",
+        from: sources,
+        targets,
+        quorumRouter: router,
+      }),
+    }),
   };
 }
 
