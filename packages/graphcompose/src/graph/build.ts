@@ -64,7 +64,7 @@ function runnerOf(
         }
         
         const target = await strategy.route(state, isMet);
-        return { next: typeof target === "string" ? target : target.name || target.kind };
+        return { next: typeof target === "string" ? target : ("name" in target ? target.name : (target as any).kind) };
       }
     };
   }

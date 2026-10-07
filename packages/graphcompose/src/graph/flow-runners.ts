@@ -135,8 +135,6 @@ export function flowRunners<TName extends string>(
       }
       case "workflow-finish":
         return finishRunner(deps, node.name);
-      case "router":
-        throw new NotARunnerNodeError(`Router "${node.name}" is run by the flow engine`);
     }
   };
 }

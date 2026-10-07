@@ -18,7 +18,7 @@ export interface QuorumStrategy<T = any> {
    * @param isMet `true` if the required number of votes was reached, `false` otherwise.
    * @returns The class reference of the next step (e.g., an Agent, Router, Return, or End).
    */
-  route(state: T, isMet: boolean): Promise<any> | any;
+  route(state: T, isMet: boolean): Promise<import("../graph/flow.js").ChoiceTarget> | import("../graph/flow.js").ChoiceTarget;
 }
 
 export interface QuorumRouterOptions {

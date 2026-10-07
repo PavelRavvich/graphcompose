@@ -141,7 +141,7 @@ export type Flow = readonly FlowStep[];
 export interface FlowSource {
   readonly next: (target: FlowNode) => ToStep;
   readonly nextParallel: (...targets: readonly [FlowNode, ...FlowNode[]]) => ToStep;
-  readonly join: (target: FlowNode) => ToStep;
+  readonly join: (target: FlowNode) => JoinStep;
   readonly batchParallel: <T>(target: FlowNode, extractor: (payload: any) => T[], options?: { concurrency?: number }) => BatchParallelStep; // Simplified for runtime AST
   readonly routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
   readonly joinQuorum: (router: Class) => {
@@ -158,7 +158,7 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
   return {
     next: (target) => ({ kind: "to", from: sources, targets: [target] }),
     nextParallel: (...targets) => ({ kind: "to", from: sources, targets }),
-    join: (target) => ({ kind: "to", from: sources, targets: [target] }),
+    join: (target) => ({ kind: "join", from: sources, target }),
     batchParallel: (target, extractor, options) => ({ kind: "batchParallel", from: sources, target, extractor, options }),
     routes: (...targets) => ({ kind: "choose", from: sources, targets }),
     joinQuorum: (router) => ({

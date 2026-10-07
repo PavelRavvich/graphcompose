@@ -27,8 +27,8 @@ export interface AgentMeta {
   readonly temperature?: number;
   readonly maxTokens?: AgentSettings["maxTokens"];
   /** `{{key}}` in agent prompts is replaced with the value (assembly fails on unknown keys). */
-  readonly promptVars?: Readonly<Record<string, string>>;
-  readonly cache?: boolean;
+  readonly promptVariables?: Readonly<Record<string, string>>;
+    readonly cache?: boolean;
   readonly historyLimit?: number;
   readonly historySummaries?: number;
   /** Tool calls per call of the agent (`agents.<name>.limits.toolCalls`); default 20. */
@@ -72,8 +72,8 @@ export interface WorkflowMeta {
   readonly mcp?: readonly Class[];
   readonly providers?: readonly Provider[];
   readonly compactionPrompt?: string;
-  readonly promptVars?: Readonly<Record<string, string>>;
-  readonly channelClasses?: readonly Class[];
+  readonly promptVariables?: Readonly<Record<string, string>>;
+    readonly channelClasses?: readonly Class[];
 }
 
 /** `@Channel` — settings of a channel. */

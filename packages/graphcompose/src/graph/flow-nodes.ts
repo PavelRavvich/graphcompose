@@ -167,15 +167,16 @@ case "to": {
       const targets = defined(step.targets.map((t) => resolve(unwrapTarget(t))));
       if (targets.length === 0) return [];
       
-      if (sources.length > 1) {
-        // Standard join
-        return sources.map((from) => ({
-          from,
-          next: { kind: "join", target: targets[0]!, joinSources: sources }
-        }));
-      }
-
       return sources.map((from) => ({ from, next: { kind: "to", targets } }));
+    }
+    case "join": {
+      const sources = defined(step.from.map(resolve));
+      const target = resolve(unwrapTarget(step.target));
+      if (!target) return [];
+      return sources.map((from) => ({
+        from,
+        next: { kind: "join", target, joinSources: sources }
+      }));
     }
     case "choose": {
       const sources = defined(step.from.map(resolve));

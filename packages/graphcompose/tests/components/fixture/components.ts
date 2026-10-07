@@ -95,7 +95,7 @@ export class ReadFile implements ToolHandler<FileRead, FileContent> {
   thinking: "low",
   tools: [GreetTool, ReadFile],
   promptUrls: ["./greeter.prompt.md"],
-  promptVars: { language: "Hebrew" },
+  promptVariables: { language: "Hebrew" },
 })
 export class GreeterAgent {}
 
