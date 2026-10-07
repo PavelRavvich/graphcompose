@@ -120,7 +120,7 @@ export function flowRunners<TName extends string>(
             await deps.observer?.onAgentEnd({ name: node.name, update: result, state: appState });
             return result;
           } catch (e: any) {
-            if (e && e.name === "NodeInterrupt") throw e; // Let pauses bubble up
+            if (e && (e.name === "NodeInterrupt" || e.name === "GraphInterrupt")) throw e; // Let pauses bubble up
             if (state.optionalBranches?.includes(node.name)) {
               // Supress error for optional branches
               await deps.observer?.onError(e, appState);

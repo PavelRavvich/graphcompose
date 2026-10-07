@@ -24,6 +24,8 @@ export {
   type ToStep,
   background,
   bg,
+  parallel,
+  optional,
 } from "./flow.js";
 export { SELF_OPTION, type RouteDeclaration } from "./route.js";
 export { WorkflowStart, type WorkflowStartOptions } from "./workflow-start.decorator.js";

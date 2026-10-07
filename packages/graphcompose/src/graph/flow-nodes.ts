@@ -123,7 +123,8 @@ const defined = (names: readonly (string | undefined)[]): string[] =>
 
 function chooseTargets(targets: readonly ChoiceTarget[], resolve: Resolve): NextDeclaration {
   const nodesOnly: FlowNode[] = [];
-  const parallelTargets: { optionName: string; targets: string[] }[] = [];
+  const parallelTargets: { optionName: string, targets: string[] }[] = [];
+  const optionNames: string[] = [];
   let hasSelf = false;
   let hasSkip = false;
 
@@ -132,18 +133,21 @@ function chooseTargets(targets: readonly ChoiceTarget[], resolve: Resolve): Next
     else if (isSkip(t)) hasSkip = true;
     else if ((t as any).kind === "parallel") {
       const pTargets = (t as any).targets.map((inner: any) => {
-        if (isSelf(inner) || isSkip(inner) || inner.kind === "parallel")
-          throw new Error("Invalid parallel target");
+        if (isSelf(inner) || isSkip(inner) || inner.kind === "parallel") throw new Error("Invalid parallel target");
         let actual = inner;
         if (inner.kind === "optional") actual = inner.target;
         nodesOnly.push(actual as FlowNode);
         return resolve(actual as FlowNode);
       });
       parallelTargets.push({ optionName: labelOf(t), targets: defined(pTargets) });
-    } else if ((t as any).kind === "optional") {
+    }
+    else if ((t as any).kind === "optional") {
       extract((t as any).target);
-    } else {
+    }
+    else {
       nodesOnly.push(t as FlowNode);
+      const res = resolve(t as FlowNode);
+      if (res) optionNames.push(res);
     }
   };
 
@@ -153,9 +157,10 @@ function chooseTargets(targets: readonly ChoiceTarget[], resolve: Resolve): Next
     kind: "choose",
     targets: defined(nodesOnly.map(resolve)),
     parallelTargets,
+    optionNames,
     self: hasSelf,
     skip: hasSkip,
-  };
+  } as any;
 }
 
 function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {

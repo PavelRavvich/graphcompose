@@ -122,8 +122,7 @@ const pathMap = (
       if (key === "skip-wrap") return ["skip-wrap", "skip-wrap"];
       return [key, graphNodeId(nodeKeyed(model, key))];
     }),
-    ...parallels.map((p) => [p.optionName, p.targets.map((t) => graphNodeId(nodeKeyed(model, t)))]),
-  ]);
+    ]);
 
 function startEdges(builder: Builder, model: FlowModel): void {
   const starts = [...model.nodes.values()].filter((ref) => ref.kind === "workflow-start");
@@ -206,7 +205,9 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
       // If the router chose "skip", we map it to "skip-wrap"
       if (state.next === "Skip" || state.next === "skip") return "skip-wrap";
       const pMatch = parallels.find((p: any) => p.optionName === state.next);
-      if (pMatch) return pMatch.targets;
+      if (pMatch) {
+        return pMatch.targets.map((t: any) => new Send(graphNodeId(nodeKeyed(model, t)), state));
+      }
       return state.next;
     },
     pathMap(model, targets, parallels),

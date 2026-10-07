@@ -30,20 +30,24 @@ function textRules(router: FlowNodeRef, meta: RouterMeta): RuleViolation[] {
 }
 
 /** A route's key: the target node's key, `Self`, or the class label when it is not in the flow. */
+import { isOptional, isParallel } from "./flow.js";
 function routeKey(flow: CollectedFlow, declaration: RouteDeclaration): string {
   if (isSelf(declaration.target)) return SELF_LABEL;
   if (isSkip(declaration.target)) return "Skip";
+  if (isOptional(declaration.target) || isParallel(declaration.target)) return labelOf(declaration.target);
   return flow.keyOf(declaration.target as any) ?? labelOf(declaration.target);
 }
 
-function chooseKeys(next: NextDeclaration | undefined): string[] {
+function chooseKeys(next: NextDeclaration | undefined, flow: CollectedFlow, routerKey: string): string[] {
   if (next?.kind !== "choose") return [];
-  return [
-    ...next.targets,
-    ...(next.self ? [SELF_LABEL] : []),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    ...((next as any).skip ? ["Skip"] : []),
-  ];
+  const step = flow.transitions.find((transition) => transition.from === routerKey)?.next as any;
+  if (!step) return [];
+  const parallelNames = step.parallelTargets ? step.parallelTargets.map((p: any) => p.optionName) : [];
+  
+  // To get the non-parallel targets, we can look at step.targets, but they include the nodes inside parallel targets.
+  // Actually, let's just use the router meta! Wait, router-rules validates meta against choose.
+  // If we can't easily extract it from NextDeclaration, we can add `optionNames: string[]` to NextDeclaration in chooseTargets!
+  return [...(step.optionNames || step.targets), ...parallelNames, ...(step.self ? [SELF_LABEL] : []), ...(step.skip ? ["Skip"] : [])];
 }
 
 const chooseOf = (flow: CollectedFlow, routerKey: string): NextDeclaration | undefined =>
@@ -55,7 +59,7 @@ function routesMismatch(
   meta: RouterMeta,
 ): RuleViolation[] {
   const routes = new Set(meta.routes.map((declaration) => routeKey(flow, declaration)));
-  const chosen = new Set(chooseKeys(chooseOf(flow, router.key)));
+  const chosen = new Set(chooseKeys(chooseOf(flow, router.key), flow, router.key));
   const missingRoutes = [...chosen].filter((key) => !routes.has(key));
   const extraRoutes = [...routes].filter((key) => !chosen.has(key));
   if (missingRoutes.length === 0 && extraRoutes.length === 0) return [];
@@ -89,7 +93,7 @@ function selfWithoutAgent(
 ): RuleViolation[] {
   const usesSelf =
     meta.routes.some((declaration) => isSelf(declaration.target)) ||
-    chooseKeys(chooseOf(flow, router.key)).includes(SELF_LABEL);
+    chooseKeys(chooseOf(flow, router.key), flow, router.key).includes(SELF_LABEL);
   if (!usesSelf) return [];
   const before = predecessorsOf(flow, router.key);
   const notAgents = before.filter((ref) => ref.kind !== "agent").map((ref) => ref.label);
