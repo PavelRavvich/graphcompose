@@ -23,6 +23,8 @@ export interface WorkflowFixtures {
   readonly modelOf: (component: FlowNode) => ModelScript;
   /** A typed mock injected instead of a component; the same instance the app uses. */
   readonly mockOf: <T>(component: Class<T>) => Mocked<T>;
+  /** Mocks a nested workflow to prevent it from executing its subgraph. */
+  readonly mockWorkflow: (workflow: Class) => import("vitest").Mock;
   /** The stub of an MCP server: `mcpOf(ShortlistServer).respond({ write_file: … })`. */
   readonly mcpOf: <TServer extends McpServerClient<ServerTools>>(
     server: new () => TServer,
@@ -76,6 +78,9 @@ export function testWith(
     },
     modelOf: async ({ environment }, use) => {
       await use((component) => environment.modelOf(component));
+    },
+    mockWorkflow: async ({ environment }, use) => {
+      await use((workflow) => environment.mockWorkflow(workflow));
     },
     mockOf: async ({ environment }, use) => {
       await use((component) => environment.mockOf(component));

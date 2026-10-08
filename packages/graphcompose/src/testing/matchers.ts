@@ -3,6 +3,7 @@ import type { Class } from "../components/injection.js";
 import type { WorkflowFinishText } from "../dto/standard/framework.js";
 import { labelOf, type FlowNode } from "../graph/flow.js";
 import { failureFactsOf, nodeNameOf } from "./failure-facts.js";
+import { componentOf } from "../components/metadata.js";
 import { toolNameOf } from "./script.js";
 import { ComponentScript, type ModelRequest } from "./script-book.js";
 

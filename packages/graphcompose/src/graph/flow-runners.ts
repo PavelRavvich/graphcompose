@@ -124,6 +124,12 @@ export function flowRunners<TName extends string>(
 
           const meta = component.meta as WorkflowMeta;
           const WorkflowClass = node.use as new () => WorkflowDefinition;
+          const mock = deps.mockedWorkflows?.get(node.use);
+          if (mock) {
+            const mockResult = await mock(state, config);
+            await deps.observer?.onActionEnd({ name: node.name, update: mockResult || {}, state: appState });
+            return mockResult || {};
+          }
           const instance = new WorkflowClass();
           const localSettings = instance.settings ? instance.settings() : {};
 

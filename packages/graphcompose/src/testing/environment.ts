@@ -13,6 +13,7 @@ import { createSqliteTernStore } from "../terns/index.js";
 import { createTestClock } from "./clock.js";
 import { TestSetupError } from "./errors.js";
 import { nodeNameOf } from "./failure-facts.js";
+import { vi } from "vitest";
 import { McpStubs, stubbedMcpConnect, type McpStub } from "./mcp-stubs.js";
 import { mockInstanceOf } from "./mocks.js";
 import { ScriptBook, type ModelScript } from "./script-book.js";
@@ -62,6 +63,7 @@ export class TestEnvironment {
   readonly clock = createTestClock();
   readonly mcp = new McpStubs(this.book);
   readonly #mocks = new Map<Class, unknown>();
+  readonly #workflowMocks = new Map<Class, import("vitest").Mock>();
   readonly #apps: BuiltApp[] = [];
   readonly #nodes: ReadonlySet<FlowNode>;
   readonly #options: AppOptions;
@@ -125,6 +127,25 @@ export class TestEnvironment {
       );
     }
     return this.book.scriptOf(key);
+  }
+
+  mockWorkflow(cls: Class): import("vitest").Mock {
+    let mock = this.#workflowMocks.get(cls);
+    if (!mock) {
+      if (this.#apps.length > 0) {
+        throw new TestSetupError(
+          `mockWorkflow(${cls.name}) after the app started: call it before the first app.execute(…)`,
+        );
+      }
+      
+      mock = vi.fn();
+      this.#workflowMocks.set(cls, mock);
+    }
+    return mock;
+  }
+  
+  getMockedWorkflows() {
+    return this.#workflowMocks;
   }
 
   mockOf<T>(cls: Class<T>): Mocked<T> {
