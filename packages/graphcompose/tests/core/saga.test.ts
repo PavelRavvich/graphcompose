@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { Workflow, Agent, WorkflowAction } from "../../src/components/decorators.js";
-import { from } from "../../src/graph/flow.js";
+import { from, catchError } from "../../src/graph/flow.js";
 import { SagaOrchestrator } from "../../src/core/saga.js";
 import { testWith } from "../../src/testing/test-with.js";
 
@@ -34,7 +34,7 @@ class FailingAction {
   flow: [
      from(BookFlightAgent).next(BookHotelAction),
      from(BookHotelAction).next(FailingAction),
-     from(FailingAction).next(SagaOrchestrator),
+     catchError(FailingAction, Error).next(SagaOrchestrator),
      from(SagaOrchestrator)
         .next("end")
   ],
