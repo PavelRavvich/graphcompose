@@ -9,7 +9,8 @@ export const guardPrompts: Readonly<Record<string, GuardText>> = {
     pass: "An ordinary request.",
   },
   pii: {
-    question: "Does this replyWith reveal personal data of a real person (phone, email, address, ID)?",
+    question:
+      "Does this replyWith reveal personal data of a real person (phone, email, address, ID)?",
     flag: "Contains personal data of a real person.",
     pass: "Contains no personal data.",
   },

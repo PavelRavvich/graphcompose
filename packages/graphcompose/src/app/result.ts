@@ -12,7 +12,7 @@ const nodesOfStep = (step: FlowStep): readonly FlowNode[] => {
   switch (step.kind) {
     case "to":
       return [...step.from, ...step.targets.map(unwrapTarget)];
-    case "batchParallel":
+    case "mapEach":
       return [...step.from, step.target];
     case "choose":
       return [

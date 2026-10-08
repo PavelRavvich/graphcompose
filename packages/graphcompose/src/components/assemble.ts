@@ -270,7 +270,8 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     toolPiiPolicies: (services: any) => resolveComplexMap(toolPii, services),
     toolGuardrails: (services: any) => resolveComplexMap(toolGuardrails, services),
     workflowPiiPolicies: (services: any) => wfPii.map((c) => containerFor(bundle, services).get(c)),
-    workflowGuardrails: (services: any) => wfGuardrails.map((c) => containerFor(bundle, services).get(c)),
+    workflowGuardrails: (services: any) =>
+      wfGuardrails.map((c) => containerFor(bundle, services).get(c)),
     limits: settings.limits,
     models: settings.models,
     routers: graph.routers,

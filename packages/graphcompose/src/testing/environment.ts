@@ -137,13 +137,13 @@ export class TestEnvironment {
           `mockSubworkflow(${cls.name}) after the app started: call it before the first app.execute(…)`,
         );
       }
-      
+
       mock = vi.fn();
       this.#workflowMocks.set(cls, mock);
     }
     return mock;
   }
-  
+
   getMockedWorkflows() {
     return this.#workflowMocks;
   }

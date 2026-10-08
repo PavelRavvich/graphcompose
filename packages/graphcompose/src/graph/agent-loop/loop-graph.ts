@@ -28,7 +28,11 @@ function createLoopGraph(deps: AgentLoopDeps, checkpointer: BaseCheckpointSaver 
     .addNode(LOOP_NODE.replyWith, makeAnswerNode(deps))
     .addEdge(START, LOOP_NODE.input)
     .addEdge(LOOP_NODE.input, LOOP_NODE.model)
-    .addConditionalEdges(LOOP_NODE.model, afterModel, [LOOP_NODE.boundary, LOOP_NODE.replyWith, END])
+    .addConditionalEdges(LOOP_NODE.model, afterModel, [
+      LOOP_NODE.boundary,
+      LOOP_NODE.replyWith,
+      END,
+    ])
     .addConditionalEdges(LOOP_NODE.boundary, routeToActions(deps), ACTIONS)
     .addConditionalEdges(LOOP_NODE.approval, routeToActions(deps), ACTIONS)
     .addEdge(LOOP_NODE.tool, LOOP_NODE.collect)

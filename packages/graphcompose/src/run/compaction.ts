@@ -17,7 +17,8 @@ export interface Compacted {
 const asTurns = (terns: readonly Tern[]): string =>
   terns
     .map(
-      (t) => `Q: ${t.task}\nA: ${t.status === "answered" ? t.replyWith : `(${t.status}) ${t.replyWith}`}`,
+      (t) =>
+        `Q: ${t.task}\nA: ${t.status === "answered" ? t.replyWith : `(${t.status}) ${t.replyWith}`}`,
     )
     .join("\n\n");
 

@@ -35,7 +35,7 @@ export interface FlowRuntime {
   ) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
   readonly batchStrategies?: (
     name: string,
-  ) => import("../concurrency/batch.decorator.js").BatchParallelStrategy<any, any>;
+  ) => import("../concurrency/batch.decorator.js").MapEachStrategy<any, any>;
 }
 
 /** LangGraph's `recursionLimit` is a safety net far above the steps limit, never the limit a user sees. */
@@ -169,7 +169,7 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef, deps: 
   wireEdgesForId(builder, model, node, next, id, deps);
 
   const isBatchTarget = model.collected.transitions.some(
-    (t) => t.next.kind === "batchParallel" && t.next.target === node.key,
+    (t) => t.next.kind === "mapEach" && t.next.target === node.key,
   );
   if (isBatchTarget) {
     wireEdgesForId(builder, model, node, next, `${id}_batch_finish`, deps);
@@ -212,35 +212,35 @@ function wireEdgesForId(
   deps: any,
 ): void {
   const catches = model.catches.get(node.key) || [];
-  
+
   if (catches.length > 0) {
     // If we have catch blocks, we MUST use conditional edges
     builder.addConditionalEdges(id, (state: any) => {
       if (state.lastError) {
         for (const catchNode of catches) {
           if (state.lastError instanceof catchNode.errorType) {
-             return graphNodeId(nodeKeyed(model, catchNode.nextNode));
+            return graphNodeId(nodeKeyed(model, catchNode.nextNode));
           }
         }
         // Unhandled error
         throw state.lastError;
       }
-      
+
       // Happy path
       if (node.kind === "workflow-finish" || (next === undefined && node.kind !== "agent")) {
         return END;
       }
       if (!next) return END; // Agent without next implies END? wait, no.
-      
+
       if (next.kind === "to") {
-         const targets = next.targets.map((t: any) => graphNodeId(nodeKeyed(model, t)));
-         return targets;
+        const targets = next.targets.map((t: any) => graphNodeId(nodeKeyed(model, t)));
+        return targets;
       }
       if (next.kind === "choose") {
-         return state.route;
+        return state.route;
       }
-      if (next.kind === "join" || next.kind === "batchParallel") {
-         return graphNodeId(nodeKeyed(model, next.target));
+      if (next.kind === "join" || next.kind === "mapEach") {
+        return graphNodeId(nodeKeyed(model, next.target));
       }
       return END;
     });
@@ -268,7 +268,7 @@ function wireEdgesForId(
     }
   } else if (next.kind === "choose") {
     builder.addConditionalEdges(id, (state) => state.route);
-  } else if (next.kind === "join" || next.kind === "batchParallel") {
+  } else if (next.kind === "join" || next.kind === "mapEach") {
     builder.addEdge(id, graphNodeId(nodeKeyed(model, next.target)));
   }
 }
@@ -408,7 +408,7 @@ function compileFlow(
     builder.addNode(graphNodeId(node), visitNode(node, runner, visitDeps, quorumContext));
 
     const isBatchTarget = model.collected.transitions.some(
-      (t) => t.next.kind === "batchParallel" && t.next.target === node.key,
+      (t) => t.next.kind === "mapEach" && t.next.target === node.key,
     );
     if (isBatchTarget) {
       builder.addNode(

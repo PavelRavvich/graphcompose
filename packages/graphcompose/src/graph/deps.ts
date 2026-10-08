@@ -63,7 +63,10 @@ export interface GraphDeps<TName extends string> {
   readonly quorumRouters?: (
     name: string,
   ) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
-  readonly mockedWorkflows?: ReadonlyMap<import("../components/injection.js").Class, (...args: any[]) => any>;
+  readonly mockedWorkflows?: ReadonlyMap<
+    import("../components/injection.js").Class,
+    (...args: any[]) => any
+  >;
   readonly batchStrategies?: (
     name: string,
   ) => import("../concurrency/batch.decorator.js").BatchParallelStrategy<any, any>;

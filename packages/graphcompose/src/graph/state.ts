@@ -48,7 +48,7 @@ export const AgentState = Annotation.Root({
   guarded: Annotation<string>({ reducer: (_previous, next) => next, default: () => "" }),
   /** Custom developer KV data aggregated across workflow. */
   payload: Annotation<Record<string, unknown>>({ reducer: mergeRecords, default: () => ({}) }),
-  /** System cursor for batchParallel loop elements. */
+  /** System cursor for mapEach loop elements. */
   batchItem: Annotation<unknown>({ reducer: (p, n) => n }),
   _batchCursor: Annotation<Record<string, { queue: unknown[]; offset: number }>>({
     reducer: mergeRecords,
@@ -67,7 +67,7 @@ export type AgentState<Payload = Record<string, unknown>> = Omit<
   batchItem?: unknown;
 };
 
-/** Strongly typed state for an agent executing inside a batchParallel loop. */
+/** Strongly typed state for an agent executing inside a mapEach loop. */
 export type BatchAgentState<Payload = Record<string, unknown>, Item = unknown> = Omit<
   AgentStateType,
   "payload" | "batchItem"

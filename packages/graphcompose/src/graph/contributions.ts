@@ -36,7 +36,8 @@ export function formatHistory(history: readonly HistoryTurn[], limit: number): s
   const turns = limit > 0 ? history.slice(-limit) : [];
   if (turns.length === 0) return "";
   const lines = turns.map((turn) => {
-    const replyWith = turn.status === "answered" ? turn.replyWith : `(${turn.status}) ${turn.replyWith}`;
+    const replyWith =
+      turn.status === "answered" ? turn.replyWith : `(${turn.status}) ${turn.replyWith}`;
     return `Q: ${turn.task}\nA: ${replyWith}`;
   });
   return `Previous turns:\n${lines.join("\n\n")}\n\n`;

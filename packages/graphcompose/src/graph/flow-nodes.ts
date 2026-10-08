@@ -42,7 +42,7 @@ export type NextDeclaration =
   | { readonly kind: "catch"; readonly errorType: Class; readonly nextNode: string }
   | { readonly kind: "join"; readonly target: string; readonly joinSources: string[] }
   | {
-      readonly kind: "batchParallel";
+      readonly kind: "mapEach";
       readonly target: string;
       readonly strategy: Class;
       readonly options?: { concurrency?: number };
@@ -108,13 +108,19 @@ function createResolver() {
     }
     owners.set(key, target);
     nodes.set(key, { key, name, kind: info.kind, use, label: labelOf(target) });
-    
+
     // Also register the compensation component so it's discovered by the container and agent builder
     const compMeta = componentOf(use);
-    if (compMeta && 'meta' in compMeta && compMeta.meta && 'compensate' in compMeta.meta && compMeta.meta.compensate) {
-       resolve(compMeta.meta.compensate as Class);
+    if (
+      compMeta &&
+      "meta" in compMeta &&
+      compMeta.meta &&
+      "compensate" in compMeta.meta &&
+      compMeta.meta.compensate
+    ) {
+      resolve(compMeta.meta.compensate as Class);
     }
-    
+
     return key;
   };
 
@@ -213,14 +219,14 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
       return sources.map((from) => ({ from, next }));
     }
 
-    case "batchParallel": {
+    case "mapEach": {
       const sources = defined(step.from.map(resolve));
       const target = resolve(step.target);
       return target === undefined
         ? []
         : sources.map((from) => ({
             from,
-            next: { kind: "batchParallel", options: step.options, target, strategy: step.strategy },
+            next: { kind: "mapEach", options: step.options, target, strategy: step.strategy },
           }));
     }
     case "chain":
