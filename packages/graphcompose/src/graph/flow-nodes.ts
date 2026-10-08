@@ -1,6 +1,7 @@
 /* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import type { Class } from "../components/injection.js";
+import { componentOf } from "../components/metadata.js";
 import {
   isNamedNode,
   isSelf,
@@ -107,6 +108,13 @@ function createResolver() {
     }
     owners.set(key, target);
     nodes.set(key, { key, name, kind: info.kind, use, label: labelOf(target) });
+    
+    // Also register the compensation component so it's discovered by the container and agent builder
+    const compMeta = componentOf(use);
+    if (compMeta && 'meta' in compMeta && compMeta.meta && 'compensate' in compMeta.meta && compMeta.meta.compensate) {
+       resolve(compMeta.meta.compensate as Class);
+    }
+    
     return key;
   };
 
