@@ -219,10 +219,7 @@ function wireEdgesForId(
     builder.addConditionalEdges(id, (state: any) => {
       if (state.lastError) {
         for (const catchNode of catches) {
-          if (
-            catchNode.kind === "catch" &&
-            (catchNode.errorType === "any" || state.lastError instanceof catchNode.errorType)
-          ) {
+          if (catchNode.kind === "catch" && state.lastError instanceof catchNode.errorType) {
             return graphNodeId(nodeKeyed(model, catchNode.nextNode));
           }
         }

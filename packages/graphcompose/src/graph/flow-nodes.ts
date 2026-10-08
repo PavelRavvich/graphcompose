@@ -39,7 +39,7 @@ export interface FlowNodeRef {
 /** A node's declared next step: one unconditional target, or a router's choice. */
 export type NextDeclaration =
   | { readonly kind: "to"; readonly targets: readonly string[] }
-  | { readonly kind: "catch"; readonly errorType: Class | "any"; readonly nextNode: string }
+  | { readonly kind: "catch"; readonly errorType: Class; readonly nextNode: string }
   | { readonly kind: "join"; readonly target: string; readonly joinSources: string[] }
   | {
       readonly kind: "batchParallel";

@@ -95,7 +95,7 @@ export interface ToStep {
 export interface CatchStep {
   readonly kind: "catch";
   readonly target: FlowNode;
-  readonly errorType: Class | "any";
+  readonly errorType: Class;
   readonly nextNode: FlowNode;
 }
 
@@ -240,7 +240,7 @@ export function labelOf(target: ChoiceTarget): string {
 
 export function catchError(
   target: FlowNode,
-  errorType: Class | "any" = "any",
+  errorType: Class = Error,
 ): { next: (nextNode: FlowNode) => CatchStep } {
   return {
     next: (nextNode) => ({
