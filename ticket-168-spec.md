@@ -25,7 +25,7 @@ Based on discussions, we are migrating from the strict, single-line `fork(...).j
 #### Out of Scope for this Ticket (Future Stages)
 
 - `choose` with multiple active targets (e.g., `together(A, B)`) -> Stage 2.
-- Dynamic runtime scatter-gather (`mapEach` / invoking the same agent N times) -> Stage 3 (Issue #162).
+- Dynamic runtime scatter-gather (`batchParallel` / invoking the same agent N times) -> Stage 3 (Issue #162).
 - Advanced join policies (`quorum`, `first`) and manual path cancellation.
 
 This covers all Acceptance Criteria of #168 in a scalable way that supports future distributed/remote execution patterns.

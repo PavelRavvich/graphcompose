@@ -42,10 +42,10 @@ export type NextDeclaration =
   | { readonly kind: "catch"; readonly errorType: Class | "any"; readonly nextNode: string }
   | { readonly kind: "join"; readonly target: string; readonly joinSources: string[] }
   | {
-      readonly kind: "mapEach";
+      readonly kind: "batchParallel";
       readonly target: string;
       readonly strategy: Class;
-      readonly options: { concurrencyLimit: number };
+      readonly options: { concurrencyLimit: number; batchSize: number };
     }
   | {
       readonly kind: "choose";
@@ -219,14 +219,15 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
       return sources.map((from) => ({ from, next }));
     }
 
-    case "mapEach": {
+    case "batchParallel": {
+      console.log("batchParallel step:", step);
       const sources = defined(step.from.map(resolve));
       const target = resolve(step.target);
       return target === undefined
         ? []
         : sources.map((from) => ({
             from,
-            next: { kind: "mapEach", options: step.options, target, strategy: step.strategy },
+            next: { kind: "batchParallel", options: step.options, target, strategy: step.strategy },
           }));
     }
     case "chain":

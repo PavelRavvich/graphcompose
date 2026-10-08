@@ -17,7 +17,7 @@ export const targetsOf = (transition: Transition): readonly string[] => {
     case "to":
     case "choose":
       return transition.next.targets;
-    case "mapEach":
+    case "batchParallel":
     case "join":
     case "catch":
       return transition.next.kind === "catch"

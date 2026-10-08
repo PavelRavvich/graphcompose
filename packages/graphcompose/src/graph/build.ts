@@ -36,7 +36,7 @@ export interface FlowRuntime {
   ) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
   readonly batchStrategies?: (
     name: string,
-  ) => import("../concurrency/batch.decorator.js").MapEachStrategy<any, any>;
+  ) => import("../concurrency/batch.decorator.js").BatchParallelStrategy<any, any>;
 }
 
 /** LangGraph's `recursionLimit` is a safety net far above the steps limit, never the limit a user sees. */
@@ -170,7 +170,7 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef, deps: 
   wireEdgesForId(builder, model, node, next, id, deps);
 
   const isBatchTarget = model.collected.transitions.some(
-    (t) => t.next.kind === "mapEach" && t.next.target === node.key,
+    (t) => t.next.kind === "batchParallel" && t.next.target === node.key,
   );
   if (isBatchTarget) {
     wireEdgesForId(builder, model, node, next, `${id}_batch_finish`, deps);
@@ -243,7 +243,7 @@ function wireEdgesForId(
       if (next.kind === "choose") {
         return state.next;
       }
-      if (next.kind === "join" || next.kind === "mapEach") {
+      if (next.kind === "join" || next.kind === "batchParallel") {
         return graphNodeId(nodeKeyed(model, next.target));
       }
       return END;
@@ -274,7 +274,7 @@ function wireEdgesForId(
     builder.addConditionalEdges(id, (state: any) => state.next);
   } else if (next.kind === "join") {
     builder.addEdge(id, graphNodeId(nodeKeyed(model, next.target)));
-  } else if (next.kind === "mapEach") {
+  } else if (next.kind === "batchParallel") {
     builder.addEdge(id, `__mapeach_${node.key}_to_${next.target}`);
   }
 }
@@ -414,7 +414,7 @@ function compileFlow(
     builder.addNode(graphNodeId(node), visitNode(node, runner, visitDeps, quorumContext));
 
     const isBatchTarget = model.collected.transitions.some(
-      (t) => t.next.kind === "mapEach" && t.next.target === node.key,
+      (t) => t.next.kind === "batchParallel" && t.next.target === node.key,
     );
     if (isBatchTarget) {
       builder.addNode(
@@ -426,7 +426,7 @@ function compileFlow(
   startEdges(builder, model, sharedDeps);
   for (const node of model.nodes.values()) nodeEdges(builder, model, node, sharedDeps);
   compileJoinBarriers(builder, model);
-  compileMapEachLoops(builder, model, sharedDeps);
+  compileBatchParallelLoops(builder, model, sharedDeps);
   const recursionLimit = (limits.steps + model.nodes.size) * RECURSION_SAFETY_FACTOR;
   const compiled = builder.compile(
     runtime.checkpointer === undefined ? {} : { checkpointer: runtime.checkpointer },
@@ -457,13 +457,13 @@ export async function assembleFlowGraph(flow: Flow, runtime: FlowRuntime): Promi
   return { graph, model, limits, recursionLimit };
 }
 
-function compileMapEachLoops(builder: Builder, model: FlowModel, deps: any) {
-  const mapEachTransitions = model.collected.transitions.filter(
-    (t) => t.next && t.next.kind === "mapEach",
+function compileBatchParallelLoops(builder: Builder, model: FlowModel, deps: any) {
+  const batchParallelTransitions = model.collected.transitions.filter(
+    (t) => t.next && t.next.kind === "batchParallel",
   );
 
-  for (const t of mapEachTransitions) {
-    if (!t.next || t.next.kind !== "mapEach") continue;
+  for (const t of batchParallelTransitions) {
+    if (!t.next || t.next.kind !== "batchParallel") continue;
 
     const next = t.next;
     const sourceNodeKey = t.from;
@@ -481,8 +481,13 @@ function compileMapEachLoops(builder: Builder, model: FlowModel, deps: any) {
       }
 
       const limit = next.options.concurrencyLimit;
-      const activeBatch = queue.slice(0, limit);
-      const newQueue = queue.slice(limit);
+      const batchSize = next.options.batchSize;
+      const activeBatch = [];
+      let newQueue = queue;
+      for (let i = 0; i < limit && newQueue.length > 0; i++) {
+        activeBatch.push(newQueue.slice(0, batchSize));
+        newQueue = newQueue.slice(batchSize);
+      }
 
       return {
         _batchCursor: {

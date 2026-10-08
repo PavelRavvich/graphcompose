@@ -121,12 +121,12 @@ interface JoinStep {
   readonly target: FlowNode;
 }
 
-export interface MapEachStep {
-  readonly kind: "mapEach";
+export interface BatchParallelStep {
+  readonly kind: "batchParallel";
   readonly from: readonly FlowNode[];
   readonly target: FlowNode;
   readonly strategy: Class;
-  readonly options: { concurrencyLimit: number };
+  readonly options: { concurrencyLimit: number; batchSize: number };
 }
 
 interface JoinAnyStep {
@@ -148,7 +148,7 @@ export type FlowStep =
   | CatchStep
   | ChainStep
   | JoinStep
-  | MapEachStep
+  | BatchParallelStep
   | JoinAnyStep
   | JoinQuorumStep;
 
@@ -160,11 +160,11 @@ export interface FlowSource {
   readonly next: (target: FlowNode) => ToStep;
   readonly nextParallel: (...targets: readonly [FlowNode, ...FlowNode[]]) => ToStep;
   readonly join: (target: FlowNode) => JoinStep;
-  readonly mapEach: (
+  readonly batchParallel: (
     target: FlowNode,
     strategy: Class,
-    options: { concurrencyLimit: number },
-  ) => MapEachStep; // Simplified for runtime AST
+    options: { concurrencyLimit: number; batchSize: number },
+  ) => BatchParallelStep; // Simplified for runtime AST
   readonly routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
   readonly joinQuorum: (
     router: Class,
@@ -183,8 +183,8 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
     next: (target) => ({ kind: "to", from: sources, targets: [target] }),
     nextParallel: (...targets) => ({ kind: "to", from: sources, targets }),
     join: (target) => ({ kind: "join", from: sources, target }),
-    mapEach: (target, strategy, options) => ({
-      kind: "mapEach",
+    batchParallel: (target, strategy, options) => ({
+      kind: "batchParallel",
       from: sources,
       target,
       strategy,

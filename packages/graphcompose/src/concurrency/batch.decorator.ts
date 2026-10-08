@@ -1,24 +1,24 @@
 import type { Class } from "../components/injection.js";
 
-export interface MapEachStrategyOptions {
+export interface BatchParallelStrategyOptions {
   name?: string;
 }
 
-export interface MapEachStrategyMeta extends MapEachStrategyOptions {
+export interface BatchParallelStrategyMeta extends BatchParallelStrategyOptions {
   name: string;
 }
 
-const mapEachStrategies = new WeakMap<Class, MapEachStrategyMeta>();
+const batchParallelStrategies = new WeakMap<Class, BatchParallelStrategyMeta>();
 
-export function MapEachStrategy(options?: MapEachStrategyOptions) {
+export function BatchParallelStrategy(options?: BatchParallelStrategyOptions) {
   return function (target: Class) {
-    mapEachStrategies.set(target, { name: options?.name ?? target.name, ...options });
+    batchParallelStrategies.set(target, { name: options?.name ?? target.name, ...options });
   };
 }
 
-export const mapEachStrategyMetaOf = (target: Class): MapEachStrategyMeta | undefined =>
-  mapEachStrategies.get(target);
+export const batchParallelStrategyMetaOf = (target: Class): BatchParallelStrategyMeta | undefined =>
+  batchParallelStrategies.get(target);
 
-export interface MapEachStrategy<TState, TItem> {
+export interface BatchParallelStrategy<TState, TItem> {
   extract(state: TState): TItem[];
 }

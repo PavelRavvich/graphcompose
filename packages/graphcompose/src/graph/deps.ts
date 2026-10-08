@@ -69,5 +69,5 @@ export interface GraphDeps<TName extends string> {
   >;
   readonly batchStrategies?: (
     name: string,
-  ) => import("../concurrency/batch.decorator.js").MapEachStrategy<any, any>;
+  ) => import("../concurrency/batch.decorator.js").BatchParallelStrategy<any, any>;
 }
