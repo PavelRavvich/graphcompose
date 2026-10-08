@@ -18,7 +18,7 @@ export interface WorkflowFixtures {
    * the same test state (checkpoints, ledger, clock, ids) — "a paused run survives a restart".
    * The closed app fails every call with `test.app-closed`.
    */
-  readonly restartApp: () => Promise<TestApp>;
+  readonly recoverApp: () => Promise<TestApp>;
   /** The script of an agent or a router (by class): `modelOf(Scout).respond(answer("…"))`. */
   readonly modelOf: (component: FlowNode) => ModelScript;
   /** A typed mock injected instead of a component; the same instance the app uses. */
@@ -68,7 +68,7 @@ export function testWith(
     app: async ({ environment }, use) => {
       await use(createTestApp(environment));
     },
-    restartApp: async ({ environment, app }, use) => {
+    recoverApp: async ({ environment, app }, use) => {
       let current = app;
       await use(async () => {
         await current.close();

@@ -18,7 +18,7 @@ import {
  * The app of a test: the same `run` / `resume` as in production, built on first use (so `mockOf`
  * in the test body still takes effect), plus the test's clock and slices of single components.
  * A blocked live call or a script problem fails the call, even when the run swallowed it; any call
- * after `close()` (or `restartApp()`) fails with `test.app-closed`.
+ * after `close()` (or `recoverApp()`) fails with `test.app-closed`.
  */
 export interface TestApp extends Pick<App, "execute" | "resume" | "close"> {
   readonly clock: TestClock;
@@ -45,7 +45,7 @@ export function createTestApp(environment: TestEnvironment): TestApp {
   let closed = false;
   const built = (): Promise<BuiltApp> => {
     if (closed) {
-      const message = "this app is closed — after restartApp() use the app it returned";
+      const message = "this app is closed — after recoverApp() use the app it returned";
       return Promise.reject(new TestFailure("test.app-closed", message));
     }
     return (building ??= environment.newApp());
