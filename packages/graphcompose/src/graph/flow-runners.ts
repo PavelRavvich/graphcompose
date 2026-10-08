@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
+import type { Class } from "../components/injection.js";
+
 
 import { agentDefinitions } from "./agent-definitions.js";
 import {
@@ -16,6 +18,8 @@ import type { FlowNodeRunner } from "./visit.js";
 import type { MultimodalFinishOutput } from "../app/types.js";
 
 import { componentOf } from "../components/metadata.js";
+import { collectFlow } from "./flow-nodes.js";
+import { collectFlow } from "./flow-nodes.js";
 import type { WorkflowMeta } from "../components/meta-types.js";
 import type { WorkflowDefinition } from "./settings.js";
 
@@ -104,8 +108,45 @@ export function flowRunners<TName extends string>(
         const action = deps.actions(node.name);
         if (!action) throw new UnknownActionError(`Unknown action: ${node.name}`);
         return async (state, config) => {
-          const context = { runId: config?.configurable?.runId ?? "", signal: config?.signal };
-          const appState = { runId: config?.configurable?.runId ?? "", activeNode: node.name };
+          const runId = config?.configurable?.runId ?? "";
+          
+          const getComponentClass = (nodeName: string) => {
+            const collected = collectFlow(deps.flow);
+            return collected.nodes.get(nodeName)?.use;
+          };
+
+          const runCompensation = async (compClass: Class, childState: any) => {
+            const comp = componentOf(compClass);
+            if (!comp) throw new Error(`Component not found for compensation class`);
+            
+            if (comp.kind === "action") {
+               if (!deps.actions) throw new Error("Actions not wired");
+               const act = deps.actions(comp.meta.name);
+               const ctx = { runId, signal: config?.signal, getComponentClass, runCompensation };
+               return await act.execute(childState, ctx);
+            }
+            if (comp.kind === "agent") {
+               const loop = loops.get(comp.meta.name);
+               if (!loop) throw new Error(`Agent loop not found for ${comp.meta.name}`);
+               const runner = agentRunner(loop, comp.meta.name);
+               return await runner(childState, config);
+            }
+            if (comp.kind === "workflow") {
+               const { flowGraphOf } = await import("./flow-runtime.js");
+               const flowReal = await flowGraphOf(deps, run);
+               return await flowReal.graph.invoke(childState, { configurable: { runId, thread_id: runId } });
+            }
+            throw new Error(`Unsupported compensation kind: ${comp.kind}`);
+          };
+
+          const context = { 
+            runId, 
+            signal: config?.signal,
+            getComponentClass,
+            runCompensation
+          };
+
+          const appState = { runId, activeNode: node.name };
           await deps.observer?.onActionStart({ name: node.name, input: state, state: appState });
           const result = await action.execute(state, context);
           await deps.observer?.onActionEnd({ name: node.name, update: result, state: appState });

@@ -148,6 +148,8 @@ export function Workflow(options: WorkflowMeta) {
 export interface WorkflowActionContext {
   readonly runId: string;
   readonly signal?: AbortSignal;
+  readonly getComponentClass?: (nodeName: string) => Class | undefined | Promise<Class | undefined>;
+  readonly runCompensation?: (component: Class, state: any) => Promise<any>;
 }
 
 export interface IWorkflowAction<T = any> {
