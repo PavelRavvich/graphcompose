@@ -100,9 +100,10 @@ export class ScriptedChatModel extends BaseChatModel {
 
   _generate(messages: BaseMessage[]): Promise<ChatResult> {
     const script = this.book.scriptOf(this.key);
-    script.requests.push(chatRequestOf(messages));
+    const req = chatRequestOf(messages);
+    script.requests.push(req);
     try {
-      const message = replyOf(script.next(), script, this.book, this.settings);
+      const message = replyOf(script.next(req), script, this.book, this.settings);
       return Promise.resolve({ generations: [{ text: message.text, message }] });
     } catch (error) {
       if (error instanceof TestFailure) this.book.report(error);

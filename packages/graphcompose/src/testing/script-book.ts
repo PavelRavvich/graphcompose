@@ -29,6 +29,8 @@ export interface ModelScript {
   respond(...turns: readonly ScriptedTurn[]): ModelScript;
   /** The turn every call after the scripted ones gets. */
   thenAlways(turn: ScriptedTurn): ModelScript;
+  /** A dynamic closure to handle requests. Overrides respond/thenAlways if set. */
+  handle(handler: (req: ModelRequest) => ScriptedTurn): ModelScript;
   /** Every request, in order. */
   readonly requests: readonly ModelRequest[];
   /** The one request (fails unless there was exactly one). */
@@ -50,6 +52,7 @@ export class ComponentScript implements ModelScript {
   readonly toolCalls: string[] = [];
   #turns: ScriptedTurn[] = [];
   #always: ScriptedTurn | undefined;
+  #handler: ((req: ModelRequest) => ScriptedTurn) | undefined;
   #position = 0;
 
   constructor(readonly label: string) {}
@@ -59,17 +62,26 @@ export class ComponentScript implements ModelScript {
     return this;
   }
 
+  handle(handler: (req: ModelRequest) => ScriptedTurn): this {
+    this.#handler = handler;
+    return this;
+  }
+
   thenAlways(turn: ScriptedTurn): this {
     this.#always = turn;
     return this;
   }
 
   get isScripted(): boolean {
-    return this.#turns.length > 0 || this.#always !== undefined;
+    return this.#handler !== undefined || this.#turns.length > 0 || this.#always !== undefined;
   }
 
   /** The turn for the next call; unscripted → blocked, past the end → exhausted. */
-  next(): ScriptedTurn {
+  next(req?: ModelRequest): ScriptedTurn {
+    if (this.#handler !== undefined) {
+      if (!req) throw new Error("ModelRequest is required when using .handle()");
+      return this.#handler(req);
+    }
     if (!this.isScripted) {
       throw new LiveCallBlockedError(
         `${this.label} has no script — a live model call is blocked in tests; script it with modelOf(${this.label}).respond(…)`,

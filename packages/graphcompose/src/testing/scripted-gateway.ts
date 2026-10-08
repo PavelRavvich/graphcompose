@@ -92,17 +92,18 @@ export function createScriptedGateway(book: ScriptBook): ModelGateway {
     chatModel: ({ user, settings }) => new ScriptedChatModel(book, chatKeyOf(user), settings),
     decide: (spec) => {
       const script = book.scriptOf(routerKeyOf(spec.router));
-      script.requests.push({
+      const req: ModelRequest = {
         kind: "decision",
         input: spec.request.input,
         options: spec.request.options.map((option) => option.name),
         instructions: spec.request.instructions ?? "",
-      });
+      };
+      script.requests.push(req);
       if (!script.isScripted && spec.router.startsWith("guard:")) {
         return Promise.resolve(GUARD_PASSES);
       }
       try {
-        return Promise.resolve(outcomeOf(script.next(), spec, script));
+        return Promise.resolve(outcomeOf(script.next(req), spec, script));
       } catch (error) {
         return Promise.resolve(failed(book.report(asError(error)).message));
       }
