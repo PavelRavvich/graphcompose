@@ -31,7 +31,7 @@ Checklist: `AXES.md` (17 axes, what to look at inside each). Probes: `PROBES.md`
 - **Every finding needs a proposal**: a concrete change (an API shape, a rule, a check, a test),
   with a short code sketch when the API changes. "Improve typing" is not a proposal.
 - **No Spring/Angular/Nest as a yardstick.** "Not like Nest" is not a finding. When the API
-  differs from a well-known framework, report only the *false friend*: it looks the same but behaves
+  differs from a well-known framework, report only the _false friend_: it looks the same but behaves
   differently, so an agent confidently writes it the Nest way.
 - **Evidence is `file:line`** or probe output. Prove claims about types with a compiled snippet,
   not by reading.
@@ -59,10 +59,10 @@ Checklist: `AXES.md` (17 axes, what to look at inside each). Probes: `PROBES.md`
   symbols per entry and mark which ones are documented.
 - Read README, CLAUDE.md / AGENTS.md, QUALITY.md, and the main example end to end.
 - **Maturity stage** decides the axis weights:
-  - *early* (API still moving, one example): weight ×2 on axes 1, 2, 3, 14, 17; ×0.5 on 9, 15.
-  - *stabilising* (several examples, users outside the author): all ×1.
-  - *mature* (released, external plugins): ×2 on 7, 9, 13.
-  State the stage and why in one line.
+  - _early_ (API still moving, one example): weight ×2 on axes 1, 2, 3, 14, 17; ×0.5 on 9, 15.
+  - _stabilising_ (several examples, users outside the author): all ×1.
+  - _mature_ (released, external plugins): ×2 on 7, 9, 13.
+    State the stage and why in one line.
 - Write a short **run context** file for the sub-agents: how to reach the snapshot, the
   baseline, the hard rules, the finding format.
 
@@ -71,14 +71,14 @@ Checklist: `AXES.md` (17 axes, what to look at inside each). Probes: `PROBES.md`
 Start all of these in one message. Each sub-agent gets the run context, its axes from
 `AXES.md` / its probes from `PROBES.md`, and **its own copy** of the snapshot for anything it writes.
 
-| Agent | Scope |
-| ----- | ----- |
-| A — types & API | axes 1, 2, 3, 8 + P0 |
-| B — agent runtime | axes 4, 9, 10, 11, 12 |
-| C — quality & ops | axes 5, 6, 7, 13, 14, 15, 16 + P7 |
-| D — CLI | axis 17 + P4, P5 |
-| P1 — fresh developer | the P1 task only; does **not** get this skill, the axes or the run context's rules |
-| P2 — misconfiguration | P2 matrix + P3 (self-judged, `confidence: medium`) |
+| Agent                 | Scope                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| A — types & API       | axes 1, 2, 3, 8 + P0                                                               |
+| B — agent runtime     | axes 4, 9, 10, 11, 12                                                              |
+| C — quality & ops     | axes 5, 6, 7, 13, 14, 15, 16 + P7                                                  |
+| D — CLI               | axis 17 + P4, P5                                                                   |
+| P1 — fresh developer  | the P1 task only; does **not** get this skill, the axes or the run context's rules |
+| P2 — misconfiguration | P2 matrix + P3 (self-judged, `confidence: medium`)                                 |
 
 Each returns findings, a 0–5 score per owned axis with a one-line justification, and up to 3
 concrete "what is good" bullets. Of all the probes, P1 gives the most signal for its cost. Never skip it.
@@ -109,16 +109,24 @@ the repo or tracker only when the user says so.
 
 ```markdown
 # Framework review — <date> — <commit> (<why this commit>)
+
 Stage: <early|stabilising|mature> — <why> · Weighted score: <x.x>/5
 Method: <agents, probes, verification result N confirmed / M partly / K rejected>
 
 ## Scorecard
+
 | # | Axis | Score 0–5 | Weight | Top issue |
+
 ## Blockers (grouped by root cause; each with instances table + proposals)
+
 ## Findings by axis (major, then minor; each with a proposal)
+
 ## Probe results (table: probe, result, numbers)
+
 ## What is good (keep it — max 7 bullets, concrete)
+
 ## Suggested order
+
 ## Baseline diff (only with --baseline)
 ```
 
@@ -126,6 +134,7 @@ Finding format:
 
 ```markdown
 ### F<n> [<blocker|major|minor|nit>] axis <#> — <one-line claim>
+
 - Evidence: `path:line` / probe P<n> output
 - Scenario: agent does … → …
 - Proposal: <concrete change; code sketch if the API changes>
@@ -133,6 +142,7 @@ Finding format:
 ```
 
 Severity:
+
 - **blocker**: a wrong change compiles and then fails silently or late at runtime, or a common
   extension is impossible without editing the core.
 - **major**: a wrong change is caught only at runtime or assembly, or the correct path is
@@ -141,6 +151,7 @@ Severity:
 - **nit**: naming or polish. At most 5 nits in the report.
 
 Score anchors (per axis):
+
 - 5 = a fresh agent cannot get it wrong without the compiler saying so.
 - 3 = it works, but relies on docs or conventions.
 - 1 = mostly runtime checks or tribal knowledge.

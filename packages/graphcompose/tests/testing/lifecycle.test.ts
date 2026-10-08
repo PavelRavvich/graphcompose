@@ -81,10 +81,19 @@ describe("AC12: a controllable clock — the per-day limit resets after midnight
     mockLlm,
   }) => {
     // the second run stops before the router's second visit: 0.03 + 0.03 ≥ the day's 0.05
-    mockLlm(MainRouter).thenReturn(routeTo(Writer), routeTo(Reply), routeTo(Writer), routeTo(Writer));
+    mockLlm(MainRouter).thenReturn(
+      routeTo(Writer),
+      routeTo(Reply),
+      routeTo(Writer),
+      routeTo(Writer),
+    );
     mockLlm(MainRouter).thenReturn(routeTo(Reply));
     const cost = { cost: usd(0.03) };
-    mockLlm(Writer).thenReturn(replyWith("one", cost), replyWith("two", cost), replyWith("three", cost));
+    mockLlm(Writer).thenReturn(
+      replyWith("one", cost),
+      replyWith("two", cost),
+      replyWith("three", cost),
+    );
 
     await app.execute(ChatStart, { text: "1" });
     const overDay = app.execute(ChatStart, { text: "2" });

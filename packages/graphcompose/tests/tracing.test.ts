@@ -53,7 +53,10 @@ describe("tracing", () => {
       shutdown: () => Promise.resolve(),
     };
     const deps = {
-      ...fakeDeps({ "test/router": [routeTo("alpha"), routeTo("replyWith")], "test/alpha": ["ok"] }),
+      ...fakeDeps({
+        "test/router": [routeTo("alpha"), routeTo("replyWith")],
+        "test/alpha": ["ok"],
+      }),
       tracing,
     };
 

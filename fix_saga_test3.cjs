@@ -1,8 +1,10 @@
-const fs = require('fs');
-const file = 'packages/graphcompose/tests/graph/saga.test.ts';
-let code = fs.readFileSync(file, 'utf-8');
+const fs = require("fs");
+const file = "packages/graphcompose/tests/graph/saga.test.ts";
+let code = fs.readFileSync(file, "utf-8");
 
-code = code.replace(/    await testWith\(TripBookingWorkflow, async \(app\) => \{/g, `
+code = code.replace(
+  /    await testWith\(TripBookingWorkflow, async \(app\) => \{/g,
+  `
   it("routes to WorkflowFinish on generic error", async () => {
     await testWith(TripBookingWorkflow, async (app) => {
       app.script(BookFlightAgent, async () => { throw new Error("Database down"); });
@@ -18,6 +20,7 @@ code = code.replace(/    await testWith\(TripBookingWorkflow, async \(app\) => \
   });
 
   it("routes to fallback on specific error", async () => {
-    await testWith(TripBookingWorkflow, async (app) => {`);
+    await testWith(TripBookingWorkflow, async (app) => {`,
+);
 
 fs.writeFileSync(file, code);

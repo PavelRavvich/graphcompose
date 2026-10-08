@@ -4,7 +4,10 @@ import { runAgent } from "../src/index.js";
 import { routeTo, fakeDeps } from "./helpers.js";
 
 const deps = () =>
-  fakeDeps({ "test/router": [routeTo("alpha"), routeTo("replyWith", "done")], "test/alpha": ["42"] });
+  fakeDeps({
+    "test/router": [routeTo("alpha"), routeTo("replyWith", "done")],
+    "test/alpha": ["42"],
+  });
 
 describe("runAgent", () => {
   it("returns replyWith, stop reason and cost report", async () => {

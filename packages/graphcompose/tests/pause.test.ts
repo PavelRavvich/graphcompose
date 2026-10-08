@@ -44,7 +44,10 @@ function setup(alphaReplies: readonly Reply[], withSeam = true) {
     ...testConfig,
     agents: { ...testConfig.agents, alpha: { ...testConfig.agents.alpha, tools: ["send_email"] } },
   };
-  const base = fakeDeps({ "test/router": [routeTo("alpha"), routeTo("replyWith", "done")] }, ledger);
+  const base = fakeDeps(
+    { "test/router": [routeTo("alpha"), routeTo("replyWith", "done")] },
+    ledger,
+  );
   const deps: RunDeps<TestAgent> = {
     ...base,
     config,

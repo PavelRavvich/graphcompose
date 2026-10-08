@@ -10,7 +10,7 @@ export class SagaOrchestrator implements IWorkflowAction {
   async execute(state: any, context: WorkflowActionContext) {
     if (!context.getComponentClass || !context.runCompensation) {
       console.warn("SAGA Orchestrator requires framework support for compensations.");
-      return { lastError: null };
+      return {};
     }
 
     const path = state.path || [];
@@ -32,8 +32,6 @@ export class SagaOrchestrator implements IWorkflowAction {
       }
     }
 
-    return {
-      lastError: null, // Clear error to finish gracefully after rollback
-    };
+    return {};
   }
 }

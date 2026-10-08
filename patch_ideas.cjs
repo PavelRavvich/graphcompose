@@ -1,6 +1,6 @@
-const fs = require('fs');
-const file = '/Users/pavelravvich/projects/langgraph-ts-template/EXAMPLES_IDEAS.md';
-let code = fs.readFileSync(file, 'utf-8');
+const fs = require("fs");
+const file = "/Users/pavelravvich/projects/langgraph-ts-template/EXAMPLES_IDEAS.md";
+let code = fs.readFileSync(file, "utf-8");
 
 const newExample = `
 ## Архитектурные паттерны (Core Patterns)

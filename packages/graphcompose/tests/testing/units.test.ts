@@ -48,7 +48,9 @@ describe("AC12: the clock, ids and errors of a test", () => {
   });
 
   it("a script past its end names how many turns it had", () => {
-    const script = new ScriptBook().scriptOf("agent:writer").thenReturn(replyWith("1"), replyWith("2"));
+    const script = new ScriptBook()
+      .scriptOf("agent:writer")
+      .thenReturn(replyWith("1"), replyWith("2"));
     script.next();
     script.next();
 

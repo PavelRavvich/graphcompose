@@ -20,7 +20,9 @@ export const targetsOf = (transition: Transition): readonly string[] => {
     case "mapEach":
     case "join":
     case "catch":
-      return [transition.next.target];
+      return transition.next.kind === "catch"
+        ? [transition.next.nextNode]
+        : [transition.next.target];
   }
 };
 

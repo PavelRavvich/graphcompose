@@ -1,11 +1,11 @@
-const fs = require('fs');
-const file = 'packages/graphcompose/src/testing/environment.ts';
-let code = fs.readFileSync(file, 'utf-8');
+const fs = require("fs");
+const file = "packages/graphcompose/src/testing/environment.ts";
+let code = fs.readFileSync(file, "utf-8");
 
-if (!code.includes('mockSubworkflow(')) {
+if (!code.includes("mockSubworkflow(")) {
   code = code.replace(
     /readonly #mocks = new Map<Class, unknown>\(\);/,
-    'readonly #mocks = new Map<Class, unknown>();\n  readonly #workflowMocks = new Map<Class, import("vitest").Mock>();'
+    'readonly #mocks = new Map<Class, unknown>();\n  readonly #workflowMocks = new Map<Class, import("vitest").Mock>();',
   );
 
   code = code.replace(
@@ -29,7 +29,7 @@ if (!code.includes('mockSubworkflow(')) {
     return this.#workflowMocks;
   }
 
-  mockOf<T>(cls: Class<T>): Mocked<T> {`
+  mockOf<T>(cls: Class<T>): Mocked<T> {`,
   );
 
   fs.writeFileSync(file, code);

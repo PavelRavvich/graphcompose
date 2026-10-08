@@ -14,11 +14,8 @@ class SubgraphAgent {
 @Workflow({
   name: "child_workflow",
   version: "1.0",
-  flow: [
-    from(WorkflowStart).next(SubgraphAgent),
-    from(SubgraphAgent).next(WorkflowFinish)
-  ],
-  defaults: { history: { limit: 5 } }
+  flow: [from(WorkflowStart).next(SubgraphAgent), from(SubgraphAgent).next(WorkflowFinish)],
+  defaults: { history: { limit: 5 } },
 })
 class ChildWorkflow {}
 
@@ -35,9 +32,9 @@ class ParentAgent {
   flow: [
     from(WorkflowStart).next(ParentAgent),
     from(ParentAgent).next(ChildWorkflow),
-    from(ChildWorkflow).next(WorkflowFinish)
+    from(ChildWorkflow).next(WorkflowFinish),
   ],
-  defaults: { history: { limit: 5 } }
+  defaults: { history: { limit: 5 } },
 })
 class ParentWorkflow {}
 
@@ -46,18 +43,18 @@ describe("Nested Workflows (Subgraphs)", () => {
     await testWith(ParentWorkflow, async (app) => {
       const res = await app.run({});
       expect(res.status).toBe("completed");
-      
+
       const path = res.path;
       // start -> parent_agent -> child_workflow -> finish
       expect(path).toContain("parent_agent");
       expect(path).toContain("child_workflow");
-      
+
       // Payload should merge
       expect(res.replyWith.payload).toMatchObject({
         inParent: true,
-        insideSubgraph: true
+        insideSubgraph: true,
       });
-      
+
       // Steps should include the subgraph's steps!
       expect(res.path.length).toBeGreaterThan(0);
     });

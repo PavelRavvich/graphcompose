@@ -60,7 +60,9 @@ describe("AC6: prompt caching — whereSupported({ retention, cachedParts, key? 
       { role: "user", content: "first" },
       {
         role: "assistant",
-        content: [{ type: "text", text: "earlier replyWith", cache_control: { type: "ephemeral" } }],
+        content: [
+          { type: "text", text: "earlier replyWith", cache_control: { type: "ephemeral" } },
+        ],
       },
       { role: "user", content: "second" },
     ]);

@@ -57,6 +57,7 @@ export interface AgentMeta {
 /** `@WorkflowAction` — a programmatic node without LLM. */
 export interface WorkflowActionMeta {
   readonly name: string;
+  readonly compensate?: Class;
   readonly description?: string;
   readonly inboundAdapter?: Class;
 }

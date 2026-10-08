@@ -18,7 +18,6 @@ import type { MultimodalFinishOutput } from "../app/types.js";
 
 import { componentOf } from "../components/metadata.js";
 import { collectFlow } from "./flow-nodes.js";
-import { collectFlow } from "./flow-nodes.js";
 import type { WorkflowMeta } from "../components/meta-types.js";
 import type { WorkflowDefinition } from "./settings.js";
 

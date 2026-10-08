@@ -33,7 +33,9 @@ describe("AC3: parallel calls in one turn run concurrently; results keep the cal
   });
 
   it("the same tool asked twice in one turn runs twice, each result under its own callId", async () => {
-    const h = harness({ moves: [callTools(read("a", "x.ts"), read("b", "x.ts")), replyWith("ok")] });
+    const h = harness({
+      moves: [callTools(read("a", "x.ts"), read("b", "x.ts")), replyWith("ok")],
+    });
 
     await runLoop(h.graph, startInput(), "t");
 

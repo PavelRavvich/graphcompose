@@ -95,8 +95,8 @@ export interface ToStep {
 export interface CatchStep {
   readonly kind: "catch";
   readonly target: FlowNode;
-  readonly errorType: Class;
-  readonly nextNode: ChoiceTarget;
+  readonly errorType: Class | "any";
+  readonly nextNode: FlowNode;
 }
 
 export interface ChooseStep {
@@ -126,7 +126,7 @@ export interface MapEachStep {
   readonly from: readonly FlowNode[];
   readonly target: FlowNode;
   readonly strategy: Class;
-  readonly options: { batchSize: number };
+  readonly options: { concurrencyLimit: number };
 }
 
 interface JoinAnyStep {
@@ -163,7 +163,7 @@ export interface FlowSource {
   readonly mapEach: (
     target: FlowNode,
     strategy: Class,
-    options: { batchSize: number },
+    options: { concurrencyLimit: number },
   ) => MapEachStep; // Simplified for runtime AST
   readonly routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
   readonly joinQuorum: (
@@ -241,7 +241,7 @@ export function labelOf(target: ChoiceTarget): string {
 export function catchError(
   target: FlowNode,
   errorType: Class | "any" = "any",
-): { next: (nextNode: ChoiceTarget) => CatchStep } {
+): { next: (nextNode: FlowNode) => CatchStep } {
   return {
     next: (nextNode) => ({
       kind: "catch",

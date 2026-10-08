@@ -184,10 +184,10 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   ]);
   const resolveMap = <T>(map: Map<string, readonly Class[]>, services: any) =>
     new Map<string, readonly T[]>(
-      Array.from(map.entries()).map(([k, classes]) => [
-        k,
-        classes.map((cls) => containerFor(bundle, services).get(cls)),
-      ]),
+      Array.from(map.entries()).map(
+        ([k, classes]) =>
+          [k, classes.map((cls) => containerFor(bundle, services).get(cls) as T)] as const,
+      ),
     );
 
   const agentPii = new Map(

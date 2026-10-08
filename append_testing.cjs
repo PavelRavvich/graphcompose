@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const wikiDir = '/Users/pavelravvich/projects/langgraph-ts-template.wiki';
+const wikiDir = "/Users/pavelravvich/projects/langgraph-ts-template.wiki";
 
 const testingAppend = `
 ## Dynamic Mocking with \`.handle()\`
@@ -143,19 +143,19 @@ test("Workflow execution", async () => {
 `;
 
 const filesToAppend = {
-  'Testing.md': testingAppend,
-  'Tools.md': toolsAppend,
-  'Agents.md': agentsAppend,
-  'Routers.md': routersAppend,
-  'Workflow.md': workflowAppend,
+  "Testing.md": testingAppend,
+  "Tools.md": toolsAppend,
+  "Agents.md": agentsAppend,
+  "Routers.md": routersAppend,
+  "Workflow.md": workflowAppend,
 };
 
 for (const [filename, content] of Object.entries(filesToAppend)) {
   const filePath = path.join(wikiDir, filename);
   if (fs.existsSync(filePath)) {
-    fs.appendFileSync(filePath, '\n' + content + '\n');
-    console.log('Appended to', filename);
+    fs.appendFileSync(filePath, "\n" + content + "\n");
+    console.log("Appended to", filename);
   } else {
-    console.log('Skipping', filename, 'as it does not exist');
+    console.log("Skipping", filename, "as it does not exist");
   }
 }

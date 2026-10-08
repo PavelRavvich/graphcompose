@@ -1,8 +1,10 @@
-const fs = require('fs');
-const file = 'packages/graphcompose/src/graph/build.ts';
-let code = fs.readFileSync(file, 'utf-8');
+const fs = require("fs");
+const file = "packages/graphcompose/src/graph/build.ts";
+let code = fs.readFileSync(file, "utf-8");
 
-code = code.replace(/function startEdges\(/, `function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef, deps: any): void {
+code = code.replace(
+  /function startEdges\(/,
+  `function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef, deps: any): void {
   const next = model.next.get(node.key);
   const id = graphNodeId(node);
   wireEdgesForId(builder, model, node, next, id, deps);
@@ -15,6 +17,7 @@ code = code.replace(/function startEdges\(/, `function nodeEdges(builder: Builde
   }
 }
 
-function startEdges(`);
+function startEdges(`,
+);
 
 fs.writeFileSync(file, code);

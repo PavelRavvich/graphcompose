@@ -39,20 +39,22 @@ class FallbackAgent {
     from(WorkflowStart).next(BookFlightAgent),
     catchError(BookFlightAgent, MockTimeoutError).next(FallbackAgent),
     catchError(BookFlightAgent, Error).next(WorkflowFinish),
-    from(FallbackAgent).next(WorkflowFinish)
+    from(FallbackAgent).next(WorkflowFinish),
   ],
-  defaults: { history: { limit: 5 } }
+  defaults: { history: { limit: 5 } },
 })
 class TripBookingWorkflow {}
 
 describe("Saga and Error Routing", () => {
   it("routes to WorkflowFinish on generic error", async () => {
     await testWith(TripBookingWorkflow, async (app) => {
-      app.script(BookFlightAgent, async () => { throw new Error("Database down"); });
-      
+      app.script(BookFlightAgent, async () => {
+        throw new Error("Database down");
+      });
+
       const res = await app.run({});
       expect(res.status).toBe("completed");
-      
+
       const path = res.path;
       expect(path).toContain("book_flight");
       expect(path).not.toContain("fallback_agent");
@@ -62,10 +64,10 @@ describe("Saga and Error Routing", () => {
   it("routes to fallback on specific error", async () => {
     await testWith(TripBookingWorkflow, async (app) => {
       app.script(FallbackAgent, async () => ({ payload: { recovered: true } }));
-      
+
       const res = await app.run({});
       expect(res.status).toBe("completed");
-      
+
       const path = res.path;
       expect(path).toContain("book_flight");
       expect(path).toContain("fallback_agent");

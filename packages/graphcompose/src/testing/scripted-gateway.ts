@@ -6,7 +6,7 @@ import type { UsageRecord } from "../finops/usage.js";
 import { asError, TestFailure } from "./errors.js";
 import { nodeNameOf } from "./failure-facts.js";
 import { replyWith, type DecisionDetails, type ScriptedTurn } from "./script.js";
-import type { ComponentScript, ScriptBook } from "./script-book.js";
+import type { ComponentScript, ScriptBook, ModelRequest } from "./script-book.js";
 import { ScriptedChatModel } from "./scripted-chat-model.js";
 
 /** The script key of a chat model's user and of a router. */

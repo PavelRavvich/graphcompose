@@ -42,7 +42,10 @@ function profileRun(name: string, spentToday = 0) {
   const ledger = keyedLedger(spentToday);
   const deps = {
     ...fakeDeps({
-      "test/router": Array.from({ length: 4 }, () => [routeTo("alpha"), routeTo("replyWith")]).flat(),
+      "test/router": Array.from({ length: 4 }, () => [
+        routeTo("alpha"),
+        routeTo("replyWith"),
+      ]).flat(),
       "test/alpha": ["x", "y"],
     }),
     ledger,

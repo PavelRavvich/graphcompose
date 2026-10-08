@@ -66,32 +66,64 @@ class TailsObserver
     OnChannelStart,
     OnChannelEnd
 {
-  async onWorkflowStart() { hookEvents.push("WorkflowStart"); }
-  async onWorkflowEnd() { hookEvents.push("WorkflowEnd"); }
-  
-  async onAgentStart(ctx: any) { hookEvents.push(`AgentStart:${ctx.name}`); }
-  async onAgentEnd(ctx: any) { hookEvents.push(`AgentEnd:${ctx.name}`); }
-  
-  async onToolStart(ctx: any) { hookEvents.push(`ToolStart:${ctx.toolName}`); }
-  async onToolEnd(ctx: any) { hookEvents.push(`ToolEnd:${ctx.toolName}`); }
+  async onWorkflowStart() {
+    hookEvents.push("WorkflowStart");
+  }
+  async onWorkflowEnd() {
+    hookEvents.push("WorkflowEnd");
+  }
 
-  async onActionStart(ctx: any) { hookEvents.push(`ActionStart:${ctx.name}`); }
-  async onActionEnd(ctx: any) { hookEvents.push(`ActionEnd:${ctx.name}`); }
+  async onAgentStart(ctx: any) {
+    hookEvents.push(`AgentStart:${ctx.name}`);
+  }
+  async onAgentEnd(ctx: any) {
+    hookEvents.push(`AgentEnd:${ctx.name}`);
+  }
 
-  async onGuardrailStart(ctx: any) { hookEvents.push(`GuardrailStart:${ctx.name}`); }
-  async onGuardrailEnd(ctx: any) { hookEvents.push(`GuardrailEnd:${ctx.name}`); }
+  async onToolStart(ctx: any) {
+    hookEvents.push(`ToolStart:${ctx.toolName}`);
+  }
+  async onToolEnd(ctx: any) {
+    hookEvents.push(`ToolEnd:${ctx.toolName}`);
+  }
 
-  async onPiiPolicyStart(ctx: any) { hookEvents.push(`PiiStart:${ctx.name}`); }
-  async onPiiPolicyEnd(ctx: any) { hookEvents.push(`PiiEnd:${ctx.name}`); }
-  
-  async onChannelStart(ctx: any) { hookEvents.push(`ChannelStart:${ctx.name}`); }
-  async onChannelEnd(ctx: any) { hookEvents.push(`ChannelEnd:${ctx.name}`); }
+  async onActionStart(ctx: any) {
+    hookEvents.push(`ActionStart:${ctx.name}`);
+  }
+  async onActionEnd(ctx: any) {
+    hookEvents.push(`ActionEnd:${ctx.name}`);
+  }
+
+  async onGuardrailStart(ctx: any) {
+    hookEvents.push(`GuardrailStart:${ctx.name}`);
+  }
+  async onGuardrailEnd(ctx: any) {
+    hookEvents.push(`GuardrailEnd:${ctx.name}`);
+  }
+
+  async onPiiPolicyStart(ctx: any) {
+    hookEvents.push(`PiiStart:${ctx.name}`);
+  }
+  async onPiiPolicyEnd(ctx: any) {
+    hookEvents.push(`PiiEnd:${ctx.name}`);
+  }
+
+  async onChannelStart(ctx: any) {
+    hookEvents.push(`ChannelStart:${ctx.name}`);
+  }
+  async onChannelEnd(ctx: any) {
+    hookEvents.push(`ChannelEnd:${ctx.name}`);
+  }
 }
 
 @PiiPolicy({ name: "MaskingPolicy" })
 class MaskingPolicy {
-  async mask(text: string) { return text; }
-  async unmask(text: string) { return text; }
+  async mask(text: string) {
+    return text;
+  }
+  async unmask(text: string) {
+    return text;
+  }
 }
 
 @Guardrail({ name: "SafeGuard" })
@@ -105,11 +137,13 @@ class SafeGuard {
   description: "Does things",
   input: ToolInput,
   output: ToolInput,
-  deps: [TailsObserver]
+  deps: [TailsObserver],
 })
 class SafeTool {
   constructor(public obs: TailsObserver) {}
-  async run() { return { text: "done" }; }
+  async run() {
+    return { text: "done" };
+  }
 }
 
 @Agent({
@@ -118,13 +152,15 @@ class SafeTool {
   model: "test",
   tools: [SafeTool],
   pii: [MaskingPolicy],
-  guardrails: [SafeGuard]
+  guardrails: [SafeGuard],
 })
 class SafeAgent {}
 
 @WorkflowAction({ name: "FormatAction" })
 class FormatAction {
-  async execute() { return { payload: { format: true } }; }
+  async execute() {
+    return { payload: { format: true } };
+  }
 }
 
 @WorkflowStart({ name: "Start", input: WorkflowStartText })
@@ -164,7 +200,7 @@ describe("Observability Tails Hooks", () => {
 
     // Assert the exact flow
     // Workflow -> Agent -> Pii -> Guardrail -> Tool -> Guardrail -> Pii -> Agent -> Action -> WorkflowEnd
-    
+
     // Check Action
     console.log("HOOK EVENTS:", hookEvents);
     expect(hookEvents).toContain("ActionStart:FormatAction");
@@ -177,9 +213,7 @@ describe("Observability Tails Hooks", () => {
     const toolStart = hookEvents.indexOf("ToolStart:SafeTool");
     const toolEnd = hookEvents.indexOf("ToolEnd:SafeTool");
     const guardrailEnd = hookEvents.indexOf("GuardrailEnd:SafeGuard");
-    
-    
-    
+
     const agentEnd = hookEvents.indexOf("AgentEnd:SafeAgent");
     expect(agentStart).toBeLessThan(guardrailStart);
 
@@ -188,7 +222,7 @@ describe("Observability Tails Hooks", () => {
     const guardrailEnd2 = hookEvents.lastIndexOf("GuardrailEnd:SafeGuard");
     expect(toolEnd).toBeLessThan(guardrailEnd2);
     expect(guardrailEnd2).toBeLessThan(agentEnd);
-    
+
     await app.close();
   });
 });

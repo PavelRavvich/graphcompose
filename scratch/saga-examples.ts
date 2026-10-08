@@ -30,14 +30,14 @@ export class FallbackAgent {
   version: "1.0",
   flow: [
     from(WorkflowStart).next(BookFlightAgent),
-    
+
     // 1. Specific Error Routing
     catchError(BookFlightAgent, TimeoutError).next(FallbackAgent),
-    
+
     // 2. Global/Saga Fallback
     catchError(BookFlightAgent, "any").next(SagaOrchestrator),
-    
-    from(FallbackAgent).next(WorkflowFinish)
-  ]
+
+    from(FallbackAgent).next(WorkflowFinish),
+  ],
 })
 export class TripBookingWorkflow {}

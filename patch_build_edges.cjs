@@ -1,6 +1,6 @@
-const fs = require('fs');
-const file = 'packages/graphcompose/src/graph/build.ts';
-let code = fs.readFileSync(file, 'utf-8');
+const fs = require("fs");
+const file = "packages/graphcompose/src/graph/build.ts";
+let code = fs.readFileSync(file, "utf-8");
 
 const wireEdgesRegex = /function wireEdgesForId\([\s\S]*?^  \}\n\}/m;
 

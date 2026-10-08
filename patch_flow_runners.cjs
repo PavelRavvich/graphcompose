@@ -1,6 +1,6 @@
-const fs = require('fs');
-const path = 'packages/graphcompose/src/graph/flow-runners.ts';
-let code = fs.readFileSync(path, 'utf8');
+const fs = require("fs");
+const path = "packages/graphcompose/src/graph/flow-runners.ts";
+let code = fs.readFileSync(path, "utf8");
 
 const replacement = `
       case "action": {
@@ -55,5 +55,8 @@ const replacement = `
       }
 `;
 
-code = code.replace(/case "action": \{[\s\S]*?(?=case "workflow": \{)/, replacement.trim() + '\n      ');
+code = code.replace(
+  /case "action": \{[\s\S]*?(?=case "workflow": \{)/,
+  replacement.trim() + "\n      ",
+);
 fs.writeFileSync(path, code);

@@ -19,7 +19,12 @@ const judgeWith = (...confidences: number[]): Router => {
 describe("replay", () => {
   it("re-runs old tasks with the current prompts and compares scores", async () => {
     const script = {
-      "test/router": [routeTo("alpha"), routeTo("replyWith"), routeTo("alpha"), routeTo("replyWith")],
+      "test/router": [
+        routeTo("alpha"),
+        routeTo("replyWith"),
+        routeTo("alpha"),
+        routeTo("replyWith"),
+      ],
       "test/alpha": ["old replyWith", "new replyWith"],
     };
     const deps = fakeDeps(script);

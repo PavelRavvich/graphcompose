@@ -1,41 +1,49 @@
 const fs = require("fs");
-const file = "packages/graphcompose/src/graph/flow.ts";
-let code = fs.readFileSync(file, "utf-8");
+const path = "packages/graphcompose/src/graph/flow.ts";
+let code = fs.readFileSync(path, "utf8");
 
-// We need to add error routing
-const errorRoutingRegex = /export interface ChooseStep {/;
-code = code.replace(
-  errorRoutingRegex,
-  `export interface CatchStep {
-  readonly kind: "catch";
-  readonly target: FlowNode;
-  readonly errorType: Class | "any";
-  readonly nextNode: ChoiceTarget;
-}
+const oldInterface = `  readonly batchParallel: (
+    target: FlowNode,
+    strategy: Class,
+    options?: { concurrency?: number },
+  ) => BatchParallelStep;`;
+const newInterface = `  readonly batchParallel: (
+    target: FlowNode,
+    strategy: Class,
+    options: { batchSize: number },
+  ) => BatchParallelStep;`;
+code = code.replace(oldInterface, newInterface);
 
-export interface ChooseStep {`,
-);
-
-const flowStepRegex =
-  /ToStep \| ChooseStep \| ChainStep \| JoinStep \| BatchParallelStep \| JoinAnyStep \| JoinQuorumStep;/;
-code = code.replace(
-  flowStepRegex,
-  `ToStep | ChooseStep | CatchStep | ChainStep | JoinStep | BatchParallelStep | JoinAnyStep | JoinQuorumStep;`,
-);
-
-const catchErrorExport = `
-export function catchError(target: FlowNode, errorType: Class | "any" = "any"): { next: (nextNode: ChoiceTarget) => CatchStep } {
-  return {
-    next: (nextNode) => ({
-      kind: "catch",
+const oldImpl = `    batchParallel: (target, strategy, options) => ({
+      kind: "batchParallel",
+      from: sources,
       target,
-      errorType,
-      nextNode
-    })
-  };
-}
-`;
+      strategy,
+      options,
+    }),`;
+const newImpl = `    batchParallel: (target, strategy, options) => ({
+      kind: "batchParallel",
+      from: sources,
+      target,
+      strategy,
+      options,
+    }),`;
+code = code.replace(oldImpl, newImpl);
 
-code += catchErrorExport;
+const oldStep = `export interface BatchParallelStep {
+  readonly kind: "batchParallel";
+  readonly from: readonly FlowNode[];
+  readonly target: FlowNode;
+  readonly strategy: Class;
+  readonly options?: { concurrency?: number };
+}`;
+const newStep = `export interface BatchParallelStep {
+  readonly kind: "batchParallel";
+  readonly from: readonly FlowNode[];
+  readonly target: FlowNode;
+  readonly strategy: Class;
+  readonly options: { batchSize: number };
+}`;
+code = code.replace(oldStep, newStep);
 
-fs.writeFileSync(file, code);
+fs.writeFileSync(path, code);

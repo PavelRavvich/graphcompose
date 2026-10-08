@@ -1,8 +1,19 @@
-const fs = require('fs');
-const file = 'packages/graphcompose/src/components/assemble.ts';
-let code = fs.readFileSync(file, 'utf-8');
+const fs = require("fs");
+const path = "packages/graphcompose/src/components/assemble.ts";
+let code = fs.readFileSync(path, "utf8");
 
-code = code.replace(/services\.resolve\(cls\)/g, 'containerFor(bundle, services).get(cls)');
-code = code.replace(/services\.resolve\(c\)/g, 'containerFor(bundle, services).get(c)');
+const regex =
+  /const resolveMap = <T>\(map: Map<string, readonly Class\[\]>, services: any\) =>([\s\S]*?)\);\n\n  const agentPii =/m;
 
-fs.writeFileSync(file, code);
+const replacement = `const resolveMap = <T>(map: Map<string, readonly Class[]>, services: any) =>
+    new Map<string, readonly T[]>(
+      Array.from(map.entries()).map(([k, classes]) => [
+        k,
+        classes.map((cls) => containerFor(bundle, services).get(cls)),
+      ] as const)
+    );
+
+  const agentPii =`;
+
+code = code.replace(regex, replacement);
+fs.writeFileSync(path, code);

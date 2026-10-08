@@ -113,7 +113,10 @@ describe("AC12: slices — one component of the real app on its own", () => {
     app,
     mockLlm,
   }) => {
-    mockLlm(Support).thenReturn(callTool(OrderStatus, { orderId: "3" }), replyWith("Order 3 shipped."));
+    mockLlm(Support).thenReturn(
+      callTool(OrderStatus, { orderId: "3" }),
+      replyWith("Order 3 shipped."),
+    );
 
     expect(await app.agent(Support).replyWith("where is 3?")).toBe("Order 3 shipped.");
     expect(mockLlm(Support)).toHaveCalledTools([OrderStatus]);

@@ -6,6 +6,7 @@ import { quorumRouterMetaOf } from "../concurrency/quorum.decorator.js";
 
 import type { BaseCheckpointSaver } from "@langchain/langgraph";
 import { END, START, Send, StateGraph } from "@langchain/langgraph";
+import { componentOf } from "../components/metadata.js";
 import type { Router } from "../routers/index.js";
 import { checkFlow, type FlowModel } from "./check-flow.js";
 import { unwrapTarget, type Flow } from "./flow.js";
@@ -218,7 +219,10 @@ function wireEdgesForId(
     builder.addConditionalEdges(id, (state: any) => {
       if (state.lastError) {
         for (const catchNode of catches) {
-          if (state.lastError instanceof catchNode.errorType) {
+          if (
+            catchNode.kind === "catch" &&
+            (catchNode.errorType === "any" || state.lastError instanceof catchNode.errorType)
+          ) {
             return graphNodeId(nodeKeyed(model, catchNode.nextNode));
           }
         }
@@ -237,7 +241,7 @@ function wireEdgesForId(
         return targets;
       }
       if (next.kind === "choose") {
-        return state.route;
+        return state.next;
       }
       if (next.kind === "join" || next.kind === "mapEach") {
         return graphNodeId(nodeKeyed(model, next.target));
@@ -267,9 +271,11 @@ function wireEdgesForId(
       for (const t of targets) builder.addEdge(id, t);
     }
   } else if (next.kind === "choose") {
-    builder.addConditionalEdges(id, (state) => state.route);
-  } else if (next.kind === "join" || next.kind === "mapEach") {
+    builder.addConditionalEdges(id, (state: any) => state.next);
+  } else if (next.kind === "join") {
     builder.addEdge(id, graphNodeId(nodeKeyed(model, next.target)));
+  } else if (next.kind === "mapEach") {
+    builder.addEdge(id, `__mapeach_${node.key}_to_${next.target}`);
   }
 }
 function compileJoinBarriers(builder: Builder, model: FlowModel) {
@@ -420,6 +426,7 @@ function compileFlow(
   startEdges(builder, model, sharedDeps);
   for (const node of model.nodes.values()) nodeEdges(builder, model, node, sharedDeps);
   compileJoinBarriers(builder, model);
+  compileMapEachLoops(builder, model, sharedDeps);
   const recursionLimit = (limits.steps + model.nodes.size) * RECURSION_SAFETY_FACTOR;
   const compiled = builder.compile(
     runtime.checkpointer === undefined ? {} : { checkpointer: runtime.checkpointer },
@@ -448,4 +455,58 @@ export async function assembleFlowGraph(flow: Flow, runtime: FlowRuntime): Promi
   const limits = resolveLimits(runtime.limits, model);
   const { graph, recursionLimit } = compileFlow(model, runtime, routers, limits);
   return { graph, model, limits, recursionLimit };
+}
+
+function compileMapEachLoops(builder: Builder, model: FlowModel, deps: any) {
+  const mapEachTransitions = model.collected.transitions.filter(
+    (t) => t.next && t.next.kind === "mapEach",
+  );
+
+  for (const t of mapEachTransitions) {
+    if (!t.next || t.next.kind !== "mapEach") continue;
+
+    const next = t.next;
+    const sourceNodeKey = t.from;
+    const targetNodeKey = next.target;
+    const targetNode = nodeKeyed(model, targetNodeKey);
+
+    const loopNodeId = `__mapeach_${sourceNodeKey}_to_${targetNodeKey}`;
+    const targetCloneId = `${graphNodeId(targetNode)}_batch_clone`;
+
+    builder.addNode(loopNodeId, async (state: any) => {
+      let queue = state._batchCursor?.[targetNodeKey]?.queue;
+      if (queue === undefined) {
+        const strategy = deps.container.get(next.strategy);
+        queue = await strategy.extract(state);
+      }
+
+      const limit = next.options.concurrencyLimit;
+      const activeBatch = queue.slice(0, limit);
+      const newQueue = queue.slice(limit);
+
+      return {
+        _batchCursor: {
+          [targetNodeKey]: { queue: newQueue, activeBatch },
+        },
+      };
+    });
+
+    builder.addConditionalEdges(loopNodeId, (state: any) => {
+      const activeBatch = state._batchCursor[targetNodeKey].activeBatch;
+
+      if (!activeBatch || activeBatch.length === 0) {
+        const outgoing = model.collected.transitions.find((tr) => tr.from === targetNodeKey);
+        if (!outgoing || !outgoing.next) return END;
+        if (outgoing.next.kind === "to")
+          return graphNodeId(nodeKeyed(model, outgoing.next.targets[0]!));
+        if (outgoing.next.kind === "join")
+          return graphNodeId(nodeKeyed(model, outgoing.next.target));
+        return END;
+      }
+
+      return activeBatch.map((item: any) => new Send(targetCloneId, { batchItem: item }));
+    });
+
+    builder.addEdge(targetCloneId, loopNodeId);
+  }
 }

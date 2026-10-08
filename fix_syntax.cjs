@@ -1,11 +1,14 @@
-const fs = require('fs');
+const fs = require("fs");
 
-const bookFile = 'packages/graphcompose/src/testing/script-book.ts';
-let code = fs.readFileSync(bookFile, 'utf-8');
+const bookFile = "packages/graphcompose/src/testing/script-book.ts";
+let code = fs.readFileSync(bookFile, "utf-8");
 
-const regex = /async handleRequest\(req: ModelRequest\): Promise<ScriptedTurn> \{[\s\S]*?return turn;\n  \}/;
+const regex =
+  /async handleRequest\(req: ModelRequest\): Promise<ScriptedTurn> \{[\s\S]*?return turn;\n  \}/;
 
-code = code.replace(regex, `async handleRequest(req: ModelRequest): Promise<ScriptedTurn> {
+code = code.replace(
+  regex,
+  `async handleRequest(req: ModelRequest): Promise<ScriptedTurn> {
     if (this.#handler !== undefined) return this.#handler(req);
     return this.next();
   }
@@ -25,7 +28,8 @@ code = code.replace(regex, `async handleRequest(req: ModelRequest): Promise<Scri
       );
     }
     return turn;
-  }`);
+  }`,
+);
 
 fs.writeFileSync(bookFile, code);
 console.log("Syntax fixed");

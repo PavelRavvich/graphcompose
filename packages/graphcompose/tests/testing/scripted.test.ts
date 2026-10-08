@@ -72,7 +72,12 @@ describe("AC12: scripted models — answers, tool calls, decisions by script", (
 
   test("thenReturnAlways answers every call after the scripted turns", async ({ app, mockLlm }) => {
     mockLlm(MainRouter).thenReturnAlways(routeTo(Writer));
-    mockLlm(MainRouter).thenReturn(routeTo(Writer), routeTo(Reply), routeTo(Writer), routeTo(Reply));
+    mockLlm(MainRouter).thenReturn(
+      routeTo(Writer),
+      routeTo(Reply),
+      routeTo(Writer),
+      routeTo(Reply),
+    );
     mockLlm(Writer).thenReturn(replyWith("first")).thenReturnAlways(replyWith("again"));
 
     const first = await app.execute(ChatStart, { text: "hi" });

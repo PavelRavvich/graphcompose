@@ -1,6 +1,6 @@
-const fs = require('fs');
-const file = 'packages/graphcompose/src/testing/matchers.ts';
-let code = fs.readFileSync(file, 'utf-8');
+const fs = require("fs");
+const file = "packages/graphcompose/src/testing/matchers.ts";
+let code = fs.readFileSync(file, "utf-8");
 
 const matchersToAdd = `
 
@@ -89,7 +89,7 @@ export function toHaveQuorumTimeout(
 
 code = code.replace(
   /export function toHaveCalledTools\(/,
-  matchersToAdd + '\nexport function toHaveCalledTools('
+  matchersToAdd + "\nexport function toHaveCalledTools(",
 );
 
 fs.writeFileSync(file, code);
