@@ -126,7 +126,7 @@ export interface BatchParallelStep {
   readonly from: readonly FlowNode[];
   readonly target: FlowNode;
   readonly strategy: Class;
-  readonly options?: { concurrency?: number };
+  readonly options: { batchSize: number };
 }
 
 interface JoinAnyStep {
@@ -163,7 +163,7 @@ export interface FlowSource {
   readonly batchParallel: (
     target: FlowNode,
     strategy: Class,
-    options?: { concurrency?: number },
+    options: { batchSize: number },
   ) => BatchParallelStep; // Simplified for runtime AST
   readonly routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
   readonly joinQuorum: (
