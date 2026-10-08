@@ -22,6 +22,7 @@ const KIND_TEXT: Readonly<Record<NodeKind, string>> = {
   action: " (action)",
   router: "",
   quorumRouter: "",
+  workflow: " (workflow)",
 };
 
 function nodeText(collected: CollectedFlow, target: FlowNode): string {
@@ -57,6 +58,8 @@ function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): strin
       return `${step.from.map(name).join(", ")} → join(${name(step.target)})`;
     case "joinAny":
       return `${step.from.map(name).join(", ")} → joinAny(${name(step.target)})`;
+    case "catch":
+      return `catchError(${name(step.target)}) → ${name(step.nextNode)}`;
     case "joinQuorum":
       return `${step.from.map(name).join(", ")} → joinQuorum(${step.count}, ${name(step.target)})`;
   }

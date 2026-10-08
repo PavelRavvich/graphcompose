@@ -30,6 +30,8 @@ const nodesOfStep = (step: FlowStep): readonly FlowNode[] => {
     case "joinAny":
     case "joinQuorum":
       return [...step.from, step.target];
+    case "catch":
+      return [step.target];
   }
 };
 

@@ -2,112 +2,112 @@ export interface AppState {
   readonly runId: string;
   readonly threadId?: string;
   readonly activeNode?: string; // name of the current Agent or Router
-  readonly variables?: Record<string, any>;
-  readonly history?: any[];
+  readonly variables?: Record<string, unknown>;
+  readonly history?: unknown[];
 }
 
-export interface AgentContext {
+export interface AgentContext<I = unknown> {
   readonly name: string;
-  readonly input: any;
+  readonly input: I;
   readonly state: AppState;
 }
-export interface AgentContextUpdate {
+export interface AgentContextUpdate<U = unknown> {
   readonly name: string;
-  readonly update: any;
-  readonly state: AppState;
-}
-
-export interface RouterContext {
-  readonly name: string;
-  readonly input: any;
-  readonly state: AppState;
-}
-export interface RouterContextUpdate {
-  readonly name: string;
-  readonly update: any;
+  readonly update: U;
   readonly state: AppState;
 }
 
-export interface RagContext {
+export interface RouterContext<I = unknown> {
   readonly name: string;
-  readonly input: any;
+  readonly input: I;
   readonly state: AppState;
 }
-export interface RagContextUpdate {
+export interface RouterContextUpdate<U = unknown> {
   readonly name: string;
-  readonly update: any;
+  readonly update: U;
   readonly state: AppState;
 }
 
-export interface ToolContext {
+export interface RagContext<I = unknown> {
+  readonly name: string;
+  readonly input: I;
+  readonly state: AppState;
+}
+export interface RagContextUpdate<U = unknown> {
+  readonly name: string;
+  readonly update: U;
+  readonly state: AppState;
+}
+
+export interface ToolContext<A = unknown> {
   readonly toolName: string;
   readonly agentName: string;
-  readonly arguments: any;
+  readonly arguments: A;
   readonly state: AppState;
 }
 
-export interface ToolContextUpdate {
+export interface ToolContextUpdate<U = unknown> {
   readonly toolName: string;
   readonly agentName: string;
-  readonly update: any;
+  readonly update: U;
   readonly state: AppState;
 }
 
-export interface GuardrailContext {
+export interface GuardrailContext<I = unknown> {
   readonly name: string;
-  readonly input: any;
+  readonly input: I;
   readonly state: AppState;
 }
-export interface GuardrailContextUpdate {
+export interface GuardrailContextUpdate<U = unknown> {
   readonly name: string;
-  readonly update: any;
-  readonly state: AppState;
-}
-
-export interface PiiPolicyContext {
-  readonly name: string;
-  readonly input: any;
-  readonly state: AppState;
-}
-export interface PiiPolicyContextUpdate {
-  readonly name: string;
-  readonly update: any;
+  readonly update: U;
   readonly state: AppState;
 }
 
-export interface WorkflowActionContext {
+export interface PiiPolicyContext<I = unknown> {
   readonly name: string;
-  readonly input: any;
+  readonly input: I;
   readonly state: AppState;
 }
-export interface WorkflowActionContextUpdate {
+export interface PiiPolicyContextUpdate<U = unknown> {
   readonly name: string;
-  readonly update: any;
+  readonly update: U;
   readonly state: AppState;
 }
 
-export interface ChannelContext {
+export interface WorkflowActionContext<I = unknown> {
   readonly name: string;
-  readonly input: any;
+  readonly input: I;
   readonly state: AppState;
 }
-export interface ChannelContextUpdate {
+export interface WorkflowActionContextUpdate<U = unknown> {
   readonly name: string;
-  readonly update: any;
+  readonly update: U;
+  readonly state: AppState;
+}
+
+export interface ChannelContext<I = unknown> {
+  readonly name: string;
+  readonly input: I;
+  readonly state: AppState;
+}
+export interface ChannelContextUpdate<U = unknown> {
+  readonly name: string;
+  readonly update: U;
   readonly state: AppState;
 }
 
 export interface ModelRequest {
   readonly modelName: string;
   readonly callerName: string; // The Agent, Router, or Rag that invoked the model
-  readonly rawPayload: any;
+  readonly rawPayload: unknown;
   readonly state: AppState;
 }
 
 export interface ModelResponse {
   readonly model: string;
   readonly callerName: string;
-  readonly rawContent: any;
+  readonly rawContent: unknown;
   readonly usage: {
     promptTokens: number;
     completionTokens: number;
@@ -124,7 +124,7 @@ export interface OnWorkflowStart {
   onWorkflowStart(state: AppState): Promise<void> | void;
 }
 export interface OnWorkflowEnd {
-  onWorkflowEnd(result: any, state: AppState): Promise<void> | void;
+  onWorkflowEnd(result: unknown, state: AppState): Promise<void> | void;
 }
 
 // 2. Agent Level

@@ -13,7 +13,13 @@ const builder = new StateGraph(State)
     console.log("Summary run", summaryRuns);
     return {};
   })
-  .addConditionalEdges(START, (state) => state.items.map(i => new Send("worker", { results: [i] })))
+  .addConditionalEdges(START, (state) =>
+    state.items.map((i) => new Send("worker", { results: [i] })),
+  )
   .addEdge("worker", "summary");
 
-builder.compile().invoke({ items: [1, 2, 3] }).then(console.log).catch(console.error);
+builder
+  .compile()
+  .invoke({ items: [1, 2, 3] })
+  .then(console.log)
+  .catch(console.error);

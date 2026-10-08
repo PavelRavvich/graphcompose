@@ -59,5 +59,11 @@ export interface GraphDeps<TName extends string> {
   /** The routing strategy of a router: its own model (Jev or a chat model). */
   readonly routerFor: (router: LoadedRouter) => Router;
   readonly observer?: ObserverManager;
-  readonly quorumRouters?: (name: string) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
+  readonly container?: { get: <T>(token: any) => T };
+  readonly quorumRouters?: (
+    name: string,
+  ) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
+  readonly batchStrategies?: (
+    name: string,
+  ) => import("../concurrency/batch.decorator.js").BatchParallelStrategy<any, any>;
 }

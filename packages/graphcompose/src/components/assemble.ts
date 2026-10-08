@@ -168,7 +168,10 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
       (agent) =>
         [
           agent.name,
-          renderPromptVariables(agent.name, agent, agent.source, { ...(bundle.promptVariables ?? {}), ...(agent.promptVariables ?? {}) }),
+          renderPromptVariables(agent.name, agent, agent.source, {
+            ...(bundle.promptVariables ?? {}),
+            ...(agent.promptVariables ?? {}),
+          }),
         ] as const,
     ),
   );
@@ -183,7 +186,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     new Map<string, readonly T[]>(
       Array.from(map.entries()).map(([k, classes]) => [
         k,
-        classes.map((cls) => services.resolve(cls)),
+        classes.map((cls) => containerFor(bundle, services).get(cls)),
       ]),
     );
 
@@ -253,7 +256,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
         k,
         {
           override: v.override,
-          instances: v.classes.map((cls) => services.resolve(cls)),
+          instances: v.classes.map((cls) => containerFor(bundle, services).get(cls)),
           disable: v.disable,
         },
       ]),
@@ -266,8 +269,8 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     guardrails: (services: any) => resolveComplexMap(agentGuardrails, services),
     toolPiiPolicies: (services: any) => resolveComplexMap(toolPii, services),
     toolGuardrails: (services: any) => resolveComplexMap(toolGuardrails, services),
-    workflowPiiPolicies: (services: any) => wfPii.map((c) => services.resolve(c)),
-    workflowGuardrails: (services: any) => wfGuardrails.map((c) => services.resolve(c)),
+    workflowPiiPolicies: (services: any) => wfPii.map((c) => containerFor(bundle, services).get(c)),
+    workflowGuardrails: (services: any) => wfGuardrails.map((c) => containerFor(bundle, services).get(c)),
     limits: settings.limits,
     models: settings.models,
     routers: graph.routers,

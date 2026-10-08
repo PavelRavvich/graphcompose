@@ -19,6 +19,7 @@ export const targetsOf = (transition: Transition): readonly string[] => {
       return transition.next.targets;
     case "batchParallel":
     case "join":
+    case "catch":
       return [transition.next.target];
   }
 };
@@ -27,7 +28,7 @@ const labelIn = (flow: CollectedFlow, key: string): string => flow.nodes.get(key
 
 function twoNextSteps(flow: CollectedFlow): RuleViolation[] {
   return [...nextStepsByNode(flow.transitions)]
-    .filter(([, steps]) => steps.length > 1)
+    .filter(([, steps]) => steps.filter(s => s.next.kind !== "catch").length > 1)
     .map(([key]) => {
       const label = labelIn(flow, key);
       const message = `${label} has more than one next step — one \`to\`, one \`choose\`, or one \`fork\``;

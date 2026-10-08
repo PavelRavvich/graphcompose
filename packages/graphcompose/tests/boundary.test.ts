@@ -57,7 +57,10 @@ describe("framework and examples apart (#91)", () => {
     const self = "packages/graphcompose/tests/boundary.test.ts";
     const selfJs = "packages/graphcompose/tests/boundary.test.js"; // names the old name on purpose
     const left = files.filter(
-      (file) => file !== self && file !== selfJs && /graphinject/i.test(readFileSync(join(root, file), "utf8")),
+      (file) =>
+        file !== self &&
+        file !== selfJs &&
+        /graphinject/i.test(readFileSync(join(root, file), "utf8")),
     );
 
     expect(left).toEqual([]);

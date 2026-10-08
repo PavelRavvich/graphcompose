@@ -1,9 +1,9 @@
-const fs = require('fs');
-let c = fs.readFileSync('packages/graphcompose/src/graph/build.ts', 'utf8');
+const fs = require("fs");
+let c = fs.readFileSync("packages/graphcompose/src/graph/build.ts", "utf8");
 
 c = c.replace(
   `  for (const node of model.nodes.values()) {\n    const { runner, maxVisits } = runnerOf(node, model, runtime, routers);\n    const deps = {\n      limits,\n      spentToday: runtime.spentToday,\n      ...(maxVisits === undefined ? {} : { maxVisits }),\n    };\n    builder.addNode(graphNodeId(node), visitNode(node, runner, deps));\n  }`,
-  `  for (const node of model.nodes.values()) {\n    const { runner, maxVisits } = runnerOf(node, model, runtime, routers);\n    const deps = {\n      limits,\n      spentToday: runtime.spentToday,\n      ...(maxVisits === undefined ? {} : { maxVisits }),\n    };\n    builder.addNode(graphNodeId(node), visitNode(node, runner, deps));\n\n    const isBatchTarget = model.collected.transitions.some(t => t.next.kind === "batchParallel" && t.next.target === node.key);\n    if (isBatchTarget) {\n      builder.addNode(\`\${graphNodeId(node)}_batch_clone\`, visitNode(node, runner, deps));\n    }\n  }`
+  `  for (const node of model.nodes.values()) {\n    const { runner, maxVisits } = runnerOf(node, model, runtime, routers);\n    const deps = {\n      limits,\n      spentToday: runtime.spentToday,\n      ...(maxVisits === undefined ? {} : { maxVisits }),\n    };\n    builder.addNode(graphNodeId(node), visitNode(node, runner, deps));\n\n    const isBatchTarget = model.collected.transitions.some(t => t.next.kind === "batchParallel" && t.next.target === node.key);\n    if (isBatchTarget) {\n      builder.addNode(\`\${graphNodeId(node)}_batch_clone\`, visitNode(node, runner, deps));\n    }\n  }`,
 );
 
 const batchLogic = `
@@ -53,14 +53,20 @@ const batchLogic = `
   }
 `;
 
-const oldNodeEdges = c.substring(c.indexOf('function nodeEdges'), c.indexOf('function compileJoinBarriers'));
-let newNodeEdgesBody = oldNodeEdges.replace('function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void {', '');
-newNodeEdgesBody = newNodeEdgesBody.substring(0, newNodeEdgesBody.lastIndexOf('}'));
+const oldNodeEdges = c.substring(
+  c.indexOf("function nodeEdges"),
+  c.indexOf("function compileJoinBarriers"),
+);
+let newNodeEdgesBody = oldNodeEdges.replace(
+  "function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void {",
+  "",
+);
+newNodeEdgesBody = newNodeEdgesBody.substring(0, newNodeEdgesBody.lastIndexOf("}"));
 
 // replace nextEach logic
 newNodeEdgesBody = newNodeEdgesBody.replace(
   `if (next.kind === "nextEach") {\n    const targetId = graphNodeId(nodeKeyed(model, next.target));\n    builder.addConditionalEdges(id, (state) => {\n      // In a real implementation we would extract items from state payload here\n      // For now, we simulate map-reduce by sending 1 item to the target\n      // This allows the graph to compile correctly\n      return [new Send(targetId, state)];\n    });\n    return;\n  }`,
-  batchLogic
+  batchLogic,
 );
 
 // We need to wrap it in wireEdgesForId
@@ -82,4 +88,4 @@ function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void 
 `;
 
 c = c.replace(oldNodeEdges, wrapped);
-fs.writeFileSync('packages/graphcompose/src/graph/build.ts', c);
+fs.writeFileSync("packages/graphcompose/src/graph/build.ts", c);

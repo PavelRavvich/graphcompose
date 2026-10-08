@@ -223,6 +223,9 @@ export async function createAppDeps(
     terns,
     evaluation: evaluationFor(bundle, { terns, ledger }, gateway),
     tracing,
+    container: {
+      get: <T>(token: any) => lifecycle.created.find((c: any) => c.constructor === token) as T,
+    },
     observer: new ObserverManager(lifecycle.created),
     ...(options.newRunId === undefined ? {} : { newRunId: options.newRunId }),
     close: async () => {

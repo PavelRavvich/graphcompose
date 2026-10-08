@@ -17,7 +17,7 @@ export function flowRuntimeOf<TName extends string>(
   run: RunLimits,
 ): FlowRuntime {
   return {
-    runnerFor: flowRunners(deps),
+    runnerFor: flowRunners(deps, run),
     routerFor: deps.routerFor,
     routerMemory: {
       summaries: defaultSummaries(deps.config),
@@ -27,6 +27,9 @@ export function flowRuntimeOf<TName extends string>(
     spentToday: run.spentToday,
     ...(deps.pause === undefined ? {} : { checkpointer: deps.pause.checkpointer }),
     observer: deps.observer,
+    quorumRouters: deps.quorumRouters,
+    container: deps.container,
+    batchStrategies: deps.batchStrategies,
   };
 }
 

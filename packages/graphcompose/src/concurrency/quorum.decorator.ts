@@ -5,7 +5,10 @@ import { recordNode } from "../graph/node-kind.js";
 /** Strategy for evaluating and routing a quorum of parallel branches. */
 export interface QuorumStrategy<T = any> {
   filterVote(state: T): Promise<boolean> | boolean;
-  route(state: T, hasQuorum: boolean): Promise<import("../graph/flow.js").ChoiceTarget> | import("../graph/flow.js").ChoiceTarget;
+  route(
+    state: T,
+    hasQuorum: boolean,
+  ): Promise<import("../graph/flow.js").ChoiceTarget> | import("../graph/flow.js").ChoiceTarget;
 }
 
 export interface QuorumRouterOptions {
@@ -32,4 +35,5 @@ export function QuorumRouter(options?: QuorumRouterOptions) {
   };
 }
 
-export const quorumRouterMetaOf = (target: Class): QuorumRouterMeta | undefined => quorumRouters.get(target);
+export const quorumRouterMetaOf = (target: Class): QuorumRouterMeta | undefined =>
+  quorumRouters.get(target);

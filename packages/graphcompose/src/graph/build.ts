@@ -29,7 +29,13 @@ export interface FlowRuntime {
   readonly spentToday: SpentToday;
   readonly checkpointer?: BaseCheckpointSaver;
   readonly observer?: import("../core/observer-manager.js").ObserverManager;
-  readonly quorumRouters?: (name: string) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
+  readonly container?: { get: <T>(token: any) => T };
+  readonly quorumRouters?: (
+    name: string,
+  ) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
+  readonly batchStrategies?: (
+    name: string,
+  ) => import("../concurrency/batch.decorator.js").BatchParallelStrategy<any, any>;
 }
 
 /** LangGraph's `recursionLimit` is a safety net far above the steps limit, never the limit a user sees. */
@@ -49,23 +55,33 @@ function runnerOf(
 ): { readonly runner: FlowNodeRunner; readonly maxVisits?: number } {
   const loaded = routers.get(node.key);
   if (node.kind !== "router" || loaded === undefined) return { runner: runtime.runnerFor(node) };
-  
-  const isQuorumRouter = Array.from(model.nodes.values()).some(n => n.key === node.key && quorumRouterMetaOf(n.use));
+
+  const isQuorumRouter = Array.from(model.nodes.values()).some(
+    (n) => n.key === node.key && quorumRouterMetaOf(n.use),
+  );
   if (isQuorumRouter) {
     return {
       runner: async (state, config) => {
         const strategy = runtime.quorumRouters?.(node.use.name);
         if (!strategy) throw new Error("Missing QuorumStrategy in AppDeps for " + node.use.name);
-        
+
         let hasQuorum = false;
         if (config?.configurable?.quorumManager) {
-          const manager = config.configurable.quorumManager as import("../concurrency/quorum-manager.js").QuorumManager;
+          const manager = config.configurable
+            .quorumManager as import("../concurrency/quorum-manager.js").QuorumManager;
           hasQuorum = manager.isQuorumMet(node.key);
         }
-        
+
         const target = await strategy.route(state, hasQuorum);
-        return { next: typeof target === "string" ? target : ("name" in target ? target.name : (target as any).kind) };
-      }
+        return {
+          next:
+            typeof target === "string"
+              ? target
+              : "name" in target
+                ? target.name
+                : (target as any).kind,
+        };
+      },
     };
   }
   const finish = loaded.routes.find(
@@ -147,9 +163,20 @@ const pathMap = (
     }),
   ]);
 
+function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef, deps: any): void {
+  const next = model.next.get(node.key);
+  const id = graphNodeId(node);
+  wireEdgesForId(builder, model, node, next, id, deps);
 
+  const isBatchTarget = model.collected.transitions.some(
+    (t) => t.next.kind === "batchParallel" && t.next.target === node.key,
+  );
+  if (isBatchTarget) {
+    wireEdgesForId(builder, model, node, next, `${id}_batch_finish`, deps);
+  }
+}
 
-function startEdges(builder: Builder, model: FlowModel): void {
+function startEdges(builder: Builder, model: FlowModel, deps: any): void {
   const starts = [...model.nodes.values()].filter((ref) => ref.kind === "workflow-start");
   const [only] = starts;
   if (starts.length === 1 && only !== undefined) {
@@ -176,10 +203,52 @@ const afterStart =
   (state: FlowStateType): string =>
     state.guarded === "" ? target : END;
 
+function wireEdgesForId(
+  builder: Builder,
+  model: FlowModel,
+  node: FlowNodeRef,
+  next: any,
+  id: string,
+  deps: any,
+): void {
+  const catches = model.catches.get(node.key) || [];
+  
+  if (catches.length > 0) {
+    // If we have catch blocks, we MUST use conditional edges
+    builder.addConditionalEdges(id, (state: any) => {
+      if (state.lastError) {
+        for (const catchNode of catches) {
+          if (state.lastError instanceof catchNode.errorType) {
+             return graphNodeId(nodeKeyed(model, catchNode.nextNode));
+          }
+        }
+        // Unhandled error
+        throw state.lastError;
+      }
+      
+      // Happy path
+      if (node.kind === "workflow-finish" || (next === undefined && node.kind !== "agent")) {
+        return END;
+      }
+      if (!next) return END; // Agent without next implies END? wait, no.
+      
+      if (next.kind === "to") {
+         const targets = next.targets.map((t: any) => graphNodeId(nodeKeyed(model, t)));
+         return targets;
+      }
+      if (next.kind === "choose") {
+         return state.route;
+      }
+      if (next.kind === "join" || next.kind === "batchParallel") {
+         return graphNodeId(nodeKeyed(model, next.target));
+      }
+      return END;
+    });
+    return;
+  }
 
-function wireEdgesForId(builder: Builder, model: FlowModel, node: FlowNodeRef, next: any, id: string): void {
-
-    if (node.kind === "workflow-finish" || (next === undefined && node.kind !== "agent")) {
+  // Original fast-path wiring
+  if (node.kind === "workflow-finish" || (next === undefined && node.kind !== "agent")) {
     builder.addEdge(id, END);
     return;
   }
@@ -191,102 +260,16 @@ function wireEdgesForId(builder: Builder, model: FlowModel, node: FlowNodeRef, n
       builder.addConditionalEdges(
         id,
         singleTarget
-          ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            afterStart(targets[0]!)
-          : (state) => (state.guarded === "" ? targets : [END]),
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        singleTarget ? [targets[0]!, END] : undefined,
+          ? (state) => (state.optionalBranches?.includes(node.key) ? "__skip__" : targets[0])
+          : (state) => (state.optionalBranches?.includes(node.key) ? ["__skip__"] : targets),
       );
-      return;
+    } else {
+      for (const t of targets) builder.addEdge(id, t);
     }
-    builder.addConditionalEdges(id, () => targets);
-    return;
-  }
-  
-  if (next.kind === "batchParallel") {
-    const targetNode = nodeKeyed(model, next.target);
-    const targetId = graphNodeId(targetNode);
-    const concurrency = next.options?.concurrency ?? 5;
-    const cloneId = `${targetId}_batch_clone`;
-    const managerId = `batch_manager.${targetId}.${node.key}`;
-    const loopId = `batch_loop.${targetId}.${node.key}`;
-
-    builder.addEdge(id, managerId);
-
-    builder.addNode(managerId, (state) => {
-      const existing = state._batchCursor?.[managerId];
-      if (existing) return {};
-      const items = next.extractor(state.payload);
-      return { _batchCursor: { [managerId]: { queue: items, offset: 0 } } };
-    });
-
-    builder.addConditionalEdges(managerId, (state) => {
-      const cursor = state._batchCursor[managerId];
-      if (!cursor) return [END];
-      const batch = cursor.queue.slice(cursor.offset, cursor.offset + concurrency);
-      if (batch.length === 0) return [loopId];
-      return batch.map(item => new Send(cloneId, { ...state, batchItem: item }));
-    });
-
-    builder.addNode(loopId, (state) => {
-      const cursor = state._batchCursor[managerId];
-      return { _batchCursor: { [managerId]: { queue: cursor!.queue, offset: cursor!.offset + concurrency } } };
-    });
-
-    builder.addEdge(cloneId, loopId);
-
-    const finishId = `${targetId}_batch_finish`;
-    builder.addConditionalEdges(loopId, (state) => {
-      const cursor = state._batchCursor[managerId];
-      if (cursor && cursor.offset < cursor.queue.length) {
-        return managerId;
-      }
-      return finishId;
-    });
-
-    builder.addNode(finishId, () => ({}));
-    return;
-  }
-
-  if (next.kind === "join" || next.kind === "joinAny" || next.kind === "joinQuorum") {
-    const targetId = graphNodeId(nodeKeyed(model, next.target));
-    const wrapperId = `join-wrap.${targetId}.${node.key}`;
-    builder.addEdge(id, wrapperId);
-    return;
-  }
-  const self = next.self ? predecessorsOf(model.collected, node.key).map((ref) => ref.key) : [];
-
-  const ret = (next as any).return ? ["skip-wrap"] : [];
-  const end = (next as any).end ? [END] : [];
-  const targets = [...new Set([...next.targets, ...self, ...ret, ...end])];
-  const parallels = (next as any).parallelTargets || [];
-
-  builder.addConditionalEdges(
-    id,
-    (state: FlowStateType) => {
-      // If the router chose "skip", we map it to "skip-wrap"
-      if (state.next === "Return") return "skip-wrap";
-      if (state.next === "End") return END;
-      const pMatch = parallels.find((p: any) => p.optionName === state.next);
-      if (pMatch) {
-        return pMatch.targets.map((t: any) => new Send(graphNodeId(nodeKeyed(model, t)), state));
-      }
-      return state.next;
-    },
-    pathMap(model, targets, parallels),
-  );
-  return;
-
-}
-
-function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef): void {
-  const next = model.next.get(node.key);
-  const id = graphNodeId(node);
-  wireEdgesForId(builder, model, node, next, id);
-
-  const isBatchTarget = model.collected.transitions.some(t => t.next.kind === "batchParallel" && t.next.target === node.key);
-  if (isBatchTarget) {
-    wireEdgesForId(builder, model, node, next, `${id}_batch_finish`);
+  } else if (next.kind === "choose") {
+    builder.addConditionalEdges(id, (state) => state.route);
+  } else if (next.kind === "join" || next.kind === "batchParallel") {
+    builder.addEdge(id, graphNodeId(nodeKeyed(model, next.target)));
   }
 }
 function compileJoinBarriers(builder: Builder, model: FlowModel) {
@@ -379,20 +362,33 @@ function compileFlow(
     FlowStateUpdate,
     string
   >(FlowState);
+  const sharedDeps = {
+    limits,
+    spentToday: runtime.spentToday,
+    quorumRouters: runtime.quorumRouters,
+    container: runtime.container,
+  };
   for (const node of model.nodes.values()) {
     const { runner, maxVisits } = runnerOf(node, model, runtime, routers);
     const deps = {
+      ...sharedDeps,
       limits,
       spentToday: runtime.spentToday,
       quorumRouters: runtime.quorumRouters,
+      container: runtime.container,
       ...(maxVisits === undefined ? {} : { maxVisits }),
     };
-    
+
     let quorumContext: QuorumContext | undefined;
-    const isQuorumTarget = model.collected.transitions.find(t => 
-      t.from === node.key && t.next && t.next.kind === "choose" && t.next.quorumRouter
+    const isQuorumTarget = model.collected.transitions.find(
+      (t) => t.from === node.key && t.next && t.next.kind === "choose" && t.next.quorumRouter,
     );
-    if (isQuorumTarget && isQuorumTarget.next && isQuorumTarget.next.kind === "choose" && isQuorumTarget.next.quorumRouter) {
+    if (
+      isQuorumTarget &&
+      isQuorumTarget.next &&
+      isQuorumTarget.next.kind === "choose" &&
+      isQuorumTarget.next.quorumRouter
+    ) {
       const min = isQuorumTarget.next.quorumMin!;
       const max = isQuorumTarget.next.quorumMax;
       const timeoutSeconds = isQuorumTarget.next.quorumTimeoutSeconds;
@@ -402,20 +398,27 @@ function compileFlow(
           min: min,
           max: max,
           timeoutSeconds: timeoutSeconds,
-          routerClass: isQuorumTarget.next.quorumRouter!
+          routerClass: isQuorumTarget.next.quorumRouter!,
         };
       }
     }
 
-    builder.addNode(graphNodeId(node), visitNode(node, runner, deps, quorumContext));
+    const hasCatches = (model.catches.get(node.key) || []).length > 0;
+    const visitDeps = { ...deps, catchesErrors: hasCatches };
+    builder.addNode(graphNodeId(node), visitNode(node, runner, visitDeps, quorumContext));
 
-    const isBatchTarget = model.collected.transitions.some(t => t.next.kind === "batchParallel" && t.next.target === node.key);
+    const isBatchTarget = model.collected.transitions.some(
+      (t) => t.next.kind === "batchParallel" && t.next.target === node.key,
+    );
     if (isBatchTarget) {
-      builder.addNode(`${graphNodeId(node)}_batch_clone`, visitNode(node, runner, deps, quorumContext));
+      builder.addNode(
+        `${graphNodeId(node)}_batch_clone`,
+        visitNode(node, runner, visitDeps, quorumContext),
+      );
     }
   }
-  startEdges(builder, model);
-  for (const node of model.nodes.values()) nodeEdges(builder, model, node);
+  startEdges(builder, model, sharedDeps);
+  for (const node of model.nodes.values()) nodeEdges(builder, model, node, sharedDeps);
   compileJoinBarriers(builder, model);
   const recursionLimit = (limits.steps + model.nodes.size) * RECURSION_SAFETY_FACTOR;
   const compiled = builder.compile(

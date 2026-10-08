@@ -38,8 +38,14 @@ export interface FlowNodeRef {
 /** A node's declared next step: one unconditional target, or a router's choice. */
 export type NextDeclaration =
   | { readonly kind: "to"; readonly targets: readonly string[] }
+  | { readonly kind: "catch"; readonly errorType: Class; readonly nextNode: string }
   | { readonly kind: "join"; readonly target: string; readonly joinSources: string[] }
-  | { readonly kind: "batchParallel"; readonly target: string; readonly extractor: (payload: any) => any[]; readonly options?: { concurrency?: number } }
+  | {
+      readonly kind: "batchParallel";
+      readonly target: string;
+      readonly strategy: Class;
+      readonly options?: { concurrency?: number };
+    }
   | {
       readonly kind: "choose";
       readonly targets: readonly string[];
@@ -50,7 +56,7 @@ export type NextDeclaration =
       readonly quorumMin?: number;
       readonly quorumMax?: number;
       readonly quorumTimeoutSeconds?: number;
-    }
+    };
 
 /** A declared next step of one node (both ends are node keys). */
 export interface Transition {
@@ -165,12 +171,18 @@ function chooseTargets(targets: readonly ChoiceTarget[], resolve: Resolve): Next
 
 function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
   switch (step.kind) {
-case "to": {
+    case "to": {
       const sources = defined(step.from.map(resolve));
       const targets = defined(step.targets.map((t) => resolve(unwrapTarget(t))));
       if (targets.length === 0) return [];
-      
+
       return sources.map((from) => ({ from, next: { kind: "to", targets } }));
+    }
+    case "catch": {
+      const source = resolve(step.target);
+      const nextNode = resolve(step.nextNode);
+      if (!source || !nextNode) return [];
+      return [{ from: source, next: { kind: "catch", errorType: step.errorType, nextNode } }];
     }
     case "join": {
       const sources = defined(step.from.map(resolve));
@@ -178,12 +190,18 @@ case "to": {
       if (!target) return [];
       return sources.map((from) => ({
         from,
-        next: { kind: "join", target, joinSources: sources }
+        next: { kind: "join", target, joinSources: sources },
       }));
     }
     case "choose": {
       const sources = defined(step.from.map(resolve));
-      const next = { ...chooseTargets(step.targets, resolve), quorumRouter: step.quorumRouter?.name, quorumMin: step.quorumMin, quorumMax: step.quorumMax, quorumTimeoutSeconds: step.quorumTimeoutSeconds };
+      const next = {
+        ...chooseTargets(step.targets, resolve),
+        quorumRouter: step.quorumRouter?.name,
+        quorumMin: step.quorumMin,
+        quorumMax: step.quorumMax,
+        quorumTimeoutSeconds: step.quorumTimeoutSeconds,
+      };
       return sources.map((from) => ({ from, next }));
     }
 
@@ -194,7 +212,7 @@ case "to": {
         ? []
         : sources.map((from) => ({
             from,
-            next: { kind: "batchParallel", options: step.options, target, extractor: step.extractor },
+            next: { kind: "batchParallel", options: step.options, target, strategy: step.strategy },
           }));
     }
     case "chain":

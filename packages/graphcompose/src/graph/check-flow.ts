@@ -15,6 +15,7 @@ import { graphRules } from "./rules.js";
 export interface FlowModel {
   readonly nodes: ReadonlyMap<string, FlowNodeRef>;
   readonly next: ReadonlyMap<string, NextDeclaration>;
+  readonly catches: ReadonlyMap<string, NextDeclaration[]>;
   /** Kept for later lookups (route targets by class). */
   readonly collected: CollectedFlow;
 }
@@ -32,8 +33,14 @@ export function checkFlow(flow: Flow): FlowModel {
     ...routerRules(collected),
     ...unboundedRouterCycles(collected),
   ]);
-  const next = new Map(
-    collected.transitions.map((transition) => [transition.from, transition.next]),
-  );
-  return { nodes: collected.nodes, next, collected };
+  const next = new Map<string, NextDeclaration>();
+  const catches = new Map<string, NextDeclaration[]>();
+  for (const t of collected.transitions) {
+    if (t.next.kind === "catch") {
+      catches.set(t.from, [...(catches.get(t.from) || []), t.next]);
+    } else {
+      next.set(t.from, t.next);
+    }
+  }
+  return { nodes: collected.nodes, next, catches, collected };
 }

@@ -49,3 +49,4 @@ export {
   type ChannelDecision,
 } from "./components/decorators.js";
 export { TerminalUserChannel } from "./channels/terminal-channel.js";
+export * from "./errors.js";

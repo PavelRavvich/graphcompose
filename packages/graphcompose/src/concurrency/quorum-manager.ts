@@ -21,28 +21,34 @@ interface QuorumState {
 export class QuorumManager {
   private activeQuorums = new Map<string, QuorumState>();
 
-  registerBranch(quorumId: string, min: number, token: BranchCancelToken, max?: number, timeoutSeconds?: number) {
+  registerBranch(
+    quorumId: string,
+    min: number,
+    token: BranchCancelToken,
+    max?: number,
+    timeoutSeconds?: number,
+  ) {
     if (!this.activeQuorums.has(quorumId)) {
-      const q: QuorumState = { 
-        min, 
-        max: max ?? min, 
-        votes: 0, 
-        finished: 0, 
-        tokens: new Set() 
+      const q: QuorumState = {
+        min,
+        max: max ?? min,
+        votes: 0,
+        finished: 0,
+        tokens: new Set(),
       };
-      
+
       if (timeoutSeconds) {
         q.timer = setTimeout(() => {
           this.cancelAll(q);
         }, timeoutSeconds * 1000);
       }
-      
+
       this.activeQuorums.set(quorumId, q);
     }
-    
+
     const quorum = this.activeQuorums.get(quorumId)!;
     quorum.tokens.add(token);
-    
+
     if (quorum.votes >= quorum.max) {
       token.cancelled = true;
     }
@@ -56,28 +62,28 @@ export class QuorumManager {
   addVote(quorumId: string, isValid: boolean): boolean {
     const quorum = this.activeQuorums.get(quorumId);
     if (!quorum) return false;
-    
+
     quorum.finished++;
     if (isValid) quorum.votes++;
-    
+
     // Condition 1: Reached Max
     if (quorum.votes >= quorum.max) {
       this.cancelAll(quorum);
       return true;
     }
-    
+
     // Condition 2: Fail Fast (impossible to reach min)
     const failed = quorum.finished - quorum.votes;
     if (failed > quorum.tokens.size - quorum.min) {
       this.cancelAll(quorum);
       return false;
     }
-    
+
     // Condition 3: All finished naturally
     if (quorum.finished === quorum.tokens.size) {
       this.cancelAll(quorum);
     }
-    
+
     return quorum.votes >= quorum.min;
   }
 

@@ -49,6 +49,8 @@ export const FlowState = Annotation.Root({
     reducer: mergeForks,
     default: () => ({}),
   }),
+  /** The last caught error in the flow. */
+  lastError: Annotation<Error | null>({ reducer: replace, default: () => null }),
 });
 
 export type FlowStateType = typeof FlowState.State;

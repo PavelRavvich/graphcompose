@@ -30,7 +30,7 @@ builder.addEdge(START, "scatter");
 builder.addConditionalEdges("scatter", (state) => {
   const batch = state.items.slice(state.offset, state.offset + 2);
   console.log("Scattering batch", batch);
-  return batch.map(i => new Send("worker", { results: [i], offset: state.offset }));
+  return batch.map((i) => new Send("worker", { results: [i], offset: state.offset }));
 });
 
 builder.addEdge("worker", "loop_check");
@@ -44,4 +44,8 @@ builder.addConditionalEdges("loop_check", (state) => {
 
 builder.addEdge("summary", END);
 
-builder.compile().invoke({ items: [1, 2, 3, 4, 5] }).then(console.log).catch(console.error);
+builder
+  .compile()
+  .invoke({ items: [1, 2, 3, 4, 5] })
+  .then(console.log)
+  .catch(console.error);

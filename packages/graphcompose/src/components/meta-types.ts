@@ -17,6 +17,8 @@ export interface RagBinding {
 /** `@Agent` — settings of one agent; tools are class references. */
 export interface AgentMeta {
   readonly name: string;
+  /** The compensating agent class for SAGA rollbacks */
+  readonly compensate?: Class;
   readonly description: string;
   readonly prompt?: string;
   readonly promptUrls?: readonly string[];
@@ -28,7 +30,7 @@ export interface AgentMeta {
   readonly maxTokens?: AgentSettings["maxTokens"];
   /** `{{key}}` in agent prompts is replaced with the value (assembly fails on unknown keys). */
   readonly promptVariables?: Readonly<Record<string, string>>;
-    readonly cache?: boolean;
+  readonly cache?: boolean;
   readonly historyLimit?: number;
   readonly historySummaries?: number;
   /** Tool calls per call of the agent (`agents.<name>.limits.toolCalls`); default 20. */
@@ -73,7 +75,7 @@ export interface WorkflowMeta {
   readonly providers?: readonly Provider[];
   readonly compactionPrompt?: string;
   readonly promptVariables?: Readonly<Record<string, string>>;
-    readonly channelClasses?: readonly Class[];
+  readonly channelClasses?: readonly Class[];
 }
 
 /** `@Channel` — settings of a channel. */

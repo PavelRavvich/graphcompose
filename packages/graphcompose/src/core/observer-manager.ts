@@ -39,7 +39,7 @@ export class ObserverManager {
   async onWorkflowStart(state: AppState) {
     return this.dispatch("onWorkflowStart", state);
   }
-  async onWorkflowEnd(result: any, state: AppState) {
+  async onWorkflowEnd(result: unknown, state: AppState) {
     return this.dispatch("onWorkflowEnd", result, state);
   }
 

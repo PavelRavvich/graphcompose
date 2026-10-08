@@ -3,7 +3,13 @@ import { componentOf } from "../components/metadata.js";
 
 /** What a flow node is. Agents and routers are working nodes: their visits are steps. */
 export type NodeKind =
-  | "quorumRouter" | "workflow-start" | "router" | "agent" | "action" | "workflow-finish";
+  | "quorumRouter"
+  | "workflow-start"
+  | "router"
+  | "agent"
+  | "action"
+  | "workflow-finish"
+  | "workflow";
 
 /** What the flow knows about a node class: its kind and its name (the graph node's name). */
 export interface NodeInfo {
@@ -24,9 +30,12 @@ export function nodeInfoOf(target: Class): NodeInfo | undefined {
   if (recorded !== undefined) return recorded;
   const component = componentOf(target);
   if (component?.kind === "agent") return { kind: "agent", name: component.meta.name };
+  // Note: workflow meta has name inside meta.meta? Wait, componentOf(target).meta is WorkflowMeta! So component.meta.name
   if (component?.kind === "action") return { kind: "action", name: component.meta.name };
+  if (component?.kind === "workflow")
+    return { kind: "workflow", name: (component.meta as any).name };
   return undefined;
 }
 
 export const isWorkingKind = (kind: NodeKind): boolean =>
-  kind === "agent" || kind === "router" || kind === "action";
+  kind === "agent" || kind === "router" || kind === "action" || kind === "workflow";

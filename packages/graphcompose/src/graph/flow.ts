@@ -55,8 +55,6 @@ export interface ParallelGroup {
   readonly targets: readonly ChoiceTarget[];
   readonly quorumRouter?: Class;
   readonly quorumMin?: number;
-  readonly quorumMax?: number;
-  readonly quorumTimeoutSeconds?: number;
 }
 
 export interface OptionalTarget {
@@ -94,12 +92,21 @@ export interface ToStep {
 }
 
 /** `from(Router).routeOne(X, Y)` — the router picks one target. */
+export interface CatchStep {
+  readonly kind: "catch";
+  readonly target: FlowNode;
+  readonly errorType: Class;
+  readonly nextNode: ChoiceTarget;
+}
+
 export interface ChooseStep {
   readonly kind: "choose";
   readonly from: readonly FlowNode[];
   readonly targets: readonly ChoiceTarget[];
   readonly quorumRouter?: Class;
   readonly quorumMin?: number;
+  readonly quorumMax?: number;
+  readonly quorumTimeoutSeconds?: number;
 }
 
 /** `chain(A, B, C)` = `from(A).next(B)` + `from(B).next(C)`; a router only as the last element. */
@@ -118,7 +125,7 @@ export interface BatchParallelStep {
   readonly kind: "batchParallel";
   readonly from: readonly FlowNode[];
   readonly target: FlowNode;
-  readonly extractor: (payload: any) => any[];
+  readonly strategy: Class;
   readonly options?: { concurrency?: number };
 }
 
@@ -136,7 +143,14 @@ interface JoinQuorumStep {
 }
 
 export type FlowStep =
-  ToStep | ChooseStep | ChainStep | JoinStep | BatchParallelStep | JoinAnyStep | JoinQuorumStep;
+  | ToStep
+  | ChooseStep
+  | CatchStep
+  | ChainStep
+  | JoinStep
+  | BatchParallelStep
+  | JoinAnyStep
+  | JoinQuorumStep;
 
 /** The graph of a workflow: its transitions, in the workflow file. */
 export type Flow = readonly FlowStep[];
@@ -146,12 +160,18 @@ export interface FlowSource {
   readonly next: (target: FlowNode) => ToStep;
   readonly nextParallel: (...targets: readonly [FlowNode, ...FlowNode[]]) => ToStep;
   readonly join: (target: FlowNode) => JoinStep;
-  readonly batchParallel: <T>(target: FlowNode, extractor: (payload: any) => T[], options?: { concurrency?: number }) => BatchParallelStep; // Simplified for runtime AST
+  readonly batchParallel: (
+    target: FlowNode,
+    strategy: Class,
+    options?: { concurrency?: number },
+  ) => BatchParallelStep; // Simplified for runtime AST
   readonly routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
-  readonly joinQuorum: (router: Class, options: { min: number; max?: number; timeoutSeconds?: number }) => {
+  readonly joinQuorum: (
+    router: Class,
+    options: { min: number; max?: number; timeoutSeconds?: number },
+  ) => {
     routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
   };
-
 }
 
 /** Starts a transition from one or more nodes (several = fan-in). */
@@ -163,7 +183,13 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
     next: (target) => ({ kind: "to", from: sources, targets: [target] }),
     nextParallel: (...targets) => ({ kind: "to", from: sources, targets }),
     join: (target) => ({ kind: "join", from: sources, target }),
-    batchParallel: (target, extractor, options) => ({ kind: "batchParallel", from: sources, target, extractor, options }),
+    batchParallel: (target, strategy, options) => ({
+      kind: "batchParallel",
+      from: sources,
+      target,
+      strategy,
+      options,
+    }),
     routes: (...targets) => ({ kind: "choose", from: sources, targets }),
     joinQuorum: (router, options) => ({
       routes: (...targets) => ({
@@ -210,4 +236,18 @@ export function labelOf(target: ChoiceTarget): string {
   if (isParallel(target)) return `parallel(${target.targets.map(labelOf).join(", ")})`;
   if (isOptional(target)) return `optional(${labelOf(target.target)})`;
   return target.name || "(anonymous class)";
+}
+
+export function catchError(
+  target: FlowNode,
+  errorType: Class | "any" = "any",
+): { next: (nextNode: ChoiceTarget) => CatchStep } {
+  return {
+    next: (nextNode) => ({
+      kind: "catch",
+      target,
+      errorType,
+      nextNode,
+    }),
+  };
 }

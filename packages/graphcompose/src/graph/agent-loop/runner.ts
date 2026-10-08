@@ -42,8 +42,9 @@ export function loopInputOf(state: FlowStateType, agent: string): AgentLoopState
     modelCalls: 0,
     toolCalls: 0,
     reply: null,
-batchItem: undefined,
-_batchCursor: {},
+    batchItem: undefined,
+    _batchCursor: {},
+    lastError: null,
   };
 }
 

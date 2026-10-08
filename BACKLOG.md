@@ -69,3 +69,13 @@
   - `graphcompose/dto` — (уже существует).
 
 - [x] **Observability/Telemetry Subsystem (Ticket 169)**: Implement non-blocking `AgentObserver` hooks (`onAgentStart`, `onAgentEnd`, `onLlmStart`, `onLlmEnd`, `onError`) for logging and tracing without mutating core loop logic. See `ticket-169-observability.md` for architecture specifics.
+
+## Улучшение: Рефакторинг и очистка API тестирования (Mocking API)
+
+**Тип:** Refactoring / DX
+**Описание:** Текущий тестовый фреймворк (`testWith`, `ComponentScript`, `app.script()`) накопил технический долг. Необходимо пересмотреть подходы к мокированию компонентов, стандартизировать API и сделать его более интуитивным для пользователя.
+**Задача:** 
+- Провести ревизию API для мокирования агентов, инструментов (tools) и роутеров.
+- Упростить синтаксис (сделать его более "fluent" и читаемым).
+- Избавиться от костылей вроде "any" или передачи сложных объектов там, где можно обойтись простыми замыканиями.
+- Написать четкий гайдлайны в `.wiki` по написанию юнит-тестов и мокированию.

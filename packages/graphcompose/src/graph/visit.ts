@@ -6,7 +6,11 @@ import { checkVisit, type ResolvedLimits } from "./limits.js";
 import { isWorkingKind } from "./node-kind.js";
 import type { AsyncNode } from "./types.js";
 import type { Contribution } from "./contributions.js";
-import { QuorumCancelledError, type BranchCancelToken, type QuorumManager } from "../concurrency/quorum-manager.js";
+import {
+  QuorumCancelledError,
+  type BranchCancelToken,
+  type QuorumManager,
+} from "../concurrency/quorum-manager.js";
 
 /** What runs one flow node. A node may invoke a compiled subgraph inside (see `subgraphNode`). */
 export type FlowNodeRunner = AsyncNode<FlowStateType, FlowStateUpdate>;
@@ -16,10 +20,13 @@ export type SpentToday = () => Promise<number>;
 
 export interface VisitDeps {
   readonly limits: ResolvedLimits;
-  readonly quorumRouters?: (name: string) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
+  readonly quorumRouters?: (
+    name: string,
+  ) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
   readonly spentToday: SpentToday;
   /** A router's `maxVisits`. */
   readonly maxVisits?: number;
+  readonly catchesErrors?: boolean;
 }
 
 async function daySpentBeforeRun(state: FlowStateType, deps: VisitDeps): Promise<number> {
@@ -124,13 +131,19 @@ export function visitNode(
     if (quorumContext && config?.configurable?.quorumManager) {
       manager = config.configurable.quorumManager as QuorumManager;
       branchCancelToken = { cancelled: false };
-      manager.registerBranch(quorumContext.quorumId, quorumContext.min, branchCancelToken, quorumContext.max, quorumContext.timeoutSeconds);
-      
+      manager.registerBranch(
+        quorumContext.quorumId,
+        quorumContext.min,
+        branchCancelToken,
+        quorumContext.max,
+        quorumContext.timeoutSeconds,
+      );
+
       if (branchCancelToken.cancelled) return {};
-      
+
       branchConfig = {
         ...config,
-        configurable: { ...config.configurable, branchCancelToken }
+        configurable: { ...config.configurable, branchCancelToken },
       };
     }
 
@@ -145,7 +158,7 @@ export function visitNode(
     try {
       const joinUpdate = await joinUpdateOf(node, state);
       const update = await runner(mergeJoinState(state, joinUpdate), branchConfig);
-      
+
       if (quorumContext && manager && deps.quorumRouters) {
         const strategy = deps.quorumRouters(quorumContext.routerClass);
         if (strategy) {
@@ -165,6 +178,9 @@ export function visitNode(
     } catch (err) {
       if (err instanceof QuorumCancelledError) {
         return {};
+      }
+      if (deps.catchesErrors) {
+        return { lastError: err as Error };
       }
       throw err;
     }

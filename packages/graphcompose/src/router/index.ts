@@ -6,6 +6,7 @@ export { WorkflowFinish, type WorkflowFinishOptions } from "../graph/workflow-fi
 export {
   from,
   chain,
+  catchError,
   Self,
   Return,
   End,
