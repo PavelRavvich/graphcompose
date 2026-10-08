@@ -129,12 +129,12 @@ export class TestEnvironment {
     return this.book.scriptOf(key);
   }
 
-  mockWorkflow(cls: Class): import("vitest").Mock {
+  mockSubworkflow(cls: Class): import("vitest").Mock {
     let mock = this.#workflowMocks.get(cls);
     if (!mock) {
       if (this.#apps.length > 0) {
         throw new TestSetupError(
-          `mockWorkflow(${cls.name}) after the app started: call it before the first app.execute(…)`,
+          `mockSubworkflow(${cls.name}) after the app started: call it before the first app.execute(…)`,
         );
       }
       

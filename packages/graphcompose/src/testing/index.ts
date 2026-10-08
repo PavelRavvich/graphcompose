@@ -13,9 +13,9 @@ export type { TestWithOptions } from "./environment.js";
 export type { TestApp } from "./test-app.js";
 export type { AgentSlice, RouterSlice, ToolSlice, ToolClassOf } from "./slices.js";
 export {
-  answer,
+  replyWith,
   callTool,
-  decide,
+  routeTo,
   failWith,
   ModelCallFailedError,
   ModelFailure,

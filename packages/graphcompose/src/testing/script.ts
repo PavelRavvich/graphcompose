@@ -42,7 +42,7 @@ export type ScriptedTurn =
   | { readonly kind: "failure"; readonly failure: ModelFailure };
 
 /** An agent's model answers with text: `answer("3 jobs found", { cost: usd(0.002) })`. */
-export const answer = (text: string, details: AnswerDetails = {}): ScriptedTurn => ({
+export const replyWith = (text: string, details: AnswerDetails = {}): ScriptedTurn => ({
   kind: "answer",
   text,
   details,
@@ -78,7 +78,7 @@ export function callTool<TInput extends object>(
 }
 
 /** A router decides for one of its routes: `decide(Scout)`, `decide(Self)`. */
-export const decide = (target: ChoiceTarget, details: DecisionDetails = {}): ScriptedTurn => ({
+export const routeTo = (target: ChoiceTarget, details: DecisionDetails = {}): ScriptedTurn => ({
   kind: "decision",
   target,
   details,
