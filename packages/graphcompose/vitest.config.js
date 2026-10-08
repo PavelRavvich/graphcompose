@@ -1,48 +1,48 @@
 import { defineConfig } from "vitest/config";
 export default defineConfig({
-  test: {
-    include: ["tests/**/*.test.ts"],
-    exclude: ["tests/smoke/**", "node_modules/**"],
-    // the workflow matchers (graphcompose/testing/setup in a project)
-    setupFiles: ["./src/testing/setup.ts"],
-    coverage: {
-      provider: "v8",
-      include: ["src/**/*.ts"],
-      // thin entry points, exercised by `make smoke` / `npm run studio`
-      exclude: [
-        "src/cli.ts",
-        "src/cli/main.ts",
-        "src/cli/create.ts",
-        "src/cli/generate.ts",
-        "src/scaffold/questions.ts",
-        "src/studio.ts",
-        "src/describe.ts",
-        "src/check.ts",
-        "src/rag-index.ts",
-        "src/chat.ts",
-        "src/cli/ask.ts",
-        "src/eval/cli.ts",
-        "src/graph/studio-graph.ts",
-        "src/config/write-profile-schema.ts",
-      ],
-      reporter: ["text", "html", "json-summary"],
-      thresholds: {
-        lines: 80,
-        branches: 80,
-        functions: 80,
-        statements: 80,
-        // DTOs (#118): the data every tool and server exchanges
-        "src/dto/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
-        // the model-call seam (#135): every model call goes through it
-        "src/llm/gateway.ts": { lines: 90, branches: 90, functions: 90, statements: 90 },
-        // model providers (#151): every model call's provider, retries, breaker, wire form
-        "src/models/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
-        // the app and the testing toolkit (#135)
-        "src/app/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
-        "src/testing/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
-        // the agent's own loop (#150)
-        "src/graph/agent-loop/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
-      },
+    test: {
+        include: ["tests/**/*.test.ts"],
+        exclude: ["tests/smoke/**", "node_modules/**"],
+        // the workflow matchers (graphcompose/testing/setup in a project)
+        setupFiles: ["./src/testing/setup.ts"],
+        coverage: {
+            provider: "v8",
+            include: ["src/**/*.ts"],
+            // thin entry points, exercised by `make smoke` / `npm run studio`
+            exclude: [
+                "src/cli.ts",
+                "src/cli/main.ts",
+                "src/cli/create.ts",
+                "src/cli/generate.ts",
+                "src/scaffold/questions.ts",
+                "src/studio.ts",
+                "src/describe.ts",
+                "src/check.ts",
+                "src/rag-index.ts",
+                "src/chat.ts",
+                "src/cli/ask.ts",
+                "src/eval/cli.ts",
+                "src/graph/studio-graph.ts",
+                "src/config/write-profile-schema.ts",
+            ],
+            reporter: ["text", "html", "json-summary"],
+            thresholds: {
+                lines: 80,
+                branches: 80,
+                functions: 80,
+                statements: 80,
+                // DTOs (#118): the data every tool and server exchanges
+                "src/dto/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
+                // the model-call seam (#135): every model call goes through it
+                "src/llm/gateway.ts": { lines: 90, branches: 90, functions: 90, statements: 90 },
+                // model providers (#151): every model call's provider, retries, breaker, wire form
+                "src/models/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
+                // the app and the testing toolkit (#135)
+                "src/app/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
+                "src/testing/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
+                // the agent's own loop (#150)
+                "src/graph/agent-loop/**": { lines: 90, branches: 90, functions: 90, statements: 90 },
+            },
+        },
     },
-  },
 });

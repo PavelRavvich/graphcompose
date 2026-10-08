@@ -23,6 +23,8 @@ export interface AgentMeta {
   readonly prompt?: string;
   readonly promptUrls?: readonly string[];
   readonly model: string;
+  /** Overrides the global memory strategy for this specific agent. */
+  readonly memoryStrategy?: Class;
   /** Overrides the model provider's price table; the provider's own reported cost comes first. */
   readonly price?: AgentSettings["price"];
   readonly thinking?: AgentSettings["thinking"];
@@ -71,7 +73,12 @@ export interface WorkflowMeta {
   readonly guards?: AgentsConfig["guards"];
   readonly piiPolicies?: readonly Class[];
   readonly guardrails?: readonly Class[];
+  /** Deprecated: use memoryStorage and defaultMemoryStrategy instead */
   readonly compaction?: AgentsConfig["compaction"];
+  /** The DI class used to store memory/context (e.g. GraphStateMemoryStorage) */
+  readonly memoryStorage?: Class;
+  /** The default memory strategy (e.g. StandardCompactionStrategy) */
+  readonly defaultMemoryStrategy?: Class;
   readonly mcp?: readonly Class[];
   readonly providers?: readonly Provider[];
   readonly compactionPrompt?: string;

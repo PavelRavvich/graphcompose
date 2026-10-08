@@ -1,0 +1,174 @@
+var __esDecorate = (this && this.__esDecorate) || function (ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
+    function accept(f) { if (f !== void 0 && typeof f !== "function") throw new TypeError("Function expected"); return f; }
+    var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
+    var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
+    var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
+    var _, done = false;
+    for (var i = decorators.length - 1; i >= 0; i--) {
+        var context = {};
+        for (var p in contextIn) context[p] = p === "access" ? {} : contextIn[p];
+        for (var p in contextIn.access) context.access[p] = contextIn.access[p];
+        context.addInitializer = function (f) { if (done) throw new TypeError("Cannot add initializers after decoration has completed"); extraInitializers.push(accept(f || null)); };
+        var result = (0, decorators[i])(kind === "accessor" ? { get: descriptor.get, set: descriptor.set } : descriptor[key], context);
+        if (kind === "accessor") {
+            if (result === void 0) continue;
+            if (result === null || typeof result !== "object") throw new TypeError("Object expected");
+            if (_ = accept(result.get)) descriptor.get = _;
+            if (_ = accept(result.set)) descriptor.set = _;
+            if (_ = accept(result.init)) initializers.unshift(_);
+        }
+        else if (_ = accept(result)) {
+            if (kind === "field") initializers.unshift(_);
+            else descriptor[key] = _;
+        }
+    }
+    if (target) Object.defineProperty(target, contextIn.name, descriptor);
+    done = true;
+};
+var __runInitializers = (this && this.__runInitializers) || function (thisArg, initializers, value) {
+    var useValue = arguments.length > 2;
+    for (var i = 0; i < initializers.length; i++) {
+        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
+    }
+    return useValue ? value : void 0;
+};
+import { describe, expect, it, vi } from "vitest";
+import { createAppDeps } from "../../src/app/app-deps.js";
+import { createApp } from "../../src/app/create-app.js";
+import { toolLookup, UnknownToolError } from "../../src/app/parts.js";
+import { flowNodesByKey, runResultOf } from "../../src/app/result.js";
+import { workflowOf } from "../../src/testing/index.js";
+import { Workflow } from "../../src/core/index.js";
+import { Text, WorkflowStartText } from "../../src/dto/index.js";
+import { buildCostReport } from "../../src/finops/usage.js";
+import { createMemoryLedger } from "../../src/finops/ledger.js";
+import { from, WorkflowSettings, WorkflowStart, } from "../../src/graph/index.js";
+import { createSqliteTernStore } from "../../src/terns/index.js";
+import { ScriptBook } from "../../src/testing/script-book.js";
+import { createScriptedGateway } from "../../src/testing/scripted-gateway.js";
+import { CodeReview, Coder, TaskStart } from "../testing/fixtures/code-review.workflow.js";
+import { Desk, OrderBook, Reply, Writer } from "../testing/fixtures/desk.workflow.js";
+const offline = () => ({
+    gateway: createScriptedGateway(new ScriptBook()),
+    stores: { terns: createSqliteTernStore(":memory:"), ledger: createMemoryLedger() },
+});
+let Ticket = (() => {
+    let _classSuper = WorkflowStartText;
+    let _id_decorators;
+    let _id_initializers = [];
+    let _id_extraInitializers = [];
+    return class Ticket extends _classSuper {
+        static {
+            const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(_classSuper[Symbol.metadata] ?? null) : void 0;
+            _id_decorators = [Text({ prompt: "the ticket id" })];
+            __esDecorate(null, null, _id_decorators, { kind: "field", name: "id", static: false, private: false, access: { has: obj => "id" in obj, get: obj => obj.id, set: (obj, value) => { obj.id = value; } }, metadata: _metadata }, _id_initializers, _id_extraInitializers);
+            if (_metadata) Object.defineProperty(this, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
+        }
+        id = __runInitializers(this, _id_initializers, void 0);
+        constructor() {
+            super(...arguments);
+            __runInitializers(this, _id_extraInitializers);
+        }
+    };
+})();
+let TicketStart = (() => {
+    let _classDecorators = [WorkflowStart({ name: "ticket", description: "A ticket", input: Ticket })];
+    let _classDescriptor;
+    let _classExtraInitializers = [];
+    let _classThis;
+    var TicketStart = class {
+        static { _classThis = this; }
+        static {
+            const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(null) : void 0;
+            __esDecorate(null, _classDescriptor = { value: _classThis }, _classDecorators, { kind: "class", name: _classThis.name, metadata: _metadata }, null, _classExtraInitializers);
+            TicketStart = _classThis = _classDescriptor.value;
+            if (_metadata) Object.defineProperty(_classThis, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
+            __runInitializers(_classThis, _classExtraInitializers);
+        }
+    };
+    return TicketStart = _classThis;
+})();
+let Tickets = (() => {
+    let _classDecorators = [Workflow({
+            name: "tickets",
+            version: "1.0.0",
+            flow: [from(TicketStart).next(Writer), from(Writer).next(Reply)],
+            defaults: {
+                models: { temperature: 0, thinking: "default", cache: true },
+                router: { kind: "jev", model: "typesafe/jev-1.13" },
+                tools: { maxToolCalls: 1 },
+                history: { limit: 1 },
+            },
+            providers: [OrderBook],
+        })];
+    let _classDescriptor;
+    let _classExtraInitializers = [];
+    let _classThis;
+    var Tickets = class {
+        static { _classThis = this; }
+        static {
+            const _metadata = typeof Symbol === "function" && Symbol.metadata ? Object.create(null) : void 0;
+            __esDecorate(null, _classDescriptor = { value: _classThis }, _classDecorators, { kind: "class", name: _classThis.name, metadata: _metadata }, null, _classExtraInitializers);
+            Tickets = _classThis = _classDescriptor.value;
+            if (_metadata) Object.defineProperty(_classThis, Symbol.metadata, { enumerable: true, configurable: true, writable: true, value: _metadata });
+            __runInitializers(_classThis, _classExtraInitializers);
+        }
+        settings() {
+            return WorkflowSettings.builder().build();
+        }
+    };
+    return Tickets = _classThis;
+})();
+describe("AC12: the app's parts", () => {
+    it("an unknown tool name is a wiring bug", () => {
+        expect(() => toolLookup([])("nope")).toThrow(UnknownToolError);
+    });
+    it("a run's result keeps memory and trace link; unknown path keys are skipped", async () => {
+        const nodes = flowNodesByKey((await workflowOf(CodeReview)).flow);
+        const result = runResultOf({
+            status: "answered",
+            replyWith: "ok",
+            route: ["coder"],
+            path: ["workflow-start.task", "coder", "gone"],
+            stopReason: "done",
+            budgetUsd: 1,
+            cost: buildCostReport([]),
+            threadId: "t",
+            ternId: "tern",
+            runId: "r",
+            compacted: { fromTurn: 1, toTurn: 5, summaries: 1, keep: 10 },
+            traceUrl: "http://traces/t",
+        }, nodes);
+        expect(result.path).toEqual([TaskStart, Coder]);
+        expect(result).toMatchObject({ traceUrl: "http://traces/t", compacted: { keep: 10 } });
+    });
+    it("with no text start, a plain text goes to the first start", async () => {
+        const app = await createApp(Tickets, offline());
+        expect(app.textStart).toBe(TicketStart);
+        await app.close();
+    });
+    it("the container reports every instance it creates, besides the app's own lifecycle", async () => {
+        const onCreate = vi.fn();
+        const noMcp = () => Promise.resolve({ close: () => Promise.resolve() });
+        const deps = await createAppDeps(await workflowOf(Desk), {
+            ...offline(),
+            connectMcp: noMcp,
+            container: { onCreate },
+        });
+        await deps.close();
+        expect(onCreate).toHaveBeenCalledWith(expect.any(OrderBook));
+    });
+    it("env defaults to the process's; a bundle without server tools connects none", async () => {
+        const bundle = { ...(await workflowOf(Tickets)), serverTools: undefined };
+        const deps = await createAppDeps(bundle, offline());
+        await deps.close();
+        expect(deps.knowledge).toBeUndefined();
+    });
+    it("context knowledge bases are looked up per agent; an agent without any gets none", async () => {
+        const bundle = { ...(await workflowOf(Tickets)), knowledge: () => new Map([["writer", []]]) };
+        const deps = await createAppDeps(bundle, offline());
+        await deps.close();
+        expect(deps.knowledge?.("writer")).toEqual([]);
+        expect(deps.knowledge?.("someone")).toEqual([]);
+    });
+});
