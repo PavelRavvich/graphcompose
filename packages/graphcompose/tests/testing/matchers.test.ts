@@ -3,7 +3,7 @@ import type { ExecutionOutput } from "../../src/app/types.js";
 import { buildCostReport } from "../../src/finops/usage.js";
 import { AgentFailedError } from "../../src/graph/errors.js";
 import { GraphRuleError, LimitExceededError, RouterDecisionError } from "../../src/graph/index.js";
-import { answer, callTool, decide, TestFailure, testWith } from "../../src/testing/index.js";
+import { replyWith, callTool, routeTo, TestFailure, testWith } from "../../src/testing/index.js";
 import {
   ChatStart,
   Desk,
@@ -18,7 +18,7 @@ import {
 const run = (parts: Partial<ExecutionOutput>): ExecutionOutput => ({
   thread: "thread-1",
   status: "answered",
-  answer: "Hi.",
+  replyWith: "Hi.",
   route: ["writer"],
   stopReason: "done",
   path: [ChatStart, MainRouter, Writer, MainRouter, Reply],
@@ -104,31 +104,31 @@ describe("AC12: matchers by class — a passing and a failing case, readable fai
     }).toThrow("toHavePausedAt: expected a run result");
     expect(() => {
       expect(run({})).toHaveCalledTools([]);
-    }).toThrow("toHaveCalledTools: expected modelOf(…) of an agent or a router");
+    }).toThrow("toHaveCalledTools: expected mockLlm(…) of an agent or a router");
     expect(() => {
       expect(run({})).toHaveBeenAskedWith({});
-    }).toThrow("toHaveBeenAskedWith: expected modelOf(…)");
+    }).toThrow("toHaveBeenAskedWith: expected mockLlm(…)");
   });
 });
 
 const test = testWith(Desk);
 
-describe("AC12: matchers on modelOf(…)", () => {
-  test("toHaveCalledTools and toHaveBeenAskedWith name the class", async ({ app, modelOf }) => {
-    modelOf(MainRouter).respond(decide(Support), decide(Reply));
-    modelOf(Support).respond(callTool(OrderStatus, { orderId: "5" }), answer("Shipped."));
+describe("AC12: matchers on mockLlm(…)", () => {
+  test("toHaveCalledTools and toHaveBeenAskedWith name the class", async ({ app, mockLlm }) => {
+    mockLlm(MainRouter).thenReturn(routeTo(Support), routeTo(Reply));
+    mockLlm(Support).thenReturn(callTool(OrderStatus, { orderId: "5" }), replyWith("Shipped."));
 
     await app.execute(ChatStart, { text: "where is 5?" });
 
-    expect(modelOf(Support)).toHaveCalledTools([OrderStatus]);
-    expect(modelOf(Writer)).toHaveCalledTools([]);
+    expect(mockLlm(Support)).toHaveCalledTools([OrderStatus]);
+    expect(mockLlm(Writer)).toHaveCalledTools([]);
     expect(() => {
-      expect(modelOf(Support)).toHaveCalledTools([ReadNote]);
+      expect(mockLlm(Support)).toHaveCalledTools([ReadNote]);
     }).toThrow("expected Support to call read_note, it called order_status");
-    expect(modelOf(Support)).toHaveBeenAskedWith({ kind: "chat", input: "where is 5?" });
-    expect(modelOf(Support)).not.toHaveBeenAskedWith({ input: "where is 6?" });
+    expect(mockLlm(Support)).toHaveBeenAskedWith({ kind: "chat", input: "where is 5?" });
+    expect(mockLlm(Support)).not.toHaveBeenAskedWith({ input: "where is 6?" });
     expect(() => {
-      expect(modelOf(Writer)).toHaveBeenAskedWith({ input: "x" });
+      expect(mockLlm(Writer)).toHaveBeenAskedWith({ input: "x" });
     }).toThrow('expected Writer to be asked with {"input":"x"}, its requests: []');
   });
 });

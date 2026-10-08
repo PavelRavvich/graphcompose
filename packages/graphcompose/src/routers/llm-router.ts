@@ -30,7 +30,7 @@ function outcomeOf(read: ParsedDecision, usage: UsageRecord): RouteOutcome {
 }
 
 /** Chat model asked for JSON; output validated with zod; priced from the config table. */
-/** A call that failed before an answer is recorded at no cost. */
+/** A call that failed before an replyWith is recorded at no cost. */
 const NO_CALL_COST = { response_metadata: { usage: { cost: 0 } } };
 
 export function createLlmRouter(deps: LlmRouterDeps): Router {

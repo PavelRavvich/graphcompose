@@ -38,7 +38,7 @@ import { buildApp } from "../../src/app/create-app.js";
 import { workflowOf } from "../../src/components/assemble.js";
 import { createScriptedGateway } from "../../src/testing/scripted-gateway.js";
 import { ScriptBook } from "../../src/testing/script-book.js";
-import { answer, callTool, decide } from "../../src/testing/index.js";
+import { replyWith, callTool, routeTo } from "../../src/testing/index.js";
 import { testConfig } from "../helpers.js";
 import { TestSettings } from "../fixtures/test-flow/star.js";
 
@@ -184,10 +184,10 @@ describe("Global Observability Hooks", () => {
     capturedState = null;
 
     const book = new ScriptBook();
-    book.scriptOf("router:ObsRouter").respond(decide(ObsAgent), decide(ObsFinish));
+    book.scriptOf("router:ObsRouter").thenReturn(routeTo(ObsAgent), routeTo(ObsFinish));
     book
       .scriptOf("agent:ObsAgent")
-      .respond(callTool(ObsTool, { text: "hello" }), answer("Hello user!"));
+      .thenReturn(callTool(ObsTool, { text: "hello" }), replyWith("Hello user!"));
 
     const { app, deps } = await buildApp(await workflowOf(ObsWorkflow), {
       gateway: createScriptedGateway(book),
@@ -195,10 +195,10 @@ describe("Global Observability Hooks", () => {
 
     // Eagerly instantiate ObsTool to ensure GlobalObserver is in lifecycle.created
     deps.tools("ObsTool");
-    book.scriptOf("router:ObsRouter").respond(decide(ObsAgent), decide(ObsFinish));
+    book.scriptOf("router:ObsRouter").thenReturn(routeTo(ObsAgent), routeTo(ObsFinish));
     book
       .scriptOf("agent:ObsAgent")
-      .respond(callTool(ObsTool, { text: "hello" }), answer("Hello user!"));
+      .thenReturn(callTool(ObsTool, { text: "hello" }), replyWith("Hello user!"));
     await app.execute(ObsStart, { text: "Hi" });
 
     // Ensure all hook types fired

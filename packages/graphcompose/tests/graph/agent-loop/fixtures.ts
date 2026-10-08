@@ -99,7 +99,7 @@ const flowStateOf = (task: string): FlowStateType => ({
   contributions: [],
   usage: [],
   budgetUsd: Number.POSITIVE_INFINITY,
-  answer: "",
+  replyWith: "",
   guarded: "",
   approvals: [],
   summaries: [],

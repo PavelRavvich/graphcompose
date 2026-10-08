@@ -5,7 +5,7 @@ import { decided, failed } from "./outcome.js";
 import type { Router } from "./types.js";
 
 /**
- * One option = an unconditional step, no options = nothing to decide: neither pays for a call.
+ * One option = an unconditional step, no options = nothing to routeTo: neither pays for a call.
  */
 export function withTrivialOptions(router: Router): Router {
   return {
@@ -35,11 +35,11 @@ export function createRouter(
   name: string,
   model: RouterModel,
   chatDefaults: ChatDefaults,
-  gateway: Pick<ModelGateway, "decide">,
+  gateway: Pick<ModelGateway, "routeTo">,
 ): Router {
   const decisionModel = decisionModelOf(model, chatDefaults);
   return withTrivialOptions({
     name,
-    route: (request) => gateway.decide({ router: name, model: decisionModel, request }),
+    route: (request) => gateway.routeTo({ router: name, model: decisionModel, request }),
   });
 }

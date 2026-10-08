@@ -27,7 +27,7 @@ const twoStarts: Flow = [
 describe("AC1: minimal @WorkflowStart and @WorkflowFinish", () => {
   it("mark classes as workflow start and workflow finish nodes, with their options", () => {
     expect(nodeInfoOf(TestChat)).toEqual({ kind: "workflow-start", name: "chat" });
-    expect(nodeInfoOf(TestAnswer)).toEqual({ kind: "workflow-finish", name: "answer" });
+    expect(nodeInfoOf(TestAnswer)).toEqual({ kind: "workflow-finish", name: "replyWith" });
     expect(workflowStartMetaOf(TestChat)?.input).toBe(WorkflowStartText);
     expect(workflowFinishMetaOf(TestAnswer)?.output).toBe(WorkflowFinishText);
   });
@@ -41,7 +41,7 @@ describe("AC1: minimal @WorkflowStart and @WorkflowFinish", () => {
     const ticket = await runAgent({ task: "printer broken", start: "ticket" }, deps);
     const chat = await runAgent({ task: "hi" }, deps);
 
-    expect(ticket).toMatchObject({ answer: "ticket", route: ["beta"], finish: "answer" });
-    expect(chat).toMatchObject({ answer: "chat", route: ["alpha"], finish: "answer" });
+    expect(ticket).toMatchObject({ replyWith: "ticket", route: ["beta"], finish: "replyWith" });
+    expect(chat).toMatchObject({ replyWith: "chat", route: ["alpha"], finish: "replyWith" });
   });
 });

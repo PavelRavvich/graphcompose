@@ -112,16 +112,16 @@ describe("AC6: the circuit breaker", () => {
       });
 
     for (let n = 0; n < 3; n++) await call();
-    const answer = await call();
+    const replyWith = await call();
 
-    expect(answer.status).toBe(200);
+    expect(replyWith.status).toBe(200);
     expect(backup.requests[0]).toMatchObject({
       url: "http://backup.test/v1/chat/completions",
       authorization: "Bearer backup-key",
     });
   });
 
-  it("AC6: the breaker open while the fallback also fails: the fallback's failure is the answer", async () => {
+  it("AC6: the breaker open while the fallback also fails: the fallback's failure is the replyWith", async () => {
     const failing = providerStub([{ status: 503 }]);
     const breakers = new CircuitBreakers();
     const connection = connectionOf(
@@ -130,9 +130,9 @@ describe("AC6: the circuit breaker", () => {
     );
     for (let n = 0; n < 3; n++) await connection.fetch(`${connection.baseUrl}/x`);
 
-    const answer = await connection.fetch(`${connection.baseUrl}/x`);
+    const replyWith = await connection.fetch(`${connection.baseUrl}/x`);
 
-    expect(answer.status).toBe(503);
+    expect(replyWith.status).toBe(503);
     expect(failing.requests.at(-1)?.url).toBe("http://backup.test/v1/x");
   });
 

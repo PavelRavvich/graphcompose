@@ -6,17 +6,17 @@ import { TestAnswer, TestChat } from "./test.flow.js";
 
 /**
  * A star flow over the given agents (test workflows): chat workflow start → a Jev router "main" → an agent →
- * back to the router → … → answer.
+ * back to the router → … → replyWith.
  */
 export function starOf(...agents: readonly [Class, ...Class[]]): Flow {
   @Router({
     name: "main",
-    description: "Sends the message to an agent, or sends the answer",
+    description: "Sends the message to an agent, or sends the replyWith",
     prompt: "Pick who handles the message.",
     model: "typesafe/jev-1.13",
     maxVisits: 10,
     routes: [
-      { prompt: "The answer covers the message", target: TestAnswer },
+      { prompt: "The replyWith covers the message", target: TestAnswer },
       ...agents.map((agent) => ({ prompt: `${agent.name} work`, target: agent })),
     ],
   })

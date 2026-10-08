@@ -2,7 +2,7 @@ import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { describe, expect, it, vi } from "vitest";
 import { resolveSettings } from "../../src/llm/registry.js";
 import { createLlmRouter } from "../../src/routers/index.js";
-import { decide, testConfig } from "../helpers.js";
+import { routeTo, testConfig } from "../helpers.js";
 import { request } from "./fixtures.js";
 
 const settings = resolveSettings(
@@ -14,7 +14,7 @@ const llm = (responses: string[]) =>
 
 describe("LLM router", () => {
   it("decides from valid JSON and prices usage from the table", async () => {
-    expect(await llm([decide("alpha", "facts needed")]).route(request)).toMatchObject({
+    expect(await llm([routeTo("alpha", "facts needed")]).route(request)).toMatchObject({
       kind: "decided",
       decision: { next: "alpha", reason: "facts needed" },
       usage: { caller: "router:main", costSource: "price-table" },
@@ -22,7 +22,7 @@ describe("LLM router", () => {
   });
 
   it("puts a specific question before the input", async () => {
-    const model = new FakeListChatModel({ responses: [decide("finish")] });
+    const model = new FakeListChatModel({ responses: [routeTo("finish")] });
     const invoke = vi.spyOn(model, "invoke");
 
     await createLlmRouter({ name: "guard", model, settings }).route({
@@ -36,7 +36,7 @@ describe("LLM router", () => {
   });
 
   it("parses JSON wrapped in a code fence", async () => {
-    const fenced = "```json\n" + decide("finish", "done") + "\n```";
+    const fenced = "```json\n" + routeTo("finish", "done") + "\n```";
 
     expect(await llm([fenced]).route(request)).toMatchObject({ decision: { next: "finish" } });
   });
@@ -48,7 +48,7 @@ describe("LLM router", () => {
   });
 
   it("AC1: fails on an unknown option and names it", async () => {
-    expect(await llm([decide("ghost")]).route(request)).toMatchObject({
+    expect(await llm([routeTo("ghost")]).route(request)).toMatchObject({
       kind: "failed",
       reason: "unknown route: ghost",
       unknownOption: "ghost",

@@ -46,7 +46,7 @@ export type RunStatus = "answered" | "guarded" | "paused";
 
 export interface AgentExecutionOutput {
   readonly status: RunStatus;
-  readonly answer: string;
+  readonly replyWith: string;
   /** Agents in the order they ran. */
   readonly route: readonly string[];
   /** Flow node keys in the order the run visited them (a paused run: up to the waiting agent). */

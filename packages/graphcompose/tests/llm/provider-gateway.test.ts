@@ -31,7 +31,7 @@ describe("AC6: the default gateway resolves each model's provider", () => {
       options(stub.fetch),
     );
 
-    const outcome = await gateway.decide({
+    const outcome = await gateway.routeTo({
       router: "main",
       model: { kind: "jev", model: "typesafe/jev-1.13" },
       request,
@@ -61,7 +61,7 @@ describe("AC6: the default gateway resolves each model's provider", () => {
       }),
     ).toThrow(ConfigurationError);
     expect(
-      await gateway.decide({
+      await gateway.routeTo({
         router: "main",
         model: { kind: "jev", model: "typesafe/jev-1.13" },
         request,

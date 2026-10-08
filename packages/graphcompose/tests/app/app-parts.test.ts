@@ -61,7 +61,7 @@ describe("AC12: the app's parts", () => {
     const result = runResultOf(
       {
         status: "answered",
-        answer: "ok",
+        replyWith: "ok",
         route: ["coder"],
         path: ["workflow-start.task", "coder", "gone"],
         stopReason: "done",

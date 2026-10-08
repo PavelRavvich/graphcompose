@@ -28,14 +28,14 @@ describe("createAppDeps", () => {
 });
 
 /** Decides by router: guards pass, "main" sends the message to the researcher once, then answers. */
-function scriptedDecisions(): ModelGateway["decide"] {
+function scriptedDecisions(): ModelGateway["routeTo"] {
   let mainVisits = 0;
   return ({ router }) => {
     const next = router.startsWith("guard:")
       ? "pass"
       : mainVisits++ === 0
         ? "researcher"
-        : "answer";
+        : "replyWith";
     return Promise.resolve({
       kind: "decided",
       decision: { next, reason: "scripted", confidence: 1 },
@@ -48,15 +48,15 @@ describe("AC12: createAppDeps on an injected model gateway", () => {
     const chatModel = vi.fn<ModelGateway["chatModel"]>(
       () => new FakeListChatModel({ responses: ["Found it."] }),
     );
-    const decide = vi.fn(scriptedDecisions());
+    const routeTo = vi.fn(scriptedDecisions());
     const env = { TERN_DB: ":memory:", SPEND_LEDGER_DIR: mkdtempSync(join(tmpdir(), "gc-135-")) };
-    const app = await createApp(TestWorkflow, { env, gateway: { chatModel, decide } });
+    const app = await createApp(TestWorkflow, { env, gateway: { chatModel, routeTo } });
 
     const result = await app.execute(TestChat, { text: "What time is it?" });
     await app.close();
 
     expect(result.status).toBe("answered");
-    expect(decide.mock.calls.map(([spec]) => spec.router)).toEqual([
+    expect(routeTo.mock.calls.map(([spec]) => spec.router)).toEqual([
       "guard:prompt_injection",
       "main",
       "main",

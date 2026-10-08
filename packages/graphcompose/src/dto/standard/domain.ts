@@ -54,7 +54,7 @@ crossFieldRule(DateTimeRange, ({ from, to }) =>
     : { field: "to", reason: "the end is not after the start" },
 );
 
-/** A file attached to a message or an answer — by link or by content. */
+/** A file attached to a message or an replyWith — by link or by content. */
 export class Attachment {
   @Text({ prompt: "the file name, e.g. invoice.pdf" })
   name!: string;
@@ -118,7 +118,7 @@ crossFieldRule(ContactInfo, ({ email, phone }) =>
     : { field: "email", reason: "give an email, a phone or both" },
 );
 
-/** Where a statement in an answer comes from, in a knowledge base. */
+/** Where a statement in an replyWith comes from, in a knowledge base. */
 export class RagSourceReference {
   @Text({ prompt: "what the source is: a document title, a page name" })
   title!: string;
@@ -126,6 +126,6 @@ export class RagSourceReference {
   @Url({ prompt: "a link to the source", optional: true })
   url?: string;
 
-  @Text({ prompt: "the exact words the answer relies on", optional: true, maxLength: 300 })
+  @Text({ prompt: "the exact words the replyWith relies on", optional: true, maxLength: 300 })
   quote?: string;
 }

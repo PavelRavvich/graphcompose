@@ -23,14 +23,14 @@ export type ModelRequest =
       readonly instructions: string;
     };
 
-/** A component's script and what it was asked: `modelOf(Scout).respond(answer("…"))`. */
+/** A component's script and what it was asked: `mockLlm(Scout).thenReturn(replyWith("…"))`. */
 export interface ModelScript {
   /** Adds turns, taken by position: the component's n-th model call gets the n-th turn. */
-  respond(...turns: readonly ScriptedTurn[]): ModelScript;
+  thenReturn(...turns: readonly ScriptedTurn[]): ModelScript;
   /** The turn every call after the scripted ones gets. */
-  thenAlways(turn: ScriptedTurn): ModelScript;
-  /** A dynamic closure to handle requests. Overrides respond/thenAlways if set. */
-  handle(handler: (req: ModelRequest) => ScriptedTurn): ModelScript;
+  thenReturnAlways(turn: ScriptedTurn): ModelScript;
+  /** A dynamic closure to handle requests. Overrides respond/thenReturnAlways if set. */
+  thenAnswer(handler: (req: ModelRequest) => ScriptedTurn): ModelScript;
   /** Every request, in order. */
   readonly requests: readonly ModelRequest[];
   /** The one request (fails unless there was exactly one). */
@@ -57,17 +57,17 @@ export class ComponentScript implements ModelScript {
 
   constructor(readonly label: string) {}
 
-  respond(...turns: readonly ScriptedTurn[]): this {
+  thenReturn(...turns: readonly ScriptedTurn[]): this {
     this.#turns.push(...turns);
     return this;
   }
 
-  handle(handler: (req: ModelRequest) => ScriptedTurn): this {
+  thenAnswer(handler: (req: ModelRequest) => ScriptedTurn): this {
     this.#handler = handler;
     return this;
   }
 
-  thenAlways(turn: ScriptedTurn): this {
+  thenReturnAlways(turn: ScriptedTurn): this {
     this.#always = turn;
     return this;
   }
@@ -79,12 +79,12 @@ export class ComponentScript implements ModelScript {
   /** The turn for the next call; unscripted → blocked, past the end → exhausted. */
   next(req?: ModelRequest): ScriptedTurn {
     if (this.#handler !== undefined) {
-      if (!req) throw new Error("ModelRequest is required when using .handle()");
+      if (!req) throw new Error("ModelRequest is required when using .thenAnswer()");
       return this.#handler(req);
     }
     if (!this.isScripted) {
       throw new LiveCallBlockedError(
-        `${this.label} has no script — a live model call is blocked in tests; script it with modelOf(${this.label}).respond(…)`,
+        `${this.label} has no script — a live model call is blocked in tests; script it with mockLlm(${this.label}).thenReturn(…)`,
       );
     }
     const turn = this.#turns[this.#position] ?? this.#always;
@@ -92,7 +92,7 @@ export class ComponentScript implements ModelScript {
     if (turn === undefined) {
       throw new TestFailure(
         "test.script-exhausted",
-        `script exhausted for ${this.label}: ${plural(this.#turns.length, "turn")} scripted, asked for #${String(this.#position)} — add turns or end with .thenAlways(…)`,
+        `script exhausted for ${this.label}: ${plural(this.#turns.length, "turn")} scripted, asked for #${String(this.#position)} — add turns or end with .thenReturnAlways(…)`,
       );
     }
     return turn;
@@ -103,7 +103,7 @@ export class ComponentScript implements ModelScript {
     if (only === undefined || rest.length > 0) {
       throw new TestFailure(
         "test.wrong-script",
-        `modelOf(${this.label}).onlyRequest: expected exactly one request, got ${String(this.requests.length)}`,
+        `mockLlm(${this.label}).onlyRequest: expected exactly one request, got ${String(this.requests.length)}`,
       );
     }
     return only;
@@ -112,7 +112,7 @@ export class ComponentScript implements ModelScript {
   get lastRequest(): ModelRequest {
     const last = this.requests.at(-1);
     if (last === undefined) {
-      throw new TestFailure("test.wrong-script", `modelOf(${this.label}): no request was sent`);
+      throw new TestFailure("test.wrong-script", `mockLlm(${this.label}): no request was sent`);
     }
     return last;
   }

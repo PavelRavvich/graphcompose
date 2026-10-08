@@ -33,7 +33,7 @@ async function judged(evaluation: EvalDeps, request: RouteRequest) {
   return outcome;
 }
 
-/** Runs every task as a first contact on the eval account; scores each answer with the judge. */
+/** Runs every task as a first contact on the eval account; scores each replyWith with the judge. */
 export async function runProfile(
   run: ProfileRun,
   tasks: readonly string[],
@@ -51,7 +51,7 @@ export async function runProfile(
       latenciesMs.push(clock() - started);
       costUsd += result.cost.totalUsd;
       const [tern] = await run.deps.terns.byIds([result.ternId]);
-      answers.push(result.answer);
+      answers.push(result.replyWith);
       scores.push(
         tern === undefined ? undefined : scoreOf(await judged(run.evaluation, judgeRequest(tern))),
       );
@@ -92,7 +92,7 @@ export interface PairwiseResult {
 
 /**
  * Per task: which of baseline / other answers better. A/B order is randomised per task (position
- * bias); a judge failure or an unsure verdict is a tie; a missing answer is not compared.
+ * bias); a judge failure or an unsure verdict is a tie; a missing replyWith is not compared.
  */
 export async function pairwise(
   evaluation: EvalDeps,

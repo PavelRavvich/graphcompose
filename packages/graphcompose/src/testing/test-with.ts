@@ -19,13 +19,13 @@ export interface WorkflowFixtures {
    * The closed app fails every call with `test.app-closed`.
    */
   readonly recoverApp: () => Promise<TestApp>;
-  /** The script of an agent or a router (by class): `modelOf(Scout).respond(answer("…"))`. */
-  readonly modelOf: (component: FlowNode) => ModelScript;
+  /** The script of an agent or a router (by class): `mockLlm(Scout).thenReturn(replyWith("…"))`. */
+  readonly mockLlm: (component: FlowNode) => ModelScript;
   /** A typed mock injected instead of a component; the same instance the app uses. */
   readonly mockOf: <T>(component: Class<T>) => Mocked<T>;
   /** Mocks a nested workflow to prevent it from executing its subgraph. */
   readonly mockSubworkflow: (workflow: Class) => import("vitest").Mock;
-  /** The stub of an MCP server: `mcpOf(ShortlistServer).respond({ write_file: … })`. */
+  /** The stub of an MCP server: `mcpOf(ShortlistServer).thenReturn({ write_file: … })`. */
   readonly mcpOf: <TServer extends McpServerClient<ServerTools>>(
     server: new () => TServer,
   ) => McpStub<TServer>;
@@ -38,7 +38,7 @@ interface Internal {
 
 /**
  * A Vitest `test` for a workflow, like Spring's test context: each test gets the real container,
- * components and graph rules as `app`, with models scripted (`modelOf`), MCP servers stubbed
+ * components and graph rules as `app`, with models scripted (`mockLlm`), MCP servers stubbed
  * (`mcpOf`) and the network blocked (`allowNetwork` to open hosts). Per test: memory stores,
  * deterministic ids, a controllable clock; `onStop` of real components runs after the test, also
  * when it failed. `const test = testWith(JobScout)`.
@@ -76,8 +76,8 @@ export function testWith(
         return current;
       });
     },
-    modelOf: async ({ environment }, use) => {
-      await use((component) => environment.modelOf(component));
+    mockLlm: async ({ environment }, use) => {
+      await use((component) => environment.mockLlm(component));
     },
     mockSubworkflow: async ({ environment }, use) => {
       await use((workflow) => environment.mockSubworkflow(workflow));

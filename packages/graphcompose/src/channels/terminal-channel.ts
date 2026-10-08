@@ -8,7 +8,7 @@ export class TerminalUserChannel implements ChannelHandler {
   requestApproval = async (req: ChannelRequest): Promise<void> => {
     // In a real CLI environment, this simply prints the question.
     // The CLI process catches the suspension and prompts the user,
-    // then calls engine.resume(runId, answer).
+    // then calls engine.resume(runId, replyWith).
     console.log(
       `\n[APPROVAL REQUIRED] Tool '${req.toolName}' wants to run in Agent '${req.agentName}'.`,
     );

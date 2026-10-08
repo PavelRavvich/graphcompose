@@ -26,10 +26,10 @@ export interface FlowRouterNodeDeps {
 /** Why a router sent the turn to its workflow finish without asking its model (#100). */
 export const AFTER_APPROVAL_DECISION = "the agent answered after the approval decision";
 
-/** Why a router could not decide: its model call failed, or it chose something that is not a route. */
+/** Why a router could not routeTo: its model call failed, or it chose something that is not a route. */
 export type RouterFailureCode = "router.failed" | "router.unknown-route";
 
-/** A router could not decide — the run fails (no guessing); its spend is kept. */
+/** A router could not routeTo — the run fails (no guessing); its spend is kept. */
 export class RouterDecisionError extends PaidStepError {
   override name = "RouterDecisionError";
   readonly code: RouterFailureCode;

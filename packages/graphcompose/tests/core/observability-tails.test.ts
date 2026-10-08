@@ -38,7 +38,7 @@ import { buildApp } from "../../src/app/create-app.js";
 import { workflowOf } from "../../src/components/assemble.js";
 import { createScriptedGateway } from "../../src/testing/scripted-gateway.js";
 import { ScriptBook } from "../../src/testing/script-book.js";
-import { answer, callTool } from "../../src/testing/index.js";
+import { replyWith, callTool } from "../../src/testing/index.js";
 import { testConfig } from "../helpers.js";
 import { TestSettings } from "../fixtures/test-flow/star.js";
 
@@ -153,7 +153,7 @@ describe("Observability Tails Hooks", () => {
     const book = new ScriptBook();
     book
       .scriptOf("agent:SafeAgent")
-      .respond(callTool(SafeTool, { text: "hello" }), answer("Hello user!"));
+      .thenReturn(callTool(SafeTool, { text: "hello" }), replyWith("Hello user!"));
 
     const { app, deps } = await buildApp(await workflowOf(TailsWorkflow), {
       gateway: createScriptedGateway(book),

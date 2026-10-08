@@ -62,10 +62,10 @@ export function providerClients(
   };
   const jevClient: JevClient = (decision) => {
     const { provider, connection } = providerFor(decision.model, ModelPurpose.Decision);
-    const decide = provider.handler.decide?.bind(provider.handler);
-    if (decide === undefined)
-      throw new ProviderCapabilityError(`${provider.options.name} does not decide`);
-    return decide({ decision, connection });
+    const routeTo = provider.handler.routeTo?.bind(provider.handler);
+    if (routeTo === undefined)
+      throw new ProviderCapabilityError(`${provider.options.name} does not routeTo`);
+    return routeTo({ decision, connection });
   };
   return { chatModel, jevClient };
 }

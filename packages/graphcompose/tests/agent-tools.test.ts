@@ -11,7 +11,7 @@ import { z } from "zod";
 import { ScriptedChatModel, type Reply } from "./fakes/scripted-model.js";
 import { usd } from "../src/units/index.js";
 import {
-  decide,
+  routeTo,
   flowDeps,
   memoryLedger,
   testConfig,
@@ -74,7 +74,7 @@ function setup({ routes, alpha, maxToolCalls = 3, runBudgetCap = 1, toolCostUsd 
 }
 
 const toTokyo: Reply = [{ tool: "current_time", args: { timeZone: "Asia/Tokyo" } }];
-const answered = [decide("alpha"), decide("answer", "done")];
+const answered = [routeTo("alpha"), routeTo("replyWith", "done")];
 
 describe("agents with tools", () => {
   it("runs the model ↔ tool loop and answers", async () => {
@@ -85,7 +85,7 @@ describe("agents with tools", () => {
 
     const result = await runAgent({ task: "Time in Tokyo?" }, deps);
 
-    expect(result.answer).toBe("It is evening in Tokyo.");
+    expect(result.replyWith).toBe("It is evening in Tokyo.");
     expect(model.sent[1]?.at(-1)?.text).toContain('"timeZone":"Asia/Tokyo"');
   });
 
@@ -120,7 +120,7 @@ describe("agents with tools", () => {
 
     const result = await runAgent({ task: "Tokyo and London?" }, deps);
 
-    expect(result.answer).toBe("Both zones.");
+    expect(result.replyWith).toBe("Both zones.");
     expect(model.sent[1]?.filter((message) => message.type === "tool")).toHaveLength(2);
   });
 

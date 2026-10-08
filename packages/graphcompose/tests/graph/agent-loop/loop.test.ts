@@ -6,7 +6,7 @@ import {
   type JudgeVisit,
 } from "../../../src/graph/agent-loop/index.js";
 import {
-  answer,
+  replyWith,
   callTools,
   decision,
   harness,
@@ -21,7 +21,7 @@ import {
 describe("AC1: a model turn runs its tool calls, stores each result by callId, the model sees them in call order", () => {
   it("runs the calls, stores every result under its callId and answers with the next turn", async () => {
     const h = harness({
-      moves: [callTools(read("c1", "a.ts"), read("c2", "b.ts")), answer("done")],
+      moves: [callTools(read("c1", "a.ts"), read("c2", "b.ts")), replyWith("done")],
     });
 
     const end = await runLoop(h.graph, startInput(), "t");
@@ -38,8 +38,8 @@ describe("AC1: a model turn runs its tool calls, stores each result by callId, t
     ]);
   });
 
-  it("an answer without calls leaves the loop as the agent's contribution, its model call accounted", async () => {
-    const h = harness({ moves: [answer("  nothing to change  ")] });
+  it("an replyWith without calls leaves the loop as the agent's contribution, its model call accounted", async () => {
+    const h = harness({ moves: [replyWith("  nothing to change  ")] });
 
     await runLoop(h.graph, startInput(), "t");
 
@@ -55,7 +55,7 @@ describe("AC1: a model turn runs its tool calls, stores each result by callId, t
       moves: [
         callTools({ name: "read_file", args: { path: "a.ts" } }),
         callTools({ name: "read_file", args: { path: "b.ts" } }),
-        answer("ok"),
+        replyWith("ok"),
       ],
     });
 
@@ -71,7 +71,7 @@ describe("AC1: a model turn runs its tool calls, stores each result by callId, t
 describe("AC2: tool errors are recoverable — the model reads them and the loop continues", () => {
   it("a tool exception reaches the model as `Tool error: …`", async () => {
     const h = harness({
-      moves: [callTools({ id: "b1", name: "boom", args: {} }), answer("sorry")],
+      moves: [callTools({ id: "b1", name: "boom", args: {} }), replyWith("sorry")],
     });
 
     const end = await runLoop(h.graph, startInput(), "t");
@@ -87,7 +87,7 @@ describe("AC2: tool errors are recoverable — the model reads them and the loop
           { id: "c1", name: "read_file", args: { file: "a.ts" } },
           { id: "c2", name: "delete_repo", args: {} },
         ),
-        answer("ok"),
+        replyWith("ok"),
       ],
     });
 
@@ -111,7 +111,7 @@ describe("AC8: the judge points are called in the documented order", () => {
       beforeAgentAnswer: async (ctx: any) => visits.push(`beforeAgentAnswer:-`),
     };
     const h = harness({
-      moves: [callTools(read("r1", "a.ts"), write("w1", "a.ts")), answer("done")],
+      moves: [callTools(read("r1", "a.ts"), write("w1", "a.ts")), replyWith("done")],
       guardrails: [probe],
     });
 

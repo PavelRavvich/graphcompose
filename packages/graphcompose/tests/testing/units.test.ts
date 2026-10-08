@@ -6,8 +6,8 @@ import { GuardFailedError } from "../../src/graph/errors.js";
 import { from, node, WorkflowSettings, type WorkflowDefinition } from "../../src/graph/index.js";
 import type { ResolvedModelSettings } from "../../src/config/types.js";
 import {
-  answer,
-  decide,
+  replyWith,
+  routeTo,
   TestFailure,
   TestSetupError,
   testWith,
@@ -48,7 +48,7 @@ describe("AC12: the clock, ids and errors of a test", () => {
   });
 
   it("a script past its end names how many turns it had", () => {
-    const script = new ScriptBook().scriptOf("agent:writer").respond(answer("1"), answer("2"));
+    const script = new ScriptBook().scriptOf("agent:writer").thenReturn(replyWith("1"), replyWith("2"));
     script.next();
     script.next();
 
@@ -89,11 +89,11 @@ describe("AC12: the scripted gateway on its own", () => {
 
   it("prices a decision on a chat-model router and reads requests without instructions", async () => {
     const book = new ScriptBook();
-    book.scriptOf("router:r").respond(decide(Writer, { cost: usd(0.01) }));
+    book.scriptOf("router:r").thenReturn(routeTo(Writer, { cost: usd(0.01) }));
     const gateway = createScriptedGateway(book);
     const options = [{ name: "writer", description: "W" }];
 
-    const outcome = await gateway.decide({
+    const outcome = await gateway.routeTo({
       router: "r",
       model: { kind: "llm", settings: free },
       request: { input: "x", options },
@@ -106,13 +106,13 @@ describe("AC12: the scripted gateway on its own", () => {
     expect(book.scriptOf("router:r").onlyRequest).toMatchObject({ instructions: "" });
   });
 
-  it("a router scripted with an answer, or an agent with a decision, is a wrong script", async () => {
+  it("a router scripted with an replyWith, or an agent with a decision, is a wrong script", async () => {
     const book = new ScriptBook();
-    book.scriptOf("router:r").respond(answer("text"));
-    book.scriptOf("agent:a").respond(decide(Writer));
+    book.scriptOf("router:r").thenReturn(replyWith("text"));
+    book.scriptOf("agent:a").thenReturn(routeTo(Writer));
     const gateway = createScriptedGateway(book);
 
-    const routed = await gateway.decide({
+    const routed = await gateway.routeTo({
       router: "r",
       model: { kind: "jev", model: "j" },
       request,
@@ -178,9 +178,9 @@ const named = testWith(Named);
 
 describe("AC12: named nodes are scripted and matched like classes", () => {
   named(
-    "modelOf(node(X, name)) scripts that place; the path names it",
-    async ({ app, modelOf }) => {
-      modelOf(Editor).respond(answer("edited"));
+    "mockLlm(node(X, name)) scripts that place; the path names it",
+    async ({ app, mockLlm }) => {
+      mockLlm(Editor).thenReturn(replyWith("edited"));
 
       const result = await app.execute(ChatStart, { text: "edit this" });
 

@@ -61,12 +61,12 @@ export function createTestApp(environment: TestEnvironment): TestApp {
       if (building !== undefined) await (await building).app.close();
     },
     agent: (agent) => ({
-      answer: (task) =>
-        checked(environment, async () => agentSlice(await built(), agent).answer(task)),
+      replyWith: (task) =>
+        checked(environment, async () => agentSlice(await built(), agent).replyWith(task)),
     }),
     router: (router) => ({
-      decide: (input) =>
-        checked(environment, async () => routerSlice(await built(), router).decide(input)),
+      routeTo: (input) =>
+        checked(environment, async () => routerSlice(await built(), router).routeTo(input)),
     }),
     tool: (tool) => ({
       invoke: (input) =>

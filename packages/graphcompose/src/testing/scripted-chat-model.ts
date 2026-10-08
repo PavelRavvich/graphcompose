@@ -13,7 +13,7 @@ const tokensFor = (usd: number, settings: ResolvedModelSettings): number =>
     ? 0
     : (usd * 1_000_000) / settings.price.outputPerMTok;
 
-/** A model without a price reports its cost in the answer, as the provider would. */
+/** A model without a price reports its cost in the replyWith, as the provider would. */
 const costMetadataOf = (usd: number, settings: ResolvedModelSettings) =>
   settings.price === undefined ? { usage: { cost: usd } } : {};
 
@@ -50,7 +50,7 @@ function replyOf(
   settings: ResolvedModelSettings,
 ): AIMessage {
   switch (turn.kind) {
-    case "answer":
+    case "replyWith":
       return new AIMessage({
         content: turn.text,
         usage_metadata: usageOf(tokensFor(turn.details.cost ?? 0, settings)),
@@ -72,7 +72,7 @@ function replyOf(
     case "decision":
       throw new TestFailure(
         "test.wrong-script",
-        `${script.label} is not a router: script it with answer(…) / callTool(…), not decide(…)`,
+        `${script.label} is not a router: script it with replyWith(…) / callTool(…), not routeTo(…)`,
       );
   }
 }

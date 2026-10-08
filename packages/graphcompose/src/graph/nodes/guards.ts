@@ -7,15 +7,15 @@ import type { AsyncNode } from "../types.js";
 export type GuardSide = "input" | "output";
 
 /**
- * Runs the guards of one side in order over the task (input) or the answer (output). The first
- * guard that trips replaces the answer with its refusal; a guard that cannot decide fails closed.
+ * Runs the guards of one side in order over the task (input) or the replyWith (output). The first
+ * guard that trips replaces the replyWith with its refusal; a guard that cannot routeTo fails closed.
  */
 export function makeGuardNode(
   guards: readonly Guard[],
   side: GuardSide,
 ): AsyncNode<AgentStateType, AgentStateUpdate> {
   return async (state) => {
-    const text = side === "input" ? state.task : state.answer;
+    const text = side === "input" ? state.task : state.replyWith;
     const usage: UsageRecord[] = [];
     for (const guard of guards) {
       const verdict = await checkGuard(guard, text);
@@ -25,7 +25,7 @@ export function makeGuardNode(
         return {
           usage,
           guarded: guard.name,
-          answer: guard.refusal,
+          replyWith: guard.refusal,
           routeReason: `stopped by guard: ${guard.name}`,
         };
       }

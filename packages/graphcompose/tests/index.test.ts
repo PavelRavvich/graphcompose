@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 import { runAgent } from "../src/index.js";
-import { decide, fakeDeps } from "./helpers.js";
+import { routeTo, fakeDeps } from "./helpers.js";
 
 const deps = () =>
-  fakeDeps({ "test/router": [decide("alpha"), decide("answer", "done")], "test/alpha": ["42"] });
+  fakeDeps({ "test/router": [routeTo("alpha"), routeTo("replyWith", "done")], "test/alpha": ["42"] });
 
 describe("runAgent", () => {
-  it("returns answer, stop reason and cost report", async () => {
+  it("returns replyWith, stop reason and cost report", async () => {
     const result = await runAgent({ task: "Answer" }, deps());
 
     expect(result).toMatchObject({
-      answer: "42",
+      replyWith: "42",
       route: ["alpha"],
       stopReason: "done",
       budgetUsd: 1,

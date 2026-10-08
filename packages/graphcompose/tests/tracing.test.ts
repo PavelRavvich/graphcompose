@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { threadLine } from "../src/cli/approve.js";
 import { runAgent } from "../src/index.js";
 import { langfuseTracing, type RunTracing, type TraceContext } from "../src/tracing/index.js";
-import { decide, fakeDeps } from "./helpers.js";
+import { routeTo, fakeDeps } from "./helpers.js";
 
 /** Records which graph nodes started — proves callbacks reach the graph. */
 class NodeRecorder extends BaseCallbackHandler {
@@ -53,7 +53,7 @@ describe("tracing", () => {
       shutdown: () => Promise.resolve(),
     };
     const deps = {
-      ...fakeDeps({ "test/router": [decide("alpha"), decide("answer")], "test/alpha": ["ok"] }),
+      ...fakeDeps({ "test/router": [routeTo("alpha"), routeTo("replyWith")], "test/alpha": ["ok"] }),
       tracing,
     };
 
@@ -63,7 +63,7 @@ describe("tracing", () => {
       { bundle: "test-bundle", threadId: result.threadId, runId: result.runId },
     ]);
     expect(recorder.started).toEqual(
-      expect.arrayContaining(["router.main", "agent.alpha", "workflow-finish.answer"]),
+      expect.arrayContaining(["router.main", "agent.alpha", "workflow-finish.replyWith"]),
     );
     expect(result.traceUrl).toBe(`http://traces/sessions/${result.threadId}`);
     expect(threadLine({ thread: result.threadId, traceUrl: result.traceUrl })).toBe(
@@ -85,7 +85,7 @@ describe("tracing", () => {
     await tracing?.shutdown();
     const plain = await runAgent(
       { task: "Hi" },
-      fakeDeps({ "test/router": [decide("alpha"), decide("answer")], "test/alpha": ["ok"] }),
+      fakeDeps({ "test/router": [routeTo("alpha"), routeTo("replyWith")], "test/alpha": ["ok"] }),
     );
     expect(plain.traceUrl).toBeUndefined();
     expect(threadLine({ thread: plain.threadId })).toBe(`thread ${plain.threadId}`);

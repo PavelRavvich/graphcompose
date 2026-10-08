@@ -28,7 +28,7 @@ function finishOf<TName extends string>(
 function outcomeOf(state: AgentStateType, paused: boolean): TernOutcome & { status: RunStatus } {
   const status: RunStatus = paused ? "paused" : state.guarded === "" ? "answered" : "guarded";
   return {
-    answer: paused ? "" : state.answer,
+    replyWith: paused ? "" : state.replyWith,
     status,
     stopReason: paused ? "waiting for approval" : state.routeReason,
     route: state.contributions.map((item) => item.agent),
@@ -99,7 +99,7 @@ export async function finishRun<TName extends string>(
   const memory = paused ? { usage: [] } : await compactAfter(ctx, current);
   return {
     status: outcome.status,
-    answer: outcome.answer,
+    replyWith: outcome.replyWith,
     route: outcome.route,
     path: pathOf(state, pending),
     stopReason: outcome.stopReason,

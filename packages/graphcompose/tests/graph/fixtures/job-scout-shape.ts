@@ -36,13 +36,13 @@ class Scout {}
 @testNode("agent", "shortlist")
 class Shortlist {}
 
-@WorkflowFinish({ name: "chat", description: "The answer", output: WorkflowFinishText })
+@WorkflowFinish({ name: "chat", description: "The replyWith", output: WorkflowFinishText })
 class ChatWorkflowFinish {}
 
 /** job-scout's router, on a scripted chat model ("test/router") instead of Jev. */
 @Router({
   name: "main",
-  description: "Sends the job seeker's message to the right agent, or sends the answer",
+  description: "Sends the job seeker's message to the right agent, or sends the replyWith",
   prompt: "Pick who handles the job seeker's message.",
   model: "test/router",
   maxVisits: 3,
@@ -50,7 +50,7 @@ class ChatWorkflowFinish {}
     { prompt: "Reading the resume and proposing a search brief", target: Profiler },
     { prompt: "Finding and ranking jobs", target: Scout },
     { prompt: "Saving chosen jobs to the shortlist, or showing it", target: Shortlist },
-    { prompt: "The last answer fully covers the message", target: ChatWorkflowFinish },
+    { prompt: "The last replyWith fully covers the message", target: ChatWorkflowFinish },
   ],
 })
 class MainRouter {}

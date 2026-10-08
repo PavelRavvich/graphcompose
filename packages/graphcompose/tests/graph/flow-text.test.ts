@@ -12,7 +12,7 @@ describe("AC1: describe lists the flow as transitions (text)", () => {
     expect(flowLines(codeReviewFlow)).toEqual([
       "chat (workflow start) → main",
       "main → explainer | coder",
-      "explainer → answer (workflow finish)",
+      "explainer → replyWith (workflow finish)",
       "coder → reviewer → review-gate",
       "review-gate → coder | pull-request (workflow finish)",
     ]);

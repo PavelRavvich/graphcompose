@@ -6,7 +6,7 @@ import { compactIfDue } from "../src/run/compaction.js";
 import { usd } from "../src/units/index.js";
 import { ScriptedChatModel } from "./fakes/scripted-model.js";
 import {
-  decide,
+  routeTo,
   fakeDeps,
   memoryLedger,
   recordingRouters,
@@ -70,8 +70,8 @@ function setup({
   const base = fakeDeps(
     {
       "test/router": Array.from({ length: turns + 2 }, () => [
-        decide("alpha"),
-        decide("answer", "done"),
+        routeTo("alpha"),
+        routeTo("replyWith", "done"),
       ]).flat(),
     },
     ledger,
@@ -168,7 +168,7 @@ describe("conversation compaction", () => {
 
     const results = await converse(deps, 3);
 
-    expect(results[1]?.answer).toBe("a2");
+    expect(results[1]?.replyWith).toBe("a2");
     expect(results[1]?.compacted).toBeUndefined();
     expect(results[2]?.compacted).toMatchObject({ fromTurn: 1, toTurn: 2 });
   });

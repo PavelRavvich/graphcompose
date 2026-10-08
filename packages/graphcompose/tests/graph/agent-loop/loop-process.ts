@@ -10,7 +10,7 @@ import { z } from "zod";
 import { defineTool } from "../../../src/tools/index.js";
 import { FileCheckpointSaver } from "./file-checkpointer.js";
 import {
-  answer,
+  replyWith,
   callTools,
   decision,
   harness,
@@ -53,11 +53,11 @@ const scripts: Record<typeof scenario, readonly ScriptedMove[]> = {
   approval: [
     callTools(read("r1", "a.ts")),
     callTools(write("w1", "a.ts", "new")),
-    answer("written"),
+    replyWith("written"),
   ],
   parallel: [
     callTools(read("fast", "fast.ts"), { id: "slow", name: "slow_step", args: {} }),
-    answer("both done"),
+    replyWith("both done"),
   ],
 };
 

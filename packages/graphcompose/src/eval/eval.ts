@@ -21,7 +21,7 @@ export interface ScoringReport {
 
 export const judgeRequest = (tern: Tern): RouteRequest => ({
   instructions: JUDGE_INSTRUCTIONS,
-  input: `Task:\n${tern.task}\n\nAnswer:\n${tern.answer}`,
+  input: `Task:\n${tern.task}\n\nAnswer:\n${tern.replyWith}`,
   options: [
     { name: "adequate", description: ADEQUATE },
     { name: "inadequate", description: INADEQUATE },

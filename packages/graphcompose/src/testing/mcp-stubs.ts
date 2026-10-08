@@ -15,7 +15,7 @@ export interface McpStubCall {
   readonly args: unknown;
 }
 
-/** A stubbed MCP server: `mcpOf(ShortlistServer).respond({ read_text_file: async () => ({ … }) })`. */
+/** A stubbed MCP server: `mcpOf(ShortlistServer).thenReturn({ read_text_file: async () => ({ … }) })`. */
 export interface McpStub<TServer extends McpServerClient<ServerTools>> {
   /** Adds (or replaces) handlers per server tool. */
   respond(handlers: ServerToolHandlers<ToolsOf<TServer>>): McpStub<TServer>;
@@ -59,7 +59,7 @@ export class McpStubs {
       if (handler === undefined) {
         throw this.book.report(
           new LiveCallBlockedError(
-            `MCP server "${server}" tool "${tool}" has no stub; add mcpOf(${label}).respond({ ${tool}: … })`,
+            `MCP server "${server}" tool "${tool}" has no stub; add mcpOf(${label}).thenReturn({ ${tool}: … })`,
           ),
         );
       }

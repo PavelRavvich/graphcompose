@@ -3,7 +3,7 @@ import type { EvalDeps } from "../../src/eval/eval.js";
 import { replay } from "../../src/eval/replay.js";
 import { runAgent, runVersions } from "../../src/index.js";
 import type { Router } from "../../src/routers/index.js";
-import { decide, fakeDeps, memoryLedger } from "../helpers.js";
+import { routeTo, fakeDeps, memoryLedger } from "../helpers.js";
 
 const judgeWith = (...confidences: number[]): Router => {
   const route = vi.fn<Router["route"]>();
@@ -19,8 +19,8 @@ const judgeWith = (...confidences: number[]): Router => {
 describe("replay", () => {
   it("re-runs old tasks with the current prompts and compares scores", async () => {
     const script = {
-      "test/router": [decide("alpha"), decide("answer"), decide("alpha"), decide("answer")],
-      "test/alpha": ["old answer", "new answer"],
+      "test/router": [routeTo("alpha"), routeTo("replyWith"), routeTo("alpha"), routeTo("replyWith")],
+      "test/alpha": ["old replyWith", "new replyWith"],
     };
     const deps = fakeDeps(script);
     await runAgent({ task: "Explain X" }, deps);
@@ -54,7 +54,7 @@ describe("replay", () => {
   });
 
   it("stops replaying when the eval budget is spent", async () => {
-    const deps = fakeDeps({ "test/router": [decide("answer")], "test/alpha": [] });
+    const deps = fakeDeps({ "test/router": [routeTo("replyWith")], "test/alpha": [] });
     await runAgent({ task: "T" }, deps);
     const evaluation: EvalDeps = {
       terns: deps.terns,

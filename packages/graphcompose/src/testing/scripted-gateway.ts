@@ -5,7 +5,7 @@ import { routerCaller, type RouteOutcome } from "../routers/index.js";
 import type { UsageRecord } from "../finops/usage.js";
 import { asError, TestFailure } from "./errors.js";
 import { nodeNameOf } from "./failure-facts.js";
-import { answer, type DecisionDetails, type ScriptedTurn } from "./script.js";
+import { replyWith, type DecisionDetails, type ScriptedTurn } from "./script.js";
 import type { ComponentScript, ScriptBook } from "./script-book.js";
 import { ScriptedChatModel } from "./scripted-chat-model.js";
 
@@ -60,7 +60,7 @@ function outcomeOf(turn: ScriptedTurn, spec: DecisionSpec, script: ComponentScri
   if (turn.kind !== "decision") {
     throw new TestFailure(
       "test.wrong-script",
-      `${script.label} is a router: script it with decide(…), not answer(…) / callTool(…)`,
+      `${script.label} is a router: script it with routeTo(…), not replyWith(…) / callTool(…)`,
     );
   }
   const next = optionOf(turn.target);
@@ -68,7 +68,7 @@ function outcomeOf(turn: ScriptedTurn, spec: DecisionSpec, script: ComponentScri
   if (!options.includes(next)) {
     throw new TestFailure(
       "test.not-a-route",
-      `decide(${next}) for ${script.label}: not one of its routes (${options.join(", ")})`,
+      `routeTo(${next}) for ${script.label}: not one of its routes (${options.join(", ")})`,
     );
   }
   const decision = {
@@ -87,10 +87,10 @@ function outcomeOf(turn: ScriptedTurn, spec: DecisionSpec, script: ComponentScri
  */
 export function createScriptedGateway(book: ScriptBook): ModelGateway {
   const compaction = book.scriptOf("compaction");
-  if (!compaction.isScripted) compaction.thenAlways(answer(UNSCRIPTED_SUMMARY));
+  if (!compaction.isScripted) compaction.thenReturnAlways(replyWith(UNSCRIPTED_SUMMARY));
   return {
     chatModel: ({ user, settings }) => new ScriptedChatModel(book, chatKeyOf(user), settings),
-    decide: (spec) => {
+    routeTo: (spec) => {
       const script = book.scriptOf(routerKeyOf(spec.router));
       const req: ModelRequest = {
         kind: "decision",

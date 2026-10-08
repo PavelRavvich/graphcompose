@@ -81,7 +81,7 @@ describe("AC6: retry policies — only the listed failures, Retry-After honoured
     expect(stub.requests).toHaveLength(1);
   });
 
-  it("AC6: a client error (400) is the answer, never retried", async () => {
+  it("AC6: a client error (400) is the replyWith, never retried", async () => {
     const { send, stub } = client([{ status: 400 }, completion()]);
 
     expect((await send()).status).toBe(400);
@@ -98,7 +98,7 @@ describe("AC6: retry policies — only the listed failures, Retry-After honoured
     expect(waits).toEqual([7000]);
   });
 
-  it("AC6: a Retry-After longer than maxDelay ends the retries with the provider's answer", async () => {
+  it("AC6: a Retry-After longer than maxDelay ends the retries with the provider's replyWith", async () => {
     const { send, stub, waits } = client([
       { status: 429, headers: { "retry-after": "60" } },
       completion(),
@@ -150,7 +150,7 @@ describe("AC6: retry policies — only the listed failures, Retry-After honoured
     expect(failing).toHaveBeenCalledTimes(3);
   });
 
-  it("AC6: retries are one call — one answer, one usage record, paid once", async () => {
+  it("AC6: retries are one call — one replyWith, one usage record, paid once", async () => {
     const stub = providerStub([{ status: 502 }, { status: 502 }, completion("ok", 0.002)]);
     const gateway = createProviderGateway(ModelProviderDirectory.of([TestOpenRouterProvider]), {
       env: ENV,
@@ -160,12 +160,12 @@ describe("AC6: retry policies — only the listed failures, Retry-After honoured
     });
     const settings = { model: "moonshotai/kimi-k2.6", temperature: 0, maxTokens: 10 };
 
-    const answer = await gateway
+    const replyWith = await gateway
       .chatModel({ user: { kind: "agent", agent: "scout" }, settings })
       .invoke("hi");
 
     expect(stub.requests).toHaveLength(3);
-    expect(recordUsage("scout", settings, answer)).toMatchObject({
+    expect(recordUsage("scout", settings, replyWith)).toMatchObject({
       costUsd: 0.002,
       costSource: "api",
     });

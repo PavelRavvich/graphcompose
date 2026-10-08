@@ -14,7 +14,7 @@ export interface RouteOption {
 export interface RouteRequest {
   readonly input: MessageContent;
   readonly options: readonly RouteOption[];
-  /** The question to decide; default: "which option should handle this next?". */
+  /** The question to routeTo; default: "which option should handle this next?". */
   readonly instructions?: string;
 }
 

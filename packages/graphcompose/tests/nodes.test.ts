@@ -15,7 +15,7 @@ describe("after a human decision the turn ends (#100)", () => {
       router: { name: "main", route },
       loaded,
       memory: { summaries: 0, turns: 0 },
-      finish: "answer",
+      finish: "replyWith",
     });
     return { node, route };
   };
@@ -29,21 +29,21 @@ describe("after a human decision the turn ends (#100)", () => {
   });
   const answered = [{ agent: "alpha", content: "not saved" }];
 
-  it("AC1 (#100): after a rejected call and the agent's answer — the answer, the router is not asked", async () => {
+  it("AC1 (#100): after a rejected call and the agent's replyWith — the replyWith, the router is not asked", async () => {
     const { node, route } = routerNode();
 
     const update = await node(flowState({ contributions: answered, approvals: [decision(false)] }));
 
-    expect(update).toEqual({ next: "answer", routeReason: AFTER_APPROVAL_DECISION });
+    expect(update).toEqual({ next: "replyWith", routeReason: AFTER_APPROVAL_DECISION });
     expect(route).not.toHaveBeenCalled();
   });
 
-  it("AC2 (#100): after an approved call and the agent's answer — the same", async () => {
+  it("AC2 (#100): after an approved call and the agent's replyWith — the same", async () => {
     const { node, route } = routerNode();
 
     expect(
       await node(flowState({ contributions: answered, approvals: [decision(true)] })),
-    ).toMatchObject({ next: "answer" });
+    ).toMatchObject({ next: "replyWith" });
     expect(route).not.toHaveBeenCalled();
   });
 

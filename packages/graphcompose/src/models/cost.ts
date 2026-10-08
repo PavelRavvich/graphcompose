@@ -11,13 +11,13 @@ export interface ModelPrice {
 /** Prices by model name. */
 export type ModelPrices = Readonly<Record<string, ModelPrice>>;
 
-/** Where a provider's call cost comes from: its own answer, or a price table. */
+/** Where a provider's call cost comes from: its own replyWith, or a price table. */
 export type ModelCost =
   | { readonly kind: "from-response" }
   | { readonly kind: "from-prices"; readonly prices: ModelPrices };
 
 export const ModelCost = {
-  /** The provider reports each call's cost in its answer (OpenRouter `usage.cost`). */
+  /** The provider reports each call's cost in its replyWith (OpenRouter `usage.cost`). */
   fromResponse(): ModelCost {
     return Object.freeze({ kind: "from-response" });
   },

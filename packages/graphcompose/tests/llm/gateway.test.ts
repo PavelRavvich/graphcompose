@@ -13,7 +13,7 @@ import { MissingEnvironmentVariableError } from "../../src/models/index.js";
 import { directoryOf } from "../../src/models/workflow-models.js";
 import { createModelRegistry } from "../../src/llm/registry.js";
 import { createRouter, type RouteOutcome } from "../../src/routers/index.js";
-import { decide, fakeChatFactory, testConfig, unusedJevClient } from "../helpers.js";
+import { routeTo, fakeChatFactory, testConfig, unusedJevClient } from "../helpers.js";
 import { jevAnswer, request } from "../routers/fixtures.js";
 
 const settings: ResolvedModelSettings = {
@@ -28,8 +28,8 @@ function recordingGateway(next = "alpha") {
   const model = new FakeListChatModel({ responses: ["fake"] });
   const chatModel = vi.fn<ModelGateway["chatModel"]>(() => model);
   const outcome: RouteOutcome = { kind: "decided", decision: { next, reason: "stub" } };
-  const decideFn = vi.fn<ModelGateway["decide"]>(() => Promise.resolve(outcome));
-  return { gateway: { chatModel, decide: decideFn }, chatModel, decide: decideFn, model };
+  const decideFn = vi.fn<ModelGateway["routeTo"]>(() => Promise.resolve(outcome));
+  return { gateway: { chatModel, routeTo: decideFn }, chatModel, routeTo: decideFn, model };
 }
 
 describe("AC12: the default model gateway", () => {
@@ -48,7 +48,7 @@ describe("AC12: the default model gateway", () => {
     const jev = vi.fn<JevClient>(() => Promise.resolve(jevAnswer({ choice: "finish" })));
     const gateway = createModelGateway({ chatModel: fakeChatFactory({}), jevClient: jev });
 
-    const outcome = await gateway.decide({
+    const outcome = await gateway.routeTo({
       router: "main",
       model: { kind: "jev", model: "typesafe/jev-test" },
       request,
@@ -62,10 +62,10 @@ describe("AC12: the default model gateway", () => {
   });
 
   it("AC12: decides on a chat model it creates for the router, priced from its settings", async () => {
-    const factory = vi.fn(fakeChatFactory({ "test/router": [decide("alpha")] }));
+    const factory = vi.fn(fakeChatFactory({ "test/router": [routeTo("alpha")] }));
     const gateway = createModelGateway({ chatModel: factory, jevClient: unusedJevClient });
 
-    const outcome = await gateway.decide({
+    const outcome = await gateway.routeTo({
       router: "main",
       model: { kind: "llm", settings },
       request,
@@ -87,7 +87,7 @@ describe("AC12: the default model gateway", () => {
       Object.keys(
         createProviderGateway(directoryOf(undefined), { env: { OPENROUTER_API_KEY: "k" } }),
       ),
-    ).toEqual(["chatModel", "decide"]);
+    ).toEqual(["chatModel", "routeTo"]);
   });
 });
 
@@ -113,8 +113,8 @@ describe("AC12: model clients are asked for through the gateway", () => {
     ]);
   });
 
-  it("AC12: a router decides through gateway.decide with its name, model and request", async () => {
-    const { gateway, decide: decideFn } = recordingGateway("finish");
+  it("AC12: a router decides through gateway.routeTo with its name, model and request", async () => {
+    const { gateway, routeTo: decideFn } = recordingGateway("finish");
     const router = createRouter(
       "main",
       testConfig.defaults.router,
@@ -133,7 +133,7 @@ describe("AC12: model clients are asked for through the gateway", () => {
   });
 
   it("AC12: a router on a chat model passes its settings over the chat defaults", async () => {
-    const { gateway, decide: decideFn } = recordingGateway();
+    const { gateway, routeTo: decideFn } = recordingGateway();
     const model = { kind: "llm", model: "test/router", price: settings.price } as const;
 
     await createRouter("main", model, testConfig.defaults.models, gateway).route(request);

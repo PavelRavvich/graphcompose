@@ -1,7 +1,7 @@
 /**
  * `graphcompose/testing` — test a workflow without models and without the network: `testWith`
- * (Vitest fixtures `app`, `modelOf`, `mockOf`, `mcpOf`, `recoverApp`), scripted model turns
- * (`answer`, `callTool`, `decide`, `failWith`) and the matchers (register them with
+ * (Vitest fixtures `app`, `mockLlm`, `mockOf`, `mcpOf`, `recoverApp`), scripted model turns
+ * (`replyWith`, `callTool`, `routeTo`, `failWith`) and the matchers (register them with
  * `setupFiles: ["graphcompose/testing/setup"]`). Vitest is an optional peer dependency.
  * Wiki → Testing.
  */

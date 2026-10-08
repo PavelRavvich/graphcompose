@@ -5,7 +5,7 @@ import { ScriptBook } from "../../../src/testing/script-book.js";
 import { createScriptedGateway } from "../../../src/testing/scripted-gateway.js";
 import { createMemoryLedger } from "../../../src/finops/ledger.js";
 import { createSqliteTernStore } from "../../../src/terns/index.js";
-import { callTool, answer } from "../../../src/testing/index.js";
+import { callTool, replyWith } from "../../../src/testing/index.js";
 import type { ToolContext } from "../../../src/tools/index.js";
 import { WorkflowPauseQuestion, WorkflowPauseAnswer } from "../../../src/dto/standard/framework.js";
 import {
@@ -38,12 +38,12 @@ class AskTool {
   run(input: WorkflowPauseQuestion, ctx: ToolContext): Promise<WorkflowPauseAnswer> {
     const response = ctx.pause(input) as string;
     const ans = new WorkflowPauseAnswer();
-    ans.answer = response;
+    ans.replyWith = response;
     return Promise.resolve(ans);
   }
 }
 
-@Agent({ name: "agentA", description: "fast agent", prompt: "Just answer.", model: "stub" })
+@Agent({ name: "agentA", description: "fast agent", prompt: "Just replyWith.", model: "stub" })
 class AgentA {}
 
 @Agent({
@@ -97,11 +97,11 @@ function offline(book: ScriptBook): AppOptions {
 describe("Ticket 174: Parallel routing with Human-in-the-loop pauses", () => {
   it("should run parallel branches, one hitting a pause, and merge them on resume", async () => {
     const book = new ScriptBook();
-    book.scriptOf("router:router").respond(answer("parallel(agentA, optional(agentB))"));
-    book.scriptOf("agent:agentA").respond(answer("done A"));
+    book.scriptOf("router:router").thenReturn(replyWith("parallel(agentA, optional(agentB))"));
+    book.scriptOf("agent:agentA").thenReturn(replyWith("done A"));
     book
       .scriptOf("agent:agentB")
-      .respond(callTool(AskTool, { question: "Wait!" }), answer("done B"));
+      .thenReturn(callTool(AskTool, { question: "Wait!" }), replyWith("done B"));
 
     const app = await createApp(ParallelFlow, offline(book));
     const input = new WorkflowStartText();
@@ -119,9 +119,9 @@ describe("Ticket 174: Parallel routing with Human-in-the-loop pauses", () => {
   it("should swallow errors from optional agents and merge successful branches", async () => {
     const book = new ScriptBook();
     book;
-    book.scriptOf("router:router").respond(answer("parallel(AgentA, optional(AgentB))"));
-    book.scriptOf("agent:agentA").respond(answer("done A"));
-    book.scriptOf("agent:agentB").respond(new Error("Network failed") as any);
+    book.scriptOf("router:router").thenReturn(replyWith("parallel(AgentA, optional(AgentB))"));
+    book.scriptOf("agent:agentA").thenReturn(replyWith("done A"));
+    book.scriptOf("agent:agentB").thenReturn(new Error("Network failed") as any);
 
     const app = await createApp(ParallelFlow, offline(book));
     const run = await app.execute(Start, { text: "go" });

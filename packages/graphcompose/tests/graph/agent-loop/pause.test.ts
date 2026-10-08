@@ -5,7 +5,7 @@ import { ScriptBook } from "../../../src/testing/script-book.js";
 import { createScriptedGateway } from "../../../src/testing/scripted-gateway.js";
 import { createMemoryLedger } from "../../../src/finops/ledger.js";
 import { createSqliteTernStore } from "../../../src/terns/index.js";
-import { callTool, answer } from "../../../src/testing/index.js";
+import { callTool, replyWith } from "../../../src/testing/index.js";
 import type { ToolContext } from "../../../src/tools/index.js";
 import { WorkflowPauseQuestion, WorkflowPauseAnswer } from "../../../src/dto/standard/framework.js";
 import {
@@ -34,7 +34,7 @@ class AskTool {
   run(input: WorkflowPauseQuestion, ctx: ToolContext): Promise<WorkflowPauseAnswer> {
     const response = ctx.pause(input) as string;
     const ans = new WorkflowPauseAnswer();
-    ans.answer = response;
+    ans.replyWith = response;
     return Promise.resolve(ans);
   }
 }
@@ -75,11 +75,11 @@ function offline(book: ScriptBook): AppOptions {
 }
 
 describe("interactive pause", () => {
-  it("pauses in the tool and resumes with the answer", async () => {
+  it("pauses in the tool and resumes with the replyWith", async () => {
     const book = new ScriptBook();
     book
       .scriptOf("agent:agent")
-      .respond(callTool(AskTool, { question: "Name?" }), answer("Hello!"));
+      .thenReturn(callTool(AskTool, { question: "Name?" }), replyWith("Hello!"));
 
     const app = await createApp(PauseFlow, offline(book));
 

@@ -10,11 +10,11 @@ import { ModelFailure } from "../models/model-failure.js";
 /** How a scripted model call fails — the failures a provider's retry policy knows. */
 export { ModelFailure };
 
-/** Optional parts of a scripted text answer. */
+/** Optional parts of a scripted text replyWith. */
 export interface AnswerDetails {
   /** What the call cost (priced as output tokens of the agent's model). */
   readonly cost?: Usd;
-  /** The answer hit the output limit (`finish_reason: "length"`). */
+  /** The replyWith hit the output limit (`finish_reason: "length"`). */
   readonly truncated?: boolean;
 }
 
@@ -28,7 +28,7 @@ export interface DecisionDetails {
 
 /** One scripted model turn: a text, a tool call, a router decision, or a failure. */
 export type ScriptedTurn =
-  | { readonly kind: "answer"; readonly text: string; readonly details: AnswerDetails }
+  | { readonly kind: "replyWith"; readonly text: string; readonly details: AnswerDetails }
   | {
       readonly kind: "tool-call";
       readonly tool: string;
@@ -41,9 +41,9 @@ export type ScriptedTurn =
     }
   | { readonly kind: "failure"; readonly failure: ModelFailure };
 
-/** An agent's model answers with text: `answer("3 jobs found", { cost: usd(0.002) })`. */
+/** An agent's model answers with text: `replyWith("3 jobs found", { cost: usd(0.002) })`. */
 export const replyWith = (text: string, details: AnswerDetails = {}): ScriptedTurn => ({
-  kind: "answer",
+  kind: "replyWith",
   text,
   details,
 });
@@ -77,7 +77,7 @@ export function callTool<TInput extends object>(
   };
 }
 
-/** A router decides for one of its routes: `decide(Scout)`, `decide(Self)`. */
+/** A router decides for one of its routes: `routeTo(Scout)`, `routeTo(Self)`. */
 export const routeTo = (target: ChoiceTarget, details: DecisionDetails = {}): ScriptedTurn => ({
   kind: "decision",
   target,

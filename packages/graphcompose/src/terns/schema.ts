@@ -9,7 +9,7 @@ const MIGRATIONS: readonly string[] = [
   `CREATE TABLE threads (id TEXT PRIMARY KEY, bundle TEXT NOT NULL, created_at TEXT NOT NULL);
    CREATE TABLE terns (
      id TEXT PRIMARY KEY, thread_id TEXT NOT NULL REFERENCES threads(id), bundle TEXT NOT NULL,
-     created_at TEXT NOT NULL, task TEXT NOT NULL, answer TEXT NOT NULL, status TEXT NOT NULL,
+     created_at TEXT NOT NULL, task TEXT NOT NULL, replyWith TEXT NOT NULL, status TEXT NOT NULL,
      stop_reason TEXT NOT NULL, route TEXT NOT NULL, steps TEXT NOT NULL, cost_usd REAL NOT NULL,
      prompt_version TEXT NOT NULL, model_version TEXT NOT NULL, replay_of TEXT);
    CREATE INDEX terns_thread ON terns(thread_id);
@@ -39,7 +39,7 @@ const TernRow = z.object({
   bundle: z.string(),
   created_at: z.string(),
   task: z.string(),
-  answer: z.string(),
+  replyWith: z.string(),
   status: z.enum(TERN_STATUSES),
   stop_reason: z.string(),
   route: z.string(),
@@ -72,7 +72,7 @@ export function toTern(row: unknown): Tern {
     bundle: r.bundle,
     createdAt: r.created_at,
     task: r.task,
-    answer: r.answer,
+    replyWith: r.replyWith,
     status: r.status,
     stopReason: r.stop_reason,
     route: Route.parse(JSON.parse(r.route)),

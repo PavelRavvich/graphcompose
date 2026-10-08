@@ -38,12 +38,12 @@ export interface DecisionSpec {
 
 /**
  * The one seam every model call goes through. Agents and compaction get their chat model from
- * `chatModel`; routers and guards decide through `decide`.
+ * `chatModel`; routers and guards routeTo through `routeTo`.
  * Model providers, scripted and replayed models replace the gateway, nothing behind it.
  */
 export interface ModelGateway {
   readonly chatModel: (spec: ChatModelSpec) => BaseChatModel;
-  readonly decide: (spec: DecisionSpec) => Promise<RouteOutcome>;
+  readonly routeTo: (spec: DecisionSpec) => Promise<RouteOutcome>;
 }
 
 /** The raw clients the default gateway calls. */
@@ -79,7 +79,7 @@ export function createModelGateway(clients: ModelClients): ModelGateway {
           model: chatModel({ user: { kind: "router", router }, settings: model.settings }),
           settings: model.settings,
         });
-  return { chatModel, decide: (spec) => strategyOf(spec).route(spec.request) };
+  return { chatModel, routeTo: (spec) => strategyOf(spec).route(spec.request) };
 }
 
 /**

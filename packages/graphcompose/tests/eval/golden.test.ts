@@ -10,12 +10,12 @@ import {
   saveGolden,
 } from "../../src/eval/golden.js";
 import { runAgent } from "../../src/index.js";
-import { decide, fakeDeps } from "../helpers.js";
+import { routeTo, fakeDeps } from "../helpers.js";
 
 describe("golden sets", () => {
   it("AC3: saves the last real tasks (distinct, oldest first) and reads them back", async () => {
     const deps = fakeDeps({
-      "test/router": Array.from({ length: 3 }, () => [decide("alpha"), decide("answer")]).flat(),
+      "test/router": Array.from({ length: 3 }, () => [routeTo("alpha"), routeTo("replyWith")]).flat(),
       "test/alpha": ["a", "b", "c"],
     });
     for (const task of ["q1", "q1", "q2"]) await runAgent({ task }, deps);

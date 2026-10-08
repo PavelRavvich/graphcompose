@@ -35,7 +35,7 @@ export const AgentState = Annotation.Root({
   }),
   /** FinOps: every LLM call appends one record. */
   usage: Annotation<UsageRecord[]>({ reducer: append, default: () => [] }),
-  answer: Annotation<string>(),
+  replyWith: Annotation<string>(),
   finishes: Annotation<Record<string, FinishOutput>>({
     reducer: mergeRecords,
     default: () => ({}),

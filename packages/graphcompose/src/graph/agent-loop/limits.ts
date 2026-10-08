@@ -3,7 +3,7 @@ import { LimitExceededError } from "../limits.js";
 import { loopUsage, type AgentLoopStateType } from "./state.js";
 
 /**
- * What one call of an agent may do, counted from the flow handing it work to its answer: model calls
+ * What one call of an agent may do, counted from the flow handing it work to its replyWith: model calls
  * and tool calls. (`judgeSendBacks` joins them with the judges, #123.)
  */
 export interface AgentLoopLimits {

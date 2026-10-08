@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { LimitExceededError } from "../../src/graph/limits.js";
 import { RouterDecisionError } from "../../src/graph/nodes/flow-router.js";
 import { runAgent } from "../../src/index.js";
-import { decide } from "../helpers.js";
+import { routeTo } from "../helpers.js";
 import { jobScoutDeps } from "../graph/fixtures/job-scout-shape.js";
 
 describe("AC1: a limit or a router failure fails the run and is a failed Tern", () => {
   it("routers.main.maxVisits: the 4th visit of the main router fails, with the path and the spend", async () => {
     const { deps, ledger } = jobScoutDeps({
-      router: [decide("profiler"), decide("scout"), decide("shortlist")],
+      router: [routeTo("profiler"), routeTo("scout"), routeTo("shortlist")],
       agents: { profiler: ["p"], scout: ["s"], shortlist: ["l"] },
     });
 
@@ -46,7 +46,7 @@ describe("AC1: a limit or a router failure fails the run and is a failed Tern", 
   });
 
   it("router.unknown-route: a choice that is not a route fails the run; its call is still billed", async () => {
-    const { deps, ledger } = jobScoutDeps({ router: [decide("recruiter")], agents: {} });
+    const { deps, ledger } = jobScoutDeps({ router: [routeTo("recruiter")], agents: {} });
 
     const threadId = await deps.terns.createThread("job-scout");
 

@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { MissingAgentPromptError } from "../src/graph/agent-definitions.js";
 import { flowGraphOf, type RunLimits } from "../src/graph/flow-runtime.js";
 import { LimitExceededError } from "../src/graph/limits.js";
-import { decide, fakeDeps, testLimits } from "./helpers.js";
+import { routeTo, fakeDeps, testLimits } from "./helpers.js";
 
 const run: RunLimits = { limits: testLimits, spentToday: () => Promise.resolve(0) };
 
 describe("the workflow's flow graph (existing nodes in the new graph)", () => {
-  it("routes through agents and ends at the answer with the last contribution", async () => {
+  it("routes through agents and ends at the replyWith with the last contribution", async () => {
     const deps = fakeDeps({
-      "test/router": [decide("alpha"), decide("beta"), decide("answer", "done")],
+      "test/router": [routeTo("alpha"), routeTo("beta"), routeTo("replyWith", "done")],
       "test/alpha": ["facts"],
       "test/beta": ["code"],
     });
@@ -18,7 +18,7 @@ describe("the workflow's flow graph (existing nodes in the new graph)", () => {
     const state = await graph.invoke({ task: "Explain and implement" });
 
     expect(state.contributions.map((item) => item.agent)).toEqual(["alpha", "beta"]);
-    expect(state.answer).toBe("code");
+    expect(state.replyWith).toBe("code");
     expect(state.routeReason).toBe("done");
     expect(state.path).toEqual([
       "workflow-start.chat",
@@ -27,7 +27,7 @@ describe("the workflow's flow graph (existing nodes in the new graph)", () => {
       "main",
       "beta",
       "main",
-      "answer",
+      "replyWith",
     ]);
     expect(state.usage.map((record) => record.caller)).toEqual([
       "router:main",
@@ -40,7 +40,7 @@ describe("the workflow's flow graph (existing nodes in the new graph)", () => {
 
   it("fails the run with limits.perRun.steps when the router keeps routing", async () => {
     const deps = fakeDeps({
-      "test/router": Array.from({ length: 6 }, () => decide("alpha")),
+      "test/router": Array.from({ length: 6 }, () => routeTo("alpha")),
       "test/alpha": ["1", "2", "3", "4", "5", "6"],
     });
     const { graph } = await flowGraphOf(deps, run);

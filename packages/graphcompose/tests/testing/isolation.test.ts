@@ -3,9 +3,9 @@ import http, { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  answer,
+  replyWith,
   callTool,
-  decide,
+  routeTo,
   LiveCallBlockedError,
   testWith,
 } from "../../src/testing/index.js";
@@ -46,9 +46,9 @@ afterAll(async () => {
 describe("AC12: everything external is replaced; a live call fails the test before the call", () => {
   test("an agent without a script is a blocked live model call, naming its class", async ({
     app,
-    modelOf,
+    mockLlm,
   }) => {
-    modelOf(MainRouter).respond(decide(Writer));
+    mockLlm(MainRouter).thenReturn(routeTo(Writer));
 
     const run = app.execute(ChatStart, { text: "hi" });
 
@@ -69,27 +69,27 @@ describe("AC12: everything external is replaced; a live call fails the test befo
 
   test("an MCP server tool without a stub fails the run with the tool's name", async ({
     app,
-    modelOf,
+    mockLlm,
   }) => {
-    modelOf(MainRouter).respond(decide(Support));
-    modelOf(Support).respond(callTool(ReadNote, { title: "n1" }), answer("Read."));
+    mockLlm(MainRouter).thenReturn(routeTo(Support));
+    mockLlm(Support).thenReturn(callTool(ReadNote, { title: "n1" }), replyWith("Read."));
 
     await expect(app.execute(ChatStart, { text: "read n1" })).rejects.toThrow(
       /test.live-call-blocked: MCP server "notes" tool "read_text_file" has no stub; add mcpOf\(NotesServer\)/,
     );
   });
 
-  test("a stubbed MCP server answers through its handlers", async ({ app, modelOf, mcpOf }) => {
-    modelOf(MainRouter).respond(decide(Support), decide(Reply));
-    modelOf(Support).respond(callTool(ReadNote, { title: "n1" }), answer("Call back."));
-    mcpOf(NotesServer).respond({
+  test("a stubbed MCP server answers through its handlers", async ({ app, mockLlm, mcpOf }) => {
+    mockLlm(MainRouter).thenReturn(routeTo(Support), routeTo(Reply));
+    mockLlm(Support).thenReturn(callTool(ReadNote, { title: "n1" }), replyWith("Call back."));
+    mcpOf(NotesServer).thenReturn({
       read_text_file: () => Promise.resolve({ content: "call back" }),
     });
 
     const result = await app.execute(ChatStart, { text: "read n1" });
 
     expect(result).toFinishWith(Reply, { text: "Call back." });
-    expect(toolResultsOf(modelOf(Support).lastRequest)).toEqual(['{"text":"call back"}']);
+    expect(toolResultsOf(mockLlm(Support).lastRequest)).toEqual(['{"text":"call back"}']);
   });
 
   local('allowNetwork: ["localhost"] lets a request to 127.0.0.1 through', async () => {
@@ -119,9 +119,9 @@ describe("AC12: everything external is replaced; a live call fails the test befo
     30_000,
   );
 
-  test("a write tool still waits for approval with stubs in place", async ({ app, modelOf }) => {
-    modelOf(MainRouter).respond(decide(Support));
-    modelOf(Support).respond(callTool(SaveNote, { title: "n2", text: "x" }));
+  test("a write tool still waits for approval with stubs in place", async ({ app, mockLlm }) => {
+    mockLlm(MainRouter).thenReturn(routeTo(Support));
+    mockLlm(Support).thenReturn(callTool(SaveNote, { title: "n2", text: "x" }));
 
     const result = await app.execute(ChatStart, { text: "save" });
 

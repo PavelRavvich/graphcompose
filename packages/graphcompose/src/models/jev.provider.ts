@@ -25,7 +25,7 @@ export const JEV_MODELS: readonly string[] = ["typesafe/jev-1.13", "typesafe/jev
 
 /**
  * Jev on OpenRouter's Decisions API: calibrated probabilities over fixed options, the exact cost in
- * every answer. Serves `typesafe/jev-*` for routers, guards and judges — decisions only, no chat.
+ * every replyWith. Serves `typesafe/jev-*` for routers, guards and judges — decisions only, no chat.
  */
 @ModelProvider({
   name: "jev",
@@ -50,7 +50,7 @@ export class JevModelProvider implements ModelProviderHandler {
   readonly knownModels: readonly string[] = JEV_MODELS;
 
   /** Options sorted by name: declaration order changes neither the request nor its fingerprint. */
-  decide({ decision, connection }: DecideRequest): Promise<unknown> {
+  routeTo({ decision, connection }: DecideRequest): Promise<unknown> {
     const questions = Object.fromEntries(
       Object.entries(decision.questions).map(([id, question]) => [
         id,

@@ -13,7 +13,7 @@ describe.skipIf(!process.env.OPENROUTER_API_KEY)("smoke: real models", () => {
       deps,
     ).finally(() => deps.close());
 
-    expect(result.answer).toContain("4");
+    expect(result.replyWith).toContain("4");
     expect(result.cost.totalUsd).toBeLessThan(0.05);
   });
 });

@@ -22,7 +22,7 @@ export const COMMANDS: Readonly<Record<string, CommandHelp>> = {
     options: [WORKFLOW, THREAD, PROFILE],
   },
   run: {
-    summary: "one task, the answer to stdout",
+    summary: "one task, the replyWith to stdout",
     usage: 'gc run --workflow <path> [--thread <id>] [--profile <name>] "<task>"',
     options: [WORKFLOW, THREAD, PROFILE],
   },

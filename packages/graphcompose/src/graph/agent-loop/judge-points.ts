@@ -14,7 +14,7 @@ export enum JudgeOwner {
   Agent = "agent",
 }
 
-/** One visit of a judge point: where, whose judges, which agent, which call (none before the answer). */
+/** One visit of a judge point: where, whose judges, which agent, which call (none before the replyWith). */
 export interface JudgeVisit {
   readonly point: JudgePoint;
   readonly owner: JudgeOwner;
@@ -31,7 +31,7 @@ export interface JudgeVisit {
 /**
  * The extension points of the move boundary, visited in order: tool judges `beforeToolCall` → agent
  * judges `beforeToolCall` → approval → run → `afterToolCall` (tool, then agent); `beforeAgentAnswer`
- * before the answer leaves the loop. Empty here — the judges themselves come with #123.
+ * before the replyWith leaves the loop. Empty here — the judges themselves come with #123.
  */
 export type JudgePoints = (visit: JudgeVisit) => Promise<void>;
 

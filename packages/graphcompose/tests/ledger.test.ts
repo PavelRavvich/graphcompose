@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { createFileLedger, utcDay } from "../src/finops/ledger.js";
 import { LimitExceededError } from "../src/graph/limits.js";
 import { runAgent } from "../src/index.js";
-import { decide, fakeDeps, memoryLedger, recordingRouters, usageRecord } from "./helpers.js";
+import { routeTo, fakeDeps, memoryLedger, recordingRouters, usageRecord } from "./helpers.js";
 
 const tempDir = (): Promise<string> => mkdtemp(join(tmpdir(), "ledger-"));
 const at = (iso: string) => () => new Date(iso);
@@ -78,7 +78,7 @@ describe("daily cap in a run", () => {
 
   it("gives the run the run cap while the day is young", async () => {
     const deps = fakeDeps(
-      { "test/router": [decide("alpha"), decide("answer", "done")], "test/alpha": ["42"] },
+      { "test/router": [routeTo("alpha"), routeTo("replyWith", "done")], "test/alpha": ["42"] },
       memoryLedger(0.5),
     );
 
@@ -88,7 +88,7 @@ describe("daily cap in a run", () => {
   it("gives the run what is left of the day and records every call", async () => {
     const ledger = memoryLedger(9.75);
     const deps = fakeDeps(
-      { "test/router": [decide("alpha"), decide("answer", "done")], "test/alpha": ["42"] },
+      { "test/router": [routeTo("alpha"), routeTo("replyWith", "done")], "test/alpha": ["42"] },
       ledger,
     );
 

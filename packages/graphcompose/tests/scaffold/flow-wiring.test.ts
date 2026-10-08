@@ -9,7 +9,7 @@ import { addAgentToFlow } from "../../src/scaffold/wire-flow.js";
 const workflow = (flow: string) => ({ path: "src/desk/desk.workflow.ts", content: flow });
 
 describe("#116: gc g agent joins the star; gc g router", () => {
-  it("adds the agent before the answer in choose(...) and to the agents going back to the router", () => {
+  it("adds the agent before the replyWith in choose(...) and to the agents going back to the router", () => {
     const file = workflow(
       "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routes(TriageAgent, TextWorkflowFinish),\n  from(TriageAgent).next(MainRouter),\n]",
     );
@@ -40,7 +40,7 @@ describe("#116: gc g agent joins the star; gc g router", () => {
     );
   });
 
-  it("gc g router needs the workflow's answer workflow finish, and creates the router with its answer route", () => {
+  it("gc g router needs the workflow's replyWith workflow finish, and creates the router with its replyWith route", () => {
     const root = mkdtempSync(join(tmpdir(), "gc-router-"));
     mkdirSync(join(root, "src/desk"), { recursive: true });
     writeFileSync(join(root, "src/desk/desk.workflow.ts"), "");
@@ -55,7 +55,7 @@ describe("#116: gc g agent joins the star; gc g router", () => {
     expect(router?.path).toBe("src/desk/routers/escalation.router.ts");
     expect(router?.content).toContain("export class EscalationRouter {}");
     expect(router?.content).toContain(
-      '{ prompt: "Stop and send the answer: the contributions so far answer',
+      '{ prompt: "Stop and send the replyWith: the contributions so far replyWith',
     );
     // #142 AC3: a new router is bounded on any cycle it is later put on
     expect(router?.content).toContain("  maxVisits: 1,\n");

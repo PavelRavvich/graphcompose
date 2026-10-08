@@ -24,7 +24,7 @@ function summariesDepth<TName extends string>(deps: RunDeps<TName>): number {
 }
 
 const toTurns = (terns: readonly Tern[]): HistoryTurn[] =>
-  terns.map(({ task, answer, status }) => ({ task, answer, status }));
+  terns.map(({ task, replyWith, status }) => ({ task, replyWith, status }));
 
 /** With compaction: the latest summaries + raw turns not yet summarised; without: the last turns. */
 async function memoryOf<TName extends string>(

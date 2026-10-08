@@ -82,7 +82,7 @@ try {
       );
       const result = await untilDone(first, app, ask, busy);
       threadId = result.thread;
-      say(`${styleText("cyan", "agent ›")} ${result.answer}`);
+      say(`${styleText("cyan", "agent ›")} ${result.replyWith}`);
       say(styleText("dim", `  ${threadLine(result)}`));
       say(styleText("dim", `  ${summaryLine(result)}`));
       const memory = memoryLine(result);

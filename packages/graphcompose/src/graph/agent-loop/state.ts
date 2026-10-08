@@ -55,7 +55,7 @@ export const AgentLoopState = Annotation.Root({
   decisions: Annotation<Record<string, CallDecision>>({ reducer: merge, default: () => ({}) }),
   modelCalls: Annotation<number>({ reducer: add, default: () => 0 }),
   toolCalls: Annotation<number>({ reducer: add, default: () => 0 }),
-  /** The agent's answer; null while it is still working. */
+  /** The agent's replyWith; null while it is still working. */
   reply: Annotation<string | null>({ reducer: replace, default: () => null }),
 });
 
@@ -81,5 +81,5 @@ export const LOOP_NODE = {
   approval: "approval",
   tool: "tool",
   collect: "collect",
-  answer: "agent-answer",
+  replyWith: "agent-replyWith",
 } as const;

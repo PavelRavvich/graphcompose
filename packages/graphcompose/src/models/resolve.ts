@@ -36,7 +36,7 @@ export interface ProviderQuery {
 const canServe = (provider: RegisteredModelProvider, purpose: ModelPurpose): boolean =>
   purpose === ModelPurpose.Chat
     ? provider.handler.chat !== undefined
-    : provider.handler.decide !== undefined;
+    : provider.handler.routeTo !== undefined;
 
 const names = (providers: readonly RegisteredModelProvider[]): string =>
   providers.map((provider) => provider.options.name).join(", ");

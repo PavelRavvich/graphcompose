@@ -55,7 +55,7 @@ export const fixedAnswer =
       usage: [usageRecord(name, costUsd)],
     });
 
-/** Workflow starts do nothing; workflow finishes copy the last contribution into `answer`; agents answer. */
+/** Workflow starts do nothing; workflow finishes copy the last contribution into `replyWith`; agents replyWith. */
 export function testRunner(node: FlowNodeRef, agentCostUsd = 0): FlowNodeRunner {
   switch (node.kind) {
     case "agent":
@@ -63,7 +63,7 @@ export function testRunner(node: FlowNodeRef, agentCostUsd = 0): FlowNodeRunner 
     case "workflow-finish":
       return (state) =>
         Promise.resolve({
-          answer: (() => {
+          replyWith: (() => {
             const c = state.contributions.at(-1)?.content;
             return c ? extractText(c) : "";
           })(),

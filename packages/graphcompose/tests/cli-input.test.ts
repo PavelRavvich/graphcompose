@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { cleanLine, onInterruptKey, type KeyInput } from "../src/cli/keys.js";
 import { askMessage } from "../src/cli/multiline.js";
 import { runAgent } from "../src/index.js";
-import { decide, fakeDeps } from "./helpers.js";
+import { routeTo, fakeDeps } from "./helpers.js";
 
 function terminal(): KeyInput & {
   emit: (event: string, chunk: string) => boolean;
@@ -71,7 +71,7 @@ describe("multi-line messages", () => {
 describe("interrupted runs", () => {
   it("an aborted signal stops the run and stores an interrupted Tern", async () => {
     const deps = fakeDeps({
-      "test/router": [decide("alpha"), decide("answer")],
+      "test/router": [routeTo("alpha"), routeTo("replyWith")],
       "test/alpha": ["ok"],
     });
     const controller = new AbortController();

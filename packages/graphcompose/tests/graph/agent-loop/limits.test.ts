@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_AGENT_LIMITS, resolveAgentLimits } from "../../../src/graph/agent-loop/index.js";
 import { LimitExceededError } from "../../../src/graph/limits.js";
-import { answer, callTools, harness, read, runLoop, startInput } from "./fixtures.js";
+import { replyWith, callTools, harness, read, runLoop, startInput } from "./fixtures.js";
 
 describe("AC7: limits per call of the agent — modelCalls and toolCalls", () => {
   it("defaults are 12 model calls and 20 tool calls, marked as defaults", () => {
@@ -22,7 +22,7 @@ describe("AC7: limits per call of the agent — modelCalls and toolCalls", () =>
 
   it("toolCalls hit exactly at the last allowed call is allowed", async () => {
     const h = harness({
-      moves: [callTools(read("a", "a.ts")), callTools(read("b", "b.ts")), answer("ok")],
+      moves: [callTools(read("a", "a.ts")), callTools(read("b", "b.ts")), replyWith("ok")],
       limits: { toolCalls: 2 },
     });
 
@@ -50,7 +50,7 @@ describe("AC7: limits per call of the agent — modelCalls and toolCalls", () =>
 
   it("modelCalls: the call past the limit is never made; the run fails with agents.<name>.limits.modelCalls", async () => {
     const h = harness({
-      moves: [callTools(read("a", "a.ts")), callTools(read("b", "b.ts")), answer("never")],
+      moves: [callTools(read("a", "a.ts")), callTools(read("b", "b.ts")), replyWith("never")],
       limits: { modelCalls: 2 },
     });
 
@@ -65,7 +65,7 @@ describe("AC7: limits per call of the agent — modelCalls and toolCalls", () =>
   });
 
   it("a run budget already spent ends the loop without a model call", async () => {
-    const h = harness({ moves: [answer("never")], runBudgetCap: 0 });
+    const h = harness({ moves: [replyWith("never")], runBudgetCap: 0 });
 
     const end = await runLoop(h.graph, startInput(), "t");
 

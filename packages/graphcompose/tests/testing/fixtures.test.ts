@@ -1,8 +1,8 @@
 import { describe, expect } from "vitest";
 import {
-  answer,
+  replyWith,
   callTool,
-  decide,
+  routeTo,
   failWith,
   ModelFailure,
   TestSetupError,
@@ -27,17 +27,17 @@ const review = testWith(CodeReview);
 describe("AC12: mockOf — a typed mock injected instead of the class", () => {
   test("the app's tool gets the mock; mockOf returns the same instance the app uses", async ({
     app,
-    modelOf,
+    mockLlm,
     mockOf,
   }) => {
     mockOf(OrderBook).statusOf.mockResolvedValue("order lost");
-    modelOf(MainRouter).respond(decide(Support), decide(Reply));
-    modelOf(Support).respond(callTool(OrderStatus, { orderId: "7" }), answer("Lost."));
+    mockLlm(MainRouter).thenReturn(routeTo(Support), routeTo(Reply));
+    mockLlm(Support).thenReturn(callTool(OrderStatus, { orderId: "7" }), replyWith("Lost."));
 
     await app.execute(ChatStart, { text: "where is 7?" });
 
     expect(mockOf(OrderBook).statusOf.mock.calls).toEqual([["7"]]);
-    expect(toolResultsOf(modelOf(Support).lastRequest)).toEqual(['{"status":"order lost"}']);
+    expect(toolResultsOf(mockLlm(Support).lastRequest)).toEqual(['{"status":"order lost"}']);
   });
 
   review("mockOf of a class the workflow does not use fails clearly", ({ mockOf }) => {
@@ -52,44 +52,44 @@ describe("AC12: mockOf — a typed mock injected instead of the class", () => {
   });
 });
 
-describe("AC12: modelOf — what a component sent its model", () => {
+describe("AC12: mockLlm — what a component sent its model", () => {
   test("onlyRequest and lastRequest; toHaveBeenAskedWith matches parts", async ({
     app,
-    modelOf,
+    mockLlm,
   }) => {
-    modelOf(MainRouter).respond(decide(Writer), decide(Reply));
-    modelOf(Writer).respond(answer("Hello!"));
+    mockLlm(MainRouter).thenReturn(routeTo(Writer), routeTo(Reply));
+    mockLlm(Writer).thenReturn(replyWith("Hello!"));
 
     await app.execute(ChatStart, { text: "say hello" });
 
-    expect(modelOf(Writer).onlyRequest).toMatchObject({
+    expect(mockLlm(Writer).onlyRequest).toMatchObject({
       kind: "chat",
       system: expect.stringContaining("You write short replies.") as string,
     });
-    expect(modelOf(Writer)).toHaveBeenAskedWith({ input: "say hello" });
-    expect(modelOf(MainRouter).lastRequest).toMatchObject({
+    expect(mockLlm(Writer)).toHaveBeenAskedWith({ input: "say hello" });
+    expect(mockLlm(MainRouter).lastRequest).toMatchObject({
       kind: "decision",
       options: ["reply", "support", "writer"],
     });
-    expect(modelOf(MainRouter)).toHaveBeenAskedWith({ instructions: "Pick who handles" });
+    expect(mockLlm(MainRouter)).toHaveBeenAskedWith({ instructions: "Pick who handles" });
   });
 
   test("onlyRequest fails unless there was exactly one; lastRequest fails with none", ({
-    modelOf,
+    mockLlm,
   }) => {
-    expect(() => modelOf(Writer).onlyRequest).toThrow(
-      "modelOf(Writer).onlyRequest: expected exactly one request, got 0",
+    expect(() => mockLlm(Writer).onlyRequest).toThrow(
+      "mockLlm(Writer).onlyRequest: expected exactly one request, got 0",
     );
-    expect(() => modelOf(Writer).lastRequest).toThrow("modelOf(Writer): no request was sent");
+    expect(() => mockLlm(Writer).lastRequest).toThrow("mockLlm(Writer): no request was sent");
   });
 
   review(
-    "modelOf of a class that is not an agent or router of the workflow fails",
-    ({ modelOf }) => {
-      expect(() => modelOf(Unused)).toThrow(
-        "modelOf(Unused): not an agent or router of this workflow",
+    "mockLlm of a class that is not an agent or router of the workflow fails",
+    ({ mockLlm }) => {
+      expect(() => mockLlm(Unused)).toThrow(
+        "mockLlm(Unused): not an agent or router of this workflow",
       );
-      expect(() => modelOf(Writer)).toThrow(TestSetupError);
+      expect(() => mockLlm(Writer)).toThrow(TestSetupError);
     },
   );
 });
@@ -102,36 +102,36 @@ describe("AC12: slices — one component of the real app on its own", () => {
     });
   });
 
-  test("app.router(X) decides on a text and returns the chosen node", async ({ app, modelOf }) => {
-    modelOf(MainRouter).respond(decide(Writer));
+  test("app.router(X) decides on a text and returns the chosen node", async ({ app, mockLlm }) => {
+    mockLlm(MainRouter).thenReturn(routeTo(Writer));
 
-    expect(await app.router(MainRouter).decide("write a reply")).toBe(Writer);
-    expect(modelOf(MainRouter).onlyRequest).toMatchObject({ input: "write a reply" });
+    expect(await app.router(MainRouter).routeTo("write a reply")).toBe(Writer);
+    expect(mockLlm(MainRouter).onlyRequest).toMatchObject({ input: "write a reply" });
   });
 
   test("app.agent(X) answers a task with its own model, prompt and tools", async ({
     app,
-    modelOf,
+    mockLlm,
   }) => {
-    modelOf(Support).respond(callTool(OrderStatus, { orderId: "3" }), answer("Order 3 shipped."));
+    mockLlm(Support).thenReturn(callTool(OrderStatus, { orderId: "3" }), replyWith("Order 3 shipped."));
 
-    expect(await app.agent(Support).answer("where is 3?")).toBe("Order 3 shipped.");
-    expect(modelOf(Support)).toHaveCalledTools([OrderStatus]);
+    expect(await app.agent(Support).replyWith("where is 3?")).toBe("Order 3 shipped.");
+    expect(mockLlm(Support)).toHaveCalledTools([OrderStatus]);
   });
 
   test("a slice of something the workflow does not have fails clearly", async ({ app }) => {
-    await expect(app.router(Writer).decide("x")).rejects.toThrow(
+    await expect(app.router(Writer).routeTo("x")).rejects.toThrow(
       "app.router(Writer): not a router of this workflow",
     );
-    await expect(app.agent(MainRouter).answer("x")).rejects.toThrow(
+    await expect(app.agent(MainRouter).replyWith("x")).rejects.toThrow(
       "app.agent(MainRouter): not an agent of this workflow",
     );
   });
 
-  test("app.router(X) fails like the flow when its model fails", async ({ app, modelOf }) => {
-    modelOf(MainRouter).respond(failWith(ModelFailure.ServerError));
+  test("app.router(X) fails like the flow when its model fails", async ({ app, mockLlm }) => {
+    mockLlm(MainRouter).thenReturn(failWith(ModelFailure.ServerError));
 
-    await expect(app.router(MainRouter).decide("x")).rejects.toFailWith({
+    await expect(app.router(MainRouter).routeTo("x")).rejects.toFailWith({
       code: "router.failed",
       node: MainRouter,
     });

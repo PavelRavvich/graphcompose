@@ -12,7 +12,7 @@ import {
   WorkflowSettings,
 } from "../../src/graph/index.js";
 import { createSqliteTernStore } from "../../src/terns/index.js";
-import { answer, callTool, decide } from "../../src/testing/index.js";
+import { replyWith, callTool, routeTo } from "../../src/testing/index.js";
 import { McpStubs, stubbedMcpConnect } from "../../src/testing/mcp-stubs.js";
 import { ScriptBook } from "../../src/testing/script-book.js";
 import { createScriptedGateway } from "../../src/testing/scripted-gateway.js";
@@ -109,9 +109,9 @@ describe("AC12: createApp — the real app", () => {
 
   it("run returns thread, finish, output, path and spend", async () => {
     const book = new ScriptBook();
-    book.scriptOf("agent:coder").respond(answer("v1", { cost: usd(0.002) }));
-    book.scriptOf("agent:reviewer").respond(answer("clean"));
-    book.scriptOf("router:review-gate").respond(decide(PullRequest));
+    book.scriptOf("agent:coder").thenReturn(replyWith("v1", { cost: usd(0.002) }));
+    book.scriptOf("agent:reviewer").thenReturn(replyWith("clean"));
+    book.scriptOf("router:review-gate").thenReturn(routeTo(PullRequest));
     const app = await createApp(CodeReview, offline(book));
 
     const result = await app.execute(TaskStart, { text: "Add a flag" });
@@ -132,11 +132,11 @@ describe("AC12: createApp — the real app", () => {
   it("resume continues the paused run of a thread; a thread without a pause cannot resume", async () => {
     const book = new ScriptBook();
     const stubs = new McpStubs(book);
-    stubs.stubOf("notes").respond({ write_file: () => Promise.resolve({ content: "ok" }) });
-    book.scriptOf("router:main").respond(decide(Support));
+    stubs.stubOf("notes").thenReturn({ write_file: () => Promise.resolve({ content: "ok" }) });
+    book.scriptOf("router:main").thenReturn(routeTo(Support));
     book
       .scriptOf("agent:support")
-      .respond(callTool(SaveNote, { title: "a", text: "b" }), answer("Saved."));
+      .thenReturn(callTool(SaveNote, { title: "a", text: "b" }), replyWith("Saved."));
     const app = await createApp(Desk, offline(book, stubs));
 
     const paused = await app.execute(ChatStart, { text: "save a note" });
@@ -187,8 +187,8 @@ describe("AC12: createApp — the real app", () => {
 
   it("with several workflow starts, the run starts at the one asked for", async () => {
     const book = new ScriptBook();
-    book.scriptOf("agent:support").respond(answer("ticket"));
-    book.scriptOf("agent:writer").respond(answer("chat"));
+    book.scriptOf("agent:support").thenReturn(replyWith("ticket"));
+    book.scriptOf("agent:writer").thenReturn(replyWith("chat"));
     const app = await createApp(TwoStarts, offline(book));
 
     const ticket = await app.execute(TicketStart, { text: "printer broken", id: "T-1" } as Ticket);

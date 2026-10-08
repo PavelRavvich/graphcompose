@@ -1,6 +1,6 @@
 import type { ProviderFetch } from "../../src/models/resilient-fetch.js";
 
-/** One answer of the stub: a status, a JSON body, headers. */
+/** One replyWith of the stub: a status, a JSON body, headers. */
 export interface StubReply {
   readonly status?: number;
   readonly body?: unknown;
@@ -34,7 +34,7 @@ export interface StubModel {
   readonly pricing?: Readonly<Record<string, string>>;
 }
 
-/** A chat completion answer, with OpenRouter's cost when given. */
+/** A chat completion replyWith, with OpenRouter's cost when given. */
 export const completion = (text = "ok", cost?: number): StubReply => ({
   body: {
     id: "x",

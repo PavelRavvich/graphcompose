@@ -1,5 +1,5 @@
 import type { MessageContent } from "@langchain/core/messages";
-/** Terminology: a Tern is one question → answer round (one run). A thread is a client's sequence of Terns. */
+/** Terminology: a Tern is one question → replyWith round (one run). A thread is a client's sequence of Terns. */
 
 export const TERN_STATUSES = ["answered", "guarded", "failed", "paused"] as const;
 export type TernStatus = (typeof TERN_STATUSES)[number];
@@ -16,7 +16,7 @@ export interface Tern {
   readonly bundle: string;
   readonly createdAt: string;
   readonly task: string;
-  readonly answer: string;
+  readonly replyWith: string;
   readonly status: TernStatus;
   readonly stopReason: string;
   readonly route: readonly string[];
@@ -87,7 +87,7 @@ export interface MemoryStore {
 /** What changes when a paused Tern finishes. */
 export type TernOutcome = Pick<
   Tern,
-  "answer" | "status" | "stopReason" | "route" | "steps" | "costUsd"
+  "replyWith" | "status" | "stopReason" | "route" | "steps" | "costUsd"
 >;
 
 /** Mean judge score and total cost of the Terns of one prompt version. */

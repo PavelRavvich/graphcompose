@@ -25,7 +25,7 @@ export class AgentFailedError extends PaidStepError {
   }
 }
 
-/** A guard could not decide — the run fails closed instead of letting content through. */
+/** A guard could not routeTo — the run fails closed instead of letting content through. */
 export class GuardFailedError extends PaidStepError {
   override name = "GuardFailedError";
   readonly guard: string;

@@ -92,7 +92,7 @@ export const outcomeError = (error: unknown, signal: AbortSignal | undefined): u
   signal?.aborted === true ? new Error("the run was cancelled") : error;
 
 export const failedOutcome = (error: unknown, spent: readonly UsageRecord[]): TernOutcome => ({
-  answer: "",
+  replyWith: "",
   status: "failed",
   stopReason: errorMessage(error),
   route: [],

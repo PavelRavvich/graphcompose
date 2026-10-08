@@ -25,8 +25,8 @@ export class Alpha {}
 export class Beta {}
 
 @WorkflowFinish({
-  name: "answer",
-  description: "The answer to the user",
+  name: "replyWith",
+  description: "The replyWith to the user",
   output: WorkflowFinishText,
 })
 export class TestAnswer {}
@@ -34,25 +34,25 @@ export class TestAnswer {}
 const ROUTES = {
   alpha: "Handles alpha work",
   beta: "Handles beta work",
-  answer: "The contributions so far answer the task",
+  replyWith: "The contributions so far replyWith the task",
 } as const;
 
 /** The test workflows' main router: an LLM ("test/router") so tests script it with fake chat models. */
 @Router({
   name: "main",
-  description: "Sends the task to an agent, or sends the answer",
+  description: "Sends the task to an agent, or sends the replyWith",
   prompt: "Pick who handles the task.",
   model: "test/router",
   maxVisits: 10,
   routes: [
     { prompt: ROUTES.alpha, target: Alpha },
     { prompt: ROUTES.beta, target: Beta },
-    { prompt: ROUTES.answer, target: TestAnswer },
+    { prompt: ROUTES.replyWith, target: TestAnswer },
   ],
 })
 export class TestMain {}
 
-/** The star: workflow start → main router → alpha / beta → main again → … → answer. */
+/** The star: workflow start → main router → alpha / beta → main again → … → replyWith. */
 export const testFlow: Flow = [
   from(TestChat).next(TestMain),
   from(TestMain).routes(Alpha, Beta, TestAnswer),
@@ -63,12 +63,12 @@ export const testFlow: Flow = [
 export const testRouters: readonly LoadedRouter[] = [
   {
     name: "main",
-    description: "Sends the task to an agent, or sends the answer",
+    description: "Sends the task to an agent, or sends the replyWith",
     model: "test/router",
     instructions: async () => "Pick who handles the task.",
     routes: [
       { option: "alpha", condition: async () => ROUTES.alpha },
-      { option: "answer", condition: async () => ROUTES.answer },
+      { option: "replyWith", condition: async () => ROUTES.replyWith },
       { option: "beta", condition: async () => ROUTES.beta },
     ],
   },

@@ -12,12 +12,12 @@ export interface ScriptedCall {
   readonly args: Record<string, unknown>;
 }
 
-/** One model move: an answer, or tool calls. */
+/** One model move: an replyWith, or tool calls. */
 export type ScriptedMove =
-  | { readonly kind: "answer"; readonly text: string }
+  | { readonly kind: "replyWith"; readonly text: string }
   | { readonly kind: "calls"; readonly calls: readonly ScriptedCall[] };
 
-export const answer = (text: string): ScriptedMove => ({ kind: "answer", text });
+export const replyWith = (text: string): ScriptedMove => ({ kind: "replyWith", text });
 export const callTools = (...calls: ScriptedCall[]): ScriptedMove => ({ kind: "calls", calls });
 export const read = (id: string, path: string): ScriptedCall => ({
   id,
@@ -34,7 +34,7 @@ export const wait = (id: string, ms: number): ScriptedCall => ({ id, name: "wait
 const USAGE = { input_tokens: 100, output_tokens: 20, total_tokens: 120 };
 
 const messageOf = (move: ScriptedMove): AIMessage =>
-  move.kind === "answer"
+  move.kind === "replyWith"
     ? new AIMessage({ content: move.text, usage_metadata: USAGE })
     : new AIMessage({
         content: "",

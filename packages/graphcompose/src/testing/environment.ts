@@ -119,11 +119,11 @@ export class TestEnvironment {
     return built;
   }
 
-  modelOf(target: FlowNode): ModelScript {
+  mockLlm(target: FlowNode): ModelScript {
     const key = scriptKeyOf(target);
     if (key === undefined || !this.#nodes.has(target)) {
       throw new TestSetupError(
-        `modelOf(${labelOf(target)}): not an agent or router of this workflow`,
+        `mockLlm(${labelOf(target)}): not an agent or router of this workflow`,
       );
     }
     return this.book.scriptOf(key);

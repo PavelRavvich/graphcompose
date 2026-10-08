@@ -10,7 +10,7 @@ import { runAgent } from "../src/index.js";
 import { createSqliteTernStore } from "../src/terns/index.js";
 import { runVersions } from "../src/run/versions.js";
 import { usd } from "../src/units/index.js";
-import { decide, fakeDeps } from "./helpers.js";
+import { routeTo, fakeDeps } from "./helpers.js";
 
 describe("config versions", () => {
   it("#116: the flow's routers, their texts and the limits are part of the versions", () => {
@@ -40,7 +40,7 @@ describe("config versions", () => {
 
   it("AC2: every run is labelled with the declared version and the config hash", async () => {
     const deps = fakeDeps({
-      "test/router": [decide("alpha"), decide("answer")],
+      "test/router": [routeTo("alpha"), routeTo("replyWith")],
       "test/alpha": ["ok"],
     });
 

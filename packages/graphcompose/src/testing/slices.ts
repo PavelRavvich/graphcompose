@@ -17,12 +17,12 @@ export interface ToolSlice<TInput, TOutput> {
 
 /** One router of the app on its own: a text in, the node it chooses out. */
 export interface RouterSlice {
-  decide(input: string): Promise<FlowNode | SelfTarget>;
+  routeTo(input: string): Promise<FlowNode | SelfTarget>;
 }
 
-/** One agent of the app on its own: a task in, its answer out (no flow, no approval pause). */
+/** One agent of the app on its own: a task in, its replyWith out (no flow, no approval pause). */
 export interface AgentSlice {
-  answer(task: string): Promise<string>;
+  replyWith(task: string): Promise<string>;
 }
 
 /** A tool class, typed by its `run`. */
@@ -60,7 +60,7 @@ export function routerSlice(built: BuiltApp, target: FlowNode): RouterSlice {
   }
   const router = built.deps.routerFor(loaded);
   return {
-    decide: async (input) => {
+    routeTo: async (input) => {
       const options = await Promise.all(
         loaded.routes.map(async (item) => ({
           name: item.option,
@@ -81,7 +81,7 @@ export function routerSlice(built: BuiltApp, target: FlowNode): RouterSlice {
       if (outcome.kind === "failed") {
         throw new RouterDecisionError(name, "router.failed", outcome.reason, []);
       }
-      // routers only decide for one of the options: a route's node, or `self` (no node of its own)
+      // routers only routeTo for one of the options: a route's node, or `self` (no node of its own)
       return built.nodes.get(outcome.decision.next) ?? Self;
     },
   };
@@ -98,7 +98,7 @@ const freshState = (task: string, runId: string): FlowStateType => ({
   contributions: [],
   usage: [],
   budgetUsd: Number.POSITIVE_INFINITY,
-  answer: "",
+  replyWith: "",
   finishes: {},
   guarded: "",
   approvals: [],
@@ -129,7 +129,7 @@ export function agentSlice(built: BuiltApp, target: FlowNode): AgentSlice {
     judges: noJudges,
   });
   return {
-    answer: async (task) => {
+    replyWith: async (task) => {
       const after = await loop.invoke(loopInputOf(freshState(task, "agent-slice"), name));
       return after.reply ?? "";
     },

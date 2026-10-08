@@ -25,15 +25,15 @@ describe("AC1: flow DSL builds the expected transitions", () => {
 
   it("from(A, B).next(C) fans in: one step from each source", () => {
     expect(transitionsOf([from(A, B).next(AnswerWorkflowFinish)])).toEqual([
-      { from: "a", next: { kind: "to", targets: ["answer"] } },
-      { from: "b", next: { kind: "to", targets: ["answer"] } },
+      { from: "a", next: { kind: "to", targets: ["replyWith"] } },
+      { from: "b", next: { kind: "to", targets: ["replyWith"] } },
     ]);
   });
 
   it("chain(A, B, C) is from(A).next(B) + from(B).next(C)", () => {
     expect(transitionsOf([chain(A, B, AnswerWorkflowFinish)])).toEqual([
       { from: "a", next: { kind: "to", targets: ["b"] } },
-      { from: "b", next: { kind: "to", targets: ["answer"] } },
+      { from: "b", next: { kind: "to", targets: ["replyWith"] } },
     ]);
   });
 
@@ -72,7 +72,7 @@ describe("AC1: flow DSL builds the expected transitions", () => {
       "router:main",
       "agent:explainer",
       "agent:coder",
-      "workflow-finish:answer",
+      "workflow-finish:replyWith",
       "agent:reviewer",
       "router:review-gate",
       "workflow-finish:pull-request",

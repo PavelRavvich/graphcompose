@@ -81,7 +81,7 @@ describe("@WorkflowAction", () => {
 
     expect(syncActionSpy).toHaveBeenCalled();
     expect(run.route).toEqual(["alpha", "beta"]); // Actions are not recorded in "route" since they are not agents!
-    expect(run.finish).toBe("answer");
+    expect(run.finish).toBe("replyWith");
   });
 
   it("can execute an action in parallel with an agent", async () => {
@@ -95,6 +95,6 @@ describe("@WorkflowAction", () => {
 
     expect(parallelActionSpy).toHaveBeenCalled();
     expect(run.route).toEqual(["alpha"]);
-    expect(run.finish).toBe("answer");
+    expect(run.finish).toBe("replyWith");
   });
 });

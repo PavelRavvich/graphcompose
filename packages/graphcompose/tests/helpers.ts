@@ -113,7 +113,7 @@ export function fakeDeps(
   };
 }
 
-export const decide = (next: string, reason = "test"): string => JSON.stringify({ next, reason });
+export const routeTo = (next: string, reason = "test"): string => JSON.stringify({ next, reason });
 
 export const usageRecord = (caller: string, costUsd: number): UsageRecord => ({
   caller,
@@ -136,7 +136,7 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     contributions: [],
     usage: [],
     budgetUsd: Number.POSITIVE_INFINITY,
-    answer: "",
+    replyWith: "",
     finishes: {},
     guarded: "",
     approvals: [],

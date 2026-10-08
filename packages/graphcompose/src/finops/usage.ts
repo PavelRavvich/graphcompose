@@ -2,7 +2,7 @@ import type { Price, ResolvedModelSettings } from "../config/types.js";
 
 /** Anything a chat model returns that may carry token usage (AIMessage, AIMessageChunk). */
 export interface UsageCarrier {
-  /** The provider's raw answer metadata; OpenRouter's `usage.cost` is the call's cost in USD. */
+  /** The provider's raw replyWith metadata; OpenRouter's `usage.cost` is the call's cost in USD. */
   readonly response_metadata?: Readonly<Record<string, unknown>>;
   readonly usage_metadata?: {
     readonly input_tokens: number;
@@ -69,7 +69,7 @@ export interface CostLine extends TokenUsage {
 }
 
 /**
- * Financial result of a turn — part of every run result. Clients decide what to show; the core
+ * Financial result of a turn — part of every run result. Clients routeTo what to show; the core
  * always reports all of it.
  */
 export interface CostReport {
@@ -122,7 +122,7 @@ export class ModelCostError extends Error {
   override name = "ModelCostError";
 }
 
-/** The cost the provider reported in its answer (`usage.cost`), when it did. */
+/** The cost the provider reported in its replyWith (`usage.cost`), when it did. */
 export function reportedCostOf(message: UsageCarrier): number | undefined {
   const usage = message.response_metadata?.usage;
   const cost =

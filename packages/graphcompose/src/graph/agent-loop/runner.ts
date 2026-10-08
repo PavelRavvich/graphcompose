@@ -24,7 +24,7 @@ export function loopInputOf(state: FlowStateType, agent: string): AgentLoopState
     contributions: state.contributions,
     budgetUsd: state.budgetUsd,
     usage: state.usage,
-    answer: state.answer,
+    replyWith: state.replyWith,
     payload: state.payload,
     summaries: state.summaries,
     approvals: state.approvals,
@@ -48,7 +48,7 @@ export function loopInputOf(state: FlowStateType, agent: string): AgentLoopState
   };
 }
 
-/** What the loop added to the flow's appended lists: the answer, the spend, the decisions. */
+/** What the loop added to the flow's appended lists: the replyWith, the spend, the decisions. */
 export const loopUpdate = (after: AgentLoopStateType): FlowStateUpdate => ({
   contributions: after.contributions.slice(after.from.contributions),
   usage: after.usage.slice(after.from.usage),

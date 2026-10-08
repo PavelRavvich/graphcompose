@@ -137,7 +137,7 @@ function reportingSkippedBranches(
 
 /**
  * The LangGraph node of a flow node: `<kind>.<name>` (e.g. `workflow-finish.chat`) — flow names may
- * equal state keys (`answer`), which LangGraph does not allow as node names.
+ * equal state keys (`replyWith`), which LangGraph does not allow as node names.
  */
 export const graphNodeId = (node: Pick<FlowNodeRef, "kind" | "name">): string =>
   `${node.kind}.${node.name}`;

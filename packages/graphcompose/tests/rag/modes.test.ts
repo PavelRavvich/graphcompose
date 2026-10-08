@@ -8,7 +8,7 @@ import { createModelRegistry, type ModelFactory } from "../../src/llm/registry.j
 import { CITE_INSTRUCTION } from "../../src/prompts/rag.js";
 import type { KnowledgeSource } from "../../src/rag/index.js";
 import { ScriptedChatModel } from "../fakes/scripted-model.js";
-import { decide, fakeDeps, testConfig, type TestAgent, fakeGateway } from "../helpers.js";
+import { routeTo, fakeDeps, testConfig, type TestAgent, fakeGateway } from "../helpers.js";
 
 const handbook = (retrieve: KnowledgeSource["retrieve"]): KnowledgeSource => ({
   name: "handbook",
@@ -26,7 +26,7 @@ function setup(source: KnowledgeSource) {
   const factory = vi.fn<ModelFactory>((s) =>
     s.model === "test/alpha" ? alpha : new FakeListChatModel({ responses: ["x"] }),
   );
-  const base = fakeDeps({ "test/router": [decide("alpha"), decide("answer", "done")] });
+  const base = fakeDeps({ "test/router": [routeTo("alpha"), routeTo("replyWith", "done")] });
   const deps: RunDeps<TestAgent> = {
     ...base,
     registry: createModelRegistry(testConfig, fakeGateway(factory)),
@@ -56,7 +56,7 @@ describe("knowledge bases — context mode", () => {
     expect(agentInput(alpha)).toContain("Answer from these search results when they are relevant");
     expect(agentInput(alpha)).not.toContain("passages");
     expect(result.cost.byCategory.retrieval).toBeCloseTo(0.0002);
-    expect(result.answer).toContain("[oncall.md]");
+    expect(result.replyWith).toContain("[oncall.md]");
   });
 
   it("AC2: a retrieval failure never fails the turn (fail-open)", async () => {

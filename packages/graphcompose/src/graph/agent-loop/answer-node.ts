@@ -3,7 +3,7 @@ import type { AgentLoopDeps } from "./deps.js";
 import { JudgeOwner, JudgePoint, visitAgentAnswer, mergePolicies } from "./judge-points.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
 
-/** A move without tool calls is the agent's answer: `beforeAgentAnswer`, then it leaves the loop. */
+/** A move without tool calls is the agent's replyWith: `beforeAgentAnswer`, then it leaves the loop. */
 export function makeAnswerNode(
   deps: AgentLoopDeps,
 ): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
@@ -12,7 +12,7 @@ export function makeAnswerNode(
     const combinedGuardrails = mergePolicies(deps.workflowGuardrails, deps.guardrails);
     const ctx = {
       agent,
-      answer:
+      replyWith:
         typeof state.move?.content === "string" ? state.move.content : (state.move?.text ?? ""),
       runId: config?.configurable?.run_id ?? state.runId,
       metadata: config?.configurable?.metadata ?? {},

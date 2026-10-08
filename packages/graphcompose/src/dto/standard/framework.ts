@@ -29,10 +29,10 @@ export class WorkflowPauseQuestion {
   options?: string[];
 }
 
-/** The answer to a workflow pause's question. */
+/** The replyWith to a workflow pause's question. */
 export class WorkflowPauseAnswer {
-  @Text({ prompt: "the answer" })
-  answer!: string;
+  @Text({ prompt: "the replyWith" })
+  replyWith!: string;
 }
 
 /** Any JSON object: the arguments of some tool (internal — not a concept of its own). */

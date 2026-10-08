@@ -15,7 +15,7 @@ export interface ToolContext {
   readonly reportCost: (usd: number) => void;
   /**
    * Pauses the run to wait for external input. The run stops here; when `app.resume` is called
-   * with the answer, the tool runs again from the start, and `pause` instantly returns the answer.
+   * with the replyWith, the tool runs again from the start, and `pause` instantly returns the replyWith.
    * **Do not put side effects before `pause`** — they will run twice!
    */
   readonly pause: (ask: unknown) => unknown;

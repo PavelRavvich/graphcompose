@@ -45,7 +45,7 @@ export class PullRequest {}
   maxVisits: 3,
   routes: [
     { prompt: "The review asks for changes", target: Coder },
-    { prompt: "Stop and send the answer: the review is clean", target: PullRequest },
+    { prompt: "Stop and send the replyWith: the review is clean", target: PullRequest },
   ],
 })
 export class ReviewGate {}

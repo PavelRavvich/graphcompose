@@ -18,7 +18,7 @@ const conversation = {
   messages: [
     { role: "system", content: "rules" },
     { role: "user", content: "first" },
-    { role: "assistant", content: "earlier answer" },
+    { role: "assistant", content: "earlier replyWith" },
     { role: "user", content: "second" },
   ],
 };
@@ -60,7 +60,7 @@ describe("AC6: prompt caching — whereSupported({ retention, cachedParts, key? 
       { role: "user", content: "first" },
       {
         role: "assistant",
-        content: [{ type: "text", text: "earlier answer", cache_control: { type: "ephemeral" } }],
+        content: [{ type: "text", text: "earlier replyWith", cache_control: { type: "ephemeral" } }],
       },
       { role: "user", content: "second" },
     ]);

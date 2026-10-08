@@ -262,7 +262,7 @@ export interface PiiPolicy {
 export interface GuardrailContext {
   agent: string;
   call?: any;
-  answer?: string;
+  replyWith?: string;
   runId?: string;
   metadata?: Record<string, any>;
 }

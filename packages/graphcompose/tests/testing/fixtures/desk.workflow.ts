@@ -192,7 +192,7 @@ export class Reply {}
   routes: [
     { prompt: "Orders and notes", target: Support },
     { prompt: "Writing replies", target: Writer },
-    { prompt: "Stop and send the answer: the contributions answer the message", target: Reply },
+    { prompt: "Stop and send the replyWith: the contributions replyWith the message", target: Reply },
   ],
 })
 export class MainRouter {}

@@ -12,7 +12,7 @@ import { createModelRegistry } from "../src/llm/registry.js";
 import { defineTool } from "../src/tools/index.js";
 import { ScriptedChatModel, type Reply } from "./fakes/scripted-model.js";
 import {
-  decide,
+  routeTo,
   fakeDeps,
   memoryLedger,
   testConfig,
@@ -44,7 +44,7 @@ function setup(alphaReplies: readonly Reply[], withSeam = true) {
     ...testConfig,
     agents: { ...testConfig.agents, alpha: { ...testConfig.agents.alpha, tools: ["send_email"] } },
   };
-  const base = fakeDeps({ "test/router": [decide("alpha"), decide("answer", "done")] }, ledger);
+  const base = fakeDeps({ "test/router": [routeTo("alpha"), routeTo("replyWith", "done")] }, ledger);
   const deps: RunDeps<TestAgent> = {
     ...base,
     config,
@@ -92,7 +92,7 @@ describe("pause seam", () => {
 
     expect(done).toMatchObject({
       status: "answered",
-      answer: "Sent it to your boss.",
+      replyWith: "Sent it to your boss.",
       runId: paused.runId,
       ternId: paused.ternId,
     });
@@ -110,7 +110,7 @@ describe("pause seam", () => {
       deps,
     );
 
-    expect(done.answer).toBe("Understood, not sending.");
+    expect(done.replyWith).toBe("Understood, not sending.");
     expect(sent).toEqual([]);
     expect(alpha.sent[1]?.at(-1)?.text).toBe(
       "Tool error: the call was rejected by tester: not now",
@@ -123,7 +123,7 @@ describe("pause seam", () => {
 
     const done = await resumeAgent(paused, { approved: true, by: "tester" }, deps);
 
-    expect(done).toMatchObject({ status: "answered", answer: "Sent." });
+    expect(done).toMatchObject({ status: "answered", replyWith: "Sent." });
     expect(sent).toEqual(["boss@example.com"]);
     expect(alpha.sent).toHaveLength(2);
     expect(alpha.sent[1]?.at(-1)?.text).toBe("sent to boss@example.com");
@@ -176,7 +176,7 @@ describe("pause seam", () => {
 });
 
 describe("terminal approval (CLI and chat)", () => {
-  it("asks about the pending call and continues with the answer", async () => {
+  it("asks about the pending call and continues with the replyWith", async () => {
     const { deps, sent } = setup([callSend, "Sent."]);
     const ask = vi.fn(() => Promise.resolve("y"));
 
@@ -195,7 +195,7 @@ describe("terminal approval (CLI and chat)", () => {
 
       const done = await inTerminal(deps, () => Promise.resolve(reply));
 
-      expect(done.answer).toBe("Ok, not sent.");
+      expect(done.replyWith).toBe("Ok, not sent.");
       expect(sent).toEqual([]);
     }
   });

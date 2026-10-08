@@ -35,7 +35,7 @@ export interface DecideRequest {
  */
 export interface ModelProviderHandler {
   chat?(request: ChatRequest): BaseChatModel;
-  decide?(request: DecideRequest): Promise<unknown>;
+  routeTo?(request: DecideRequest): Promise<unknown>;
   /** `undefined` = the provider does not serve this model (`model.unknown-model`). */
   capabilities(
     model: string,

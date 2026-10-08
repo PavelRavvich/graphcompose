@@ -1,5 +1,5 @@
 import { describe, expect } from "vitest";
-import { answer, decide, testWith, type ModelScript } from "../../src/testing/index.js";
+import { replyWith, routeTo, testWith, type ModelScript } from "../../src/testing/index.js";
 import { usd } from "../../src/units/index.js";
 import {
   ChatStart,
@@ -15,9 +15,9 @@ import {
 const test = testWith(Desk);
 
 /** One turn: the router sends the message to the writer, the writer answers, the reply is sent. */
-const scriptTurn = (modelOf: (node: typeof MainRouter) => ModelScript, text: string): void => {
-  modelOf(MainRouter).respond(decide(Writer), decide(Reply));
-  modelOf(Writer).respond(answer(text));
+const scriptTurn = (mockLlm: (node: typeof MainRouter) => ModelScript, text: string): void => {
+  mockLlm(MainRouter).thenReturn(routeTo(Writer), routeTo(Reply));
+  mockLlm(Writer).thenReturn(replyWith(text));
 };
 
 describe("AC12: lifecycle is the test context's job", () => {
@@ -46,31 +46,31 @@ describe("AC12: lifecycle is the test context's job", () => {
 describe("AC12: isolation per test", () => {
   test.concurrent(
     "two tests with the same thread id do not see each other (a)",
-    async ({ app, modelOf }) => {
-      scriptTurn(modelOf, "A1");
-      scriptTurn(modelOf, "A2");
+    async ({ app, mockLlm }) => {
+      scriptTurn(mockLlm, "A1");
+      scriptTurn(mockLlm, "A2");
 
       const first = await app.execute(ChatStart, { text: "I am A" });
       await app.execute(ChatStart, { text: "and again" }, { thread: first.thread });
 
       expect(first.thread).toBe("thread-1");
-      expect(modelOf(MainRouter).lastRequest.input).toContain("I am A");
-      expect(modelOf(MainRouter).lastRequest.input).not.toContain("I am B");
+      expect(mockLlm(MainRouter).lastRequest.input).toContain("I am A");
+      expect(mockLlm(MainRouter).lastRequest.input).not.toContain("I am B");
     },
   );
 
   test.concurrent(
     "two tests with the same thread id do not see each other (b)",
-    async ({ app, modelOf }) => {
-      scriptTurn(modelOf, "B1");
-      scriptTurn(modelOf, "B2");
+    async ({ app, mockLlm }) => {
+      scriptTurn(mockLlm, "B1");
+      scriptTurn(mockLlm, "B2");
 
       const first = await app.execute(ChatStart, { text: "I am B" });
       await app.execute(ChatStart, { text: "and again" }, { thread: first.thread });
 
       expect(first.thread).toBe("thread-1");
-      expect(modelOf(MainRouter).lastRequest.input).toContain("I am B");
-      expect(modelOf(MainRouter).lastRequest.input).not.toContain("I am A");
+      expect(mockLlm(MainRouter).lastRequest.input).toContain("I am B");
+      expect(mockLlm(MainRouter).lastRequest.input).not.toContain("I am A");
     },
   );
 });
@@ -78,13 +78,13 @@ describe("AC12: isolation per test", () => {
 describe("AC12: a controllable clock — the per-day limit resets after midnight UTC", () => {
   test('app.clock.advance("25h") starts a new day for limits.perDay.cost', async ({
     app,
-    modelOf,
+    mockLlm,
   }) => {
     // the second run stops before the router's second visit: 0.03 + 0.03 ≥ the day's 0.05
-    modelOf(MainRouter).respond(decide(Writer), decide(Reply), decide(Writer), decide(Writer));
-    modelOf(MainRouter).respond(decide(Reply));
+    mockLlm(MainRouter).thenReturn(routeTo(Writer), routeTo(Reply), routeTo(Writer), routeTo(Writer));
+    mockLlm(MainRouter).thenReturn(routeTo(Reply));
     const cost = { cost: usd(0.03) };
-    modelOf(Writer).respond(answer("one", cost), answer("two", cost), answer("three", cost));
+    mockLlm(Writer).thenReturn(replyWith("one", cost), replyWith("two", cost), replyWith("three", cost));
 
     await app.execute(ChatStart, { text: "1" });
     const overDay = app.execute(ChatStart, { text: "2" });

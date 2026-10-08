@@ -53,7 +53,7 @@ describe("Nested Workflows (Subgraphs)", () => {
       expect(path).toContain("child_workflow");
       
       // Payload should merge
-      expect(res.answer.payload).toMatchObject({
+      expect(res.replyWith.payload).toMatchObject({
         inParent: true,
         insideSubgraph: true
       });

@@ -147,7 +147,7 @@ export const McpServerConfigSchema = z.discriminatedUnion("transport", [
 /** A guard: a two-option decision (flag / pass) with a threshold on P(flag). Texts: src/prompts/guards.ts. */
 export const GuardSettingsSchema = z.object({
   threshold: z.number().min(0).max(1),
-  /** Returned as the answer when the guard trips. */
+  /** Returned as the replyWith when the guard trips. */
   refusal: z.string().min(1),
   /** Omit to use defaults.router (Jev). */
   model: RouterModelSchema.optional(),

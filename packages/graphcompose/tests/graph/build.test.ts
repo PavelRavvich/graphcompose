@@ -29,14 +29,14 @@ class Spin {}
 
 @Router({
   name: "star",
-  description: "Sends the message to an agent, or sends the answer",
+  description: "Sends the message to an agent, or sends the replyWith",
   prompt: "Pick who handles the message.",
   model: "typesafe/jev-1.13",
   maxVisits: 3,
   routes: [
     { prompt: "A work", target: A },
     { prompt: "B work", target: B },
-    { prompt: "The answer covers it", target: Done },
+    { prompt: "The replyWith covers it", target: Done },
   ],
 })
 class Star {}
@@ -71,7 +71,7 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
       "review-gate",
       "pull-request",
     ]);
-    expect(state.answer).toBe("reviewer answered");
+    expect(state.replyWith).toBe("reviewer answered");
     expect(state.steps).toBe(7);
     expect(state.visits).toMatchObject({
       coder: 2,
@@ -81,14 +81,14 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
     });
   });
 
-  it("runs a star: the router sends to agents and back until it sends the answer", async () => {
+  it("runs a star: the router sends to agents and back until it sends the replyWith", async () => {
     const star = scriptedRouter("star", ["a", "b", "done"]);
     const { graph } = await assembleFlowGraph(starFlow, testRuntime({ star }));
 
     const state = await graph.invoke({ task: "find jobs" });
 
     expect(state.path).toEqual(["workflow-start.start", "star", "a", "star", "b", "star", "done"]);
-    expect(state.answer).toBe("b answered");
+    expect(state.replyWith).toBe("b answered");
     expect(
       star.requests.map((request) => extractText(request.input).includes("[a]\na answered")),
     ).toEqual([false, true, true]);
@@ -108,7 +108,7 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
       "router.review-gate",
       "skip-wrap",
 
-      "workflow-finish.answer",
+      "workflow-finish.replyWith",
       "workflow-finish.pull-request",
       "workflow-start.chat",
     ]);

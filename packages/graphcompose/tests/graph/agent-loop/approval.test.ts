@@ -1,7 +1,7 @@
 import { MemorySaver } from "@langchain/langgraph";
 import { describe, expect, it } from "vitest";
 import {
-  answer,
+  replyWith,
   callTools,
   decision,
   harness,
@@ -18,7 +18,7 @@ const approve = decision({ approved: true, by: "lead" });
 describe("AC6: approval at the move boundary — one call per pause", () => {
   it("pauses before a write with the pending call; a fresh graph resumes it, the tool runs once, the turn is not asked again", async () => {
     const checkpointer = new MemorySaver();
-    const moves = [callTools(write("w1", "a.ts")), answer("written")];
+    const moves = [callTools(write("w1", "a.ts")), replyWith("written")];
     const before = harness({ moves }, checkpointer);
 
     const paused = await runLoop(before.graph, startInput(), "t");
@@ -44,7 +44,7 @@ describe("AC6: approval at the move boundary — one call per pause", () => {
 
   it("two calls needing approval in one turn: two pauses in call order, each write once", async () => {
     const h = harness({
-      moves: [callTools(write("w1", "a.ts"), write("w2", "b.ts")), answer("both")],
+      moves: [callTools(write("w1", "a.ts"), write("w2", "b.ts")), replyWith("both")],
     });
 
     const first = await runLoop(h.graph, startInput(), "t");
@@ -58,7 +58,7 @@ describe("AC6: approval at the move boundary — one call per pause", () => {
   });
 
   it("a rejected call does not run; the model reads who rejected it and why, and the loop goes on", async () => {
-    const h = harness({ moves: [callTools(write("w1", "a.ts")), answer("not written")] });
+    const h = harness({ moves: [callTools(write("w1", "a.ts")), replyWith("not written")] });
     await runLoop(h.graph, startInput(), "t");
 
     const done = await runLoop(
@@ -86,7 +86,7 @@ describe("AC6: approval at the move boundary — one call per pause", () => {
 
   it("after a reject the next pause asks about the next call; an approved one records the tool's result", async () => {
     const h = harness({
-      moves: [callTools(write("w1", "a.ts"), write("w2", "b.ts")), answer("one of two")],
+      moves: [callTools(write("w1", "a.ts"), write("w2", "b.ts")), replyWith("one of two")],
     });
     await runLoop(h.graph, startInput(), "t");
     await runLoop(h.graph, decision({ approved: false, by: "lead" }), "t");
@@ -107,10 +107,10 @@ describe("AC6: approval at the move boundary — one call per pause", () => {
 
   it("a read in the same turn runs once, after the decision; without a pause seam nothing waits", async () => {
     const seam = harness({
-      moves: [callTools(read("r1", "a.ts"), write("w1", "a.ts")), answer("ok")],
+      moves: [callTools(read("r1", "a.ts"), write("w1", "a.ts")), replyWith("ok")],
     });
     const open = harness({
-      moves: [callTools(read("r1", "a.ts"), write("w1", "a.ts")), answer("ok")],
+      moves: [callTools(read("r1", "a.ts"), write("w1", "a.ts")), replyWith("ok")],
       approval: false,
     });
 

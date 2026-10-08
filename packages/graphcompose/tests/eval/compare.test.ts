@@ -10,7 +10,7 @@ import type { EvalDeps } from "../../src/eval/eval.js";
 import type { SpendLedger } from "../../src/finops/ledger.js";
 import type { UsageRecord } from "../../src/finops/usage.js";
 import type { RouteOutcome, Router } from "../../src/routers/index.js";
-import { decide, fakeDeps, usageRecord } from "../helpers.js";
+import { routeTo, fakeDeps, usageRecord } from "../helpers.js";
 
 /** A ledger that remembers which account each record went to. */
 function keyedLedger(spentToday = 0): SpendLedger & { readonly keys: string[] } {
@@ -42,7 +42,7 @@ function profileRun(name: string, spentToday = 0) {
   const ledger = keyedLedger(spentToday);
   const deps = {
     ...fakeDeps({
-      "test/router": Array.from({ length: 4 }, () => [decide("alpha"), decide("answer")]).flat(),
+      "test/router": Array.from({ length: 4 }, () => [routeTo("alpha"), routeTo("replyWith")]).flat(),
       "test/alpha": ["x", "y"],
     }),
     ledger,

@@ -23,7 +23,7 @@ const breaker = () =>
   new CircuitBreaker({ failureThreshold: 10, window: minutes(1), openFor: seconds(1) });
 
 describe("model calls: the provider's timeout and retries (#95, now on the provider #151)", () => {
-  it("AC1: a request that gets no answer fails within the provider's timeout instead of hanging", async () => {
+  it("AC1: a request that gets no replyWith fails within the provider's timeout instead of hanging", async () => {
     const send = resilientFetch(
       {
         provider: "p",
@@ -77,7 +77,7 @@ describe("model calls: the provider's timeout and retries (#95, now on the provi
 });
 
 describe("Jev calls: the standard fetch abort signal (#95)", () => {
-  it("AC4: a decision that gets no answer fails in time (the router then falls back as for any failure)", async () => {
+  it("AC4: a decision that gets no replyWith fails in time (the router then falls back as for any failure)", async () => {
     const jev = createJevClient(
       { apiKey: "k", baseUrl: "https://example.test/api/v1" },
       neverAnswers,

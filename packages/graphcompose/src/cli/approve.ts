@@ -37,7 +37,7 @@ export async function untilDone(
   return result;
 }
 
-/** First line under an answer: which conversation, and its trace when tracing is on. */
+/** First line under an replyWith: which conversation, and its trace when tracing is on. */
 export function threadLine(result: Pick<ExecutionOutput, "thread" | "traceUrl">): string {
   return result.traceUrl === undefined
     ? `thread ${result.thread}`
@@ -51,7 +51,7 @@ export function memoryLine(result: Pick<ExecutionOutput, "compacted">): string |
   return `memory: turns ${String(c.fromTurn)}–${String(c.toTurn)} → summary ${String(c.summaries)}/${String(c.keep)}`;
 }
 
-/** One line under an answer: route and why the run stopped. */
+/** One line under an replyWith: route and why the run stopped. */
 export function summaryLine(result: Pick<ExecutionOutput, "route" | "stopReason">): string {
   const route = result.route.length > 0 ? result.route.join(" → ") : "(none)";
   return `${route} · stop: ${result.stopReason}`;

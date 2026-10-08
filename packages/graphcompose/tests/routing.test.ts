@@ -3,7 +3,7 @@ import { formatContributions, renderRouteInput } from "../src/graph/contribution
 import { lastAnswer, NO_ANSWER } from "../src/graph/nodes/finalize.js";
 import { baseState } from "./helpers.js";
 
-describe("lastAnswer (a workflow finish's answer)", () => {
+describe("lastAnswer (a workflow finish's replyWith)", () => {
   it("answers with the latest contribution", () => {
     const state = baseState({
       contributions: [

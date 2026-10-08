@@ -30,7 +30,7 @@ export function jevDecisionsUrl(baseUrl: string): string {
 }
 
 /** OpenRouter Decisions API (alpha): POST {base}/alpha/decisions. */
-/** A Jev decision that gets no answer in time is a router failure (routing falls back as usual). */
+/** A Jev decision that gets no replyWith in time is a router failure (routing falls back as usual). */
 export const JEV_TIMEOUT_MS = 30_000;
 
 export function createJevClient(

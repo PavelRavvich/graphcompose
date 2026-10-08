@@ -4,7 +4,7 @@ import { ModelCostError, recordUsage } from "../../src/finops/usage.js";
 import { ModelCost } from "../../src/models/index.js";
 import { costLabel, priceOf } from "../../src/models/cost.js";
 import { directoryOf, withProviderPrices } from "../../src/models/workflow-models.js";
-import { answer, testWith } from "../../src/testing/index.js";
+import { replyWith, testWith } from "../../src/testing/index.js";
 import { usd } from "../../src/units/index.js";
 import { Priced, Summariser, TaskStart, Writer } from "./fixtures/priced.workflow.js";
 
@@ -12,7 +12,7 @@ const test = testWith(Priced);
 const tokens = { usage_metadata: { input_tokens: 1_000_000, output_tokens: 1_000_000 } };
 
 describe("AC6: cost — from the provider's response, a price table as the fallback", () => {
-  it("AC6: the cost the provider reports in its answer is the call's cost (api)", () => {
+  it("AC6: the cost the provider reports in its replyWith is the call's cost (api)", () => {
     const record = recordUsage(
       "writer",
       { model: "moonshotai/kimi-k2.6" },
@@ -62,13 +62,13 @@ describe("AC6: cost — from the provider's response, a price table as the fallb
 describe("AC6: limits per run use the providers' cost", () => {
   test("a run's spend counts both sources, and crossing limits.perRun.cost fails the run", async ({
     app,
-    modelOf,
+    mockLlm,
   }) => {
-    modelOf(Summariser).respond(
-      answer("short", { cost: usd(0.01) }),
-      answer("long", { cost: usd(0.06) }),
+    mockLlm(Summariser).thenReturn(
+      replyWith("short", { cost: usd(0.01) }),
+      replyWith("long", { cost: usd(0.06) }),
     );
-    modelOf(Writer).respond(answer("done", { cost: usd(0.02) }));
+    mockLlm(Writer).thenReturn(replyWith("done", { cost: usd(0.02) }));
 
     const result = await app.execute(TaskStart, { text: "go" });
     expect(result.spend.totalUsd).toBeCloseTo(0.03, 6);

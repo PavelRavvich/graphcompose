@@ -26,7 +26,7 @@ const examples: readonly (readonly [DtoClass, object])[] = [
   [WorkflowStartText, { text: "find TypeScript jobs", author: "pavel" }],
   [WorkflowFinishText, { text: "Done." }],
   [WorkflowPauseQuestion, { question: "Which city?", options: ["Tel Aviv", "Haifa"] }],
-  [WorkflowPauseAnswer, { answer: "Haifa" }],
+  [WorkflowPauseAnswer, { replyWith: "Haifa" }],
   [
     ToolCallApprovalAsk,
     {

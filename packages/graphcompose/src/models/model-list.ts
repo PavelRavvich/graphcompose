@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { ProviderConnection } from "./handler.js";
 
-/** One model in an OpenAI-compatible `GET /models` answer; OpenRouter adds what each model supports. */
+/** One model in an OpenAI-compatible `GET /models` replyWith; OpenRouter adds what each model supports. */
 const ModelEntrySchema = z.looseObject({
   id: z.string(),
   supported_parameters: z.array(z.string()).optional(),

@@ -14,7 +14,7 @@ export class CoderAgent {}
 @testNode("agent", "reviewer")
 export class ReviewerAgent {}
 
-@testNode("workflow-finish", "answer")
+@testNode("workflow-finish", "replyWith")
 export class AnswerWorkflowFinish {}
 
 @testNode("workflow-finish", "pull-request")

@@ -37,7 +37,7 @@ import { completion, providerStub } from "./stub.js";
 @WorkflowStart({ name: "task", description: "A task", input: WorkflowStartText })
 class Start {}
 
-@WorkflowFinish({ name: "answer", description: "The answer", output: WorkflowFinishText })
+@WorkflowFinish({ name: "replyWith", description: "The replyWith", output: WorkflowFinishText })
 class Finish {}
 
 const settings: ResolvedModelSettings = {
@@ -121,7 +121,7 @@ describe("AC6: the wire form, made in one place (toWireRequest)", () => {
       send: stub.fetch,
     });
 
-    await new JevModelProvider().decide({
+    await new JevModelProvider().routeTo({
       decision: {
         model: "typesafe/jev-1.13",
         state: "x",

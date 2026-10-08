@@ -27,7 +27,7 @@ export function formatContributions(contributions: readonly Contribution[]): Mes
 /** One previous Tern of the thread as the agents see it. */
 export interface HistoryTurn {
   readonly task: string;
-  readonly answer: string;
+  readonly replyWith: string;
   readonly status: string;
 }
 
@@ -36,8 +36,8 @@ export function formatHistory(history: readonly HistoryTurn[], limit: number): s
   const turns = limit > 0 ? history.slice(-limit) : [];
   if (turns.length === 0) return "";
   const lines = turns.map((turn) => {
-    const answer = turn.status === "answered" ? turn.answer : `(${turn.status}) ${turn.answer}`;
-    return `Q: ${turn.task}\nA: ${answer}`;
+    const replyWith = turn.status === "answered" ? turn.replyWith : `(${turn.status}) ${turn.replyWith}`;
+    return `Q: ${turn.task}\nA: ${replyWith}`;
   });
   return `Previous turns:\n${lines.join("\n\n")}\n\n`;
 }

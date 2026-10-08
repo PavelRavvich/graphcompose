@@ -34,19 +34,19 @@ class UnknownAgentError extends Error {
   }
 }
 
-/** A workflow finish: the answer is the last contribution, checked by the output guards. */
+/** A workflow finish: the replyWith is the last contribution, checked by the output guards. */
 function finishRunner<TName extends string>(deps: GraphDeps<TName>, name: string): FlowNodeRunner {
   const outputGuards = makeGuardNode(deps.guards.output, "output");
   return async (state, config) => {
-    const answer = lastAnswer(state);
-    const guarded = await outputGuards({ ...state, answer }, config);
+    const replyWith = lastAnswer(state);
+    const guarded = await outputGuards({ ...state, replyWith }, config);
     const finishOutput: MultimodalFinishOutput = {
       kind: "multimodal",
       blocks: Array.isArray(state.contributions.at(-1)?.content)
         ? (state.contributions.at(-1)?.content as any)
         : [],
     };
-    return { answer, finishes: { [name]: finishOutput }, ...guarded };
+    return { replyWith, finishes: { [name]: finishOutput }, ...guarded };
   };
 }
 
@@ -82,7 +82,7 @@ function agentLoops<TName extends string>(
 /**
  * The runners of the nodes in the flow: a workflow start runs the input guards, an agent runs its
  * own loop (a subgraph: model turns, the move boundary, approval, tool calls), a workflow finish
- * takes the last answer and runs the output guards. Routers are the engine's own.
+ * takes the last replyWith and runs the output guards. Routers are the engine's own.
  */
 import type { RunLimits } from "./flow-runtime.js";
 export function flowRunners<TName extends string>(

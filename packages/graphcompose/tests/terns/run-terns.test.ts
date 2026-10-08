@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { runAgent } from "../../src/index.js";
-import { decide, fakeDeps, memoryLedger } from "../helpers.js";
+import { routeTo, fakeDeps, memoryLedger } from "../helpers.js";
 
 describe("runAgent writes Terns", () => {
   it("records an answered run with route, steps, cost and versions", async () => {
     const deps = fakeDeps({
-      "test/router": [decide("alpha"), decide("answer", "done")],
+      "test/router": [routeTo("alpha"), routeTo("replyWith", "done")],
       "test/alpha": ["42"],
     });
 
@@ -15,7 +15,7 @@ describe("runAgent writes Terns", () => {
     expect(tern).toMatchObject({
       threadId: result.threadId,
       task: "Answer",
-      answer: "42",
+      replyWith: "42",
       status: "answered",
       stopReason: "done",
       route: ["alpha"],

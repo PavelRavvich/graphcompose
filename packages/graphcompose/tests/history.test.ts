@@ -5,7 +5,7 @@ import { runAgent, UnknownThreadError, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
 import { ScriptedChatModel } from "./fakes/scripted-model.js";
 import {
-  decide,
+  routeTo,
   fakeDeps,
   recordingRouters,
   testConfig,
@@ -13,12 +13,12 @@ import {
   fakeGateway,
 } from "./helpers.js";
 
-/** Router: alpha then the answer, for `runs` runs; alpha answers from `answers`. */
+/** Router: alpha then the replyWith, for `runs` runs; alpha answers from `answers`. */
 function setup(
   answers: string[],
   historyLimits: { readonly defaults: number; readonly alpha?: number },
 ) {
-  const routes = answers.flatMap(() => [decide("alpha"), decide("answer", "done")]);
+  const routes = answers.flatMap(() => [routeTo("alpha"), routeTo("replyWith", "done")]);
   const base = fakeDeps({ "test/router": routes });
   const alpha = new ScriptedChatModel(answers);
   const config = {
@@ -93,7 +93,7 @@ describe("threads and history", () => {
   });
 
   it("keeps threads apart", async () => {
-    const { deps, alpha } = setup(["secret answer", "other"], { defaults: 5 });
+    const { deps, alpha } = setup(["secret replyWith", "other"], { defaults: 5 });
     await runAgent({ task: "secret question" }, deps);
 
     await runAgent({ task: "Other thread" }, deps);
@@ -104,9 +104,9 @@ describe("threads and history", () => {
 
 describe("formatHistory", () => {
   it("is empty for limit 0 or no turns, and marks non-answered turns", () => {
-    expect(formatHistory([{ task: "q", answer: "a", status: "answered" }], 0)).toBe("");
+    expect(formatHistory([{ task: "q", replyWith: "a", status: "answered" }], 0)).toBe("");
     expect(formatHistory([], 3)).toBe("");
-    expect(formatHistory([{ task: "q", answer: "", status: "failed" }], 3)).toContain(
+    expect(formatHistory([{ task: "q", replyWith: "", status: "failed" }], 3)).toContain(
       "A: (failed) ",
     );
   });

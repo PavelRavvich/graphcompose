@@ -51,7 +51,7 @@ export function runResultOf(run: AgentExecutionOutput, nodes: FlowNodesByKey): E
   return {
     thread: run.threadId,
     status: run.status,
-    answer: run.answer,
+    replyWith: run.replyWith,
     route: run.route,
     stopReason: run.stopReason,
     path: run.path.flatMap((key) => {
@@ -59,7 +59,7 @@ export function runResultOf(run: AgentExecutionOutput, nodes: FlowNodesByKey): E
       return node === undefined ? [] : [node];
     }),
     spend: run.cost,
-    ...(run.finish === undefined ? {} : { finish: run.finish, output: { text: run.answer } }),
+    ...(run.finish === undefined ? {} : { finish: run.finish, output: { text: run.replyWith } }),
     ...(run.finishes && Object.keys(run.finishes).length > 0 ? { finishes: run.finishes } : {}),
     ...(run.pending === undefined ? {} : { pause: run.pending }),
     ...(run.compacted === undefined ? {} : { compacted: run.compacted }),

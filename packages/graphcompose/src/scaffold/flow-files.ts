@@ -13,7 +13,7 @@ export interface RouteSpec {
 export const FINISH_ROUTE: RouteSpec = {
   target: "TextWorkflowFinish",
   from: "../workflow-finishes/text.workflow-finish.js",
-  text: "Stop and send the answer: the contributions so far answer the message, or the last agent asked a question and waits for the reply, or it cannot be done",
+  text: "Stop and send the replyWith: the contributions so far replyWith the message, or the last agent asked a question and waits for the reply, or it cannot be done",
 };
 
 const quoted = (text: string): string => text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
@@ -74,8 +74,8 @@ export function routerFile(
 
 /** What the main router of a generated workflow says; the star around it is a cycle. */
 export const MAIN_ROUTER: RouterFileSpec = {
-  description: "Sends the message to the right agent, or sends the answer",
+  description: "Sends the message to the right agent, or sends the replyWith",
   prompt:
-    "Pick who handles the message next. Send the answer when the contributions so far already cover the message.",
+    "Pick who handles the message next. Send the replyWith when the contributions so far already cover the message.",
   maxVisits: 3,
 };

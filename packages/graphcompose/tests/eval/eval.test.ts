@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { evaluate, scoreOf, type EvalDeps } from "../../src/eval/eval.js";
 import { runAgent } from "../../src/index.js";
 import type { RouteOutcome, Router } from "../../src/routers/index.js";
-import { decide, fakeDeps, memoryLedger, usageRecord } from "../helpers.js";
+import { routeTo, fakeDeps, memoryLedger, usageRecord } from "../helpers.js";
 
 const judge = (...outcomes: RouteOutcome[]): Router => {
   const route = vi.fn<Router["route"]>();
@@ -19,8 +19,8 @@ const adequate = (confidence?: number): RouteOutcome => ({
 async function answeredRuns(count: number) {
   const script: Record<string, string[]> = { "test/router": [], "test/alpha": [] };
   for (let i = 0; i < count; i += 1) {
-    script["test/router"]?.push(decide("alpha"), decide("answer", "done"));
-    script["test/alpha"]?.push(`answer ${String(i)}`);
+    script["test/router"]?.push(routeTo("alpha"), routeTo("replyWith", "done"));
+    script["test/alpha"]?.push(`replyWith ${String(i)}`);
   }
   const deps = fakeDeps(script);
   for (let i = 0; i < count; i += 1) await runAgent({ task: `task ${String(i)}` }, deps);

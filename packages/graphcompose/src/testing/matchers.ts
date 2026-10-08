@@ -52,7 +52,7 @@ const wrongReceived = (matcher: string, wanted: string): Verdict => ({
   message: () => `${matcher}: expected ${wanted}`,
 });
 const RUN = "a run result (app.execute / app.resume)";
-const SCRIPT = "modelOf(…) of an agent or a router";
+const SCRIPT = "mockLlm(…) of an agent or a router";
 
 const pathText = (path: readonly FlowNode[]): string => path.map(labelOf).join(" → ") || "(none)";
 
@@ -76,7 +76,7 @@ function hasParts(
   });
 }
 
-/** Matchers on run results, errors and `modelOf(…)` — all by class. Registered by the setup file. */
+/** Matchers on run results, errors and `mockLlm(…)` — all by class. Registered by the setup file. */
 export const workflowMatchers = {
   toFollowPath(this: MatcherContext, received: unknown, path: readonly FlowNode[]): Verdict {
     if (!isExecutionOutput(received)) return wrongReceived("toFollowPath", RUN);

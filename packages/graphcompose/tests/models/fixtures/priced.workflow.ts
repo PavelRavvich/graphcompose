@@ -23,11 +23,11 @@ import { LocalModelProvider, TestOpenRouterProvider } from "../providers.fixture
 })
 export class Summariser {}
 
-/** Priced by its provider's answer (OpenRouter's usage.cost). */
+/** Priced by its provider's replyWith (OpenRouter's usage.cost). */
 @Agent({
   name: "writer",
   promptUrls: ["./writer.prompt.md"],
-  description: "Writes the answer",
+  description: "Writes the replyWith",
   model: "moonshotai/kimi-k2.6",
   thinking: "none",
 })
@@ -36,7 +36,7 @@ export class Writer {}
 @WorkflowStart({ name: "task", description: "A task", input: WorkflowStartText })
 export class TaskStart {}
 
-@WorkflowFinish({ name: "answer", description: "The answer", output: WorkflowFinishText })
+@WorkflowFinish({ name: "replyWith", description: "The replyWith", output: WorkflowFinishText })
 export class Answer {}
 
 /** A straight line over two providers: a local server with a price table, and OpenRouter. */

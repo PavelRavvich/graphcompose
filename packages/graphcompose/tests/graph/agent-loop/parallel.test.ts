@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  answer,
+  replyWith,
   callTools,
   harness,
   read,
@@ -14,7 +14,7 @@ import {
 describe("AC3: parallel calls in one turn run concurrently; results keep the call order", () => {
   it("finishes in completion order but hands the results to the model in call order", async () => {
     const h = harness({
-      moves: [callTools(wait("slow", 60), wait("fast", 1), wait("mid", 30)), answer("ok")],
+      moves: [callTools(wait("slow", 60), wait("fast", 1), wait("mid", 30)), replyWith("ok")],
     });
 
     await runLoop(h.graph, startInput(), "t");
@@ -33,7 +33,7 @@ describe("AC3: parallel calls in one turn run concurrently; results keep the cal
   });
 
   it("the same tool asked twice in one turn runs twice, each result under its own callId", async () => {
-    const h = harness({ moves: [callTools(read("a", "x.ts"), read("b", "x.ts")), answer("ok")] });
+    const h = harness({ moves: [callTools(read("a", "x.ts"), read("b", "x.ts")), replyWith("ok")] });
 
     await runLoop(h.graph, startInput(), "t");
 

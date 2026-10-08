@@ -65,7 +65,7 @@ export interface ExecutionOptions {
  */
 export interface ExecutionOutput extends Pick<
   AgentExecutionOutput,
-  "status" | "answer" | "route" | "stopReason" | "compacted" | "traceUrl"
+  "status" | "replyWith" | "route" | "stopReason" | "compacted" | "traceUrl"
 > {
   readonly thread: string;
   /** The name of the workflow finish the run reached. */
