@@ -1,7 +1,8 @@
 import type { z } from "zod";
 
 /** What a tool may know about the run it serves. */
-export interface ToolContext {
+export interface ToolContext<TExec = unknown> {
+  readonly executionContext?: TExec;
   readonly runId: string;
   readonly workflow: string;
   readonly agent: string;

@@ -36,6 +36,7 @@ export function makeApprovalNode(
       tool,
       state.runId,
       metadata,
+      config?.configurable?.executionContext,
     );
     let feedback = decision.feedback;
     let overrideArgs = decision.overrideArguments;

@@ -75,7 +75,7 @@ export function streamConfig<TName extends string>(
     callbacks.push(new StreamingCallbackHandler(options.onStream));
   }
   return {
-    ...runConfig(context.runId),
+    ...runConfig(context.runId, options?.executionContext),
     streamMode: "values",
     durability: "sync",
     runName: deps.config.name,

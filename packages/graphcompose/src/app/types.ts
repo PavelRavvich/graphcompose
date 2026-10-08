@@ -57,6 +57,7 @@ export interface ExecutionOptions {
   readonly thread?: string;
   readonly signal?: AbortSignal | undefined;
   readonly onStream?: (event: RunStreamEvent) => void;
+  readonly executionContext?: unknown;
 }
 
 /**
@@ -101,7 +102,7 @@ export interface App {
   resume(
     thread: string,
     decision: unknown,
-    options?: Pick<ExecutionOptions, "signal">,
+    options?: Pick<ExecutionOptions, "signal" | "executionContext">,
   ): Promise<ExecutionOutput>;
   close(): Promise<void>;
 }

@@ -39,6 +39,7 @@ export interface RunOptions {
   readonly signal?: AbortSignal | undefined;
   /** Callback to receive token streaming and tool calls in real time. */
   readonly onStream?: (event: RunStreamEvent) => void;
+  readonly executionContext?: unknown;
 }
 
 /** How a run ended for its caller. Failures are thrown, not returned. */

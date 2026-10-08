@@ -144,6 +144,7 @@ export function flowRunners<TName extends string>(
             signal: config?.signal,
             getComponentClass,
             runCompensation,
+            executionContext: config?.configurable?.executionContext,
           };
 
           const appState = { runId, activeNode: node.name };

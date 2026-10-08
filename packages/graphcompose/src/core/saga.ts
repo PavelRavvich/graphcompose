@@ -1,13 +1,13 @@
 import {
   WorkflowAction,
   type IWorkflowAction,
-  type WorkflowActionContext,
+  type ActionRuntime,
 } from "../components/decorators.js";
 import { componentOf } from "../components/metadata.js";
 
 @WorkflowAction({ name: "SagaOrchestrator" })
 export class SagaOrchestrator implements IWorkflowAction {
-  async execute(state: any, context: WorkflowActionContext) {
+  async execute(state: any, context: ActionRuntime) {
     if (!context.getComponentClass || !context.runCompensation) {
       console.warn("SAGA Orchestrator requires framework support for compensations.");
       return {};

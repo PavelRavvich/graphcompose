@@ -51,7 +51,7 @@ export async function resumeAgent<TName extends string>(
   paused: AgentExecutionOutput,
   decision: unknown,
   deps: RunDeps<TName>,
-  options: { readonly signal?: AbortSignal | undefined } = {},
+  options: { readonly signal?: AbortSignal | undefined; readonly executionContext?: unknown } = {},
 ): Promise<AgentExecutionOutput> {
   const { flow, before } = await pausedRun(paused, deps);
   const spent: UsageRecord[] = [];

@@ -20,6 +20,7 @@ export interface ToolCallApproval {
     tool: AnyTool,
     runId: string,
     metadata: Record<string, unknown>,
+    executionContext?: unknown,
   ) => Promise<ToolCallApprovalDecision>;
 }
 
@@ -33,7 +34,7 @@ export function pauseSeamApproval(
   observer?: ObserverManager,
 ): ToolCallApproval {
   return {
-    requestApproval: async (ask, agent, tool, runId, metadata) => {
+    requestApproval: async (ask, agent, tool, runId, metadata, executionContext) => {
       const pending: PendingPause = {
         kind: "approval",
         agent,
@@ -74,6 +75,7 @@ export function pauseSeamApproval(
               toolName: tool.name,
               toolArguments: ask.arguments as Record<string, unknown>,
               metadata,
+              executionContext,
             });
           }
         }

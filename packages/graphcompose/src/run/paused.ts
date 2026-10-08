@@ -5,8 +5,11 @@ import type { AgentStateType } from "../graph/state.js";
 import type { PendingPause } from "../pause/index.js";
 
 /** LangGraph checkpoint thread = the run id (not the conversation thread). */
-export const runConfig = (runId: string): { configurable: { thread_id: string } } => ({
-  configurable: { thread_id: runId },
+export const runConfig = (
+  runId: string,
+  executionContext?: unknown,
+): { configurable: { thread_id: string; executionContext?: unknown } } => ({
+  configurable: { thread_id: runId, executionContext },
 });
 
 /** A run with nodes left in its checkpoint is waiting for an approval. */

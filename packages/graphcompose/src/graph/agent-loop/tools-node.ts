@@ -50,6 +50,7 @@ export function makeToolNode(
     }
     const usage: UsageRecord[] = [];
     const context: ToolContext = {
+      executionContext: config?.configurable?.executionContext,
       runId: task.runId,
       workflow: deps.bundle,
       agent: deps.agent.name,

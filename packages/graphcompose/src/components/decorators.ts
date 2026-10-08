@@ -145,7 +145,8 @@ export function Workflow(options: WorkflowMeta) {
   };
 }
 
-export interface WorkflowActionContext {
+export interface ActionRuntime<TExec = unknown> {
+  readonly executionContext?: TExec;
   readonly runId: string;
   readonly signal?: AbortSignal;
   readonly getComponentClass?: (nodeName: string) => Class | undefined | Promise<Class | undefined>;
@@ -155,7 +156,7 @@ export interface WorkflowActionContext {
 export interface IWorkflowAction<T = any> {
   execute(
     state: AgentState<T>,
-    context: WorkflowActionContext,
+    context: ActionRuntime,
   ): Promise<Partial<AgentStateUpdate>> | Partial<AgentStateUpdate>;
 }
 
@@ -176,6 +177,7 @@ export interface ChannelRequest<T = Record<string, unknown>> {
   readonly toolArguments: T;
   /** Any custom metadata passed when the run started (e.g., ownerId, tenantId). */
   readonly metadata: Record<string, unknown>;
+  readonly executionContext?: unknown;
 }
 
 export interface ChannelDecision {
@@ -261,7 +263,8 @@ export interface PiiPolicy {
   maskJson(obj: any): Promise<any>;
 }
 
-export interface GuardrailContext {
+export interface GuardrailContext<TExec = unknown> {
+  readonly executionContext?: TExec;
   agent: string;
   call?: any;
   replyWith?: string;

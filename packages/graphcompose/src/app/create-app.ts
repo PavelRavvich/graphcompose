@@ -85,7 +85,12 @@ export async function buildApp(
 
       try {
         await deps.observer.onWorkflowStart(state);
-        const result = settle(await runAgent(task, deps, { signal: call.signal }));
+        const result = settle(
+          await runAgent(task, deps, {
+            signal: call.signal,
+            executionContext: call.executionContext,
+          }),
+        );
         await deps.observer.onWorkflowEnd(result, state);
         return result;
       } catch (e) {
@@ -96,7 +101,12 @@ export async function buildApp(
     resume: async (thread, decision, call = {}) => {
       const run = paused.get(thread);
       if (run === undefined) throw new NotPausedError(`Thread "${thread}" has no paused run`);
-      return settle(await resumeAgent(run, decision, deps, { signal: call.signal }));
+      return settle(
+        await resumeAgent(run, decision, deps, {
+          signal: call.signal,
+          executionContext: call.executionContext,
+        }),
+      );
     },
     close: async () => {
       if (closed) return;
