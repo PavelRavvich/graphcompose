@@ -148,6 +148,8 @@ export function Workflow(options: WorkflowMeta) {
 export interface ActionRuntime<TExec = unknown> {
   readonly executionContext?: TExec;
   readonly runId: string;
+  /** Unique key combining runId and node name for safe external API calls */
+  readonly idempotencyKey?: string;
   readonly signal?: AbortSignal;
   readonly getComponentClass?: (nodeName: string) => Class | undefined | Promise<Class | undefined>;
   readonly runCompensation?: (component: Class, state: any) => Promise<any>;

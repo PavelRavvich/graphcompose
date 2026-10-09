@@ -86,5 +86,11 @@ export function catchError(target, errorType = Error) {
             errorType,
             nextNode,
         }),
+        compensateWith: (nextNode) => ({
+            kind: "catch",
+            target,
+            errorType,
+            nextNode,
+        }),
     };
 }

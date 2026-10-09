@@ -43,4 +43,6 @@ export const AgentState = Annotation.Root({
         reducer: mergeRecords,
         default: () => ({}),
     }),
+    /** System flag indicating that the run was cancelled externally. */
+    cancelRequested: Annotation({ reducer: (_previous, next) => next, default: () => false }),
 });

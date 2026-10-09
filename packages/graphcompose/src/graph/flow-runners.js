@@ -68,6 +68,9 @@ export function flowRunners(deps, run) {
                 if (!action)
                     throw new UnknownActionError(`Unknown action: ${node.name}`);
                 return async (state, config) => {
+                    if (state.cancelRequested) {
+                        throw new WorkflowCancelledError();
+                    }
                     const runId = config?.configurable?.runId ?? "";
                     const getComponentClass = (nodeName) => {
                         const collected = collectFlow(deps.flow);
@@ -102,6 +105,7 @@ export function flowRunners(deps, run) {
                     };
                     const context = {
                         runId,
+                        idempotencyKey: `run_${runId}_node_${node.name}`,
                         signal: config?.signal,
                         getComponentClass,
                         runCompensation,
@@ -119,6 +123,9 @@ export function flowRunners(deps, run) {
                 if (!component || component.kind !== "workflow")
                     throw new Error(`Not a workflow: ${node.name}`);
                 return async (state, config) => {
+                    if (state.cancelRequested) {
+                        throw new WorkflowCancelledError();
+                    }
                     const runId = state.runId;
                     const appState = { runId, activeNode: node.name, variables: {}, history: state.history };
                     await deps.observer?.onActionStart({ name: node.name, input: state, state: appState });
@@ -174,6 +181,9 @@ export function flowRunners(deps, run) {
                     throw new UnknownAgentError(node.name);
                 const runner = agentRunner(loop, node.name);
                 return async (state, config) => {
+                    if (state.cancelRequested) {
+                        throw new WorkflowCancelledError();
+                    }
                     const runId = state.runId;
                     const appState = { runId, activeNode: node.name, variables: {}, history: state.history };
                     await deps.observer?.onAgentStart({

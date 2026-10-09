@@ -104,5 +104,6 @@ export interface App {
     decision: unknown,
     options?: Pick<ExecutionOptions, "signal" | "executionContext">,
   ): Promise<ExecutionOutput>;
+  cancel(thread: string): Promise<void>;
   close(): Promise<void>;
 }

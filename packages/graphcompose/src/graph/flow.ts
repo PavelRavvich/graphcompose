@@ -241,9 +241,15 @@ export function labelOf(target: ChoiceTarget): string {
 export function catchError(
   target: FlowNode,
   errorType: Class = Error,
-): { next: (nextNode: FlowNode) => CatchStep } {
+): { next: (nextNode: FlowNode) => CatchStep; compensateWith: (nextNode: FlowNode) => CatchStep } {
   return {
     next: (nextNode) => ({
+      kind: "catch",
+      target,
+      errorType,
+      nextNode,
+    }),
+    compensateWith: (nextNode) => ({
       kind: "catch",
       target,
       errorType,

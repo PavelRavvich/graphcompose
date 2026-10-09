@@ -106,6 +106,9 @@ export function flowRunners<TName extends string>(
         const action = deps.actions(node.name);
         if (!action) throw new UnknownActionError(`Unknown action: ${node.name}`);
         return async (state, config) => {
+          if (state.cancelRequested) {
+            throw new WorkflowCancelledError();
+          }
           const runId = config?.configurable?.runId ?? "";
 
           const getComponentClass = (nodeName: string) => {
@@ -141,6 +144,7 @@ export function flowRunners<TName extends string>(
 
           const context = {
             runId,
+            idempotencyKey: `run_${runId}_node_${node.name}`,
             signal: config?.signal,
             getComponentClass,
             runCompensation,
@@ -160,6 +164,9 @@ export function flowRunners<TName extends string>(
           throw new Error(`Not a workflow: ${node.name}`);
 
         return async (state, config) => {
+          if (state.cancelRequested) {
+            throw new WorkflowCancelledError();
+          }
           const runId = state.runId;
           const appState = { runId, activeNode: node.name, variables: {}, history: state.history };
           await deps.observer?.onActionStart({ name: node.name, input: state, state: appState });
@@ -222,6 +229,9 @@ export function flowRunners<TName extends string>(
         if (loop === undefined) throw new UnknownAgentError(node.name);
         const runner = agentRunner(loop, node.name);
         return async (state, config) => {
+          if (state.cancelRequested) {
+            throw new WorkflowCancelledError();
+          }
           const runId = state.runId;
           const appState = { runId, activeNode: node.name, variables: {}, history: state.history };
           await deps.observer?.onAgentStart({

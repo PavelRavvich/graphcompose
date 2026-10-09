@@ -98,6 +98,17 @@ export async function buildApp(
         throw e;
       }
     },
+    cancel: async (thread) => {
+      await flowReal.graph.updateState(
+        { configurable: { thread_id: thread, runId: thread } },
+        { cancelRequested: true }
+      );
+      // If the app is currently paused, resuming it with a dummy value will cause it to wake up
+      // and immediately throw WorkflowCancelledError because of the pre-execution guard.
+      if (paused.has(thread)) {
+        await app.resume(thread, null).catch(() => {});
+      }
+    },
     resume: async (thread, decision, call = {}) => {
       const run = paused.get(thread);
       if (run === undefined) throw new NotPausedError(`Thread "${thread}" has no paused run`);
