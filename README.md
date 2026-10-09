@@ -87,10 +87,16 @@ GraphCompose supports Angular-style environment files. Place your files in the `
 
 ```ts
 // src/environments/environment.ts
+import { environmentToken } from "graphcompose/core";
+
 export interface AppEnvironment {
   readonly apiUrl: string;
 }
 
+// 1. Create a strictly-typed DI token for your environment
+export const ENV = environmentToken<AppEnvironment>();
+
+// 2. Export the environment values
 export const environment: AppEnvironment = {
   apiUrl: "https://api.example.com",
 };
@@ -102,15 +108,48 @@ You can create variations like `environment.staging.ts`. The CLI will automatica
 npx gc chat --env=staging
 ```
 
-The `environment` object is provided via Dependency Injection using the built-in `ENV` token. You can inject it into any tool or agent:
+The `environment` object is provided via Dependency Injection using the token you created. You can inject it into any service or tool:
 
 ```ts
-import { Injectable, ENV } from "graphcompose";
-import type { AppEnvironment } from "../environments/environment.js";
+import { Injectable } from "graphcompose/core";
+import { Inject } from "graphcompose/components/injection";
+import { ENV, type AppEnvironment } from "../environments/environment.js";
 
-@Injectable({ deps: [ENV] })
+@Injectable()
 export class MyService {
-  constructor(private readonly env: AppEnvironment) {}
+  constructor(@Inject(ENV) private readonly env: AppEnvironment) {}
+}
+```
+
+## Run Context & Observers
+
+GraphCompose executes all workflows with a strict **Run Context**. Inside your internal services or custom nodes, use `extractRunContext` to extract typed `runId`, `threadId`, etc.:
+
+```ts
+import { extractRunContext } from "graphcompose/graph";
+const ctx = extractRunContext(config, state.runId);
+console.log(ctx.runId, ctx.threadId);
+```
+
+You can globally observe agent starts, finishes, and workflow starts by injecting Observers in your `@Workflow({ observers: [...] })`.
+
+```ts
+import {
+  Injectable,
+  OnWorkflowStart,
+  OnAgentStart,
+  AppState,
+  AgentContext,
+} from "graphcompose/core";
+
+@Injectable()
+export class MetricsObserver implements OnWorkflowStart, OnAgentStart {
+  onWorkflowStart(state: AppState) {
+    console.log("Workflow started");
+  }
+  onAgentStart(ctx: AgentContext) {
+    console.log(`Agent ${ctx.name} started in run ${ctx.runContext.runId}`);
+  }
 }
 ```
 

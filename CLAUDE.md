@@ -158,6 +158,13 @@ Board `Status`: **Triage → Backlog → In progress → Test → Done** (Done: 
 
 Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status>`.
 
+## Component Validation & Context (Epic #177)
+
+- **Strict DI injection:** Every provider or service used in a workflow must be decorated with `@Injectable()` or `@Provider()`. Undecorated providers throw errors during app setup.
+- **Channel constraints:** If an `@McpTool` or `@Tool` specifies a `channel`, that channel class MUST be explicitly registered in the `@Workflow({ channelClasses: [...] })` array. Otherwise, compilation throws `ComponentError`.
+- **Environment variables:** Use `environmentToken<T>()` from `graphcompose/core` to define a typed DI token. Do not rely on `process.env` directly in services. Pass the environment object in `createApp(Workflow, { env: environment })`. Create `environments/environment.ts` (Angular style) to export the environment interface and the object itself.
+- **RunContext:** Do not manually parse `config?.configurable?.run_id` in LangGraph nodes. Use `extractRunContext(config, fallbackRunId)` to get a strictly typed `RunContext` object with `runId`, `threadId`, etc.
+
 ## Hard rules
 
 - Read `WORKFLOW.md` (tracker, wiki, branches, PRs) and `QUALITY.md` (code, types, agents, FinOps,

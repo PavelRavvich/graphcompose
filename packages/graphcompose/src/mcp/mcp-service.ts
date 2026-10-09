@@ -10,7 +10,6 @@ import { nodeInfoOf } from "../graph/node-kind.js";
 import { workflowStartMetaOf } from "../graph/workflow-start.decorator.js";
 import { jsonSchemaOf, validate } from "../dto/schema.js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ToolHandler = (args: any, context?: unknown) => Promise<unknown>;
 
 export interface McpSession {
@@ -42,7 +41,6 @@ export class McpService {
       { capabilities: { tools: {} } },
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tools: any[] = [];
     let hasWorkflows = false;
     const handlers = new Map<string, ToolHandler>();

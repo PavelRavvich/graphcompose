@@ -4,6 +4,7 @@ import type { AsyncNode } from "../types.js";
 import type { AgentLoopDeps } from "./deps.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
 import { componentOf } from "../../components/metadata.js";
+import { extractRunContext } from "../run-context.js";
 import type { BaseJudge, JudgeMeta } from "../../components/judge-decorators.js";
 
 // eslint-disable-next-line max-lines-per-function
@@ -11,6 +12,7 @@ export function makeJudgeNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
   const agent = deps.agent.name;
   // eslint-disable-next-line max-lines-per-function, complexity
   return async (state, config) => {
+    const runCtx = extractRunContext(config, state.runId);
     // eslint-disable-next-line no-console
     console.log("EXECUTING JUDGE NODE", state.reply);
     const meta = deps.agent;
@@ -57,8 +59,7 @@ export function makeJudgeNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         idempotencyKey: `run_${state.runId}_node_${agent}_judge_${judgeName}_retry_${state.retries}`,
         chatModel,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        executionContext: config?.configurable?.executionContext,
+        executionContext: runCtx.executionContext,
       };
 
       await deps.observer?.onJudgeStart({

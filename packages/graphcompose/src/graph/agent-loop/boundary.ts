@@ -3,6 +3,7 @@ import { unknownToolMessage } from "../../prompts/agents.js";
 import type { AsyncNode } from "../types.js";
 import { callsOf, toolNamed, type AgentLoopDeps, type ToolCallRequest } from "./deps.js";
 import { JudgePoint, visitToolThenAgent, mergePolicies } from "./judge-points.js";
+import { extractRunContext } from "../run-context.js";
 import {
   LOOP_NODE,
   type AgentLoopStateType,
@@ -68,7 +69,6 @@ export function routeToActions(
 export function makeBoundaryNode(
   deps: AgentLoopDeps,
 ): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
-  // eslint-disable-next-line complexity
   return async (state, config) => {
     const results: Record<string, StoredToolCall> = {};
     for (const call of callsOf(state.move)) {
@@ -78,13 +78,12 @@ export function makeBoundaryNode(
         continue;
       }
 
+      const runCtx = extractRunContext(config, state.runId);
       const ctx = {
         agent: deps.agent.name,
         call,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        runId: config?.configurable?.run_id ?? state.runId,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        metadata: config?.configurable?.metadata ?? {},
+        runId: runCtx.runId,
+        metadata: runCtx.metadata,
       };
 
       const combinedGuardrails = mergePolicies(

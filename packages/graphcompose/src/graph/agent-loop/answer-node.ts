@@ -3,6 +3,7 @@ import type { AgentLoopDeps } from "./deps.js";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { JudgeOwner, JudgePoint, visitAgentAnswer, mergePolicies } from "./judge-points.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
+import { extractRunContext } from "../run-context.js";
 
 /** A move without tool calls is the agent's replyWith: `beforeAgentAnswer`, then it leaves the loop. */
 export function makeAnswerNode(
@@ -12,14 +13,13 @@ export function makeAnswerNode(
   // eslint-disable-next-line complexity
   return async (state, config) => {
     const combinedGuardrails = mergePolicies(deps.workflowGuardrails, deps.guardrails);
+    const runCtx = extractRunContext(config, state.runId);
     const ctx = {
       agent,
       replyWith:
         typeof state.move?.content === "string" ? state.move.content : (state.move?.text ?? ""),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      runId: config?.configurable?.run_id ?? state.runId,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      metadata: config?.configurable?.metadata ?? {},
+      runId: runCtx.runId,
+      metadata: runCtx.metadata,
     };
     const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
     await visitAgentAnswer(combinedGuardrails, ctx, deps.observer, appState);

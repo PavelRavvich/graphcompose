@@ -11,15 +11,12 @@ import type { AgentState } from "../../graph/state.js";
  */
 @WorkflowAction({ name: "LocalSagaStrategy" })
 export class LocalSagaStrategy extends BaseSagaStrategy {
-  // eslint-disable-next-line complexity, @typescript-eslint/explicit-module-boundary-types
   async execute(state: AgentState<unknown>, context: ActionRuntime) {
     if (!context.getComponentClass || !context.runCompensation) {
-      // eslint-disable-next-line no-console
       console.warn("LocalSagaStrategy requires framework support for compensations.");
       return {};
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const history = state.contributions || [];
     // Extract unique node names in reverse order of their execution
 

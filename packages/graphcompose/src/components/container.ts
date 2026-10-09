@@ -121,6 +121,13 @@ export function createContainer(
   };
   const instantiate = (cls: Class): unknown => {
     const args = depsOf(cls).map(resolve);
+    if (args.length === 0 && cls.length > 0) {
+      if (!componentOf(cls)) {
+        throw new ComponentError(
+          `[di.undecorated-provider] ${tokenName(cls)} takes ${String(cls.length)} constructor argument(s) but has no @Injectable({ deps }) or similar decorator.`,
+        );
+      }
+    }
     const instance: unknown = new (cls as unknown as new (...a: unknown[]) => unknown)(...args);
     created.push(tokenName(cls));
     options.onCreate?.(instance);

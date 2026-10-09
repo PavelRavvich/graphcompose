@@ -5,6 +5,7 @@ import {
   Workflow,
   Injectable,
   InjectionToken,
+  provide,
   ROUTER_FACTORY,
 } from "../../../src/core/index.js";
 import { McpServer, McpServerClient, McpTool } from "../../../src/mcp/index.js";
@@ -105,6 +106,6 @@ export class GreeterAgent {}
   defaults: testConfig.defaults,
   flow: starOf(GreeterAgent),
   mcp: [FilesServer],
-  providers: [Greeter, { provide: GREETING, useValue: "Shalom" }],
+  providers: [Greeter, provide(GREETING, "Shalom")],
 })
 export class Greetings extends TestSettings {}

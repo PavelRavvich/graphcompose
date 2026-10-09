@@ -44,5 +44,4 @@ export {
 export { GraphRuleError, type RuleCode, type RuleViolation } from "./rule-error.js";
 export { LimitExceededError, type LimitKey } from "./limits.js";
 export { RouterDecisionError, type RouterFailureCode } from "./nodes/flow-router.js";
-
-export { Subgraph, type SubgraphOptions } from "./subgraph.decorator.js";
+export { type RunContext, extractRunContext } from "./run-context.js";

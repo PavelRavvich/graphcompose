@@ -88,6 +88,7 @@ export interface WorkflowMeta {
   readonly compactionPrompt?: string;
   readonly promptVariables?: Readonly<Record<string, string>>;
   readonly channelClasses?: readonly Class[];
+  readonly observers?: readonly Class[];
 }
 
 /** `@Channel` — settings of a channel. */

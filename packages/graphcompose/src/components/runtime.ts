@@ -14,8 +14,12 @@ import { contextSources, ragMeta, searchTool } from "./rag.js";
 
 /** Core services a component can depend on. */
 export const ROUTER_FACTORY = new InjectionToken<(name: string) => Router>("ROUTER_FACTORY");
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const ENV = new InjectionToken<any>("ENV");
+export const ENV = new InjectionToken<unknown>("ENV");
+
+/** Use this to strictly type the environment token injected by GraphCompose. */
+export function environmentToken<T = NodeJS.ProcessEnv>(): InjectionToken<T> {
+  return ENV as InjectionToken<T>;
+}
 export const CORE_TOKENS = [ROUTER_FACTORY, ENV];
 
 /**

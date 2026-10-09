@@ -23,7 +23,6 @@ import { collectFlow } from "./flow-nodes.js";
 import type { WorkflowMeta } from "../components/meta-types.js";
 import type { WorkflowDefinition } from "./settings.js";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class NotARunnerNodeError extends Error {
   override name = "NotARunnerNodeError";
 }
@@ -90,7 +89,7 @@ function agentLoops<TName extends string>(
  * takes the last replyWith and runs the output guards. Routers are the engine's own.
  */
 import type { RunLimits } from "./flow-runtime.js";
-// eslint-disable-next-line max-lines-per-function
+
 export function flowRunners<TName extends string>(
   deps: GraphDeps<TName>,
   run: RunLimits,
@@ -98,21 +97,19 @@ export function flowRunners<TName extends string>(
   const loops = agentLoops(deps);
   const inputGuards = makeGuardNode(deps.guards.input, "input");
 
-  // eslint-disable-next-line max-lines-per-function, complexity
   return (node) => {
     switch (node.kind) {
       case "quorumRouter":
       case "router":
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return undefined as any;
       case "workflow-start":
         return inputGuards;
       case "action": {
         if (!deps.actions) throw new Error("Workflow actions not wired in RunDeps");
         const action = deps.actions(node.name);
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
         if (!action) throw new UnknownActionError(`Unknown action: ${node.name}`);
-        // eslint-disable-next-line max-lines-per-function
+
         return async (state, config) => {
           if (state.cancelRequested) {
             throw new WorkflowCancelledError();
@@ -139,20 +136,20 @@ export function flowRunners<TName extends string>(
                 runCompensation,
                 idempotencyKey: nodeName ? `run_${runId}_node_${nodeName}` : undefined,
               };
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
               return await act.execute(childState, ctx);
             }
             if (comp.kind === "agent") {
               const loop = loops.get(comp.meta.name);
               if (!loop) throw new Error(`Agent loop not found for ${comp.meta.name}`);
               const runner = agentRunner(loop, comp.meta.name);
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
               return await runner(childState, config);
             }
             if (comp.kind === "workflow") {
               const { flowGraphOf } = await import("./flow-runtime.js");
               const flowReal = await flowGraphOf(deps, run);
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
               return await flowReal.graph.invoke(childState, {
                 configurable: { runId, thread_id: runId },
               });
@@ -162,7 +159,7 @@ export function flowRunners<TName extends string>(
 
           const context = {
             runId,
-            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+
             idempotencyKey: `run_${runId}_node_${node.name}`,
             signal: config?.signal,
             getComponentClass,
@@ -179,7 +176,7 @@ export function flowRunners<TName extends string>(
       }
       case "workflow": {
         const component = componentOf(node.use);
-        // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+
         if (!component || component.kind !== "workflow")
           throw new Error(`Not a workflow: ${node.name}`);
 
@@ -191,7 +188,6 @@ export function flowRunners<TName extends string>(
           const appState = { runId, activeNode: node.name, variables: {}, history: state.history };
           await deps.observer?.onActionStart({ name: node.name, input: state, state: appState });
 
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
           const meta = component.meta as WorkflowMeta;
           const WorkflowClass = node.use as new () => WorkflowDefinition;
           const mock = deps.mockedWorkflows?.get(node.use);
@@ -199,15 +195,15 @@ export function flowRunners<TName extends string>(
             const mockResult = await mock(state, config);
             await deps.observer?.onActionEnd({
               name: node.name,
-              // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+
               update: mockResult || {},
               state: appState,
             });
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/prefer-nullish-coalescing
+
             return mockResult || {};
           }
           const instance = new WorkflowClass();
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-unnecessary-condition
+
           const localSettings = instance.settings ? instance.settings() : {};
 
           // Create sub-dependencies inheriting from parent but overriding flow
@@ -270,12 +266,11 @@ export function flowRunners<TName extends string>(
             await deps.observer?.onAgentEnd({ name: node.name, update: result, state: appState });
             return result;
           } catch (e: any) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             if (e && (e.name === "NodeInterrupt" || e.name === "GraphInterrupt")) throw e; // Let pauses bubble up
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
             if (state.optionalBranches?.includes(node.name)) {
               // Supress error for optional branches
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
               await deps.observer?.onError(e, appState);
               return {};
             }

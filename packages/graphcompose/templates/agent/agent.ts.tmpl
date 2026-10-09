@@ -1,11 +1,10 @@
 import { Agent } from "graphcompose/core";
 {{imports}}
-import { KIMI } from "../models.js";
-
 @Agent({
   name: "{{snake}}",
   description: "{{description}}",
-  model: KIMI,
+  promptUrls: ["./{{kebab}}.prompt.md"],
+  model: "moonshotai/kimi-k2.6",
   maxTokens: 4000,
   tools: [{{tools}}],
 })

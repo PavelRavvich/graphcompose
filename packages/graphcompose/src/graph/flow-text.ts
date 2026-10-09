@@ -23,7 +23,6 @@ const KIND_TEXT: Readonly<Record<NodeKind, string>> = {
   router: "",
   quorumRouter: "",
   workflow: " (workflow)",
-  subgraph: " (subgraph)",
 };
 
 function nodeText(collected: CollectedFlow, target: FlowNode): string {

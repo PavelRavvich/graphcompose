@@ -4,6 +4,7 @@ import { toolNamed } from "./deps.js";
 import type { AgentLoopDeps } from "./deps.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
 import { JudgePoint, visitToolThenAgent, mergePolicies } from "./judge-points.js";
+import { extractRunContext } from "../run-context.js";
 
 /** One sentence on what the call will do (the ask's `summary`). */
 const summaryOf = (tool: string, args: Record<string, unknown>): string =>
@@ -26,8 +27,8 @@ export function makeApprovalNode(
     const tool = toolNamed(deps.agent, call.tool);
     // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     if (!tool || !tool.channel) return {};
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const metadata = config?.configurable?.metadata ?? {};
+    const runCtx = extractRunContext(config, state.runId);
+    const metadata = runCtx.metadata;
 
     const decision = await deps.approval.requestApproval(
       {
@@ -41,9 +42,8 @@ export function makeApprovalNode(
       deps.agent.name,
       tool,
       state.runId,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       metadata,
-      config?.configurable?.executionContext,
+      runCtx.executionContext,
     );
     let feedback = decision.feedback;
     let overrideArgs = decision.overrideArguments;
@@ -101,10 +101,8 @@ export function makeApprovalNode(
     const ctx = {
       agent: deps.agent.name,
       call,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      runId: config?.configurable?.run_id ?? state.runId,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      metadata: config?.configurable?.metadata ?? {},
+      runId: runCtx.runId,
+      metadata: runCtx.metadata,
     };
     await visitToolThenAgent(
       combinedGuardrails,

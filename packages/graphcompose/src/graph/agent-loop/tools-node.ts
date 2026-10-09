@@ -5,6 +5,7 @@ import { renderToolResult, type AnyTool, type ToolContext } from "../../tools/in
 import { toolNamed, type AgentLoopDeps } from "./deps.js";
 import type { AgentLoopUpdate, ToolTask } from "./state.js";
 import type { PendingPause } from "../../pause/index.js";
+import { extractRunContext } from "../run-context.js";
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
@@ -38,13 +39,10 @@ export function makeToolNode(
   // eslint-disable-next-line max-lines-per-function
   return async (task, config) => {
     const tool = toolNamed(deps.agent, task.tool);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/prefer-nullish-coalescing
-    const runId = config?.configurable?.runId || "unknown";
+    const runCtx = extractRunContext(config, task.runId);
     const appState = {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      runId,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      threadId: runId,
+      runId: runCtx.runId,
+      threadId: runCtx.threadId ?? runCtx.runId,
       activeNode: deps.agent.name,
       variables: {},
       history: [],
@@ -54,7 +52,7 @@ export function makeToolNode(
     }
     const usage: UsageRecord[] = [];
     const context: ToolContext = {
-      executionContext: config?.configurable?.executionContext,
+      executionContext: runCtx.executionContext,
       runId: task.runId,
       workflow: deps.bundle,
       agent: deps.agent.name,

@@ -29,6 +29,7 @@ import {
   Support,
   Writer,
 } from "../testing/fixtures/desk.workflow.js";
+import { TerminalUserChannel } from "../../src/channels/terminal-channel.js";
 import {
   CodeReview,
   Coder,
@@ -76,6 +77,7 @@ class NoLimits implements WorkflowDefinition {
     tools: { maxToolCalls: 2 },
     history: { limit: 2 },
   },
+  channelClasses: [TerminalUserChannel],
   mcp: [NotesServer],
   providers: [OrderBook],
 })

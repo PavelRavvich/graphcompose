@@ -1,7 +1,7 @@
 import { file } from "../../src/components/file.js";
 
 import { describe, expect, it } from "vitest";
-import { Agent, Workflow, Injectable, ROUTER_FACTORY } from "../../src/core/index.js";
+import { Agent, Workflow, Injectable, ROUTER_FACTORY, provide } from "../../src/core/index.js";
 import { workflowOf, toolOf } from "../../src/testing/index.js";
 import { ComponentError } from "../../src/core/index.js";
 import { checkGraph, createContainer } from "../../src/components/container.js";
@@ -279,7 +279,7 @@ describe("components — errors at assembly", () => {
 
   it("AC3: instances are created once, dependencies before dependants", () => {
     const container = createContainer(
-      [Greeter, { provide: GREETING, useValue: "Hey" }],
+      [Greeter, provide(GREETING, "Hey")],
       new Map([[ROUTER_FACTORY, services.router]]),
     );
     const first = container.get(GreetTool);

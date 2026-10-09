@@ -1,6 +1,5 @@
 import type { Class } from "../components/injection.js";
 import { componentOf } from "../components/metadata.js";
-import { subgraphMetaOf } from "./subgraph.decorator.js";
 import { collectFlow } from "./flow-nodes.js";
 
 export class DependencyCycleError extends Error {
@@ -33,10 +32,6 @@ export class WorkflowGraphValidator {
         const target = nodeRef.use;
         if (componentOf(target)?.kind === "workflow") {
           this.validateAcyclic(target, visiting, visited);
-        }
-        const subgraphMeta = subgraphMetaOf(target);
-        if (subgraphMeta) {
-          this.validateAcyclic(subgraphMeta.workflow, visiting, visited);
         }
       }
     }

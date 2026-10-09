@@ -5,6 +5,7 @@ import type { AsyncNode } from "../types.js";
 import { callsOf, toolNamed, type AgentLoopDeps, type ToolCallRequest } from "./deps.js";
 import { JudgePoint, visitToolThenAgent, mergePolicies } from "./judge-points.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
+import { extractRunContext } from "../run-context.js";
 
 /** What the model reads for a call: its stored result, or who rejected it and why. */
 function contentOf(state: AgentLoopStateType, call: ToolCallRequest): string {
@@ -45,7 +46,6 @@ function decidedCalls(
 export function makeCollectNode(
   deps: AgentLoopDeps,
 ): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
-  // eslint-disable-next-line complexity
   return async (state, config) => {
     const calls = callsOf(state.move);
     for (const call of calls) {
@@ -57,13 +57,12 @@ export function makeCollectNode(
         deps.guardrails,
         deps.toolGuardrails?.(call.tool),
       );
+      const runCtx = extractRunContext(config, state.runId);
       const ctx = {
         agent: deps.agent.name,
         call,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        runId: config?.configurable?.run_id ?? state.runId,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        metadata: config?.configurable?.metadata ?? {},
+        runId: runCtx.runId,
+        metadata: runCtx.metadata,
       };
       const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
       await visitToolThenAgent(

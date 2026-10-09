@@ -23,5 +23,16 @@ export type ResolvedAll<D extends readonly Token[]> = { -readonly [K in keyof D]
 export const tokenName = (token: Token): string =>
   token instanceof InjectionToken ? token.description : token.name || "(anonymous class)";
 
+/** A value bound to a token. */
+export interface ValueProvider<T = unknown> {
+  readonly provide: InjectionToken<T> | Class<T>;
+  readonly useValue: T;
+}
+
 /** Registered in `@Workflow({ providers })`: a class (created by the container) or a value. */
-export type Provider = Class | { readonly provide: Token; readonly useValue: unknown };
+export type Provider = Class | ValueProvider;
+
+/** Ties a value strictly to its token type for `@Workflow({ providers })`. */
+export function provide<T>(token: InjectionToken<T> | Class<T>, value: T): ValueProvider<T> {
+  return { provide: token, useValue: value };
+}

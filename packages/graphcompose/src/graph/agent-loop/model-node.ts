@@ -11,6 +11,7 @@ import { callsOf, type AgentLoopDeps } from "./deps.js";
 import { agentLimitError } from "./limits.js";
 import { loopUsage, type AgentLoopStateType, type AgentLoopUpdate } from "./state.js";
 import { normalisePromptText } from "../text.js";
+import { extractRunContext } from "../run-context.js";
 
 export class ToolCallingUnsupportedError extends Error {
   override name = "ToolCallingUnsupportedError";
@@ -73,10 +74,10 @@ function withCallIds(response: AIMessageChunk, state: AgentLoopStateType): AIMes
 // eslint-disable-next-line max-lines-per-function
 export function makeModelNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
   const { name, limits, binding } = deps.agent;
-  // eslint-disable-next-line max-lines-per-function, complexity
+  // eslint-disable-next-line max-lines-per-function
   return async (state, config) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (config?.configurable?.branchCancelToken?.cancelled) {
+    const runCtx = extractRunContext(config, state.runId);
+    if (runCtx.branchCancelToken?.cancelled) {
       throw new QuorumCancelledError();
     }
     if (isBudgetSpent(state, deps)) {

@@ -17,7 +17,7 @@ import {
 } from "./runtime.js";
 import type { IWorkflowAction } from "./decorators.js";
 import type { McpServerClient, ServerTools } from "./mcp-client.js";
-import type { Token } from "./injection.js";
+import { tokenName, type Token } from "./injection.js";
 import { ragClassesOf, ragMeta, ragSettings, searchToolName } from "./rag.js";
 import { type Class } from "./injection.js";
 import { ComponentError, componentOf, requireComponent } from "./metadata.js";
@@ -135,15 +135,29 @@ function configOf(
 }
 
 /** Tool classes → their tool names. */
-const toolNames = (tools: ReturnType<typeof toolsOf>): Map<Class, string> =>
-  new Map<Class, string>([
-    ...tools.local.map(
-      (cls) => [cls, requireComponent(cls, "tool", "workflowOf").meta.name] as const,
-    ),
-    ...tools.mcp.map(
-      (cls) => [cls, requireComponent(cls, "mcp-tool", "workflowOf").meta.name] as const,
-    ),
-  ]);
+const toolNames = (
+  tools: ReturnType<typeof toolsOf>,
+  rags: readonly Class[],
+): Map<Class, string> => {
+  const map = new Map<Class, string>();
+  const byName = new Map<string, Class>();
+
+  const add = (cls: Class, name: string) => {
+    if (byName.has(name) && byName.get(name) !== cls) {
+      throw new ComponentError(
+        `[tool.duplicate-name] Duplicate tool name "${name}" found in classes ${tokenName(byName.get(name)!)} and ${tokenName(cls)}. Tool names must be unique across the workflow.`,
+      );
+    }
+    byName.set(name, cls);
+    map.set(cls, name);
+  };
+
+  tools.local.forEach((cls) => add(cls, requireComponent(cls, "tool", "workflowOf").meta.name));
+  tools.mcp.forEach((cls) => add(cls, requireComponent(cls, "mcp-tool", "workflowOf").meta.name));
+  rags.forEach((cls) => add(cls, requireComponent(cls, "rag", "workflowOf").meta.name));
+
+  return map;
+};
 
 /**
  * Assembles a `@Workflow` class into the workflow the core runs: its flow checked against every rule
@@ -160,12 +174,25 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   const mcp = mcpOf(bundle, tools.mcp);
   const rags = ragClassesOf(bundle, agents);
   checkGraph(
-    [...tools.local, ...tools.mcp, ...rags, ...graph.actions.map((a) => a.cls)],
+    [
+      ...tools.local,
+      ...tools.mcp,
+      ...rags,
+      ...graph.actions.map((a) => a.cls),
+      ...(bundle.observers ?? []),
+      ...(bundle.guardrails ?? []),
+      ...(bundle.piiPolicies ?? []),
+      ...(bundle.channelClasses ?? []),
+      ...agents.flatMap((a) => a.guardrails ?? []),
+      ...agents.flatMap((a) => a.overrideGuardrails ?? []),
+      ...agents.flatMap((a) => a.piiPolicies ?? []),
+      ...agents.flatMap((a) => a.overridePiiPolicies ?? []),
+    ],
     bundle.providers ?? [],
     [...CORE_TOKENS, ...mcp.instances.keys()],
   );
   rememberServers(bundle, mcp.instances);
-  const names = toolNames(tools);
+  const names = toolNames(tools, rags);
 
   const prompts = Object.fromEntries(
     agents.map(
@@ -182,16 +209,44 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
 
   const config = configOf(bundle, agents, names, mcp);
   const settings = settingsOf(bundleClass, bundle);
+
   validateAgentsConfig(config, [
     ...names.values(),
     ...rags.map((cls) => searchToolName(ragMeta(cls))),
   ]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+
+  const declaredChannels = new Set(
+    (bundle.channelClasses ?? []).map(
+      (cls) => requireComponent(cls, "channel", "workflowOf").meta.name,
+    ),
+  );
+  for (const cls of tools.local) {
+    const meta = requireComponent(cls, "tool", "workflowOf").meta;
+    if (meta.channel) {
+      const channelMeta = requireComponent(meta.channel, "channel", "workflowOf").meta;
+      if (!declaredChannels.has(channelMeta.name)) {
+        throw new ComponentError(
+          `@Tool "${meta.name}" references a channel not listed in @Workflow channelClasses`,
+        );
+      }
+    }
+  }
+  for (const cls of tools.mcp) {
+    const meta = requireComponent(cls, "mcp-tool", "workflowOf").meta;
+    if (meta.channel) {
+      const channelMeta = requireComponent(meta.channel, "channel", "workflowOf").meta;
+      if (!declaredChannels.has(channelMeta.name)) {
+        throw new ComponentError(
+          `@McpTool "${meta.name}" references a channel not listed in @Workflow channelClasses`,
+        );
+      }
+    }
+  }
+
   const resolveMap = <T>(map: Map<string, readonly Class[]>, services: any) =>
     new Map<string, readonly T[]>(
       Array.from(map.entries()).map(
         ([k, classes]) =>
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           [k, classes.map((cls) => containerFor(bundle, services).get(cls) as T)] as const,
       ),
     );
@@ -214,24 +269,23 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   );
   const toolPii = new Map(
     Array.from(tools.local).map((t) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
       const meta = componentOf(t)?.meta as any;
       return [
         names.get(t) ?? t.name,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
         meta?.overridePiiPolicies
           ? {
               override: true,
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+
               classes: meta.overridePiiPolicies,
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+
               disable: meta.disablePiiPolicies ?? [],
             }
           : {
               override: false,
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+
               classes: meta?.piiPolicies ?? [],
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+
               disable: meta?.disablePiiPolicies ?? [],
             },
       ];
@@ -239,24 +293,23 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   );
   const toolGuardrails = new Map(
     Array.from(tools.local).map((t) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
       const meta = componentOf(t)?.meta as any;
       return [
         names.get(t) ?? t.name,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
         meta?.overrideGuardrails
           ? {
               override: true,
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+
               classes: meta.overrideGuardrails,
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+
               disable: meta.disableGuardrails ?? [],
             }
           : {
               override: false,
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+
               classes: meta?.guardrails ?? [],
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+
               disable: meta?.disableGuardrails ?? [],
             },
       ];
@@ -267,16 +320,15 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
 
   const resolveComplexMap = (
     map: Map<string, { override: boolean; classes: readonly Class[]; disable: readonly Class[] }>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     services: any,
   ) =>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     new Map<string, { override: boolean; instances: readonly any[]; disable: readonly Class[] }>(
       Array.from(map.entries()).map(([k, v]) => [
         k,
         {
           override: v.override,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
           instances: v.classes.map((cls) => containerFor(bundle, services).get(cls)),
           disable: v.disable,
         },
@@ -286,19 +338,21 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   return {
     config,
     flow: bundle.flow,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+    observers: (services: any) =>
+      (bundle.observers ?? []).map((c) => containerFor(bundle, services).get(c)),
+
     piiPolicies: (services: any) => resolveComplexMap(agentPii, services),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     guardrails: (services: any) => resolveComplexMap(agentGuardrails, services),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     toolPiiPolicies: (services: any) => resolveComplexMap(toolPii, services),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     toolGuardrails: (services: any) => resolveComplexMap(toolGuardrails, services),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+
     workflowPiiPolicies: (services: any) => wfPii.map((c) => containerFor(bundle, services).get(c)),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     workflowGuardrails: (services: any) =>
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       wfGuardrails.map((c) => containerFor(bundle, services).get(c)),
     limits: settings.limits,
     models: settings.models,

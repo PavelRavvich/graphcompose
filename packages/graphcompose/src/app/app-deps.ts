@@ -77,7 +77,7 @@ export type McpConnect = (
 /** Everything an app may be given instead of its production default. */
 export interface AppDepsOptions {
   /** Default: process.env. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   readonly env?: any;
   /**
    * Every model call goes through it. Default: the workflow's model providers, credentials from
@@ -159,18 +159,17 @@ function lifecycleOf(container: ContainerOptions | undefined) {
  * spend ledger, Tern store; every part can be given instead (`options`, e.g. by `graphcompose/testing`).
  * Fails fast when an MCP server is unavailable or drifted. Components' `onStart` runs at the end.
  */
-// eslint-disable-next-line max-lines-per-function
+
 export async function createAppDeps(
   bundle: AssembledWorkflow,
   options: AppDepsOptions = {},
 ): Promise<AppDeps> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const env = options.env ?? process.env;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
   const models = await modelsFor(bundle, options.gateway, providerClientsOf(options, env));
   const gateway = models.gateway;
   const lifecycle = lifecycleOf(options.container);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
   const services = servicesFor(bundle, gateway, env, lifecycle.options);
   const tools: readonly AnyTool[] = resolveTools(bundle, services);
   const toolNames = tools.map((tool) => tool.name);
@@ -178,12 +177,12 @@ export async function createAppDeps(
   const mcp = await (options.connectMcp ?? connectConfigured(options.transport))(
     bundle,
     config,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
     env,
   );
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
   const { terns, ownsTerns, ledger, checkpointer } = storesOf(options, env);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
   const tracing = langfuseTracing(env);
   const deps = {
     config,
@@ -196,25 +195,22 @@ export async function createAppDeps(
     pause: pauseFor(bundle, checkpointer),
     requestApproval: async (channelName: string, req: ChannelRequest) => {
       const channels = bundle.channels?.(services);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       const channel = channels?.get(channelName);
       if (!channel) throw new Error(`Unknown channel: ${channelName}`);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
       await channel.requestApproval(req);
     },
     compactionPrompt: bundle.compactionPrompt,
     piiPolicies: (agent: string) =>
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       bundle.piiPolicies?.(services)?.get(agent) ?? { override: false, instances: [], disable: [] },
     toolPiiPolicies: (tool: string) =>
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       bundle.toolPiiPolicies?.(services)?.get(tool) ?? {
         override: false,
         instances: [],
         disable: [],
       },
     toolGuardrails: (tool: string) =>
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       bundle.toolGuardrails?.(services)?.get(tool) ?? {
         override: false,
         instances: [],
@@ -223,9 +219,8 @@ export async function createAppDeps(
     workflowPiiPolicies: bundle.workflowPiiPolicies?.(services) ?? [],
     workflowGuardrails: bundle.workflowGuardrails?.(services) ?? [],
     guardrails: (agent: string) =>
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       bundle.guardrails?.(services)?.get(agent) ?? { override: false, instances: [], disable: [] },
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unnecessary-condition
+
     channelAdapters: (channel: string) => bundle.channelAdapters?.(services)?.get(channel),
     ...knowledgeFor(bundle, services),
     ledger,
@@ -233,12 +228,15 @@ export async function createAppDeps(
     evaluation: evaluationFor(bundle, { terns, ledger }, gateway),
     tracing,
     container: {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       get: <T>(token: any) => lifecycle.created.find((c: any) => c.constructor === token) as T,
     },
     quorumRouters: (nameOrClass: any) => bundle.quorumRouters?.(services).get(nameOrClass)!,
     batchStrategies: (nameOrClass: any) => bundle.batchStrategies?.(services).get(nameOrClass)!,
-    observer: new ObserverManager(lifecycle.created),
+    observer: (() => {
+      // Eagerly instantiate all observers so they end up in lifecycle.created
+      bundle.observers?.(services);
+      return new ObserverManager(lifecycle.created);
+    })(),
     ...(options.newRunId === undefined ? {} : { newRunId: options.newRunId }),
     close: async () => {
       try {
