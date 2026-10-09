@@ -83,6 +83,7 @@ Conventional commits with the issue number: `feat(#12): …`, `fix(#13): …`, `
 - [ ] "Wiki to update" applied and published (ADR page if a significant decision was made)
 - [ ] PR merged to `dev`; ticket moved to **Test**; handoff comment with the manual acceptance
       checklist posted on the issue
+- [ ] **Crucial Rule:** The GitHub CI must pass successfully (green) before starting any work on the next ticket. We do not accumulate CI problems or technical debt.
 
 **Done** is the human's call after the manual checklist passes.
 
