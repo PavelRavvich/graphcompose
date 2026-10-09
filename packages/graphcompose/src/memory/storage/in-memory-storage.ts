@@ -1,8 +1,8 @@
 import { Injectable } from "../../components/decorators.js";
 import { BaseMemoryStorage } from "../types.js";
 
-/** 
- * A simple in-memory storage for rapid prototyping and tests. 
+/**
+ * A simple in-memory storage for rapid prototyping and tests.
  * Not suitable for production with multiple workers.
  */
 @Injectable()

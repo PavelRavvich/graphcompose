@@ -40,16 +40,18 @@ export interface JudgeResult {
   readonly metrics?: Record<string, number | string | boolean>;
 }
 
-
 import { z } from "zod";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { componentOf } from "./metadata.js";
 
 export abstract class BaseJudge {
-  async evaluate(state: { replyWith: string } & Record<string, any>, context: JudgeContext): Promise<JudgeResult> {
+  async evaluate(
+    state: { replyWith: string } & Record<string, any>,
+    context: JudgeContext,
+  ): Promise<JudgeResult> {
     const metaWrapper = componentOf(this.constructor as Class);
     const meta = metaWrapper?.meta as JudgeMeta | undefined;
-    
+
     if (!meta || !meta.model || !meta.systemPrompt || !meta.metrics || !context.chatModel) {
       return { passed: true }; // No declarative rules or model provided
     }
@@ -58,22 +60,22 @@ export abstract class BaseJudge {
     const shape: Record<string, any> = {};
     for (const [key, rule] of Object.entries(meta.metrics)) {
       if (rule.exact !== undefined) {
-         if (typeof rule.exact === "boolean") shape[key] = z.boolean();
-         else if (typeof rule.exact === "number") shape[key] = z.number();
-         else shape[key] = z.any(); // fallback
+        if (typeof rule.exact === "boolean") shape[key] = z.boolean();
+        else if (typeof rule.exact === "number") shape[key] = z.number();
+        else shape[key] = z.any(); // fallback
       } else {
-         shape[key] = z.number();
+        shape[key] = z.number();
       }
     }
     const schema = z.object(shape);
 
     const modelWithStruct = context.chatModel.withStructuredOutput(schema);
-    
+
     let metricsResult: Record<string, any>;
     try {
       metricsResult = await modelWithStruct.invoke([
         new SystemMessage(meta.systemPrompt),
-        new HumanMessage(state.replyWith)
+        new HumanMessage(state.replyWith),
       ]);
     } catch (e) {
       console.error("Failed to execute declarative judge:", e);
@@ -86,38 +88,37 @@ export abstract class BaseJudge {
     for (const [key, rule] of Object.entries(meta.metrics)) {
       const val = metricsResult[key];
       if (val === undefined) {
-         allPassed = false;
-         combinedFeedback += `- Missing metric '${key}'.
+        allPassed = false;
+        combinedFeedback += `- Missing metric '${key}'.
 `;
-         continue;
+        continue;
       }
-      
+
       if (rule.exact !== undefined) {
-         // Deep equal check for exact
-         if (JSON.stringify(val) !== JSON.stringify(rule.exact)) {
-            allPassed = false;
-            combinedFeedback += `- ${rule.feedback}
+        // Deep equal check for exact
+        if (JSON.stringify(val) !== JSON.stringify(rule.exact)) {
+          allPassed = false;
+          combinedFeedback += `- ${rule.feedback}
 `;
-         }
+        }
       } else {
-         if (rule.min !== undefined && (val as number) < rule.min) {
-            allPassed = false;
-            combinedFeedback += `- ${rule.feedback}
+        if (rule.min !== undefined && (val as number) < rule.min) {
+          allPassed = false;
+          combinedFeedback += `- ${rule.feedback}
 `;
-         }
-         if (rule.max !== undefined && (val as number) > rule.max) {
-            allPassed = false;
-            combinedFeedback += `- ${rule.feedback}
+        }
+        if (rule.max !== undefined && (val as number) > rule.max) {
+          allPassed = false;
+          combinedFeedback += `- ${rule.feedback}
 `;
-         }
+        }
       }
     }
 
-    return { 
-      passed: allPassed, 
+    return {
+      passed: allPassed,
       feedback: allPassed ? undefined : combinedFeedback,
-      metrics: metricsResult 
+      metrics: metricsResult,
     };
   }
 }
-

@@ -8,29 +8,29 @@ import { BasicTracerProvider } from "@opentelemetry/sdk-trace-base";
  * not register global OpenTelemetry. Session = conversation thread, tags = workflow.
  */
 export function langfuseTracing(env) {
-    const publicKey = env.LANGFUSE_PUBLIC_KEY;
-    const secretKey = env.LANGFUSE_SECRET_KEY;
-    const baseUrl = env.LANGFUSE_BASE_URL;
-    const projectId = env.LANGFUSE_PROJECT_ID === "" ? undefined : env.LANGFUSE_PROJECT_ID;
-    if (!publicKey || !secretKey || !baseUrl)
-        return undefined;
-    const processor = new LangfuseSpanProcessor({ publicKey, secretKey, baseUrl });
-    const provider = new BasicTracerProvider({ spanProcessors: [processor] });
-    setLangfuseTracerProvider(provider);
-    return {
-        callbacks: ({ bundle, threadId, runId }) => [
-            new CallbackHandler({
-                sessionId: threadId,
-                tags: [bundle],
-                traceMetadata: { bundle, runId },
-            }),
-        ],
-        sessionUrl: (threadId) => projectId === undefined
-            ? undefined
-            : `${baseUrl.replace(/\/+$/, "")}/project/${encodeURIComponent(projectId)}/sessions/${encodeURIComponent(threadId)}`,
-        shutdown: async () => {
-            await provider.shutdown();
-            setLangfuseTracerProvider(null);
-        },
-    };
+  const publicKey = env.LANGFUSE_PUBLIC_KEY;
+  const secretKey = env.LANGFUSE_SECRET_KEY;
+  const baseUrl = env.LANGFUSE_BASE_URL;
+  const projectId = env.LANGFUSE_PROJECT_ID === "" ? undefined : env.LANGFUSE_PROJECT_ID;
+  if (!publicKey || !secretKey || !baseUrl) return undefined;
+  const processor = new LangfuseSpanProcessor({ publicKey, secretKey, baseUrl });
+  const provider = new BasicTracerProvider({ spanProcessors: [processor] });
+  setLangfuseTracerProvider(provider);
+  return {
+    callbacks: ({ bundle, threadId, runId }) => [
+      new CallbackHandler({
+        sessionId: threadId,
+        tags: [bundle],
+        traceMetadata: { bundle, runId },
+      }),
+    ],
+    sessionUrl: (threadId) =>
+      projectId === undefined
+        ? undefined
+        : `${baseUrl.replace(/\/+$/, "")}/project/${encodeURIComponent(projectId)}/sessions/${encodeURIComponent(threadId)}`,
+    shutdown: async () => {
+      await provider.shutdown();
+      setLangfuseTracerProvider(null);
+    },
+  };
 }

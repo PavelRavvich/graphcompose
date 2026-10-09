@@ -5,16 +5,15 @@ import { flowGraphOf } from "./flow-runtime.js";
  * apply; the day's spend is read from the workflow's ledger.
  */
 export async function studioGraph(deps) {
-    const { graph } = await flowGraphOf(deps, {
-        limits: deps.limits,
-        spentToday: () => deps.ledger.spentToday(deps.config.name),
-    });
-    if (deps.tracing === undefined)
-        return graph;
-    const callbacks = deps.tracing.callbacks({
-        bundle: deps.config.name,
-        threadId: "studio",
-        runId: "studio",
-    });
-    return graph.withConfig({ callbacks });
+  const { graph } = await flowGraphOf(deps, {
+    limits: deps.limits,
+    spentToday: () => deps.ledger.spentToday(deps.config.name),
+  });
+  if (deps.tracing === undefined) return graph;
+  const callbacks = deps.tracing.callbacks({
+    bundle: deps.config.name,
+    threadId: "studio",
+    runId: "studio",
+  });
+  return graph.withConfig({ callbacks });
 }

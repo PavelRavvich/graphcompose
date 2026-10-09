@@ -7,15 +7,15 @@ const BLANK_LINE = /^[ \t]*$/;
  * between paragraphs.
  */
 export function normalisePromptText(text) {
-    const lines = text.replace(BOM, "").replace(LINE_BREAK, "\n").normalize("NFC").split("\n");
-    const first = lines.findIndex((line) => !BLANK_LINE.test(line));
-    if (first === -1)
-        return "";
-    const last = lines.findLastIndex((line) => !BLANK_LINE.test(line));
-    return lines.slice(first, last + 1).join("\n");
+  const lines = text.replace(BOM, "").replace(LINE_BREAK, "\n").normalize("NFC").split("\n");
+  const first = lines.findIndex((line) => !BLANK_LINE.test(line));
+  if (first === -1) return "";
+  const last = lines.findLastIndex((line) => !BLANK_LINE.test(line));
+  return lines.slice(first, last + 1).join("\n");
 }
 /** Parts of one text (inline `prompt` first, then files in order), joined with one blank line. */
-export const joinPromptParts = (parts) => parts
+export const joinPromptParts = (parts) =>
+  parts
     .map(normalisePromptText)
     .filter((part) => part !== "")
     .join("\n\n");

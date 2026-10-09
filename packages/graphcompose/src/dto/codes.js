@@ -22,7 +22,4 @@ const setOf = (codes) => new Set(codes.trim().split(/\s+/));
 export const CURRENCY_CODES = setOf(CURRENCIES);
 export const COUNTRY_CODES = setOf(COUNTRIES);
 /** IANA time zones known to the runtime, plus `UTC` (which `Intl` lists only as `Etc/UTC` or not at all). */
-export const TIME_ZONES = new Set([
-    ...Intl.supportedValuesOf("timeZone"),
-    "UTC",
-]);
+export const TIME_ZONES = new Set([...Intl.supportedValuesOf("timeZone"), "UTC"]);

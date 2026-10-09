@@ -44,3 +44,5 @@ export { workflowOf } from "../components/assemble.js";
 export { toolOf } from "../components/runtime.js";
 
 export { mcpServerStub } from "../components/mcp-client.js";
+
+export { VCRMode, VcrChatModel } from "./vcr.js";

@@ -54,8 +54,8 @@ class BookFlightAgent {
     from(ProcessPaymentAgent).next(BookFlightAgent),
     // Route any error in book_flight to LocalSagaStrategy to trigger rollbacks
     catchError(BookFlightAgent, Error).compensateWith(LocalSagaStrategy),
-    from(LocalSagaStrategy).next(WorkflowFinish)
-  ]
+    from(LocalSagaStrategy).next(WorkflowFinish),
+  ],
 })
 class VacationBookingWorkflow {}
 
@@ -78,20 +78,15 @@ describe("Saga Orchestration", () => {
 
       const res = await app.run({});
       expect(res.status).toBe("completed");
-      
+
       // Expected execution order:
       // 1. book_hotel
       // 2. process_payment
       // 3. Error in book_flight -> routed to LocalSagaStrategy
       // 4. LocalSagaStrategy finds book_hotel and process_payment in history
       // 5. Compensates in reverse: cancel_payment -> cancel_hotel
-      
-      expect(logs).toEqual([
-        "book_hotel",
-        "process_payment",
-        "cancel_payment",
-        "cancel_hotel"
-      ]);
+
+      expect(logs).toEqual(["book_hotel", "process_payment", "cancel_payment", "cancel_hotel"]);
     });
   });
 });

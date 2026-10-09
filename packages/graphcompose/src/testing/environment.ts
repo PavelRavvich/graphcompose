@@ -84,7 +84,7 @@ export class TestEnvironment {
     readonly workflow: Class,
     nodes: readonly FlowNode[],
     options: TestWithOptions,
-    assembled: import("../workflow.js").AssembledWorkflow
+    assembled: import("../workflow.js").AssembledWorkflow,
   ) {
     this.#nodes = new Set(nodes);
     for (const node of nodes) {
@@ -96,7 +96,9 @@ export class TestEnvironment {
     const labels = new Map([...servers].map(([cls, name]) => [name, cls.name] as const));
     this.#options = {
       env: testEnv(),
-      gateway: options.vcr ? createVcrGateway(assembled, options.vcr, testEnv()) : createScriptedGateway(this.book),
+      gateway: options.vcr
+        ? createVcrGateway(assembled, options.vcr, testEnv())
+        : createScriptedGateway(this.book),
       connectMcp: stubbedMcpConnect(this.mcp, labels, real),
       stores: {
         checkpointer: new MemorySaver(),
@@ -116,7 +118,12 @@ export class TestEnvironment {
   /** Assembles the workflow once up front: every assembly error fails the test before it runs. */
   static async of(workflow: Class, options: TestWithOptions = {}): Promise<TestEnvironment> {
     const assembled = await workflowOf(workflow);
-    return new TestEnvironment(workflow, [...flowNodesByKey(assembled.flow).values()], options, assembled);
+    return new TestEnvironment(
+      workflow,
+      [...flowNodesByKey(assembled.flow).values()],
+      options,
+      assembled,
+    );
   }
 
   /** A new app over this test's state (the real container and graph, everything external replaced). */

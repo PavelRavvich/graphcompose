@@ -5,19 +5,17 @@ const INTERRUPT_KEYS = new Set(["\u001b", "\u0003"]);
  * keys and restores it when the returned function is called. No-op when input is not a terminal.
  */
 export function onInterruptKey(input, onInterrupt) {
-    if (input.isTTY !== true || input.setRawMode === undefined)
-        return () => undefined;
-    const wasRaw = input.isRaw === true;
-    input.setRawMode(true);
-    const onData = (chunk) => {
-        if (INTERRUPT_KEYS.has(chunk.toString()))
-            onInterrupt();
-    };
-    input.on("data", onData);
-    return () => {
-        input.off("data", onData);
-        input.setRawMode?.(wasRaw);
-    };
+  if (input.isTTY !== true || input.setRawMode === undefined) return () => undefined;
+  const wasRaw = input.isRaw === true;
+  input.setRawMode(true);
+  const onData = (chunk) => {
+    if (INTERRUPT_KEYS.has(chunk.toString())) onInterrupt();
+  };
+  input.on("data", onData);
+  return () => {
+    input.off("data", onData);
+    input.setRawMode?.(wasRaw);
+  };
 }
 const ESC = String.fromCharCode(27);
 const CTRL_C = String.fromCharCode(3);

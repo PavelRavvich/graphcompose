@@ -11,47 +11,46 @@ import "./vitest-types.js";
  * when it failed. `const test = testWith(JobScout)`.
  */
 export function testWith(workflow, options = {}) {
-    return test.extend({
-        testSetup: { workflow, options },
-        environment: [
-            async ({ testSetup }, use) => {
-                const environment = await TestEnvironment.of(testSetup.workflow, testSetup.options);
-                const unblock = blockNetwork({
-                    allowed: testSetup.options.allowNetwork ?? [],
-                    onBlocked: (error) => environment.book.report(error),
-                });
-                try {
-                    await use(environment);
-                }
-                finally {
-                    unblock();
-                    await environment.close();
-                }
-            },
-            { auto: true },
-        ],
-        app: async ({ environment }, use) => {
-            await use(createTestApp(environment));
-        },
-        recoverApp: async ({ environment, app }, use) => {
-            let current = app;
-            await use(async () => {
-                await current.close();
-                current = createTestApp(environment);
-                return current;
-            });
-        },
-        mockLlm: async ({ environment }, use) => {
-            await use((component) => environment.mockLlm(component));
-        },
-        mockSubworkflow: async ({ environment }, use) => {
-            await use((workflow) => environment.mockSubworkflow(workflow));
-        },
-        mockOf: async ({ environment }, use) => {
-            await use((component) => environment.mockOf(component));
-        },
-        mcpOf: async ({ environment }, use) => {
-            await use((server) => environment.mcpOf(server));
-        },
-    });
+  return test.extend({
+    testSetup: { workflow, options },
+    environment: [
+      async ({ testSetup }, use) => {
+        const environment = await TestEnvironment.of(testSetup.workflow, testSetup.options);
+        const unblock = blockNetwork({
+          allowed: testSetup.options.allowNetwork ?? [],
+          onBlocked: (error) => environment.book.report(error),
+        });
+        try {
+          await use(environment);
+        } finally {
+          unblock();
+          await environment.close();
+        }
+      },
+      { auto: true },
+    ],
+    app: async ({ environment }, use) => {
+      await use(createTestApp(environment));
+    },
+    recoverApp: async ({ environment, app }, use) => {
+      let current = app;
+      await use(async () => {
+        await current.close();
+        current = createTestApp(environment);
+        return current;
+      });
+    },
+    mockLlm: async ({ environment }, use) => {
+      await use((component) => environment.mockLlm(component));
+    },
+    mockSubworkflow: async ({ environment }, use) => {
+      await use((workflow) => environment.mockSubworkflow(workflow));
+    },
+    mockOf: async ({ environment }, use) => {
+      await use((component) => environment.mockOf(component));
+    },
+    mcpOf: async ({ environment }, use) => {
+      await use((server) => environment.mcpOf(server));
+    },
+  });
 }

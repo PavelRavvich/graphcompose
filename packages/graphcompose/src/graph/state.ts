@@ -55,7 +55,10 @@ export const AgentState = Annotation.Root({
     default: () => ({}),
   }),
   /** System flag indicating that the run was cancelled externally. */
-  cancelRequested: Annotation<boolean>({ reducer: (_previous, next) => next, default: () => false }),
+  cancelRequested: Annotation<boolean>({
+    reducer: (_previous, next) => next,
+    default: () => false,
+  }),
 });
 
 export type AgentStateType = typeof AgentState.State;

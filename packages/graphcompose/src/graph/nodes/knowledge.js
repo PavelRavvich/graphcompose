@@ -8,28 +8,33 @@ import { CITE_INSTRUCTION, knowledgeBlock } from "../../prompts/rag.js";
  * turn goes on (fail-open), the error stays on the span.
  */
 export async function gatherKnowledge(sources, query, config, deps, appState) {
-    const records = [];
-    const blocks = [];
-    const signal = config?.signal ?? new AbortController().signal;
-    for (const source of sources) {
-        try {
-            if (deps && appState) {
-                await deps.onRagStart({ name: source.name, input: query, state: appState });
-            }
-            const retrieval = await RunnableLambda.from((q) => source.retrieve(q, { topK: source.topK, signal })).invoke(query, { ...config, runName: `rag:${source.name}` });
-            if (deps && appState) {
-                await deps.onRagEnd({ name: source.name, update: retrieval, state: appState });
-            }
-            records.push(recordReportedCost({ name: source.name, costCaller: `rag:${source.name}` }, retrieval.costUsd ?? 0));
-            if (retrieval.results.length > 0)
-                blocks.push(knowledgeBlock(source.name, retrieval.results));
-        }
-        catch {
-            // fail-open: knowledge is an aid, not a gate
-        }
+  const records = [];
+  const blocks = [];
+  const signal = config?.signal ?? new AbortController().signal;
+  for (const source of sources) {
+    try {
+      if (deps && appState) {
+        await deps.onRagStart({ name: source.name, input: query, state: appState });
+      }
+      const retrieval = await RunnableLambda.from((q) =>
+        source.retrieve(q, { topK: source.topK, signal }),
+      ).invoke(query, { ...config, runName: `rag:${source.name}` });
+      if (deps && appState) {
+        await deps.onRagEnd({ name: source.name, update: retrieval, state: appState });
+      }
+      records.push(
+        recordReportedCost(
+          { name: source.name, costCaller: `rag:${source.name}` },
+          retrieval.costUsd ?? 0,
+        ),
+      );
+      if (retrieval.results.length > 0) blocks.push(knowledgeBlock(source.name, retrieval.results));
+    } catch {
+      // fail-open: knowledge is an aid, not a gate
     }
-    return {
-        block: blocks.length === 0 ? "" : `${blocks.join("\n\n")}\n\n${CITE_INSTRUCTION}\n\n`,
-        records,
-    };
+  }
+  return {
+    block: blocks.length === 0 ? "" : `${blocks.join("\n\n")}\n\n${CITE_INSTRUCTION}\n\n`,
+    records,
+  };
 }

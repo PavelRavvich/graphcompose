@@ -32,7 +32,7 @@ export class StandardCompactionStrategy extends BaseMemoryStrategy<CompactionOpt
   ): Promise<BaseMessage[]> {
     let summaries: string[];
     try {
-      summaries = await this.storage.load<string[]>(state.runId, "compaction") ?? [];
+      summaries = (await this.storage.load<string[]>(state.runId, "compaction")) ?? [];
     } catch (e) {
       throw new MemoryStorageError(`Failed to load compaction summaries for run ${state.runId}`, e);
     }
@@ -58,7 +58,7 @@ export class StandardCompactionStrategy extends BaseMemoryStrategy<CompactionOpt
     }
 
     const toCompact = messages.slice(0, options.compactEvery);
-    
+
     let response;
     try {
       const model = this.gateway.chatModel({
@@ -67,21 +67,25 @@ export class StandardCompactionStrategy extends BaseMemoryStrategy<CompactionOpt
       });
 
       response = await model.invoke([
-        new SystemMessage("Summarize the following conversation segment concisely. Retain all factual information."),
+        new SystemMessage(
+          "Summarize the following conversation segment concisely. Retain all factual information.",
+        ),
         ...toCompact,
       ]);
     } catch (e) {
       throw new MemoryCompactionError(`LLM compaction failed for run ${state.runId}`, e);
     }
-    
+
     const text = String(response.content).trim();
     if (!text) {
-      throw new MemoryCompactionError(`LLM compaction returned empty summary for run ${state.runId}`);
+      throw new MemoryCompactionError(
+        `LLM compaction returned empty summary for run ${state.runId}`,
+      );
     }
 
     let summaries: string[];
     try {
-      summaries = await this.storage.load<string[]>(state.runId, "compaction") ?? [];
+      summaries = (await this.storage.load<string[]>(state.runId, "compaction")) ?? [];
       summaries.push(text);
 
       if (summaries.length > options.summariesToKeep) {

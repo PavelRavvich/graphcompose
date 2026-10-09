@@ -27,28 +27,28 @@ class Order {
 console.log(JSON.stringify({ metadata: typeof (Symbol as { metadata?: symbol }).metadata, schema: jsonSchemaOf(Order) }));
 `;
 afterAll(() => {
-    rmSync(dir, { recursive: true, force: true });
+  rmSync(dir, { recursive: true, force: true });
 });
 describe("DTO metadata under the tsc build (#118)", () => {
-    it("AC5: a tsc-compiled DTO loaded from dist has its fields in order", () => {
-        expect(existsSync(dist), "build the package first: npm run build").toBe(true);
-        const { outputText } = ts.transpileModule(source, {
-            compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext },
-        });
-        const file = join(dir, "order.mjs");
-        writeFileSync(file, outputText);
-        const run = spawnSync(process.execPath, [pathToFileURL(file).pathname], { encoding: "utf8" });
-        expect(run.stderr).toBe("");
-        expect(JSON.parse(run.stdout)).toEqual({
-            metadata: "symbol",
-            schema: {
-                type: "object",
-                properties: {
-                    code: { type: "string", description: "the order code" },
-                    notes: { type: "array", items: { type: "string" } },
-                },
-                required: ["code"],
-            },
-        });
+  it("AC5: a tsc-compiled DTO loaded from dist has its fields in order", () => {
+    expect(existsSync(dist), "build the package first: npm run build").toBe(true);
+    const { outputText } = ts.transpileModule(source, {
+      compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext },
     });
+    const file = join(dir, "order.mjs");
+    writeFileSync(file, outputText);
+    const run = spawnSync(process.execPath, [pathToFileURL(file).pathname], { encoding: "utf8" });
+    expect(run.stderr).toBe("");
+    expect(JSON.parse(run.stdout)).toEqual({
+      metadata: "symbol",
+      schema: {
+        type: "object",
+        properties: {
+          code: { type: "string", description: "the order code" },
+          notes: { type: "array", items: { type: "string" } },
+        },
+        required: ["code"],
+      },
+    });
+  });
 });

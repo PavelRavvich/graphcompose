@@ -4,14 +4,14 @@ import { completion, providerStub } from "./stub.js";
 export const ENV = { OPENROUTER_API_KEY: "k" };
 /** The bodies a provider gateway sends for one chat call per settings. */
 export async function wireBodies(providers, calls, replies = [completion()]) {
-    const stub = providerStub(replies);
-    const gateway = createProviderGateway(ModelProviderDirectory.of(providers), {
-        env: ENV,
-        breakers: new CircuitBreakers(),
-        send: stub.fetch,
-    });
-    for (const settings of calls) {
-        await gateway.chatModel({ user: { kind: "agent", agent: "scout" }, settings }).invoke("hi");
-    }
-    return stub.requests.map((request) => request.body ?? {});
+  const stub = providerStub(replies);
+  const gateway = createProviderGateway(ModelProviderDirectory.of(providers), {
+    env: ENV,
+    breakers: new CircuitBreakers(),
+    send: stub.fetch,
+  });
+  for (const settings of calls) {
+    await gateway.chatModel({ user: { kind: "agent", agent: "scout" }, settings }).invoke("hi");
+  }
+  return stub.requests.map((request) => request.body ?? {});
 }

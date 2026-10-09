@@ -6,7 +6,12 @@ import type { CallbackManagerForLLMRun } from "@langchain/core/callbacks/manager
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { createModelGateway, type ChatModelSpec, type DecisionSpec, type ModelGateway } from "../llm/gateway.js";
+import {
+  createModelGateway,
+  type ChatModelSpec,
+  type DecisionSpec,
+  type ModelGateway,
+} from "../llm/gateway.js";
 import { providerClients } from "../llm/provider-clients.js";
 import { directoryOf } from "../models/workflow-models.js";
 import type { AssembledWorkflow } from "../workflow.js";
@@ -46,15 +51,19 @@ export class VcrChatModel extends BaseChatModel {
     private wrappedModel: BaseChatModel,
     private cassettePath: string,
     private mode: VCRMode,
-    private agentName: string
+    private agentName: string,
   ) {
     super({});
   }
 
   private hashRequest(messages: BaseMessage[], tools?: any[]): string {
     const data = JSON.stringify({
-      messages: messages.map(m => ({ _getType: m._getType(), content: m.content, additional_kwargs: m.additional_kwargs })),
-      tools
+      messages: messages.map((m) => ({
+        _getType: m._getType(),
+        content: m.content,
+        additional_kwargs: m.additional_kwargs,
+      })),
+      tools,
     });
     return crypto.createHash("sha256").update(data).digest("hex");
   }
@@ -62,38 +71,49 @@ export class VcrChatModel extends BaseChatModel {
   async _generate(
     messages: BaseMessage[],
     options: this["ParsedCallOptions"],
-    runManager?: CallbackManagerForLLMRun
+    runManager?: CallbackManagerForLLMRun,
   ): Promise<ChatResult> {
-    const isReplay = this.mode === VCRMode.REPLAY || (this.mode === VCRMode.AUTO && fs.existsSync(this.cassettePath));
-    const isRecord = this.mode === VCRMode.RECORD || (this.mode === VCRMode.AUTO && !fs.existsSync(this.cassettePath));
+    const isReplay =
+      this.mode === VCRMode.REPLAY ||
+      (this.mode === VCRMode.AUTO && fs.existsSync(this.cassettePath));
+    const isRecord =
+      this.mode === VCRMode.RECORD ||
+      (this.mode === VCRMode.AUTO && !fs.existsSync(this.cassettePath));
 
     if (isReplay) {
       if (!fs.existsSync(this.cassettePath)) {
-        throw new Error(`Cassette mismatch: please re-record. File not found: ${this.cassettePath}`);
+        throw new Error(
+          `Cassette mismatch: please re-record. File not found: ${this.cassettePath}`,
+        );
       }
-      
+
       const cassette: Cassette = JSON.parse(fs.readFileSync(this.cassettePath, "utf-8"));
       const requestHash = this.hashRequest(messages, (options as any).tools);
-      
-      const match = cassette.interactions.find(i => {
-         if (i.agentName !== this.agentName) return false;
-         const storedHash = crypto.createHash("sha256").update(JSON.stringify(i.request)).digest("hex");
-         return storedHash === requestHash;
+
+      const match = cassette.interactions.find((i) => {
+        if (i.agentName !== this.agentName) return false;
+        const storedHash = crypto
+          .createHash("sha256")
+          .update(JSON.stringify(i.request))
+          .digest("hex");
+        return storedHash === requestHash;
       });
 
       if (!match) {
-        throw new Error(`Cassette mismatch: please re-record. Interaction not found for ${this.agentName}`);
+        throw new Error(
+          `Cassette mismatch: please re-record. Interaction not found for ${this.agentName}`,
+        );
       }
-      
+
       // Reconstruct AIMessages from the stored JSON to satisfy LangChain
       const response = match.response;
-      response.generations = response.generations.map(gen => {
+      response.generations = response.generations.map((gen) => {
         if (gen.message && gen.message.id) {
           const msg = new AIMessage({
             content: gen.message.content,
             additional_kwargs: gen.message.additional_kwargs,
             tool_calls: (gen.message as any).tool_calls,
-            id: gen.message.id
+            id: gen.message.id,
           });
           gen.message = msg;
         }
@@ -104,7 +124,7 @@ export class VcrChatModel extends BaseChatModel {
 
     if (isRecord) {
       const result = await this.wrappedModel._generate(messages, options, runManager);
-      
+
       let cassette: Cassette = { interactions: [] };
       if (fs.existsSync(this.cassettePath)) {
         cassette = JSON.parse(fs.readFileSync(this.cassettePath, "utf-8"));
@@ -113,10 +133,14 @@ export class VcrChatModel extends BaseChatModel {
       cassette.interactions.push({
         agentName: this.agentName,
         request: {
-          messages: messages.map(m => ({ _getType: m._getType(), content: m.content, additional_kwargs: m.additional_kwargs })),
-          tools: (options as any).tools
+          messages: messages.map((m) => ({
+            _getType: m._getType(),
+            content: m.content,
+            additional_kwargs: m.additional_kwargs,
+          })),
+          tools: (options as any).tools,
         },
-        response: result
+        response: result,
       });
 
       fs.mkdirSync(path.dirname(this.cassettePath), { recursive: true });
@@ -132,24 +156,29 @@ export class VcrChatModel extends BaseChatModel {
 export function createVcrGateway(
   bundle: AssembledWorkflow,
   vcrConfig: VcrConfig,
-  env: NodeJS.ProcessEnv
+  env: NodeJS.ProcessEnv,
 ): ModelGateway {
   const directory = directoryOf(bundle.models);
   const clientsOpts = providerClientsOf({}, env);
   const realClients = providerClients(directory, clientsOpts);
-  
+
   // Create a real gateway
   const realGateway = createModelGateway(realClients);
-  
+
   const dir = vcrConfig.dir ?? "__snapshots__";
   const cassettePath = path.join(dir, `${vcrConfig.cassetteName}.cassette.json`);
   const mode = vcrConfig.mode ?? VCRMode.AUTO;
-  
+
   // Wrap it so that chatModel AND routeTo (which calls chatModel) both use the intercepted BaseChatModel
   const vcrGateway: ModelGateway = {
     chatModel: (spec: ChatModelSpec) => {
       const realModel = realGateway.chatModel(spec);
-      const agentName = spec.user.kind === "agent" ? spec.user.agent : spec.user.kind === "router" ? spec.user.router : "compaction";
+      const agentName =
+        spec.user.kind === "agent"
+          ? spec.user.agent
+          : spec.user.kind === "router"
+            ? spec.user.router
+            : "compaction";
       return new VcrChatModel(realModel, cassettePath, mode, agentName);
     },
     routeTo: async (spec: DecisionSpec) => {
@@ -160,20 +189,23 @@ export function createVcrGateway(
       // To fix this, we can recreate the routing logic or just recreate the gateway over wrapped clients?
       // Recreating gateway logic for routeTo:
       if (spec.model.kind === "jev") {
-         // JeV doesn't use BaseChatModel, we could record it differently, but spec implies wrapping BaseChatModel.
-         return realGateway.routeTo(spec);
+        // JeV doesn't use BaseChatModel, we could record it differently, but spec implies wrapping BaseChatModel.
+        return realGateway.routeTo(spec);
       } else {
-         const { createLlmRouter } = await import("../routers/index.js");
-         // Get the wrapped model using OUR chatModel override
-         const wrappedModel = vcrGateway.chatModel({ user: { kind: "router", router: spec.router }, settings: spec.model.settings });
-         const router = createLlmRouter({
-           name: spec.router,
-           model: wrappedModel,
-           settings: spec.model.settings
-         });
-         return router.route(spec.request);
+        const { createLlmRouter } = await import("../routers/index.js");
+        // Get the wrapped model using OUR chatModel override
+        const wrappedModel = vcrGateway.chatModel({
+          user: { kind: "router", router: spec.router },
+          settings: spec.model.settings,
+        });
+        const router = createLlmRouter({
+          name: spec.router,
+          model: wrappedModel,
+          settings: spec.model.settings,
+        });
+        return router.route(spec.request);
       }
-    }
+    },
   };
   return vcrGateway;
 }

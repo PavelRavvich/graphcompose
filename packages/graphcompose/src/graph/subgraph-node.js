@@ -3,5 +3,6 @@
  * it pauses the whole run and `Command({ resume })` continues it (checkpoint namespaces).
  */
 export function subgraphNode(subgraph, mapping) {
-    return async (state, config) => mapping.output(await subgraph.invoke(mapping.input(state), config));
+  return async (state, config) =>
+    mapping.output(await subgraph.invoke(mapping.input(state), config));
 }

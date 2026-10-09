@@ -2,40 +2,46 @@ import { Send } from "@langchain/langgraph";
 import { unknownToolMessage } from "../../prompts/agents.js";
 import { callsOf, toolNamed } from "./deps.js";
 import { JudgePoint, visitToolThenAgent, mergePolicies } from "./judge-points.js";
-import { LOOP_NODE, } from "./state.js";
+import { LOOP_NODE } from "./state.js";
 /** Calls of the move that wait for a decision: their tool needs one and nobody decided yet. */
 export function awaitingApproval(state, deps) {
-    const approval = deps.approval;
-    if (approval === undefined)
-        return [];
-    return callsOf(state.move).filter((call) => {
-        const tool = toolNamed(deps.agent, call.tool);
-        return (tool !== undefined &&
-            tool.channel !== undefined &&
-            state.decisions[call.callId] === undefined &&
-            state.results[call.callId] === undefined);
-    });
+  const approval = deps.approval;
+  if (approval === undefined) return [];
+  return callsOf(state.move).filter((call) => {
+    const tool = toolNamed(deps.agent, call.tool);
+    return (
+      tool !== undefined &&
+      tool.channel !== undefined &&
+      state.decisions[call.callId] === undefined &&
+      state.results[call.callId] === undefined
+    );
+  });
 }
 /** Calls of the move allowed to run that have no stored result yet. */
-export const runnableCalls = (state) => callsOf(state.move).filter((call) => state.results[call.callId] === undefined && state.decisions[call.callId]?.approved !== false);
+export const runnableCalls = (state) =>
+  callsOf(state.move).filter(
+    (call) =>
+      state.results[call.callId] === undefined && state.decisions[call.callId]?.approved !== false,
+  );
 /**
  * After the boundary (and after each decision): ask about the next call that waits (one per pause),
  * else run every allowed call as its own task, else collect the results.
  */
 export function routeToActions(deps) {
-    return (state) => {
-        if (awaitingApproval(state, deps).length > 0)
-            return LOOP_NODE.approval;
-        const calls = runnableCalls(state);
-        if (calls.length === 0)
-            return LOOP_NODE.collect;
-        return calls.map((call) => new Send(LOOP_NODE.tool, {
-            callId: call.callId,
-            tool: call.tool,
-            args: state.decisions[call.callId]?.overrideArguments ?? call.args,
-            runId: state.runId,
-        }));
-    };
+  return (state) => {
+    if (awaitingApproval(state, deps).length > 0) return LOOP_NODE.approval;
+    const calls = runnableCalls(state);
+    if (calls.length === 0) return LOOP_NODE.collect;
+    return calls.map(
+      (call) =>
+        new Send(LOOP_NODE.tool, {
+          callId: call.callId,
+          tool: call.tool,
+          args: state.decisions[call.callId]?.overrideArguments ?? call.args,
+          runId: state.runId,
+        }),
+    );
+  };
 }
 /**
  * The move boundary: the move joins the conversation; for each call, in order, the tool's judges
@@ -43,24 +49,35 @@ export function routeToActions(deps) {
  * is answered right here, as a finished call with a tool error.
  */
 export function makeBoundaryNode(deps) {
-    return async (state, config) => {
-        const results = {};
-        for (const call of callsOf(state.move)) {
-            if (toolNamed(deps.agent, call.tool) === undefined) {
-                const content = unknownToolMessage(call.tool);
-                results[call.callId] = { callId: call.callId, tool: call.tool, content };
-                continue;
-            }
-            const ctx = {
-                agent: deps.agent.name,
-                call,
-                runId: config?.configurable?.run_id ?? state.runId,
-                metadata: config?.configurable?.metadata ?? {},
-            };
-            const combinedGuardrails = mergePolicies(deps.workflowGuardrails, deps.guardrails, deps.toolGuardrails?.(call.tool));
-            const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
-            await visitToolThenAgent(combinedGuardrails, JudgePoint.BeforeToolCall, ctx, undefined, deps.observer, appState);
-        }
-        return { messages: state.move === null ? [] : [state.move], results };
-    };
+  return async (state, config) => {
+    const results = {};
+    for (const call of callsOf(state.move)) {
+      if (toolNamed(deps.agent, call.tool) === undefined) {
+        const content = unknownToolMessage(call.tool);
+        results[call.callId] = { callId: call.callId, tool: call.tool, content };
+        continue;
+      }
+      const ctx = {
+        agent: deps.agent.name,
+        call,
+        runId: config?.configurable?.run_id ?? state.runId,
+        metadata: config?.configurable?.metadata ?? {},
+      };
+      const combinedGuardrails = mergePolicies(
+        deps.workflowGuardrails,
+        deps.guardrails,
+        deps.toolGuardrails?.(call.tool),
+      );
+      const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
+      await visitToolThenAgent(
+        combinedGuardrails,
+        JudgePoint.BeforeToolCall,
+        ctx,
+        undefined,
+        deps.observer,
+        appState,
+      );
+    }
+    return { messages: state.move === null ? [] : [state.move], results };
+  };
 }

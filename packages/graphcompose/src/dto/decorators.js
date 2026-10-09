@@ -1,25 +1,25 @@
 import { recordField } from "./metadata.js";
 /** The decorator that records one field; `(initial) => initial` leaves the value alone. */
 function field(kind, settings, element) {
-    return (_value, context) => {
-        recordField(context.metadata, {
-            name: String(context.name),
-            kind,
-            optional: "optional" in settings && settings.optional === true,
-            settings,
-            ...(element === undefined ? {} : { element }),
-            isPrivate: context.private,
-        });
-        return (initial) => initial;
-    };
+  return (_value, context) => {
+    recordField(context.metadata, {
+      name: String(context.name),
+      kind,
+      optional: "optional" in settings && settings.optional === true,
+      settings,
+      ...(element === undefined ? {} : { element }),
+      isPrivate: context.private,
+    });
+    return (initial) => initial;
+  };
 }
 /** Factories of plain values, so `@ListOf(Text)` knows what its elements are. */
 const scalarFactories = new WeakMap();
 function scalar(kind) {
-    const factory = (options = {}) => field(kind, options);
-    scalarFactories.set(factory, kind);
-    // one implementation behind both call signatures: `optional` only changes the field's type
-    return factory;
+  const factory = (options = {}) => field(kind, options);
+  scalarFactories.set(factory, kind);
+  // one implementation behind both call signatures: `optional` only changes the field's type
+  return factory;
 }
 /** Text; own formats with `pattern` (say the format in `prompt` too). */
 export const Text = scalar("text");
@@ -52,20 +52,18 @@ export const MediaType = scalar("media-type");
 /** An IANA time zone: `"Asia/Jerusalem"`. */
 export const TimeZone = scalar("time-zone");
 export function OneOf(options) {
-    return field("one-of", options);
+  return field("one-of", options);
 }
 /** A list item is a plain-value factory (registered by `scalar`) or else a DTO class. */
 const elementOf = (item) => {
-    const kind = scalarFactories.get(item);
-    // the overloads admit only factories and DTO classes, so anything unregistered is a DTO class
-    return kind === undefined
-        ? { kind: "dto", dto: item }
-        : { kind: "scalar", scalar: kind };
+  const kind = scalarFactories.get(item);
+  // the overloads admit only factories and DTO classes, so anything unregistered is a DTO class
+  return kind === undefined ? { kind: "dto", dto: item } : { kind: "scalar", scalar: kind };
 };
 const listOf = (item, options = {}) => field("list-of", options, elementOf(item));
 /** A list of DTOs (`@ListOf(Job)`) or of plain values (`@ListOf(Text)`). */
 // one implementation behind both call signatures: `optional` only changes the field's type
 export const ListOf = listOf;
 export function Nested(dto, options = {}) {
-    return field("nested", options, { kind: "dto", dto });
+  return field("nested", options, { kind: "dto", dto });
 }

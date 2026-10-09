@@ -1,4 +1,2 @@
-export class BaseMemoryStorage {
-}
-export class BaseMemoryStrategy {
-}
+export class BaseMemoryStorage {}
+export class BaseMemoryStrategy {}

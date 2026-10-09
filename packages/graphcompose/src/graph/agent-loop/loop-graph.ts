@@ -40,7 +40,11 @@ function createLoopGraph(deps: AgentLoopDeps, checkpointer: BaseCheckpointSaver 
     .addEdge(LOOP_NODE.collect, LOOP_NODE.model)
     .addNode(LOOP_NODE.judge, makeJudgeNode(deps))
     .addEdge(LOOP_NODE.replyWith, LOOP_NODE.judge)
-    .addConditionalEdges(LOOP_NODE.judge, (state) => state.reply === null ? LOOP_NODE.model : END, [LOOP_NODE.model, END])
+    .addConditionalEdges(
+      LOOP_NODE.judge,
+      (state) => (state.reply === null ? LOOP_NODE.model : END),
+      [LOOP_NODE.model, END],
+    )
     .compile(checkpointer === undefined ? {} : { checkpointer });
 }
 

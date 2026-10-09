@@ -8,23 +8,20 @@ const FRAMEWORK = fileURLToPath(new URL("../", import.meta.url));
  * next to it, like Angular's `templateUrl` (Angular's compiler knows the file; a decorator does not).
  */
 export function callerFile() {
-    // V8's hook is a plain function property meant to be swapped and restored, not a bound method
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const original = Error.prepareStackTrace;
-    Error.prepareStackTrace = (_error, frames) => frames;
-    try {
-        const frames = new Error().stack;
-        for (const frame of frames) {
-            const name = frame.getFileName();
-            if (name === null)
-                continue;
-            const file = name.startsWith("file:") ? fileURLToPath(name) : name;
-            if (isAbsolute(file) && !file.startsWith(FRAMEWORK))
-                return file;
-        }
-        return undefined;
+  // V8's hook is a plain function property meant to be swapped and restored, not a bound method
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const original = Error.prepareStackTrace;
+  Error.prepareStackTrace = (_error, frames) => frames;
+  try {
+    const frames = new Error().stack;
+    for (const frame of frames) {
+      const name = frame.getFileName();
+      if (name === null) continue;
+      const file = name.startsWith("file:") ? fileURLToPath(name) : name;
+      if (isAbsolute(file) && !file.startsWith(FRAMEWORK)) return file;
     }
-    finally {
-        Error.prepareStackTrace = original;
-    }
+    return undefined;
+  } finally {
+    Error.prepareStackTrace = original;
+  }
 }

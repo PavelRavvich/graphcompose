@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { Agent, WorkflowAction, Workflow } from "../../src/components/decorators.js";
 import { from, catchError } from "../../src/router/index.js";
-import { WorkflowStart, WorkflowFinish, LocalSagaStrategy, WorkflowCancelledError } from "../../src/core/index.js";
+import {
+  WorkflowStart,
+  WorkflowFinish,
+  LocalSagaStrategy,
+  WorkflowCancelledError,
+} from "../../src/core/index.js";
 import { testWith } from "../../src/testing/test-with.js";
 
 const logs: string[] = [];
@@ -27,7 +32,7 @@ class SlowAgent {
   async run() {
     logs.push("slow_agent");
     // Simulate a pause so we can cancel it
-    return new Promise(resolve => setTimeout(resolve, 50));
+    return new Promise((resolve) => setTimeout(resolve, 50));
   }
 }
 
@@ -40,8 +45,8 @@ class SlowAgent {
     from(SlowAgent).next(WorkflowFinish),
     // Catch global cancellation and rollback
     catchError(SlowAgent, WorkflowCancelledError).compensateWith(LocalSagaStrategy),
-    from(LocalSagaStrategy).next(WorkflowFinish)
-  ]
+    from(LocalSagaStrategy).next(WorkflowFinish),
+  ],
 })
 class CancellableBookingWorkflow {}
 
@@ -54,7 +59,7 @@ describe("Global Cancellation", () => {
         logs.push("process_payment");
         return { payload: {} };
       });
-      
+
       // We will intercept the slow agent and cancel the app
       app.script(SlowAgent, async (req, res, state) => {
         logs.push("slow_agent_started");
@@ -66,16 +71,16 @@ describe("Global Cancellation", () => {
 
       const res = await app.run({});
       expect(res.status).toBe("completed"); // completes successfully because LocalSaga handles the error
-      
+
       // Expected execution order:
       // 1. process_payment
       // 2. slow_agent_started -> triggers cancel -> throws CancelledError
       // 3. LocalSagaStrategy executes CancelPaymentAction
-      
+
       expect(logs).toContain("process_payment");
       expect(logs).toContain("slow_agent_started");
-      
-      const cancelLog = logs.find(l => l.startsWith("cancel_payment:"));
+
+      const cancelLog = logs.find((l) => l.startsWith("cancel_payment:"));
       expect(cancelLog).toBeDefined();
       expect(cancelLog).toMatch(/cancel_payment:run_.*_node_process_payment_global/);
     });
