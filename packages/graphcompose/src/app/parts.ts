@@ -73,7 +73,6 @@ export const servicesFor = (
   env: NodeJS.ProcessEnv,
   container: ContainerOptions,
 ): WorkflowServices => ({
-  /* v8 ignore next 2 */
   router: (name) =>
     createRouter(name, bundle.config.defaults.router, bundle.config.defaults.models, gateway),
   env,

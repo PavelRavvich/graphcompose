@@ -88,10 +88,8 @@ export async function visitToolThenAgent(
   for (const g of guardrails) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (typeof g[point] === "function") {
-      /* v8 ignore next 2 */
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/prefer-nullish-coalescing
       const gName = g.constructor.name || "UnknownGuardrail";
-      /* v8 ignore start */
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       await observer?.onGuardrailStart({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -101,7 +99,6 @@ export async function visitToolThenAgent(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         state: appState,
       });
-      /* v8 ignore stop */
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const result = await g[point](
         point === JudgePoint.OnChannelDecision ? decision : ctx,
@@ -114,7 +111,6 @@ export async function visitToolThenAgent(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         ctx.call.args = { ...ctx.call.args, ...result.overrideArguments };
       }
-      /* v8 ignore next 2 */
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       await observer?.onGuardrailEnd({ name: gName, update: result, state: appState });
     }
@@ -139,7 +135,6 @@ export async function visitAgentAnswer(
       const gName = g.constructor.name || "UnknownGuardrail";
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       await observer?.onGuardrailStart({
-        /* v8 ignore start */
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         name: gName,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -149,10 +144,8 @@ export async function visitAgentAnswer(
       });
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const result = await g.beforeAgentAnswer(ctx);
-      /* v8 ignore next */
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       await observer?.onGuardrailEnd({ name: gName, update: result, state: appState });
     }
   }
-  /* v8 ignore stop */
 }

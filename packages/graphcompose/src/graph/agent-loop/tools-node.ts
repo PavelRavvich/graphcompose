@@ -5,8 +5,6 @@ import { renderToolResult, type AnyTool, type ToolContext } from "../../tools/in
 import { toolNamed, type AgentLoopDeps } from "./deps.js";
 import type { AgentLoopUpdate, ToolTask } from "./state.js";
 import type { PendingPause } from "../../pause/index.js";
-
-/* v8 ignore next 2 */
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
@@ -23,7 +21,6 @@ async function runTool(tool: AnyTool, args: unknown, context: ToolContext): Prom
   } catch (error) {
     if (error && typeof error === "object" && "name" in error && error.name === "GraphInterrupt") {
       throw error;
-      /* v8 ignore next 2 */
     }
     return renderToolResult({ kind: "error", message: errorMessage(error) });
   }
@@ -52,7 +49,6 @@ export function makeToolNode(
       variables: {},
       history: [],
     }; // AppState stub
-    /* v8 ignore next 3 */
     if (tool === undefined) {
       return {};
     }

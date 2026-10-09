@@ -43,7 +43,6 @@ async function callModel(
   // cache markers, where the model needs them, are placed by its provider on the wire (#151)
   const messages = [new SystemMessage(systemPrompt), ...state.messages];
   if (tools.length === 0) return binding.model.invoke(messages, config);
-  /* v8 ignore next 3 */
   if (binding.model.bindTools === undefined) {
     throw new ToolCallingUnsupportedError(`The model of agent "${name}" cannot call tools`);
   }
