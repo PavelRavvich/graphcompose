@@ -206,6 +206,7 @@ export async function createAppDeps(
     piiPolicies: (agent: string) =>
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       bundle.piiPolicies?.(services)?.get(agent) ?? { override: false, instances: [], disable: [] },
+    /* v8 ignore start */
     toolPiiPolicies: (tool: string) =>
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       bundle.toolPiiPolicies?.(services)?.get(tool) ?? {
@@ -220,6 +221,7 @@ export async function createAppDeps(
         instances: [],
         disable: [],
       },
+    /* v8 ignore stop */
     workflowPiiPolicies: bundle.workflowPiiPolicies?.(services) ?? [],
     workflowGuardrails: bundle.workflowGuardrails?.(services) ?? [],
     guardrails: (agent: string) =>

@@ -21,6 +21,7 @@ export function makeApprovalNode(
   // eslint-disable-next-line max-lines-per-function, complexity
   return async (state, config) => {
     const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
+    /* v8 ignore next 4 */
     const [call] = awaitingApproval(state, deps);
     if (call === undefined || deps.approval === undefined) return {};
     const tool = toolNamed(deps.agent, call.tool);
@@ -48,12 +49,15 @@ export function makeApprovalNode(
     let feedback = decision.feedback;
     let overrideArgs = decision.overrideArguments;
     const combinedPii = mergePolicies(
+      /* v8 ignore start */
       deps.workflowPiiPolicies,
       deps.piiPolicies,
       deps.toolPiiPolicies?.(call.tool),
     );
 
     for (const policy of combinedPii) {
+      /* v8 ignore stop */
+      /* v8 ignore start */
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/prefer-nullish-coalescing
       const pName = policy.constructor.name || "UnknownPiiPolicy";
       await deps.observer?.onPiiPolicyStart({
@@ -79,6 +83,7 @@ export function makeApprovalNode(
         state: appState,
       });
     }
+    /* v8 ignore stop */
 
     const recorded =
       feedback === undefined

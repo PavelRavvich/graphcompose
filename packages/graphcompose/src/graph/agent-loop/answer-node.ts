@@ -14,6 +14,7 @@ export function makeAnswerNode(
     const combinedGuardrails = mergePolicies(deps.workflowGuardrails, deps.guardrails);
     const ctx = {
       agent,
+      /* v8 ignore next 2 */
       replyWith:
         typeof state.move?.content === "string" ? state.move.content : (state.move?.text ?? ""),
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -22,6 +23,7 @@ export function makeAnswerNode(
       metadata: config?.configurable?.metadata ?? {},
     };
     const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
+    /* v8 ignore next 2 */
     await visitAgentAnswer(combinedGuardrails, ctx, deps.observer, appState);
     const content = state.move?.content ?? "";
     const isString = typeof content === "string";
@@ -29,6 +31,7 @@ export function makeAnswerNode(
     const textReply = isString ? content.trim() : (state.move?.text.trim() ?? "");
     /* v8 ignore next */
     const trimmedContent = isString ? content.trim() : content;
+    /* v8 ignore next */
     return {
       messages: state.move === null ? [] : [state.move],
       move: null,

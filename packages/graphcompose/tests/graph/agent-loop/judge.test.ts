@@ -113,3 +113,91 @@ describe("Agent Retry Loop with Judges", () => {
     expect((messages[messages.length - 2] as HumanMessage).content).toContain("Failed first time");
   });
 });
+
+describe("Agent Retry Loop with Judges max retries", () => {
+  it("should throw if judge fails more than maxRetries", async () => {
+    @Judge({
+      name: "FailJudge",
+      model: "test-model",
+      systemPrompt: "test",
+      metrics: {
+        someMetric: { feedback: "Needs to be right" },
+      },
+    })
+    class FailJudge extends BaseJudge {
+      override async evaluate(state: any, ctx: any) {
+        return { passed: false, feedback: "Always fails" };
+      }
+    }
+
+    class CustomFake2 extends SimpleChatModel {
+      responses = ["bad", "bad", "bad", "bad", "bad", "bad"];
+      _call(messages: any, options: any, runManager?: any): Promise<string> {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+        return Promise.resolve(this.responses.shift() || "default");
+      }
+      _llmType() {
+        return "custom_fake";
+      }
+    }
+    const mockModel = new CustomFake2({});
+
+    const agentDef = {
+      name: "TestAgent",
+      binding: {
+        model: mockModel,
+        settings: { model: "fake", price: { input: 0, output: 0 } } as any,
+      },
+      instructions: "You are a test agent",
+      tools: [],
+      limits: { modelCalls: 5, toolCalls: 5 },
+      historyLimit: 10,
+      summariesLimit: 10,
+      knowledge: [],
+      judges: [FailJudge],
+      maxRetries: 0, // so it throws immediately
+    };
+
+    const deps = {
+      agent: agentDef as any,
+      bundle: "test-bundle",
+      runBudgetCap: 100,
+      judges: noJudges,
+    };
+
+    const checkpointer = new MemorySaver();
+    const graph = agentLoopGraph(deps, checkpointer);
+
+    const initialFlowState: any = {
+      task: "Hello",
+      history: [],
+      runId: "run-1",
+      optionalBranches: [],
+      routeReason: "",
+      start: "start",
+      finishes: {},
+      previousAgent: "",
+      visits: {},
+      steps: 0,
+      daySpentBeforeRunUsd: 0,
+      forks: {},
+      path: [],
+      contributions: [],
+      budgetUsd: 100,
+      usage: [],
+      replyWith: "",
+      payload: {},
+      summaries: [],
+      approvals: [],
+      guarded: "",
+    };
+
+    const loopState = loopInputOf(initialFlowState, "TestAgent");
+
+    await expect(
+      graph.invoke(loopState, {
+        configurable: { thread_id: "thread-2" },
+      }),
+    ).rejects.toThrow(/failed to pass quality gates/);
+  });
+});

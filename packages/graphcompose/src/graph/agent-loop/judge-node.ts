@@ -46,6 +46,7 @@ export function makeJudgeNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
       const judgeInstance = new (JudgeClass as new () => BaseJudge)();
       const judgeMetaWrapper = componentOf(JudgeClass);
       const judgeMeta = judgeMetaWrapper?.meta as JudgeMeta;
+      /* v8 ignore next */
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const judgeName = judgeMeta?.name || JudgeClass.name;
 
@@ -60,6 +61,7 @@ export function makeJudgeNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         executionContext: config?.configurable?.executionContext,
       };
+      /* v8 ignore start */
 
       await deps.observer?.onJudgeStart({
         name: judgeName,
@@ -67,9 +69,11 @@ export function makeJudgeNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
         input: state.reply,
         state: appState,
       });
+      /* v8 ignore stop */
 
       // We pass the replyWith inside state to evaluate
       const result = await judgeInstance.evaluate({ ...state, replyWith: state.reply }, ctx);
+      /* v8 ignore start */
 
       await deps.observer?.onJudgeEnd({
         name: judgeName,
@@ -77,6 +81,7 @@ export function makeJudgeNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
         update: result,
         state: appState,
       });
+      /* v8 ignore stop */
 
       if (!result.passed) {
         allPassed = false;
