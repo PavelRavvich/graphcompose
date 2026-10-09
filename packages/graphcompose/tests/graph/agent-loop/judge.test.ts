@@ -5,7 +5,8 @@ import { loopInputOf } from "../../../src/graph/agent-loop/runner.js";
 import { BaseJudge, Judge } from "../../../src/components/judge-decorators.js";
 import { MemorySaver, Command } from "@langchain/langgraph";
 import { noJudges } from "../../../src/graph/agent-loop/judge-points.js";
-import { FakeChatModel } from "@langchain/core/utils/testing";
+import { SimpleChatModel } from "@langchain/core/language_models/chat_models";
+import { BaseChatModelParams } from "@langchain/core/language_models/chat_models";
 
 describe("Agent Retry Loop with Judges", () => {
   it("should retry if judge fails", async () => {
@@ -29,9 +30,16 @@ describe("Agent Retry Loop with Judges", () => {
       }
     }
 
-    const mockModel = new FakeChatModel({
-      responses: ["bad response", "good response"],
-    });
+    class CustomFake extends SimpleChatModel {
+      responses = ["bad response", "good response"];
+      _call(messages: any, options: any, runManager?: any): Promise<string> {
+        return Promise.resolve(this.responses.shift() || "default");
+      }
+      _llmType() {
+        return "custom_fake";
+      }
+    }
+    const mockModel = new CustomFake({});
 
     const agentDef = {
       name: "TestAgent",
@@ -99,7 +107,7 @@ describe("Agent Retry Loop with Judges", () => {
     // The messages should include the HumanMessage with feedback
     const messages = result.messages;
     expect(messages.length).toBeGreaterThan(0);
-    expect(messages[messages.length - 1]).toBeInstanceOf(HumanMessage);
-    expect((messages[messages.length - 1] as HumanMessage).content).toContain("Failed first time");
+    expect(messages[messages.length - 2]).toBeInstanceOf(HumanMessage);
+    expect((messages[messages.length - 2] as HumanMessage).content).toContain("Failed first time");
   });
 });

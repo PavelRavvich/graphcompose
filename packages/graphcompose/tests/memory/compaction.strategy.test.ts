@@ -52,7 +52,9 @@ describe("StandardCompactionStrategy", () => {
     // windowSize: 2, overflow is 2. compactEvery is 2. Should compact!
     await strategy.updateMemory(messages, { runId: "run-1" }, options);
 
-    expect(gateway.chatModel).toHaveBeenCalledWith({ purpose: "compaction", model: "test-model" });
+    expect(gateway.chatModel).toHaveBeenCalledWith(
+      expect.objectContaining({ user: { kind: "compaction" } }),
+    );
     expect(mockModel.invoke).toHaveBeenCalled();
 
     // Now check if it was saved

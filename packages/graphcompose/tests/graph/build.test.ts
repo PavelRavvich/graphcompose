@@ -108,8 +108,8 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
       "router.review-gate",
       "skip-wrap",
 
-      "workflow-finish.replyWith",
       "workflow-finish.pull-request",
+      "workflow-finish.replyWith",
       "workflow-start.chat",
     ]);
     expect(graphNodeId({ kind: "router", name: "main" })).toBe("router.main");

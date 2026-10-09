@@ -238,9 +238,28 @@ function wireEdgesForId(
         return targets;
       }
       if (next.kind === "choose") {
-        return state.next;
+        const self = next.self
+          ? predecessorsOf(model.collected, node.key).map((ref) => ref.key)
+          : [];
+        const ret = next.return ? ["skip-wrap"] : [];
+        const end = next.end ? [END] : [];
+        const targets = [...new Set([...next.targets, ...self, ...ret, ...end])];
+        const parallels = next.parallelTargets || [];
+        const map = pathMap(model, targets, parallels);
+
+        if (state.next === "Return") return map["skip-wrap"];
+        if (state.next === "End") return END;
+        const pMatch = parallels.find((p: any) => p.optionName === state.next);
+        if (pMatch) {
+          return pMatch.targets.map((t: any) => new Send(graphNodeId(nodeKeyed(model, t)), state));
+        }
+        return map[state.next] ?? state.next;
       }
-      if (next.kind === "join" || next.kind === "batchParallel") {
+      if (next.kind === "join") {
+        const targetId = graphNodeId(nodeKeyed(model, next.target));
+        return `join-wrap.${targetId}.${node.key}`;
+      }
+      if (next.kind === "batchParallel") {
         return graphNodeId(nodeKeyed(model, next.target));
       }
       return END;
@@ -261,16 +280,45 @@ function wireEdgesForId(
       builder.addConditionalEdges(
         id,
         singleTarget
-          ? (state) => (state.optionalBranches?.includes(node.key) ? "__skip__" : targets[0])
-          : (state) => (state.optionalBranches?.includes(node.key) ? ["__skip__"] : targets),
+          ? (state) =>
+              state.guarded
+                ? END
+                : state.optionalBranches?.includes(node.key)
+                  ? "__skip__"
+                  : targets[0]
+          : (state) =>
+              state.guarded
+                ? [END]
+                : state.optionalBranches?.includes(node.key)
+                  ? ["__skip__"]
+                  : targets,
       );
     } else {
       for (const t of targets) builder.addEdge(id, t);
     }
   } else if (next.kind === "choose") {
-    builder.addConditionalEdges(id, (state: any) => state.next);
+    const self = next.self ? predecessorsOf(model.collected, node.key).map((ref) => ref.key) : [];
+    const ret = next.return ? ["skip-wrap"] : [];
+    const end = next.end ? [END] : [];
+    const targets = [...new Set([...next.targets, ...self, ...ret, ...end])];
+    const parallels = next.parallelTargets || [];
+
+    builder.addConditionalEdges(
+      id,
+      (state: FlowStateType) => {
+        if (state.next === "Return") return "skip-wrap";
+        if (state.next === "End") return END;
+        const pMatch = parallels.find((p: any) => p.optionName === state.next);
+        if (pMatch) {
+          return pMatch.targets.map((t: any) => new Send(graphNodeId(nodeKeyed(model, t)), state));
+        }
+        return state.next;
+      },
+      pathMap(model, targets, parallels),
+    );
   } else if (next.kind === "join") {
-    builder.addEdge(id, graphNodeId(nodeKeyed(model, next.target)));
+    const targetId = graphNodeId(nodeKeyed(model, next.target));
+    builder.addEdge(id, `join-wrap.${targetId}.${node.key}`);
   } else if (next.kind === "batchParallel") {
     builder.addEdge(id, `__mapeach_${node.key}_to_${next.target}`);
   }

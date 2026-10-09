@@ -34,6 +34,7 @@ import { WorkflowFinish } from "../../src/graph/workflow-finish.decorator.js";
 import { Rag } from "../../src/components/decorators.js";
 import { RagRetrieval } from "../../src/rag/types.js";
 import { WorkflowStartText, WorkflowFinishText, Text } from "../../src/dto/index.js";
+import { createSqliteTernStore } from "../../src/terns/index.js";
 import { buildApp } from "../../src/app/create-app.js";
 import { workflowOf } from "../../src/components/assemble.js";
 import { createScriptedGateway } from "../../src/testing/scripted-gateway.js";
@@ -191,6 +192,7 @@ describe("Global Observability Hooks", () => {
 
     const { app, deps } = await buildApp(await workflowOf(ObsWorkflow), {
       gateway: createScriptedGateway(book),
+      stores: { terns: createSqliteTernStore(":memory:") },
     });
 
     // Eagerly instantiate ObsTool to ensure GlobalObserver is in lifecycle.created

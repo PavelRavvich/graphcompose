@@ -34,6 +34,7 @@ import {
 import { from } from "../../src/router/index.js";
 import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
 import { WorkflowStartText, WorkflowFinishText, Text } from "../../src/dto/index.js";
+import { createSqliteTernStore } from "../../src/terns/index.js";
 import { buildApp } from "../../src/app/create-app.js";
 import { workflowOf } from "../../src/components/assemble.js";
 import { createScriptedGateway } from "../../src/testing/scripted-gateway.js";
@@ -193,6 +194,7 @@ describe("Observability Tails Hooks", () => {
 
     const { app, deps } = await buildApp(await workflowOf(TailsWorkflow), {
       gateway: createScriptedGateway(book),
+      stores: { terns: createSqliteTernStore(":memory:") },
     });
 
     deps.tools("SafeTool");
