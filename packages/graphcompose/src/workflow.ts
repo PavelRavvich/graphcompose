@@ -28,6 +28,8 @@ export type WorkflowTools =
  * use, the MCP servers behind its facades and, optionally, which tools wait for an approval (pause seam).
  */
 export interface AssembledWorkflow<TName extends string = string> {
+  readonly quorumRouters?: (services: WorkflowServices) => ReadonlyMap<any, import("./concurrency/quorum.decorator.js").QuorumStrategy>;
+  readonly batchStrategies?: (services: WorkflowServices) => ReadonlyMap<any, import("./concurrency/batch.decorator.js").BatchParallelStrategy<any, any>>;
   readonly config: AgentsConfigOf<TName>;
   /** The workflow's graph (checked at assembly). */
   readonly flow: Flow;

@@ -34,6 +34,7 @@ class MyQuorumRouter implements QuorumStrategy {
     return true;
   }
   route(state: any, hasQuorum: boolean): any {
+    console.log("QUORUM ROUTE CALLED, returning Finish!");
     return Finish;
   }
 }
@@ -69,7 +70,7 @@ const test = testWith(QuorumTestWorkflow);
 describe("QuorumRouter", () => {
   test("aborts the slower branch when the quorum is met, saving an LLM call", async ({ app, mockLlm }) => {
     mockLlm(FastAgent).thenReturn(replyWith("{}"));
-    mockLlm(SlowAgent).thenReturn({ kind: "tool-call", tool: "slow_tool", args: {} }, replyWith("{}"));
+    mockLlm(SlowAgent).thenReturn({ kind: "tool-call", tool: "slow_tool", args: { text: "hello" } }, replyWith("{}"));
 
  
  
@@ -78,6 +79,7 @@ describe("QuorumRouter", () => {
     try { await app.execute(Start, { text: "hello" }); } catch (e) { console.error("AGGREGATE ERRORS:", (e as any).errors); throw e; }
 
     expect(mockLlm(FastAgent).requests.length).toBe(1);
+    require('fs').writeFileSync('slow-agent-requests.json', JSON.stringify(mockLlm(SlowAgent).requests.map(r => r.messages), null, 2));
     expect(mockLlm(SlowAgent).requests.length).toBe(1); // It made the tool call, but was aborted before the second call
   });
 });

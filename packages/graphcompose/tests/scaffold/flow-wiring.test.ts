@@ -46,7 +46,7 @@ describe("#116: gc g agent joins the star; gc g router", () => {
     writeFileSync(join(root, "src/desk/desk.workflow.ts"), "");
     const options = { workflow: "src/desk/desk.workflow.ts" };
 
-    expect(() => planGenerate("router", "escalation", options, root)).toThrow(
+    await expect(planGenerate("router", "escalation", options, root)).rejects.toThrow(
       "Not found: src/desk/workflow-finishes/text.workflow-finish.ts",
     );
     mkdirSync(join(root, "src/desk/workflow-finishes"));

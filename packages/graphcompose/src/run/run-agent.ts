@@ -56,6 +56,7 @@ export async function runAgent<TName extends string>(
     const runId = deps.newRunId?.() ?? randomUUID();
     const flow = await flowGraphOf(deps, run);
     const config = streamConfig(deps, { threadId, runId }, options);
+    (config.configurable as any).quorumManager = new QuorumManager();
     const record = recorder(deps, account, spent);
     const initial = {
       task,

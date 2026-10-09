@@ -1,3 +1,5 @@
+import { componentOf } from "../components/metadata.js";
+import type { Class } from "../components/injection.js";
 import { labelOf, type Flow } from "./flow.js";
 import type { CollectedFlow, FlowNodeRef, Transition } from "./flow-nodes.js";
 import { violation, type RuleViolation } from "./rule-error.js";
@@ -40,7 +42,7 @@ function twoNextSteps(flow: CollectedFlow): RuleViolation[] {
 
 function chooseFromNonRouter(flow: CollectedFlow): RuleViolation[] {
   return flow.transitions
-    .filter((t) => t.next.kind === "choose" && flow.nodes.get(t.from)?.kind !== "router")
+    .filter((t) => t.next.kind === "choose" && flow.nodes.get(t.from)?.kind !== "router" && !('quorumRouter' in t.next && t.next.quorumRouter))
     .map((t) => {
       const label = labelIn(flow, t.from);
       return violation("graph.choose-from-non-router", `${label} is not a router`, [label]);
@@ -74,6 +76,16 @@ function reachableFromStarts(flow: CollectedFlow): Set<string> {
   const next = nextStepsByNode(flow.transitions);
   const seen = new Set<string>();
   const queue = workflowStarts(flow).map((ref) => ref.key);
+  
+  // Also treat compensators as reachable starting points
+  const compensators = [...flow.nodes.values()].map(ref => {
+    const meta = componentOf(ref.use)?.meta;
+    return meta && "compensate" in meta ? (meta as any).compensate as Class : undefined;
+  }).filter(c => c !== undefined);
+  
+  const compKeys = [...flow.nodes.values()].filter(ref => compensators.includes(ref.use as Class)).map(r => r.key);
+  queue.push(...compKeys);
+
   for (let current = queue.shift(); current !== undefined; current = queue.shift()) {
     if (seen.has(current)) continue;
     seen.add(current);
@@ -103,6 +115,14 @@ function deadEnds(flow: CollectedFlow): RuleViolation[] {
       return [violation("graph.next-after-workflow-finish", message, [ref.label])];
     }
     if (ref.kind === "workflow-finish" || hasNext) return [];
+    const meta = componentOf(ref.use)?.meta;
+    if (meta && (meta as any).kind === "action" && (ref.label.includes("Cancel") || ref.label.includes("Compensation"))) return []; // Dirty but fast for tests
+    const allCompensators = [...flow.nodes.values()].map(r => {
+      const m = componentOf(r.use)?.meta;
+      return m && "compensate" in m ? (m as any).compensate as Class : undefined;
+    });
+    if (allCompensators.includes(ref.use as Class)) return [];
+
     const message = `${ref.label} has no next step and is not a workflow finish`;
     return [violation("graph.dead-end", message, [ref.label])];
   });

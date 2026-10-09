@@ -149,6 +149,8 @@ const toolNames = (tools: ReturnType<typeof toolsOf>): Map<Class, string> =>
  * (all violations at once), router texts loaded, limits from `settings()`, config, prompts, tools, MCP.
  */
 // eslint-disable-next-line max-lines-per-function
+import { quorumRouterMetaOf } from "../concurrency/quorum.decorator.js";
+import { batchParallelStrategyMetaOf } from "../concurrency/batch.decorator.js";
 export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow> {
   const { meta: bundle } = requireComponent(bundleClass, "workflow", "workflowOf");
   const graph = await flowOf(bundle);
@@ -309,6 +311,34 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     ...(rags.length === 0 ? {} : ragParts(bundle, agents, rags)),
     mcpServers: mcp.handles,
     serverTools: mcp.serverTools,
+    quorumRouters: (services) => {
+      const map = new Map<any, any>();
+      for (const p of bundle.providers ?? []) {
+        const cls = "provide" in p ? p.provide : p;
+        const meta = quorumRouterMetaOf(cls as Class);
+        if (meta) {
+          const instance = containerFor(bundle, services).get(cls as Class);
+          map.set(meta.name || (cls as any).name, instance);
+          map.set(cls, instance);
+          map.set((cls as any).name, instance);
+        }
+      }
+      return map;
+    },
+    batchStrategies: (services) => {
+      const map = new Map<any, any>();
+      for (const p of bundle.providers ?? []) {
+        const cls = "provide" in p ? p.provide : p;
+        const meta = batchParallelStrategyMetaOf(cls as Class);
+        if (meta) {
+          const instance = containerFor(bundle, services).get(cls as Class);
+          map.set(meta.name || (cls as any).name, instance);
+          map.set(cls, instance);
+          map.set((cls as any).name, instance);
+        }
+      }
+      return map;
+    },
     toolDependencies: Object.fromEntries(
       [...tools.local, ...tools.mcp].flatMap((cls) => {
         const tree = dependencyTree(cls, bundle.providers ?? []);
