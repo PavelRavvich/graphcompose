@@ -18,5 +18,4 @@ export function Subgraph(options: SubgraphOptions) {
   };
 }
 
-export const subgraphMetaOf = (target: Class): SubgraphOptions | undefined =>
-  subgraphs.get(target);
+export const subgraphMetaOf = (target: Class): SubgraphOptions | undefined => subgraphs.get(target);

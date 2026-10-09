@@ -40,4 +40,8 @@ export function nodeInfoOf(target: Class): NodeInfo | undefined {
 }
 
 export const isWorkingKind = (kind: NodeKind): boolean =>
-  kind === "agent" || kind === "router" || kind === "action" || kind === "workflow" || kind === "subgraph";
+  kind === "agent" ||
+  kind === "router" ||
+  kind === "action" ||
+  kind === "workflow" ||
+  kind === "subgraph";
