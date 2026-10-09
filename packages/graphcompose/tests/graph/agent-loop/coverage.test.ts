@@ -2,7 +2,11 @@
 // @ts-nocheck
 import { describe, it, expect, vi } from "vitest";
 import { makeAnswerNode } from "../../../src/graph/agent-loop/answer-node.js";
-import { mergePolicies, visitToolThenAgent, visitAgentAnswer } from "../../../src/graph/agent-loop/judge-points.js";
+import {
+  mergePolicies,
+  visitToolThenAgent,
+  visitAgentAnswer,
+} from "../../../src/graph/agent-loop/judge-points.js";
 import { makeToolNode } from "../../../src/graph/agent-loop/tools-node.js";
 import { makeModelNode } from "../../../src/graph/agent-loop/model-node.js";
 import { makeJudgeNode } from "../../../src/graph/agent-loop/judge-node.js";
@@ -19,34 +23,54 @@ describe("agent-loop coverage", () => {
       workflowGuardrails: [],
       guardrails: () => [],
     });
-    
+
     const result = await node(
       { move: { content: [{ type: "text", text: "hello" }], text: "hello" }, runId: "run1" },
-      { configurable: { run_id: "run1" } }
+      { configurable: { run_id: "run1" } },
     );
     expect(result.reply).toBe("hello");
   });
 
   it("answer-node with string move content", async () => {
-    const node = makeAnswerNode({ agent: { name: "Agent1" }, workflowGuardrails: [], guardrails: () => [] });
+    const node = makeAnswerNode({
+      agent: { name: "Agent1" },
+      workflowGuardrails: [],
+      guardrails: () => [],
+    });
     const result = await node({ move: { content: "hello" }, runId: "run1" }, {});
     expect(result.reply).toBe("hello");
   });
 
   it("answer-node with no move content", async () => {
-    const node = makeAnswerNode({ agent: { name: "Agent1" }, workflowGuardrails: [], guardrails: () => [] });
+    const node = makeAnswerNode({
+      agent: { name: "Agent1" },
+      workflowGuardrails: [],
+      guardrails: () => [],
+    });
     const result = await node({ move: { content: [], text: "hello" }, runId: "run1" }, {});
     expect(result.reply).toBe("hello");
   });
 
   it("mergePolicies tPolicies override and disable", () => {
-    class Guard1 { public x = 1; }
-    class Guard2 { public x = 2; }
-    
-    const policies1 = mergePolicies([], undefined, { override: true, instances: [new Guard1()], disable: [] });
+    class Guard1 {
+      public x = 1;
+    }
+    class Guard2 {
+      public x = 2;
+    }
+
+    const policies1 = mergePolicies([], undefined, {
+      override: true,
+      instances: [new Guard1()],
+      disable: [],
+    });
     expect(policies1.length).toBe(1);
-    
-    const policies2 = mergePolicies([new Guard1(), new Guard2()], undefined, { override: false, instances: [], disable: [Guard1] });
+
+    const policies2 = mergePolicies([new Guard1(), new Guard2()], undefined, {
+      override: false,
+      instances: [],
+      disable: [Guard1],
+    });
     expect(policies2.length).toBe(1);
   });
 
@@ -76,7 +100,14 @@ describe("agent-loop coverage", () => {
   });
 
   it("tools-node tool throws", async () => {
-    const tool = { name: "t1", channel: "c1", timeoutMs: 1000, invoke: async () => { throw new Error("some error"); } };
+    const tool = {
+      name: "t1",
+      channel: "c1",
+      timeoutMs: 1000,
+      invoke: async () => {
+        throw new Error("some error");
+      },
+    };
     const deps = { bundle: {}, agent: { name: "a1", tools: [tool] }, resolveTool: () => tool };
     const node = makeToolNode(deps);
     const result = await node({ callId: "c1", tool: "t1", arguments: "{}" }, {});
@@ -84,8 +115,15 @@ describe("agent-loop coverage", () => {
   });
 
   it("tools-node tool throws non-Error object", async () => {
-    // eslint-disable-next-line @typescript-eslint/only-throw-error
-    const tool = { name: "t1", channel: "c1", timeoutMs: 1000, invoke: async () => { throw "some string error"; } };
+    const tool = {
+      name: "t1",
+      channel: "c1",
+      timeoutMs: 1000,
+      invoke: async () => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw "some string error";
+      },
+    };
     const deps = { bundle: {}, agent: { name: "a1", tools: [tool] }, resolveTool: () => tool };
     const node = makeToolNode(deps);
     const result = await node({ callId: "c1", tool: "t1", arguments: "{}" }, {});
@@ -94,15 +132,27 @@ describe("agent-loop coverage", () => {
 
   it("model-node model without bindTools throws", async () => {
     const deps = {
-      agent: { name: "a1", instructions: "mock", tools: [{ name: "t1" }], limits: { modelCalls: 10 }, binding: { model: { invoke: async () => ({}), bindTools: undefined } } },
+      agent: {
+        name: "a1",
+        instructions: "mock",
+        tools: [{ name: "t1" }],
+        limits: { modelCalls: 10 },
+        binding: { model: { invoke: async () => ({}), bindTools: undefined } },
+      },
       resolveTools: () => [{ name: "t1" }],
     };
     const node = makeModelNode(deps);
-    await expect(node({ messages: [], usage: [], from: { usage: 0 }, modelCalls: 0 }, {})).rejects.toThrow("cannot call tools");
+    await expect(
+      node({ messages: [], usage: [], from: { usage: 0 }, modelCalls: 0 }, {}),
+    ).rejects.toThrow("cannot call tools");
   });
 
   it("judge-node calls observer", async () => {
-    class TestJudge { evaluate() { return { passed: true }; } }
+    class TestJudge {
+      evaluate() {
+        return { passed: true };
+      }
+    }
     const observer = { onJudgeStart: vi.fn(), onJudgeEnd: vi.fn() };
     const deps = { agent: { name: "a1", judges: [TestJudge], binding: {} }, observer };
     const node = makeJudgeNode(deps);
@@ -116,7 +166,9 @@ describe("agent-loop coverage", () => {
     const policy = { mask: async (v) => String(v), maskJson: async (v) => String(v) };
     const deps = {
       agent: { name: "a1", tools: [{ name: "t1", channel: "c1" }] },
-      approval: { requestApproval: async () => ({ approved: true, feedback: "fb", overrideArguments: {} }) },
+      approval: {
+        requestApproval: async () => ({ approved: true, feedback: "fb", overrideArguments: {} }),
+      },
       workflowPiiPolicies: [policy],
       piiPolicies: { override: false, disable: [], instances: [] },
       toolPiiPolicies: () => ({ override: false, disable: [], instances: [] }),
@@ -124,15 +176,28 @@ describe("agent-loop coverage", () => {
       observer,
     };
     const node = makeApprovalNode(deps);
-    await node({ decisions: {}, results: {}, pendingPause: undefined, move: { tool_calls: [{ name: "t1", id: "c1", type: "function", function: { name: "t1", arguments: "{}" } }] }, runId: "1" }, {});
+    await node(
+      {
+        decisions: {},
+        results: {},
+        pendingPause: undefined,
+        move: {
+          tool_calls: [
+            { name: "t1", id: "c1", type: "function", function: { name: "t1", arguments: "{}" } },
+          ],
+        },
+        runId: "1",
+      },
+      {},
+    );
     expect(observer.onPiiPolicyStart).toHaveBeenCalled();
   });
 
   it("createAppDeps fallbacks", async () => {
     const bundle = await workflowOf(CodeReview);
-    const built = await buildApp(bundle, { 
-      gateway: { chatModel: () => ({}), embeddings: () => ({}) } as any, 
-      connectMcp: async () => ({ close: async () => undefined }) 
+    const built = await buildApp(bundle, {
+      gateway: { chatModel: () => ({}), embeddings: () => ({}) } as any,
+      connectMcp: async () => ({ close: async () => undefined }),
     });
     const deps = built.deps;
     expect(deps.toolPiiPolicies("t1")).toEqual({ override: false, instances: [], disable: [] });
@@ -152,7 +217,11 @@ describe("agent-loop coverage", () => {
 
 describe("agent-loop missing branches coverage", () => {
   it("answer-node with move null", async () => {
-    const node = makeAnswerNode({ agent: { name: "Agent1" }, workflowGuardrails: [], guardrails: () => [] });
+    const node = makeAnswerNode({
+      agent: { name: "Agent1" },
+      workflowGuardrails: [],
+      guardrails: () => [],
+    });
     const result = await node({ move: null, runId: "run1" }, {});
     expect(result.reply).toBe("");
     expect(result.messages).toEqual([]);
@@ -161,29 +230,53 @@ describe("agent-loop missing branches coverage", () => {
   it("approval-node deps.approval undefined", async () => {
     const deps = { agent: { name: "a1", tools: [] } };
     const node = makeApprovalNode(deps);
-    const result = await node({ decisions: {}, results: {}, pendingPause: { tool: "t1", callId: "c1" }, runId: "1", move: null }, {});
+    const result = await node(
+      {
+        decisions: {},
+        results: {},
+        pendingPause: { tool: "t1", callId: "c1" },
+        runId: "1",
+        move: null,
+      },
+      {},
+    );
     expect(result).toEqual({});
   });
 
   it("approval-node tool undefined", async () => {
     const deps = { agent: { name: "a1", tools: [] }, approval: {} };
     const node = makeApprovalNode(deps);
-    const result = await node({ decisions: {}, results: {}, pendingPause: { tool: "t1", callId: "c1" }, runId: "1", move: null }, {});
+    const result = await node(
+      {
+        decisions: {},
+        results: {},
+        pendingPause: { tool: "t1", callId: "c1" },
+        runId: "1",
+        move: null,
+      },
+      {},
+    );
     expect(result).toEqual({});
   });
 
   it("approval-node unknown policy constructor", async () => {
     const observer = { onPiiPolicyStart: vi.fn(), onPiiPolicyEnd: vi.fn() };
     class UnknownPolicy {
-      async mask(v) { return String(v); }
-      async maskJson(v) { return String(v); }
+      async mask(v) {
+        return String(v);
+      }
+      async maskJson(v) {
+        return String(v);
+      }
     }
     Object.defineProperty(UnknownPolicy, "name", { value: "" });
     const policy = new UnknownPolicy();
-    
+
     const deps = {
       agent: { name: "a1", tools: [{ name: "t1", channel: "c1" }] },
-      approval: { requestApproval: async () => ({ approved: true, feedback: "fb", overrideArguments: {} }) },
+      approval: {
+        requestApproval: async () => ({ approved: true, feedback: "fb", overrideArguments: {} }),
+      },
       workflowPiiPolicies: [policy],
       piiPolicies: { override: false, disable: [], instances: [] },
       toolPiiPolicies: () => ({ override: false, disable: [], instances: [] }),
@@ -191,7 +284,20 @@ describe("agent-loop missing branches coverage", () => {
       observer,
     };
     const node = makeApprovalNode(deps);
-    await node({ decisions: {}, results: {}, pendingPause: undefined, move: { tool_calls: [{ name: "t1", id: "c1", type: "function", function: { name: "t1", arguments: "{}" } }] }, runId: "1" }, {});
+    await node(
+      {
+        decisions: {},
+        results: {},
+        pendingPause: undefined,
+        move: {
+          tool_calls: [
+            { name: "t1", id: "c1", type: "function", function: { name: "t1", arguments: "{}" } },
+          ],
+        },
+        runId: "1",
+      },
+      {},
+    );
     expect(observer.onPiiPolicyStart).toHaveBeenCalled();
   });
 });
@@ -199,9 +305,9 @@ describe("agent-loop missing branches coverage", () => {
 describe("app-deps branches coverage", () => {
   it("requestApproval throws on unknown channel", async () => {
     const bundle = await workflowOf(CodeReview);
-    const built = await buildApp(bundle, { 
-      gateway: { chatModel: () => ({}), embeddings: () => ({}) } as any, 
-      connectMcp: async () => ({ close: async () => undefined }) 
+    const built = await buildApp(bundle, {
+      gateway: { chatModel: () => ({}), embeddings: () => ({}) } as any,
+      connectMcp: async () => ({ close: async () => undefined }),
     });
     const deps = built.deps;
     await expect(deps.requestApproval("unknown-channel", {})).rejects.toThrow("Unknown channel");
@@ -212,10 +318,23 @@ describe("app-deps branches coverage", () => {
     const deps = {
       agent: { name: "a1", tools: [{ name: "t1" }] }, // No channel defined!
       approval: {},
-      resolveTool: () => ({ name: "t1" })
+      resolveTool: () => ({ name: "t1" }),
     };
     const node = makeApprovalNode(deps);
-    const result = await node({ decisions: {}, results: {}, pendingPause: undefined, move: { tool_calls: [{ name: "t1", id: "c1", type: "function", function: { name: "t1", arguments: "{}" } }] }, runId: "1" }, {});
+    const result = await node(
+      {
+        decisions: {},
+        results: {},
+        pendingPause: undefined,
+        move: {
+          tool_calls: [
+            { name: "t1", id: "c1", type: "function", function: { name: "t1", arguments: "{}" } },
+          ],
+        },
+        runId: "1",
+      },
+      {},
+    );
     expect(result).toEqual({});
   });
 
@@ -225,15 +344,15 @@ describe("app-deps branches coverage", () => {
     const bundle = await workflowOf(CodeReview);
     const originalChannels = bundle.channels;
     bundle.channels = () => new Map([["my-channel", mockChannel]]);
-    
-    const built = await buildApp(bundle, { 
-      gateway: { chatModel: () => ({}), embeddings: () => ({}) } as any, 
-      connectMcp: async () => ({ close: async () => undefined }) 
+
+    const built = await buildApp(bundle, {
+      gateway: { chatModel: () => ({}), embeddings: () => ({}) } as any,
+      connectMcp: async () => ({ close: async () => undefined }),
     });
-    
+
     await built.deps.requestApproval("my-channel", {});
     expect(mockChannel.requestApproval).toHaveBeenCalled();
-    
+
     bundle.channels = originalChannels;
     await built.deps.close();
   });
