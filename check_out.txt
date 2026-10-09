@@ -1,0 +1,3 @@
+check-rules-files: CLAUDE.md and QUALITY.md are free of the replaced design's terms.
+check-old-names: no old names
+Checking formatting...

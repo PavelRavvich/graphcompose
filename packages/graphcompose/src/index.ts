@@ -27,6 +27,10 @@ export type { GraphDeps } from "./graph/deps.js";
 export { resumeAgent, NotPausedError } from "./run/resume-agent.js";
 export { runAgent } from "./run/run-agent.js";
 export { UnknownThreadError } from "./run/thread.js";
+export type { McpServerOptions } from "./mcp/mcp-server.decorator.js";
+export { McpServer } from "./mcp/mcp-server.decorator.js";
+export type { McpSession } from "./mcp/mcp-service.js";
+export { McpService, createMcpService } from "./mcp/mcp-service.js";
 export type {
   AgentExecutionOutput,
   RunDeps,

@@ -107,4 +107,6 @@ export interface App {
   ): Promise<ExecutionOutput>;
   cancel(thread: string): Promise<void>;
   close(): Promise<void>;
+  /** Resolves a service or component from the app's internal container. */
+  resolve<T>(token: Class<T> | symbol | string): T;
 }

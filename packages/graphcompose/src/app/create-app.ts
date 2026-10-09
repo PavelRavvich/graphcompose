@@ -123,6 +123,10 @@ export async function buildApp(
       closed = true;
       await deps.close();
     },
+    resolve: (token) => {
+      if (!deps.container) throw new Error("Container is not available");
+      return deps.container.get(token);
+    },
   };
   return { app, deps, bundle, nodes };
 }
