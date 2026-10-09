@@ -35,6 +35,7 @@ var __runInitializers = (this && this.__runInitializers) || function (thisArg, i
 import { SystemMessage } from "@langchain/core/messages";
 import { MemoryStrategy } from "../decorator.js";
 import { BaseMemoryStrategy } from "../types.js";
+import { MemoryStorageError, MemoryCompactionError } from "../errors.js";
 let StandardCompactionStrategy = (() => {
     let _classDecorators = [MemoryStrategy({
             windowSize: 10,
@@ -63,7 +64,13 @@ let StandardCompactionStrategy = (() => {
             this.gateway = gateway;
         }
         async buildContext(messages, state, options) {
-            const summaries = await this.storage.load(state.runId, "compaction") ?? [];
+            let summaries;
+            try {
+                summaries = await this.storage.load(state.runId, "compaction") ?? [];
+            }
+            catch (e) {
+                throw new MemoryStorageError(`Failed to load compaction summaries for run ${state.runId}`, e);
+            }
             const rawWindow = messages.slice(-options.windowSize);
             if (summaries.length === 0) {
                 return rawWindow;
@@ -77,21 +84,36 @@ let StandardCompactionStrategy = (() => {
                 return;
             }
             const toCompact = messages.slice(0, options.compactEvery);
-            // Create a chat model instance via the gateway
-            const model = this.gateway.chatModel({
-                purpose: "compaction",
-                model: options.llmModel,
-            });
-            const response = await model.invoke([
-                new SystemMessage("Summarize the following conversation segment concisely. Retain all factual information."),
-                ...toCompact,
-            ]);
-            const summaries = await this.storage.load(state.runId, "compaction") ?? [];
-            summaries.push(String(response.content));
-            if (summaries.length > options.summariesToKeep) {
-                summaries.shift();
+            let response;
+            try {
+                const model = this.gateway.chatModel({
+                    purpose: "compaction",
+                    model: options.llmModel,
+                });
+                response = await model.invoke([
+                    new SystemMessage("Summarize the following conversation segment concisely. Retain all factual information."),
+                    ...toCompact,
+                ]);
             }
-            await this.storage.save(state.runId, "compaction", summaries);
+            catch (e) {
+                throw new MemoryCompactionError(`LLM compaction failed for run ${state.runId}`, e);
+            }
+            const text = String(response.content).trim();
+            if (!text) {
+                throw new MemoryCompactionError(`LLM compaction returned empty summary for run ${state.runId}`);
+            }
+            let summaries;
+            try {
+                summaries = await this.storage.load(state.runId, "compaction") ?? [];
+                summaries.push(text);
+                if (summaries.length > options.summariesToKeep) {
+                    summaries.shift();
+                }
+                await this.storage.save(state.runId, "compaction", summaries);
+            }
+            catch (e) {
+                throw new MemoryStorageError(`Failed to save compaction summaries for run ${state.runId}`, e);
+            }
         }
     };
     return StandardCompactionStrategy = _classThis;
