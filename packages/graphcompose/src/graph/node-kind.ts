@@ -9,7 +9,8 @@ export type NodeKind =
   | "agent"
   | "action"
   | "workflow-finish"
-  | "workflow";
+  | "workflow"
+  | "subgraph";
 
 /** What the flow knows about a node class: its kind and its name (the graph node's name). */
 export interface NodeInfo {
@@ -39,4 +40,4 @@ export function nodeInfoOf(target: Class): NodeInfo | undefined {
 }
 
 export const isWorkingKind = (kind: NodeKind): boolean =>
-  kind === "agent" || kind === "router" || kind === "action" || kind === "workflow";
+  kind === "agent" || kind === "router" || kind === "action" || kind === "workflow" || kind === "subgraph";

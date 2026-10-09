@@ -11,6 +11,9 @@ import { END, START, Send, StateGraph } from "@langchain/langgraph";
 import { componentOf } from "../components/metadata.js";
 import type { Router } from "../routers/index.js";
 import { checkFlow, type FlowModel } from "./check-flow.js";
+
+import { subgraphMetaOf } from "../graph/subgraph.decorator.js";
+import { WorkflowGraphValidator } from "./validator.js";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { unwrapTarget, type Flow } from "./flow.js";
 import type { FlowNodeRef } from "./flow-nodes.js";
@@ -21,6 +24,7 @@ import { predecessorsOf } from "./router-rules.js";
 import { loadRouters, type LoadedRouter } from "./router-texts.js";
 import type { WorkflowLimits } from "./settings.js";
 import { visitNode, type FlowNodeRunner, type SpentToday } from "./visit.js";
+import { subgraphNode } from "./subgraph-node.js";
 
 /** What the engine needs from the outside to run a flow. */
 export interface FlowRuntime {
@@ -448,6 +452,7 @@ function compileFlow(
   runtime: FlowRuntime,
   routers: ReadonlyMap<string, LoadedRouter>,
   limits: ResolvedLimits,
+  compiledSubgraphs: Map<string, FlowGraph>
 ) {
   const builder: Builder = new StateGraph<
     typeof FlowState.spec,
@@ -507,7 +512,17 @@ function compileFlow(
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     const hasCatches = (model.catches.get(node.key) || []).length > 0;
     const visitDeps = { ...deps, catchesErrors: hasCatches };
-    builder.addNode(graphNodeId(node), visitNode(node, runner, visitDeps, quorumContext));
+    
+    if (node.kind === "workflow" || node.kind === "subgraph") {
+        const childGraph = compiledSubgraphs.get(node.key);
+        if (!childGraph) throw new Error("Missing compiled child graph for " + node.key);
+        // Wait, LangGraph supports nested compiled graphs!
+        // We can just add it!
+        builder.addNode(graphNodeId(node), childGraph.graph);
+    } else {
+        builder.addNode(graphNodeId(node), visitNode(node, runner, visitDeps, quorumContext));
+    }
+
 
     const isBatchTarget = model.collected.transitions.some(
       (t) => t.next.kind === "batchParallel" && t.next.target === node.key,
@@ -546,10 +561,34 @@ export interface FlowGraph {
  * decision; workflow starts from `START`, workflow finishes to `END`.
  */
 export async function assembleFlowGraph(flow: Flow, runtime: FlowRuntime): Promise<FlowGraph> {
+  // Check cycles first
+  const validator = new WorkflowGraphValidator();
+  for (const step of flow) {
+      if ('use' in step) validator.validateAcyclic(step.use as any);
+      else if ('from' in step) {
+          const u = Array.isArray(step.from) ? step.from[0] : step.from;
+          if (typeof u === 'function') validator.validateAcyclic(u as any);
+      }
+  }
+
   const model = checkFlow(flow);
   const routers = await loadRouters(model);
   const limits = resolveLimits(runtime.limits, model);
-  const { graph, recursionLimit } = compileFlow(model, runtime, routers, limits);
+  
+  // Recursively compile nested subgraphs
+  const compiledSubgraphs = new Map<string, FlowGraph>();
+  for (const node of model.nodes.values()) {
+      if (node.kind === "workflow" || node.kind === "subgraph") {
+          const childWorkflowClass = node.kind === "subgraph" ? subgraphMetaOf(node.use)!.workflow : node.use;
+          const childComp = componentOf(childWorkflowClass); const childMeta = childComp?.kind === "workflow" ? childComp.meta : undefined;
+          if (!childMeta) throw new Error("Nested workflow missing @Workflow decorator: " + childWorkflowClass.name);
+          // Nested assembly!
+          const childGraph = await assembleFlowGraph(childMeta.flow, runtime);
+          compiledSubgraphs.set(node.key, childGraph);
+      }
+  }
+
+  const { graph, recursionLimit } = compileFlow(model, runtime, routers, limits, compiledSubgraphs);
   return { graph, model, limits, recursionLimit };
 }
 
