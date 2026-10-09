@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { Agent, WorkflowAction, Workflow } from "../../src/components/decorators.js";
 import { from, catchError } from "../../src/router/index.js";
-import { WorkflowStart, WorkflowFinish, LocalSagaStrategy } from "../../src/core/index.js";
+import { LocalSagaStrategy } from "../../src/core/saga/local-saga.strategy.js";
 import { testWith } from "../../src/testing/test-with.js";
+import { replyWith } from "../../src/testing/script.js";
 
 const logs: string[] = [];
 
-@WorkflowAction({ name: "cancel_payment" })
+@WorkflowAction({ name: "cancel-payment" })
 class CancelPaymentAction {
   async execute() {
     logs.push("cancel_payment");
@@ -14,7 +15,7 @@ class CancelPaymentAction {
   }
 }
 
-@WorkflowAction({ name: "cancel_hotel" })
+@WorkflowAction({ name: "cancel-hotel" })
 class CancelHotelAction {
   async execute() {
     logs.push("cancel_hotel");
@@ -22,7 +23,7 @@ class CancelHotelAction {
   }
 }
 
-@Agent({ name: "book_hotel", compensate: CancelHotelAction })
+@Agent({ name: "book-hotel", model: "gpt-4", description: "b", prompt: "p", compensate: CancelHotelAction })
 class BookHotelAgent {
   async run() {
     logs.push("book_hotel");
@@ -30,7 +31,7 @@ class BookHotelAgent {
   }
 }
 
-@Agent({ name: "process_payment", compensate: CancelPaymentAction })
+@Agent({ name: "process-payment", model: "gpt-4", description: "p", prompt: "p", compensate: CancelPaymentAction })
 class ProcessPaymentAgent {
   async run() {
     logs.push("process_payment");
@@ -38,46 +39,64 @@ class ProcessPaymentAgent {
   }
 }
 
-@Agent({ name: "book_flight" }) // Fails intentionally
+@Agent({ name: "book-flight", model: "gpt-4", description: "b", prompt: "p" }) // Fails intentionally
 class BookFlightAgent {
   async run() {
     throw new Error("Flight fully booked");
   }
 }
 
+import { WorkflowStartText, WorkflowFinishText } from "../../src/dto/standard/framework.js";
+import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
+@WorkflowStart({ name: "Start", description: "Start", input: WorkflowStartText })
+class Start {}
+@WorkflowFinish({ name: "Finish", description: "Finish", output: WorkflowFinishText })
+class Finish {}
+
 @Workflow({
-  name: "vacation_booking",
-  version: "1.0",
+  name: "vacation-booking",
+  version: "1.0.0",
+  providers: [Start, Finish, BookHotelAgent, ProcessPaymentAgent, BookFlightAgent, LocalSagaStrategy, CancelHotelAction, CancelPaymentAction],
   flow: [
-    from(WorkflowStart).next(BookHotelAgent),
+    from(Start).next(BookHotelAgent),
     from(BookHotelAgent).next(ProcessPaymentAgent),
     from(ProcessPaymentAgent).next(BookFlightAgent),
     // Route any error in book_flight to LocalSagaStrategy to trigger rollbacks
     catchError(BookFlightAgent, Error).compensateWith(LocalSagaStrategy),
-    from(LocalSagaStrategy).next(WorkflowFinish),
+    from(LocalSagaStrategy).next(Finish),
   ],
+  defaults: {
+    models: { temperature: 0, maxTokens: 1000, thinking: "default", cache: true },
+    router: { kind: "llm", model: "openrouter:openai/gpt-4" },
+    tools: { maxToolCalls: 8 },
+    history: { limit: 5 }
+  },
 })
-class VacationBookingWorkflow {}
+class VacationBookingWorkflow {
+  settings = () => ({ limits: { steps: 50 }, models: {} as any }) as unknown as import("../../src/graph/settings.js").WorkflowSettings;
+}
+
+const test = testWith(VacationBookingWorkflow);
 
 describe("Saga Orchestration", () => {
-  it("executes compensators in reverse order upon failure", async () => {
-    logs.length = 0; // reset
-    await testWith(VacationBookingWorkflow, async (app) => {
+  const test = testWith(VacationBookingWorkflow);
+test("executes compensators in reverse order upon failure", async ({ app, mockLlm }) => {
+logs.length = 0;
       // Mock the agents to just execute and not actually call LLM
-      app.script(BookHotelAgent, async () => {
+      mockLlm(BookHotelAgent).thenAnswer(() => {
         logs.push("book_hotel");
-        return { payload: { step: 1 } };
+        return replyWith("ok", { payload: { step: 1 } } as any);
       });
-      app.script(ProcessPaymentAgent, async () => {
+      mockLlm(ProcessPaymentAgent).thenAnswer(() => {
         logs.push("process_payment");
-        return { payload: { step: 2 } };
+        return replyWith("ok", { payload: { step: 2 } } as any);
       });
-      app.script(BookFlightAgent, async () => {
+      mockLlm(BookFlightAgent).thenAnswer(() => {
         throw new Error("Flight fully booked");
       });
 
-      const res = await app.run({});
-      expect(res.status).toBe("completed");
+      const res = await app.execute(Start, { text: "hello" });
+      expect(res.status).toBe("answered");
 
       // Expected execution order:
       // 1. book_hotel
@@ -88,5 +107,4 @@ describe("Saga Orchestration", () => {
 
       expect(logs).toEqual(["book_hotel", "process_payment", "cancel_payment", "cancel_hotel"]);
     });
-  });
 });

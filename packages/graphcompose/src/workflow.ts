@@ -58,33 +58,41 @@ export interface AssembledWorkflow<TName extends string = string> {
   readonly compactionPrompt?: string;
   /** Set to turn the pause seam on; the app supplies an in-process checkpointer. */
   readonly needsApproval?: (tool: AnyTool) => boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly channels?: (services: WorkflowServices) => ReadonlyMap<string, any>;
   readonly piiPolicies?: (
     services: WorkflowServices,
   ) => ReadonlyMap<
     string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { override: boolean; instances: readonly any[]; disable: readonly any[] }
   >;
   readonly guardrails?: (
     services: WorkflowServices,
   ) => ReadonlyMap<
     string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { override: boolean; instances: readonly any[]; disable: readonly any[] }
   >;
   readonly toolPiiPolicies?: (
     services: WorkflowServices,
   ) => ReadonlyMap<
     string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { override: boolean; instances: readonly any[]; disable: readonly any[] }
   >;
   readonly toolGuardrails?: (
     services: WorkflowServices,
   ) => ReadonlyMap<
     string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { override: boolean; instances: readonly any[]; disable: readonly any[] }
   >;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly workflowPiiPolicies?: (services: WorkflowServices) => readonly any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly workflowGuardrails?: (services: WorkflowServices) => readonly any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly channelAdapters?: (services: WorkflowServices) => ReadonlyMap<string, any>;
 }
 

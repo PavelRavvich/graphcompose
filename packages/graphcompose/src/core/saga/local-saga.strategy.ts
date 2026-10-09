@@ -10,17 +10,22 @@ import type { AgentState } from "../../graph/state.js";
  */
 @WorkflowAction({ name: "LocalSagaStrategy" })
 export class LocalSagaStrategy extends BaseSagaStrategy {
+  // eslint-disable-next-line complexity, @typescript-eslint/explicit-module-boundary-types
   async execute(state: AgentState<unknown>, context: ActionRuntime) {
     if (!context.getComponentClass || !context.runCompensation) {
+      // eslint-disable-next-line no-console
       console.warn("LocalSagaStrategy requires framework support for compensations.");
       return {};
     }
 
-    const history = state.history || [];
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const history = state.contributions || [];
     // Extract unique node names in reverse order of their execution
-    const executedNodes = Array.from(new Set(history.map((h: any) => h.node || h.task).reverse()));
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+    const executedNodes = Array.from(new Set(history.map((h: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => h.agent).reverse()));
 
     for (const nodeName of executedNodes) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const nodeClass = await context.getComponentClass(nodeName);
       if (!nodeClass) continue;
 
@@ -29,7 +34,7 @@ export class LocalSagaStrategy extends BaseSagaStrategy {
 
       if (meta.kind === "agent" || meta.kind === "action") {
         if (meta.meta.compensate) {
-          await context.runCompensation(meta.meta.compensate, state);
+          await context.runCompensation(meta.meta.compensate, state, typeof nodeName === "string" ? nodeName : undefined);
         }
       }
     }

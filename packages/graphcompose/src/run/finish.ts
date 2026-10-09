@@ -19,6 +19,7 @@ function finishOf<TName extends string>(
   const ref = last === undefined ? undefined : ctx.flow.model.nodes.get(last);
   return {
     ...(ref?.kind === "workflow-finish" ? { finish: ref.name } : {}),
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     ...(state.finishes && Object.keys(state.finishes).length > 0
       ? { finishes: state.finishes }
       : {}),
@@ -28,8 +29,10 @@ function finishOf<TName extends string>(
 function outcomeOf(state: AgentStateType, paused: boolean): TernOutcome & { status: RunStatus } {
   const status: RunStatus = paused ? "paused" : state.guarded === "" ? "answered" : "guarded";
   return {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     replyWith: paused ? "" : (state.replyWith ?? ""),
     status,
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     stopReason: paused ? "waiting for approval" : (state.routeReason ?? ""),
     route: state.contributions.map((item) => item.agent),
     steps: state.contributions,

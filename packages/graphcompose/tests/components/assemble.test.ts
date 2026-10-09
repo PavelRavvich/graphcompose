@@ -87,11 +87,16 @@ import { Guardrail, Tool } from "../../src/core/index.js";
 import { Person, Greeting } from "./fixture/components.js";
 
 describe("components — policy overrides and disables", () => {
+  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
   class WGuard {}
+  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
   class AGuard {}
+  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
   class TGuard {}
+  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
   class WDisable {}
 
+  // eslint-disable-next-line complexity
   it("Agent inherits workflow guardrails by default, or overrides them", async () => {
     @Agent({
       name: "override_agent",
@@ -125,6 +130,7 @@ describe("components — policy overrides and disables", () => {
     class W extends TestSettings {}
 
     const bundle = await workflowOf(W);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     const mockServices = { resolve: (cls: any) => new cls(), router: () => ({}) as any };
     const agentMap = bundle.guardrails?.(mockServices);
 
@@ -175,6 +181,7 @@ describe("components — policy overrides and disables", () => {
     class W2 extends TestSettings {}
 
     const bundle = await workflowOf(W2);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     const mockServices = { resolve: (cls: any) => new cls(), router: () => ({}) as any };
     const toolMap = bundle.toolGuardrails?.(mockServices);
 
@@ -195,7 +202,7 @@ describe("components — errors at assembly", () => {
       price: testConfig.agents.alpha.price,
       tools: [],
       prompt: "Hello {{unknown_var}}",
-      promptVars: {},
+      promptVariables: {},
     })
     class Tester {}
 

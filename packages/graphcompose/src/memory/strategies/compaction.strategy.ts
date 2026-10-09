@@ -63,6 +63,7 @@ export class StandardCompactionStrategy extends BaseMemoryStrategy<CompactionOpt
     try {
       const model = this.gateway.chatModel({
         user: { kind: "compaction" },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
         settings: { model: options.llmModel } as any,
       });
 
@@ -76,6 +77,7 @@ export class StandardCompactionStrategy extends BaseMemoryStrategy<CompactionOpt
       throw new MemoryCompactionError(`LLM compaction failed for run ${state.runId}`, e);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     const text = String(response.content).trim();
     if (!text) {
       throw new MemoryCompactionError(

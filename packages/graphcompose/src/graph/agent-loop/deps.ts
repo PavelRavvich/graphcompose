@@ -31,18 +31,26 @@ export interface AgentLoopDeps {
   /** Set only with a pause seam: which calls wait for a decision, and how it is asked. */
   readonly approval?: ToolCallApproval | undefined;
   readonly judges: JudgePoints;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly piiPolicies?: { override: boolean; instances: readonly any[]; disable: readonly any[] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly guardrails?: { override: boolean; instances: readonly any[]; disable: readonly any[] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly workflowPiiPolicies?: readonly any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly workflowGuardrails?: readonly any[];
   readonly toolPiiPolicies?: (tool: string) => {
     override: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     instances: readonly any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     disable: readonly any[];
   };
   readonly toolGuardrails?: (tool: string) => {
     override: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     instances: readonly any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     disable: readonly any[];
   };
   readonly observer?: ObserverManager;

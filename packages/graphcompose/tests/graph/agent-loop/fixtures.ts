@@ -78,7 +78,8 @@ export function harness(
       runBudgetCap: options.runBudgetCap ?? Number.POSITIVE_INFINITY,
       approval: options.approval === false ? undefined : pauseSeamApproval(),
       judges: noJudges,
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       guardrails: options.guardrails
         ? { override: false, instances: options.guardrails }
         : undefined,
@@ -113,6 +114,8 @@ const flowStateOf = (task: string): FlowStateType => ({
   payload: {},
   batchItem: undefined,
   _batchCursor: {},
+  cancelRequested: false,
+  lastError: null,
 });
 
 /** The loop's input for a task,

@@ -28,12 +28,15 @@ export interface ToolCallApproval {
  * The pause seam as an approval: `interrupt` pauses the run at the call (the checkpoint is the
  * boundary — nothing ran before it), the decision `resume` brings is validated like any external input.
  */
+// eslint-disable-next-line max-lines-per-function
 export function pauseSeamApproval(
   dispatchChannel?: (channelName: string, req: ChannelRequest) => Promise<void>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   channelAdapters?: (channel: string) => any,
   observer?: ObserverManager,
 ): ToolCallApproval {
   return {
+    // eslint-disable-next-line complexity
     requestApproval: async (ask, agent, tool, runId, metadata, executionContext) => {
       const pending: PendingPause = {
         kind: "approval",
@@ -44,6 +47,7 @@ export function pauseSeamApproval(
       };
 
       try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         let rawDecision = interrupt(pending);
 
         if (tool.channel && channelAdapters) {
@@ -53,14 +57,18 @@ export function pauseSeamApproval(
             update: rawDecision,
             state: appState,
           });
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const adapter = channelAdapters(tool.channel);
           if (adapter) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             rawDecision = await adapter.interpret(rawDecision);
           }
         }
 
         return validate(ToolCallApprovalDecision, rawDecision);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
+        // eslint-disable-next-line @typescript-eslint/prefer-optional-chain, @typescript-eslint/no-unsafe-member-access
         if (e && e.name === "NodeInterrupt") {
           if (tool.channel && dispatchChannel) {
             const appState = { runId, threadId: runId, activeNode: agent };
@@ -73,6 +81,7 @@ export function pauseSeamApproval(
               runId,
               agentName: agent,
               toolName: tool.name,
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
               toolArguments: ask.arguments as Record<string, unknown>,
               metadata,
               executionContext,

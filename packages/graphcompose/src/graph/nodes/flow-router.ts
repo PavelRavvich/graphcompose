@@ -85,6 +85,7 @@ function targetOf(
   if (!route) {
     return fail("router.unknown-route", `"${next}" is not one of its routes`);
   }
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
   if (next !== SELF_OPTION) return { next, optionalBranches: route.optionalBranches || [] };
   return state.previousAgent === ""
     ? fail("router.failed", "Self, but no agent ran yet")

@@ -21,6 +21,7 @@ export function awaitingApproval(
   return callsOf(state.move).filter((call) => {
     const tool = toolNamed(deps.agent, call.tool);
     return (
+      // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
       tool !== undefined &&
       tool.channel !== undefined &&
       state.decisions[call.callId] === undefined &&
@@ -67,6 +68,7 @@ export function routeToActions(
 export function makeBoundaryNode(
   deps: AgentLoopDeps,
 ): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
+  // eslint-disable-next-line complexity
   return async (state, config) => {
     const results: Record<string, StoredToolCall> = {};
     for (const call of callsOf(state.move)) {
@@ -79,7 +81,9 @@ export function makeBoundaryNode(
       const ctx = {
         agent: deps.agent.name,
         call,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         runId: config?.configurable?.run_id ?? state.runId,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         metadata: config?.configurable?.metadata ?? {},
       };
 

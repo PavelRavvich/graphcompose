@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { QuorumManager } from "../concurrency/quorum-manager.js";
 import { randomUUID } from "node:crypto";
 import type { UsageRecord } from "../finops/usage.js";

@@ -74,6 +74,7 @@ export function formatDecisionsForAgent(
     const call = `${record.tool} ${clip(JSON.stringify(record.args), 200)}`;
     return record.approved
       ? `- ${call}: approved by ${record.by} and DONE — result: ${clip(record.result ?? "", 300)}`
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       : `- ${call}: rejected by ${record.by}, NOT done — ${record.result}`;
   });
   return `\n\nYour tool calls decided in this turn (already settled — do not repeat them):\n${lines.join("\n")}`;

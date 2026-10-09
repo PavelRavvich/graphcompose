@@ -18,14 +18,18 @@ export const routerKeyOf = (router: string): string => `router:${router}`;
 
 /** The option a router sees for a target: its node name, or `self`. */
 export const optionOf = (target: ChoiceTarget): string =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   isSelf(target)
     ? SELF_OPTION
     : isReturn(target)
       ? "Return"
       : isEnd(target)
         ? "End"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         : (target as any).kind === "parallel" || (target as any).kind === "optional"
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           ? (target as any).kind
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
           : nodeNameOf(target as any);
 
 const failed = (reason: string): RouteOutcome => ({ kind: "failed", reason });

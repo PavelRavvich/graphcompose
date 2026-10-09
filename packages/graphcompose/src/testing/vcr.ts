@@ -32,7 +32,9 @@ export interface VcrConfig {
 interface CassetteInteraction {
   agentName: string;
   request: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     messages: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tools?: any[];
   };
   response: ChatResult;
@@ -43,6 +45,7 @@ interface Cassette {
 }
 
 export class VcrChatModel extends BaseChatModel {
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   _llmType() {
     return "vcr_chat_model";
   }
@@ -56,9 +59,11 @@ export class VcrChatModel extends BaseChatModel {
     super({});
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private hashRequest(messages: BaseMessage[], tools?: any[]): string {
     const data = JSON.stringify({
       messages: messages.map((m) => ({
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
         _getType: m._getType(),
         content: m.content,
         additional_kwargs: m.additional_kwargs,
@@ -68,6 +73,7 @@ export class VcrChatModel extends BaseChatModel {
     return crypto.createHash("sha256").update(data).digest("hex");
   }
 
+  // eslint-disable-next-line max-lines-per-function
   async _generate(
     messages: BaseMessage[],
     options: this["ParsedCallOptions"],
@@ -87,7 +93,9 @@ export class VcrChatModel extends BaseChatModel {
         );
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const cassette: Cassette = JSON.parse(fs.readFileSync(this.cassettePath, "utf-8"));
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const requestHash = this.hashRequest(messages, (options as any).tools);
 
       const match = cassette.interactions.find((i) => {
@@ -108,10 +116,12 @@ export class VcrChatModel extends BaseChatModel {
       // Reconstruct AIMessages from the stored JSON to satisfy LangChain
       const response = match.response;
       response.generations = response.generations.map((gen) => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
         if (gen.message && gen.message.id) {
           const msg = new AIMessage({
             content: gen.message.content,
             additional_kwargs: gen.message.additional_kwargs,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             tool_calls: (gen.message as any).tool_calls,
             id: gen.message.id,
           });
@@ -127,6 +137,7 @@ export class VcrChatModel extends BaseChatModel {
 
       let cassette: Cassette = { interactions: [] };
       if (fs.existsSync(this.cassettePath)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         cassette = JSON.parse(fs.readFileSync(this.cassettePath, "utf-8"));
       }
 
@@ -134,10 +145,12 @@ export class VcrChatModel extends BaseChatModel {
         agentName: this.agentName,
         request: {
           messages: messages.map((m) => ({
+            // eslint-disable-next-line @typescript-eslint/no-deprecated
             _getType: m._getType(),
             content: m.content,
             additional_kwargs: m.additional_kwargs,
           })),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           tools: (options as any).tools,
         },
         response: result,

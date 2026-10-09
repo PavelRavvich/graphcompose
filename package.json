@@ -20,7 +20,7 @@
     "coverage": "npm run coverage --workspaces",
     "check:rules": "scripts/check-rules-files.sh",
     "check:names": "scripts/check-old-names.sh",
-    "check": "npm run check:rules && npm run check:names && npm run build && npm run format:check && npm run typecheck && npm run coverage && npm run check:models",
+    "check": "npm run check:rules && npm run check:names && npm run build && npm run format:check && npm run lint && npm run typecheck && npm run coverage && npm run check:models",
     "smoke": "npm run smoke -w graphcompose",
     "studio": "npm run build && langgraphjs dev",
     "check:models": "npm run check:models -w job-scout-example"

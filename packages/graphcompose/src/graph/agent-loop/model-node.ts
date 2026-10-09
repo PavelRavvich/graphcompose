@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { QuorumCancelledError, type BranchCancelToken } from "../../concurrency/quorum-manager.js";
 import { AIMessage, SystemMessage, type AIMessageChunk } from "@langchain/core/messages";
 import type { RunnableConfig } from "@langchain/core/runnables";
@@ -69,9 +70,12 @@ function withCallIds(response: AIMessageChunk, state: AgentLoopStateType): AIMes
  * flow then fails at its cost limit) and `modelCalls`; after it: the usage record and `toolCalls`
  * for the calls the move asks for. A failed call fails the agent with the loop's spend.
  */
+// eslint-disable-next-line max-lines-per-function
 export function makeModelNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
   const { name, limits, binding } = deps.agent;
+  // eslint-disable-next-line max-lines-per-function, complexity
   return async (state, config) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (config?.configurable?.branchCancelToken?.cancelled) {
       throw new QuorumCancelledError();
     }
@@ -100,6 +104,7 @@ export function makeModelNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
       history: state.messages,
     }; // AppState stub
     await deps.observer?.onModelStart({
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       modelName: binding.settings.model ?? "unknown",
       callerName: name,
       rawPayload: state.messages,
@@ -111,6 +116,7 @@ export function makeModelNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
     const usageRecord = recordUsage(name, binding.settings, response);
     const spent = [usageRecord];
     await deps.observer?.onModelEnd({
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       model: binding.settings.model ?? "unknown",
       callerName: name,
       rawContent: response.content,

@@ -33,6 +33,7 @@ describe("Agent Retry Loop with Judges", () => {
     class CustomFake extends SimpleChatModel {
       responses = ["bad response", "good response"];
       _call(messages: any, options: any, runManager?: any): Promise<string> {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         return Promise.resolve(this.responses.shift() || "default");
       }
       _llmType() {
@@ -58,10 +59,10 @@ describe("Agent Retry Loop with Judges", () => {
     };
 
     const deps = {
-      agent: agentDef,
+      agent: agentDef as any,
       bundle: "test-bundle",
       runBudgetCap: 100,
-      judges: noJudges(),
+      judges: noJudges,
     };
 
     const checkpointer = new MemorySaver();
@@ -98,7 +99,8 @@ describe("Agent Retry Loop with Judges", () => {
       configurable: { thread_id: "thread-1" },
     });
 
-    console.log("FINAL RESULT:", JSON.stringify(result, null, 2));
+    // eslint-disable-next-line no-console
+      console.log("FINAL RESULT:", JSON.stringify(result, null, 2));
     expect(evalCount).toBe(2);
     expect(result.reply).toBe("good response");
     expect(result.retries).toBe(1);

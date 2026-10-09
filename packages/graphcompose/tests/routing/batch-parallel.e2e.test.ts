@@ -3,7 +3,6 @@ import { from } from "../../src/graph/flow.js";
 import { BatchParallelStrategy } from "../../src/concurrency/batch.decorator.js";
 import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
 import { checkFlow } from "../../src/graph/check-flow.js";
-import { buildEdges } from "../../src/graph/build.js";
 import { Agent } from "../../src/components/decorators.js";
 
 @BatchParallelStrategy()
@@ -12,13 +11,21 @@ class NumberStrategy {
     return [1, 2, 3, 4, 5];
   }
 }
-@WorkflowStart({ name: "Start" })
+ 
+ 
+
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+@WorkflowStart({ name: "Start", description: "Start", input: class {} as any })
+ 
+ 
+
 class Start {}
-@WorkflowFinish({ name: "Finish" })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+@WorkflowFinish({ name: "Finish", description: "Finish", output: class {} as any })
 class Finish {}
-@Agent({ name: "Worker" })
+@Agent({ name: "Worker", model: "gpt-4", description: "Worker", prompt: "p" })
 class Worker {}
-@Agent({ name: "Summary" })
+@Agent({ name: "Summary", model: "gpt-4", description: "Summary", prompt: "p" })
 class Summary {}
 
 describe("BatchParallel (Scatter-Gather)", () => {

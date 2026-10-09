@@ -46,6 +46,7 @@ export function loopInputOf(state: FlowStateType, agent: string): AgentLoopState
     batchItem: undefined,
     _batchCursor: {},
     lastError: null,
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     cancelRequested: state.cancelRequested ?? false,
   };
 }

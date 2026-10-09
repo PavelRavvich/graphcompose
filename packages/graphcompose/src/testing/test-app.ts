@@ -20,7 +20,7 @@ import {
  * A blocked live call or a script problem fails the call, even when the run swallowed it; any call
  * after `close()` (or `recoverApp()`) fails with `test.app-closed`.
  */
-export interface TestApp extends Pick<App, "execute" | "resume" | "close"> {
+export interface TestApp extends Pick<App, "execute" | "resume" | "close" | "cancel"> {
   readonly clock: TestClock;
   agent(agent: FlowNode): AgentSlice;
   router(router: FlowNode): RouterSlice;
@@ -56,6 +56,7 @@ export function createTestApp(environment: TestEnvironment): TestApp {
       checked(environment, async () => (await built()).app.execute(start, input, options)),
     resume: (thread, decision, options): Promise<ExecutionOutput> =>
       checked(environment, async () => (await built()).app.resume(thread, decision, options)),
+    cancel: (thread) => checked(environment, async () => (await built()).app.cancel(thread)),
     close: async () => {
       closed = true;
       if (building !== undefined) await (await building).app.close();

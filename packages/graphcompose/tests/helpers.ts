@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/require-await */
+
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { MODEL_MAX, type AgentsConfigOf } from "../src/config/types.js";
 import type { UsageRecord } from "../src/finops/usage.js";
@@ -144,7 +144,8 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     payload: {},
     batchItem: undefined,
     _batchCursor: {},
-    lastError: null,
+    cancelRequested: false,
+
     ...overrides,
   };
 }
@@ -186,6 +187,7 @@ export function flowState(overrides: Partial<FlowStateType> = {}): FlowStateType
     steps: 0,
     path: [],
     daySpentBeforeRunUsd: null,
+    lastError: null,
     ...overrides,
   };
 }

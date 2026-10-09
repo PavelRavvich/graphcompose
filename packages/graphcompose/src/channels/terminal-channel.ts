@@ -9,11 +9,15 @@ export class TerminalUserChannel implements ChannelHandler {
     // In a real CLI environment, this simply prints the question.
     // The CLI process catches the suspension and prompts the user,
     // then calls engine.resume(runId, replyWith).
+    // eslint-disable-next-line no-console
     console.log(
       `\n[APPROVAL REQUIRED] Tool '${req.toolName}' wants to run in Agent '${req.agentName}'.`,
     );
+    // eslint-disable-next-line no-console
     console.log(`Arguments:`, req.toolArguments);
+    // eslint-disable-next-line no-console
     console.log(`To approve, run: gc resume ${req.runId} --approve`);
+    // eslint-disable-next-line no-console
     console.log(`To reject, run: gc resume ${req.runId} --reject "reason"\n`);
   };
 }

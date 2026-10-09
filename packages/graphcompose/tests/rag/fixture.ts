@@ -47,7 +47,7 @@ export function bundleWith(
     price: testConfig.agents.alpha.price,
     rag: [{ use, mode }],
     prompt: prompt,
-    promptVars: { language: "English" },
+    promptVariables: { language: "English" },
   })
   class Helper {}
   @Workflow({ ...base, name: "handbook-bundle", flow: starOf(Helper) })

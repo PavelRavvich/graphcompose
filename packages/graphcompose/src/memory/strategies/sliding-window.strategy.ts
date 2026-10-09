@@ -3,6 +3,7 @@ import { MemoryStrategy } from "../decorator.js";
 import { BaseMemoryOptions, BaseMemoryStrategy, MemoryState } from "../types.js";
 
 @MemoryStrategy<BaseMemoryOptions>({ windowSize: 10 })
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
 export class SlidingWindowStrategy extends BaseMemoryStrategy<BaseMemoryOptions> {
   async buildContext(
     messages: BaseMessage[],

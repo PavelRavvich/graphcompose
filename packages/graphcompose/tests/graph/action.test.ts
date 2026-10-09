@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   WorkflowAction,
   type IWorkflowAction,
-  type WorkflowActionContext,
+  type ActionRuntime,
   Agent,
 } from "../../src/components/decorators.js";
 import { from, type Flow } from "../../src/graph/flow.js";
@@ -27,9 +27,11 @@ const parallelActionSpy = vi.fn();
 class SyncDbAction implements IWorkflowAction<{ data: string; asyncCount: number }> {
   async execute(
     state: AgentState<{ data: string; asyncCount: number }>,
-    context: WorkflowActionContext,
+    context: ActionRuntime,
   ): Promise<Partial<AgentStateUpdate>> {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     syncActionSpy(state.payload?.data);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return { payload: { ...state.payload, data: (state.payload?.data || "") + " (synced)" } };
   }
 }
@@ -38,9 +40,11 @@ class SyncDbAction implements IWorkflowAction<{ data: string; asyncCount: number
 class NotifyAction implements IWorkflowAction<{ data: string; asyncCount: number }> {
   async execute(
     state: AgentState<{ data: string; asyncCount: number }>,
-    context: WorkflowActionContext,
+    context: ActionRuntime,
   ): Promise<Partial<AgentStateUpdate>> {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     parallelActionSpy(state.payload?.asyncCount);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return { payload: { ...state.payload, asyncCount: (state.payload?.asyncCount || 0) + 1 } };
   }
 }

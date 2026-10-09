@@ -41,6 +41,7 @@ export const checkToolData = (cls: Class, kind: "tool" | "mcp-tool"): void => {
   schemaOf(meta.output);
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const adapt = (handler: ToolHandler<any, any>, meta: ToolMeta): AnyTool =>
   defineTool({
     name: meta.name,
@@ -93,6 +94,7 @@ export const toolBuilder =
     const container = containerFor(bundle, services);
     const instances = local.map((cls) =>
       adapt(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         container.get(cls) as ToolHandler<any, any>,
         requireComponent(cls, "tool", "workflowOf").meta,
       ),

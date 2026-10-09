@@ -33,6 +33,7 @@ export function nodeInfoOf(target: Class): NodeInfo | undefined {
   // Note: workflow meta has name inside meta.meta? Wait, componentOf(target).meta is WorkflowMeta! So component.meta.name
   if (component?.kind === "action") return { kind: "action", name: component.meta.name };
   if (component?.kind === "workflow")
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     return { kind: "workflow", name: (component.meta as any).name };
   return undefined;
 }

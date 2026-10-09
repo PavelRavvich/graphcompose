@@ -151,6 +151,7 @@ describe("compare — report", () => {
     };
 
     const diff = configDiff(a, b);
+    // eslint-disable-next-line no-console
     console.log("DIFF:", diff);
 
     expect(diff).toContain('agents.alpha.thinking: — → "low"');

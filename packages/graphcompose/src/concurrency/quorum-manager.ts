@@ -21,6 +21,7 @@ interface QuorumState {
 export class QuorumManager {
   private activeQuorums = new Map<string, QuorumState>();
 
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   registerBranch(
     quorumId: string,
     min: number,
@@ -46,6 +47,7 @@ export class QuorumManager {
       this.activeQuorums.set(quorumId, q);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const quorum = this.activeQuorums.get(quorumId)!;
     quorum.tokens.add(token);
 

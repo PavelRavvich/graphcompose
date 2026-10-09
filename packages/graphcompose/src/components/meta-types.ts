@@ -1,9 +1,11 @@
 import type { AgentsConfig } from "../config/types.js";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { AnyTool } from "../tools/index.js";
 import type { RagMode } from "../rag/types.js";
 import type { Flow } from "../graph/flow.js";
 import type { Class, Provider } from "./injection.js";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { PromptOptions } from "./prompt-options.js";
 
 type AgentSettings = AgentsConfig["agents"][string];

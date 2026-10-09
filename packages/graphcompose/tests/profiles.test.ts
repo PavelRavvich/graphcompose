@@ -54,8 +54,11 @@ describe("profiles — merge rules", () => {
     expect(applied.config.agents.coder?.thinking).toBe("high");
     expect(applied.config.agents.coder?.model).toBe(base.config.agents.coder?.model);
     expect(applied.config.defaults.history.limit).toBe(2);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     expect(await applied.prompts.coder!({} as any)).toBe("You are a terse coder.");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     expect(await applied.prompts.researcher!({} as any)).toBe(
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       await base.prompts.researcher!({} as any),
     );
   });
@@ -68,6 +71,7 @@ describe("profiles — merge rules", () => {
 
     const applied = await withProfile(base, "variant", root);
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     expect(await applied.prompts.coder!({} as any)).toBe("From a file.");
     expect(await withProfile(base, "base", root)).toBe(base);
     expect(await loadProfile(file)).toMatchObject({ profile: "variant" });

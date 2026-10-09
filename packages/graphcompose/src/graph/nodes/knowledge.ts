@@ -9,6 +9,7 @@ import type { KnowledgeSource } from "../../rag/types.js";
  * cost is billed to `rag:<name>` (category retrieval). A failure leaves those results out — the
  * turn goes on (fail-open), the error stays on the span.
  */
+// eslint-disable-next-line complexity
 export async function gatherKnowledge(
   sources: readonly KnowledgeSource[],
   query: string,

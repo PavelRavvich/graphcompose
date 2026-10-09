@@ -37,6 +37,7 @@ export function renderPromptVariables(
     if (!variables) return text;
     return renderTemplate(text, variables, unknown);
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   (fn as any).options = options;
   return fn;
 }

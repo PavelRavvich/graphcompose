@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { Agent, Workflow } from "../../src/components/decorators.js";
 import { from, catchError } from "../../src/router/index.js";
-import { WorkflowStart, WorkflowFinish } from "../../src/core/index.js";
+
 import { testWith } from "../../src/testing/test-with.js";
+import { replyWith } from "../../src/testing/script.js";
 
 class MockTimeoutError extends Error {
   constructor(message: string) {
@@ -11,66 +12,80 @@ class MockTimeoutError extends Error {
   }
 }
 
-@Agent({ name: "cancel_flight" })
+@Agent({ name: "cancel_flight", model: "gpt-4", description: "c", prompt: "p" })
 class CancelFlightAgent {
   async run() {
     return { payload: { canceled: true } };
   }
 }
 
-@Agent({ name: "book_flight", compensate: CancelFlightAgent })
+@Agent({ name: "book_flight", model: "gpt-4", description: "b", prompt: "p", compensate: CancelFlightAgent })
 class BookFlightAgent {
   async run() {
     throw new MockTimeoutError("Flight API down");
   }
 }
 
-@Agent({ name: "fallback_agent" })
+@Agent({ name: "fallback_agent", model: "gpt-4", description: "f", prompt: "p" })
 class FallbackAgent {
   async run() {
     return { payload: { recovered: true } };
   }
 }
 
+import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
+import { WorkflowStartText } from "../../src/dto/standard/framework.js";
+@WorkflowStart({ name: "Start", description: "Start", input: WorkflowStartText })
+class Start {}
+@WorkflowFinish({ name: "Finish", description: "Finish", output: WorkflowStartText })
+class Finish {}
+
 @Workflow({
-  name: "trip_booking",
-  version: "1.0",
+  name: "trip-booking",
+  version: "1.0.0",
+  providers: [Start, Finish, BookFlightAgent, FallbackAgent],
   flow: [
-    from(WorkflowStart).next(BookFlightAgent),
+    from(Start).next(BookFlightAgent),
     catchError(BookFlightAgent, MockTimeoutError).next(FallbackAgent),
-    catchError(BookFlightAgent, Error).next(WorkflowFinish),
-    from(FallbackAgent).next(WorkflowFinish),
+    catchError(BookFlightAgent, Error).next(Finish),
+    from(FallbackAgent).next(Finish),
   ],
-  defaults: { history: { limit: 5 } },
+  defaults: {
+    models: { temperature: 0, maxTokens: 1000, thinking: "default", cache: true },
+    router: { kind: "llm", model: "openrouter:openai/gpt-4" },
+    tools: { maxToolCalls: 8 },
+    history: { limit: 5 }
+  },
 })
-class TripBookingWorkflow {}
+class TripBookingWorkflow {
+  settings = () => ({ limits: { steps: 50 }, models: {} as any }) as unknown as import("../../src/graph/settings.js").WorkflowSettings;
+}
+
+const test = testWith(TripBookingWorkflow);
 
 describe("Saga and Error Routing", () => {
-  it("routes to WorkflowFinish on generic error", async () => {
-    await testWith(TripBookingWorkflow, async (app) => {
-      app.script(BookFlightAgent, async () => {
+  test("routes to WorkflowFinish on generic error", async ({ app, mockLlm }) => {
+      mockLlm(BookFlightAgent).thenAnswer(() => {
         throw new Error("Database down");
       });
 
-      const res = await app.run({});
-      expect(res.status).toBe("completed");
+      const res = await app.execute(Start, { text: "hello" });
+      expect(res.status).toBe("answered");
 
-      const path = res.path;
-      expect(path).toContain("book_flight");
-      expect(path).not.toContain("fallback_agent");
+      expect(mockLlm(BookFlightAgent).requests.length).toBe(1);
+      expect(mockLlm(FallbackAgent).requests.length).toBe(0);
     });
-  });
 
-  it("routes to fallback on specific error", async () => {
-    await testWith(TripBookingWorkflow, async (app) => {
-      app.script(FallbackAgent, async () => ({ payload: { recovered: true } }));
+  test("routes to fallback on specific error", async ({ app, mockLlm }) => {
+      mockLlm(BookFlightAgent).thenAnswer(() => {
+        throw new MockTimeoutError("Flight API down");
+      });
+      mockLlm(FallbackAgent).thenAnswer(() => replyWith('{"recovered": true}'));
 
-      const res = await app.run({});
-      expect(res.status).toBe("completed");
+      const res = await app.execute(Start, { text: "hello" });
+      expect(res.status).toBe("answered");
 
-      const path = res.path;
-      expect(path).toContain("book_flight");
-      expect(path).toContain("fallback_agent");
+      expect(mockLlm(BookFlightAgent).requests.length).toBe(1);
+      expect(mockLlm(FallbackAgent).requests.length).toBe(1);
     });
-  });
 });

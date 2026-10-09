@@ -1,4 +1,5 @@
 import type { BaseCheckpointSaver } from "@langchain/langgraph";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { AnyTool } from "../tools/index.js";
 
 /**

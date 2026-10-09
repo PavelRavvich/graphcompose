@@ -11,6 +11,7 @@ export interface BatchParallelStrategyMeta extends BatchParallelStrategyOptions 
 const batchParallelStrategies = new WeakMap<Class, BatchParallelStrategyMeta>();
 
 export function BatchParallelStrategy(options?: BatchParallelStrategyOptions) {
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   return function (target: Class) {
     batchParallelStrategies.set(target, { name: options?.name ?? target.name, ...options });
   };

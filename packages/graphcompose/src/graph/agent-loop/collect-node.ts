@@ -45,6 +45,7 @@ function decidedCalls(
 export function makeCollectNode(
   deps: AgentLoopDeps,
 ): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
+  // eslint-disable-next-line complexity
   return async (state, config) => {
     const calls = callsOf(state.move);
     for (const call of calls) {
@@ -59,7 +60,9 @@ export function makeCollectNode(
       const ctx = {
         agent: deps.agent.name,
         call,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         runId: config?.configurable?.run_id ?? state.runId,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         metadata: config?.configurable?.metadata ?? {},
       };
       const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };

@@ -1,25 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { Agent, WorkflowAction, Workflow } from "../../src/components/decorators.js";
 import { from, catchError } from "../../src/router/index.js";
-import {
-  WorkflowStart,
-  WorkflowFinish,
-  LocalSagaStrategy,
-  WorkflowCancelledError,
-} from "../../src/core/index.js";
+import { LocalSagaStrategy } from "../../src/core/saga/local-saga.strategy.js";
+import { WorkflowCancelledError } from "../../src/core/errors.js";
 import { testWith } from "../../src/testing/test-with.js";
+import { replyWith } from "../../src/testing/script.js";
 
 const logs: string[] = [];
 
-@WorkflowAction({ name: "cancel_payment_global" })
+@WorkflowAction({ name: "cancel-payment-global" })
 class CancelPaymentAction {
   async execute(state: any, ctx: any) {
-    logs.push(`cancel_payment:${ctx.idempotencyKey}`);
+    logs.push(`cancel_payment:${String(ctx.idempotencyKey)}`);
     return { payload: { canceled: true } };
   }
 }
 
-@Agent({ name: "process_payment_global", compensate: CancelPaymentAction })
+@Agent({ name: "process-payment-global", model: "gpt-4", description: "Process", prompt: "p", compensate: CancelPaymentAction })
 class ProcessPaymentAgent {
   async run() {
     logs.push("process_payment");
@@ -27,7 +24,7 @@ class ProcessPaymentAgent {
   }
 }
 
-@Agent({ name: "slow_agent" })
+@Agent({ name: "slow-agent", model: "gpt-4", description: "Slow", prompt: "p" })
 class SlowAgent {
   async run() {
     logs.push("slow_agent");
@@ -36,41 +33,58 @@ class SlowAgent {
   }
 }
 
+import { WorkflowStartText, WorkflowFinishText } from "../../src/dto/standard/framework.js";
+import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
+@WorkflowStart({ name: "Start", description: "Start", input: WorkflowStartText })
+class Start {}
+@WorkflowFinish({ name: "Finish", description: "Finish", output: WorkflowFinishText })
+class Finish {}
+
 @Workflow({
-  name: "cancellable_booking",
-  version: "1.0",
+  name: "cancellable-booking",
+  version: "1.0.0",
+  providers: [Start, Finish, ProcessPaymentAgent, SlowAgent, LocalSagaStrategy, CancelPaymentAction],
   flow: [
-    from(WorkflowStart).next(ProcessPaymentAgent),
+    from(Start).next(ProcessPaymentAgent),
     from(ProcessPaymentAgent).next(SlowAgent),
-    from(SlowAgent).next(WorkflowFinish),
+    from(SlowAgent).next(Finish),
     // Catch global cancellation and rollback
     catchError(SlowAgent, WorkflowCancelledError).compensateWith(LocalSagaStrategy),
-    from(LocalSagaStrategy).next(WorkflowFinish),
+    from(LocalSagaStrategy).next(Finish),
   ],
+  defaults: {
+    models: { temperature: 0, maxTokens: 1000, thinking: "default", cache: true },
+    router: { kind: "llm", model: "openrouter:openai/gpt-4" },
+    tools: { maxToolCalls: 8 },
+    history: { limit: 5 }
+  },
 })
-class CancellableBookingWorkflow {}
+class CancellableBookingWorkflow {
+  settings = () => ({ limits: { steps: 50 }, models: {} as any }) as unknown as import("../../src/graph/settings.js").WorkflowSettings;
+}
+
+const test = testWith(CancellableBookingWorkflow);
 
 describe("Global Cancellation", () => {
-  it("cancels execution and triggers rollback with idempotency keys", async () => {
-    logs.length = 0; // reset
-    await testWith(CancellableBookingWorkflow, async (app) => {
+  test("cancels execution and triggers rollback with idempotency keys", async ({ app, mockLlm }) => {
+    logs.length = 0;
       // Mock ProcessPayment
-      app.script(ProcessPaymentAgent, async () => {
-        logs.push("process_payment");
-        return { payload: {} };
-      });
+      mockLlm(ProcessPaymentAgent).thenAnswer(() => {
+  logs.push("process_payment");
+  return replyWith("ok");
+});
 
       // We will intercept the slow agent and cancel the app
-      app.script(SlowAgent, async (req, res, state) => {
+      mockLlm(SlowAgent).thenAnswer(() => {
         logs.push("slow_agent_started");
         // We trigger the global cancel api while the agent is "running"
-        await app.cancel(state.runId);
+        void app.cancel("run-0");
         // We throw so it fails and router catches it (simulating what the guard does if it hits on next tick)
         throw new WorkflowCancelledError();
       });
 
-      const res = await app.run({});
-      expect(res.status).toBe("completed"); // completes successfully because LocalSaga handles the error
+      const res = await app.execute(Start, { text: "hello" });
+      expect(res.status).toBe("answered"); // completes successfully because LocalSaga handles the error
 
       // Expected execution order:
       // 1. process_payment
@@ -82,7 +96,6 @@ describe("Global Cancellation", () => {
 
       const cancelLog = logs.find((l) => l.startsWith("cancel_payment:"));
       expect(cancelLog).toBeDefined();
-      expect(cancelLog).toMatch(/cancel_payment:run_.*_node_process_payment_global/);
+      expect(cancelLog).toMatch(/cancel_payment:run_.*_node_process-payment-global/);
     });
-  });
 });

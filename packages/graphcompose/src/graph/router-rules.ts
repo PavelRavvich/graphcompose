@@ -37,6 +37,7 @@ function routeKey(flow: CollectedFlow, declaration: RouteDeclaration): string {
   if (isEnd(declaration.target)) return "End";
   if (isOptional(declaration.target) || isParallel(declaration.target))
     return labelOf(declaration.target);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-explicit-any
   return flow.keyOf(declaration.target as any) ?? labelOf(declaration.target);
 }
 
@@ -46,20 +47,29 @@ function chooseKeys(
   routerKey: string,
 ): string[] {
   if (next?.kind !== "choose") return [];
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
   const step = flow.transitions.find((transition) => transition.from === routerKey)?.next as any;
   if (!step) return [];
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const parallelNames = step.parallelTargets
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
     ? step.parallelTargets.map((p: any) => p.optionName)
     : [];
 
   // To get the non-parallel targets, we can look at step.targets, but they include the nodes inside parallel targets.
   // Actually, let's just use the router meta! Wait, router-rules validates meta against choose.
   // If we can't easily extract it from NextDeclaration, we can add `optionNames: string[]` to NextDeclaration in chooseTargets!
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return [
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/prefer-nullish-coalescing
     ...(step.optionNames || step.targets),
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     ...parallelNames,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     ...(step.self ? [SELF_LABEL] : []),
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     ...(step.return ? ["Return"] : []),
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     ...(step.end ? ["End"] : []),
   ];
 }

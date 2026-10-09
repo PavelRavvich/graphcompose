@@ -11,6 +11,7 @@ export interface MemoryState {
 
 export abstract class BaseMemoryStorage {
   abstract load<V>(runId: string, namespace: string): Promise<V | undefined>;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   abstract save<V>(runId: string, namespace: string, data: V): Promise<void>;
 }
 

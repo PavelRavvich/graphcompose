@@ -22,8 +22,6 @@ import {
   type OnToolStart,
   type OnWorkflowEnd,
   type OnWorkflowStart,
-  type WorkflowActionContext,
-  type WorkflowActionContextUpdate,
   type GuardrailContext,
   type GuardrailContextUpdate,
   type PiiPolicyContext,
@@ -31,6 +29,7 @@ import {
   type ChannelContext,
   type ChannelContextUpdate,
 } from "../../src/core/index.js";
+import { ActionRuntime } from "../../src/components/decorators.js";
 import { from } from "../../src/router/index.js";
 import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
 import { WorkflowStartText, WorkflowFinishText, Text } from "../../src/dto/index.js";
@@ -75,50 +74,66 @@ class TailsObserver
   }
 
   async onAgentStart(ctx: any) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     hookEvents.push(`AgentStart:${ctx.name}`);
   }
   async onAgentEnd(ctx: any) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     hookEvents.push(`AgentEnd:${ctx.name}`);
   }
 
   async onToolStart(ctx: any) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     hookEvents.push(`ToolStart:${ctx.toolName}`);
   }
   async onToolEnd(ctx: any) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     hookEvents.push(`ToolEnd:${ctx.toolName}`);
   }
 
   async onActionStart(ctx: any) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     hookEvents.push(`ActionStart:${ctx.name}`);
   }
   async onActionEnd(ctx: any) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     hookEvents.push(`ActionEnd:${ctx.name}`);
   }
 
   async onGuardrailStart(ctx: any) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     hookEvents.push(`GuardrailStart:${ctx.name}`);
   }
   async onGuardrailEnd(ctx: any) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     hookEvents.push(`GuardrailEnd:${ctx.name}`);
   }
 
   async onPiiPolicyStart(ctx: any) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     hookEvents.push(`PiiStart:${ctx.name}`);
   }
   async onPiiPolicyEnd(ctx: any) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     hookEvents.push(`PiiEnd:${ctx.name}`);
   }
 
   async onChannelStart(ctx: any) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     hookEvents.push(`ChannelStart:${ctx.name}`);
   }
   async onChannelEnd(ctx: any) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     hookEvents.push(`ChannelEnd:${ctx.name}`);
   }
 }
 
 @PiiPolicy({ name: "MaskingPolicy" })
 class MaskingPolicy {
+  async maskJson(obj: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return obj;
+  }
   async mask(text: string) {
     return text;
   }
@@ -129,8 +144,8 @@ class MaskingPolicy {
 
 @Guardrail({ name: "SafeGuard" })
 class SafeGuard {
-  async beforeToolCall() {}
-  async afterToolCall() {}
+  async beforeToolCall() { /* noop */ }
+  async afterToolCall() { /* noop */ }
 }
 
 @Tool({
@@ -152,7 +167,7 @@ class SafeTool {
   description: "test agent",
   model: "test",
   tools: [SafeTool],
-  pii: [MaskingPolicy],
+
   guardrails: [SafeGuard],
 })
 class SafeAgent {}
@@ -164,10 +179,10 @@ class FormatAction {
   }
 }
 
-@WorkflowStart({ name: "Start", input: WorkflowStartText })
+@WorkflowStart({ name: "Start", input: WorkflowStartText, description: "" })
 class StartNode {}
 
-@WorkflowFinish({ name: "Finish", output: WorkflowFinishText })
+@WorkflowFinish({ name: "Finish", output: WorkflowFinishText, description: "" })
 class FinishNode {}
 
 @Workflow({
@@ -204,7 +219,8 @@ describe("Observability Tails Hooks", () => {
     // Workflow -> Agent -> Pii -> Guardrail -> Tool -> Guardrail -> Pii -> Agent -> Action -> WorkflowEnd
 
     // Check Action
-    console.log("HOOK EVENTS:", hookEvents);
+    // eslint-disable-next-line no-console
+      console.log("HOOK EVENTS:", hookEvents);
     expect(hookEvents).toContain("ActionStart:FormatAction");
     expect(hookEvents).toContain("ActionEnd:FormatAction");
 

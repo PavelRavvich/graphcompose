@@ -25,7 +25,9 @@ describe("StandardCompactionStrategy", () => {
 
     // Window size is 2, no summaries yet
     expect(context).toHaveLength(2);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     expect(context[0]!.content).toBe("2");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     expect(context[1]!.content).toBe("3");
   });
 

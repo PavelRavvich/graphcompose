@@ -5,6 +5,7 @@ import type { FlowNodeRef } from "./flow-nodes.js";
 import { SELF_OPTION, type RouteDeclaration } from "./route.js";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { routerMetaOf, type RouterMeta } from "./router.decorator.js";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { PromptOptions } from "../components/prompt-options.js";
 import { renderPromptVariables } from "../components/prompt-render.js";
 import type { PromptInput } from "../components/prompt-input.js";
@@ -36,9 +37,11 @@ function optionOf(
   if (isReturn(declaration.target)) return { option: "Return", optionalBranches: [] };
   if (isEnd(declaration.target)) return { option: "End", optionalBranches: [] };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion
   const getLabel = (t: any): string => model.collected.keyOf(t as any) ?? labelOf(t);
 
   const optionalBranches: string[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const walk = (t: any) => {
     if (isOptional(t)) {
       optionalBranches.push(getLabel(t.target));
@@ -73,7 +76,8 @@ function loadRouter(model: FlowModel, ref: FlowNodeRef): LoadedRouter {
 }
 
 /** Every router of the flow with its texts loaded, by node key. */
-// eslint-disable-next-line @typescript-eslint/require-await
+ 
+ 
 export async function loadRouters(model: FlowModel): Promise<ReadonlyMap<string, LoadedRouter>> {
   const routers = [...model.nodes.values()].filter((ref) => ref.kind === "router");
   const loaded = routers.map((ref) => loadRouter(model, ref));

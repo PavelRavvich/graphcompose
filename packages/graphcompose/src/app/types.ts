@@ -58,6 +58,7 @@ export interface ExecutionOptions {
   readonly signal?: AbortSignal | undefined;
   readonly onStream?: (event: RunStreamEvent) => void;
   readonly executionContext?: unknown;
+  readonly configurable?: Record<string, unknown>;
 }
 
 /**

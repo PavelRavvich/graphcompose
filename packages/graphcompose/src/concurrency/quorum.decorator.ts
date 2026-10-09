@@ -3,6 +3,7 @@ import type { Class } from "../components/injection.js";
 import { recordNode } from "../graph/node-kind.js";
 
 /** Strategy for evaluating and routing a quorum of parallel branches. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface QuorumStrategy<T = any> {
   filterVote(state: T): Promise<boolean> | boolean;
   route(

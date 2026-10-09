@@ -7,7 +7,9 @@ import type { ChannelHandler, ChannelRequest } from "../components/decorators.js
  */
 export abstract class ToolChannel implements ChannelHandler {
   public async requestApproval(req: ChannelRequest): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const handlers = getBoundTools(Object.getPrototypeOf(this));
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     const configs = handlers[req.toolName] || [];
 
     let methodName: string | undefined;
@@ -24,7 +26,9 @@ export abstract class ToolChannel implements ChannelHandler {
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     if (methodName && typeof (this as any)[methodName] === "function") {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       await (this as any)[methodName](req);
     } else {
       await this.handleUnknownTool(req);

@@ -12,6 +12,7 @@ export function renderTemplate(
     if (value === undefined) throw unknown(key);
     return typeof value === "object" && value !== null
       ? JSON.stringify(value, null, 2)
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       : String(value);
   });
 }

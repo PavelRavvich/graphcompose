@@ -12,9 +12,17 @@ class NumberStrategy {
     return [1, 2, 3, 4, 5];
   }
 }
-@WorkflowStart({ name: "Start" })
+ 
+ 
+
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+@WorkflowStart({ name: "Start", description: "Start", input: class {} as any })
+ 
+ 
+
 class Start {}
-@WorkflowFinish({ name: "Finish" })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+@WorkflowFinish({ name: "Finish", description: "Finish", output: class {} as any })
 class Finish {}
 
 @WorkflowAction({ name: "Worker" })
@@ -35,8 +43,14 @@ class Summary {
 
 @Workflow({
   name: "batch-parallel-workflow",
-  agents: [Start, Worker, Summary, Finish],
-  providers: [NumberStrategy],
+  version: "1.0.0",
+  defaults: {
+    models: { temperature: 0, maxTokens: 1000, thinking: "default", cache: true },
+    router: { kind: "jev", model: "jev:small" },
+    tools: { maxToolCalls: 8 },
+    history: { limit: 5 }
+  },
+  providers: [Start, Worker, Summary, Finish, NumberStrategy],
   flow: [
     from(Start).batchParallel(Worker, NumberStrategy, { concurrencyLimit: 2, batchSize: 2 }),
     from(Worker).next(Summary),
@@ -50,15 +64,15 @@ class BatchParallelWorkflow {
       version: "1.0.0",
       defaults: {
         models: { temperature: 0, maxTokens: 1000, thinking: "default", cache: true },
-        router: { kind: "jev", model: "mock" },
+        router: { kind: "jev", model: "jev:small" },
         tools: { maxToolCalls: 8 },
         history: { limit: 5 },
       },
       agents: {
-        Worker: { model: "mock", description: "worker" },
-        Summary: { model: "mock", description: "summary" },
+        Worker: { model: "gpt-4", description: "worker" },
+        Summary: { model: "gpt-4", description: "summary" },
       },
-    };
+    } as unknown as import("../../src/graph/settings.js").WorkflowSettings;
   }
 }
 

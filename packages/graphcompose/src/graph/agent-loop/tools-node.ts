@@ -32,14 +32,19 @@ async function runTool(tool: AnyTool, args: unknown, context: ToolContext): Prom
  * so a crash later never repeats it. A call running when the process died runs again with the same
  * `callId` — the tool's idempotency key. Reported costs land in the loop's usage.
  */
+// eslint-disable-next-line max-lines-per-function
 export function makeToolNode(
   deps: AgentLoopDeps,
 ): (task: ToolTask, config?: RunnableConfig) => Promise<AgentLoopUpdate> {
+  // eslint-disable-next-line max-lines-per-function
   return async (task, config) => {
     const tool = toolNamed(deps.agent, task.tool);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/prefer-nullish-coalescing
     const runId = config?.configurable?.runId || "unknown";
     const appState = {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       runId,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       threadId: runId,
       activeNode: deps.agent.name,
       variables: {},

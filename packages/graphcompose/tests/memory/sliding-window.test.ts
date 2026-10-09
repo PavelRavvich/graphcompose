@@ -18,7 +18,9 @@ describe("SlidingWindowStrategy", () => {
     const context = await strategy.buildContext(messages, state, { windowSize: 2 });
 
     expect(context).toHaveLength(2);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     expect(context[0]!.content).toBe("3");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     expect(context[1]!.content).toBe("4");
   });
 

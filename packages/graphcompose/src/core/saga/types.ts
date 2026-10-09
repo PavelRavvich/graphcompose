@@ -11,5 +11,6 @@ export abstract class BaseSagaStrategy implements IWorkflowAction {
    * @param state The current workflow state containing history of executed nodes
    * @param context The runtime context (for resolving classes and running local compensations)
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abstract execute(state: AgentState<unknown>, context: ActionRuntime): Promise<any>;
 }

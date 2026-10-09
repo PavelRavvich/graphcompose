@@ -1,62 +1,101 @@
-import { describe, expect, it } from "vitest";
-import { Agent, Workflow } from "../../src/components/decorators.js";
+import { describe, expect } from "vitest";
+import { Agent, WorkflowAction, Workflow } from "../../src/components/decorators.js";
 import { from } from "../../src/router/index.js";
-import { WorkflowStart, WorkflowFinish } from "../../src/core/index.js";
+import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
 import { testWith } from "../../src/testing/test-with.js";
+import { replyWith } from "../../src/testing/script.js";
+import { Text, Nested } from "../../src/dto/index.js";
 
-@Agent({ name: "subgraph_agent" })
+class PayloadDto {
+  @Text() result!: string;
+}
+class MyState {
+  @Text() text!: string;
+  @Nested(PayloadDto, { optional: true }) payload?: PayloadDto;
+}
+@WorkflowStart({ name: "Start", description: "Start", input: MyState })
+class Start {}
+
+@WorkflowFinish({ name: "Finish", description: "Finish", output: MyState })
+class Finish {}
+
+@Agent({ name: "dummy_agent", model: "gpt-4", description: "Dummy agent", prompt: "Dummy prompt" }) class DummyAgent {}
+
+@WorkflowAction({ name: "subgraph_agent", description: "" })
 class SubgraphAgent {
-  async run() {
-    return { payload: { insideSubgraph: true } };
+  async execute() {
+    return { payload: { result: "insideSubgraph" } };
+  }
+}
+
+let capturedState: any;
+@WorkflowAction({ name: "Logger", description: "" })
+class Logger {
+  execute(state: any) {
+    capturedState = state;
+    return {};
   }
 }
 
 @Workflow({
-  name: "child_workflow",
-  version: "1.0",
-  flow: [from(WorkflowStart).next(SubgraphAgent), from(SubgraphAgent).next(WorkflowFinish)],
-  defaults: { history: { limit: 5 } },
+  name: "child-workflow",
+  version: "1.0.0",
+  providers: [Start, Finish, SubgraphAgent, DummyAgent],
+  flow: [from(Start).nextParallel(SubgraphAgent, DummyAgent), from(SubgraphAgent).next(Finish), from(DummyAgent).next(Finish)],
+  defaults: {
+    models: { temperature: 0, maxTokens: 1000, thinking: "default", cache: true },
+    router: { kind: "llm", model: "openrouter:openai/gpt-4" },
+    tools: { maxToolCalls: 8 },
+    history: { limit: 5 }
+  },
 })
-class ChildWorkflow {}
+class ChildWorkflow {
+  settings = () => ({ limits: { steps: 50 }, models: {} as any, agents: { dummy_agent: { models: { temperature: 0 } } } }) as unknown as import("../../src/graph/settings.js").WorkflowSettings;
+}
 
-@Agent({ name: "parent_agent" })
+@WorkflowAction({ name: "parent_agent", description: "" })
 class ParentAgent {
-  async run() {
-    return { payload: { inParent: true } };
+  async execute() {
+    return { payload: { result: "inParent" } };
   }
 }
 
 @Workflow({
-  name: "parent_workflow",
-  version: "1.0",
+  name: "parent-workflow",
+  version: "1.0.0",
+  providers: [Start, Finish, ParentAgent, ChildWorkflow, DummyAgent, SubgraphAgent, Logger],
   flow: [
-    from(WorkflowStart).next(ParentAgent),
-    from(ParentAgent).next(ChildWorkflow),
-    from(ChildWorkflow).next(WorkflowFinish),
+    from(Start).next(ParentAgent),
+    from(ParentAgent).next(DummyAgent),
+    from(DummyAgent).next(ChildWorkflow),
+    from(ChildWorkflow).next(Logger),
+    from(Logger).next(Finish),
   ],
-  defaults: { history: { limit: 5 } },
+  defaults: {
+    models: { temperature: 0, maxTokens: 1000, thinking: "default", cache: true },
+    router: { kind: "llm", model: "openrouter:openai/gpt-4" },
+    tools: { maxToolCalls: 8 },
+    history: { limit: 5 }
+  },
 })
-class ParentWorkflow {}
+class ParentWorkflow {
+  settings = () => ({ limits: { steps: 50 }, models: {} as any, agents: { dummy_agent: { models: { temperature: 0 } } } }) as unknown as import("../../src/graph/settings.js").WorkflowSettings;
+}
+
+const test = testWith(ParentWorkflow);
 
 describe("Nested Workflows (Subgraphs)", () => {
-  it("executes subgraph and merges payload", async () => {
-    await testWith(ParentWorkflow, async (app) => {
-      const res = await app.run({});
-      expect(res.status).toBe("completed");
+  test("executes subgraph and merges payload", async ({ app, mockLlm, mockSubworkflow }) => {
+    mockLlm(DummyAgent).thenReturn(replyWith("dummy"));
+    mockSubworkflow(ChildWorkflow).mockResolvedValue({ payload: { result: "insideSubgraph" } });
+    const res = await app.execute(Start, { text: "hello" });
+    expect(res.status).toBe("answered");
 
-      const path = res.path;
-      // start -> parent_agent -> child_workflow -> finish
-      expect(path).toContain("parent_agent");
-      expect(path).toContain("child_workflow");
+    expect(res.path.map(p => p.name)).toContain("ParentAgent");
+    expect(res.path.map(p => p.name)).toContain("ChildWorkflow");
 
-      // Payload should merge
-      expect(res.replyWith.payload).toMatchObject({
-        inParent: true,
-        insideSubgraph: true,
-      });
+    expect(capturedState.payload).toMatchObject({ result: "insideSubgraph" });
 
-      // Steps should include the subgraph's steps!
-      expect(res.path.length).toBeGreaterThan(0);
-    });
+    expect(res.path.length).toBeGreaterThan(0);
   });
 });

@@ -109,6 +109,7 @@ describe("Ticket 174: Parallel routing with Human-in-the-loop pauses", () => {
     const run = await app.execute(Start, { text: "go" });
 
     expect(run.status).toBe("paused");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const pause = run.pause!;
     expect(pause.agent).toBe("agentB");
 
@@ -118,6 +119,7 @@ describe("Ticket 174: Parallel routing with Human-in-the-loop pauses", () => {
 
   it("should swallow errors from optional agents and merge successful branches", async () => {
     const book = new ScriptBook();
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     book;
     book.scriptOf("router:router").thenReturn(replyWith("parallel(AgentA, optional(AgentB))"));
     book.scriptOf("agent:agentA").thenReturn(replyWith("done A"));

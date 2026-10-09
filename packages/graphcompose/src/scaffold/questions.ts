@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { input, select } from "@inquirer/prompts";
 import { namesOf } from "./names.js";

@@ -103,6 +103,7 @@ export interface QuorumContext {
   routerClass: string;
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function visitNode(
   node: FlowNodeRef,
   runner: FlowNodeRunner,
@@ -123,6 +124,7 @@ export function visitNode(
     };
   }
 
+  // eslint-disable-next-line max-lines-per-function, complexity
   return async (state, config) => {
     let branchCancelToken: BranchCancelToken | undefined;
     let manager: QuorumManager | undefined;
@@ -161,6 +163,7 @@ export function visitNode(
 
       if (quorumContext && manager && deps.quorumRouters) {
         const strategy = deps.quorumRouters(quorumContext.routerClass);
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (strategy) {
           const isVoteValid = await strategy.filterVote({ ...state, ...update });
           manager.addVote(quorumContext.quorumId, isVoteValid);

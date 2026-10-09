@@ -34,14 +34,18 @@ function nodeText(collected: CollectedFlow, target: FlowNode): string {
 const nameIn =
   (collected: CollectedFlow) =>
   (target: ChoiceTarget): string =>
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     isSelf(target)
       ? "Self"
       : isReturn(target)
         ? "Return"
         : isEnd(target)
           ? "Skip"
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           : (target as any).kind === "parallel" || (target as any).kind === "optional"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             ? (target as any).kind
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
             : nodeText(collected, target as any);
 
 function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): string {

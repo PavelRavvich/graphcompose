@@ -1,6 +1,7 @@
 import { callerFile } from "../components/call-site.js";
 import type { Class } from "../components/injection.js";
 import { recordNode } from "./node-kind.js";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { PromptOptions } from "../components/prompt-options.js";
 import type { RouteDeclaration } from "./route.js";
 

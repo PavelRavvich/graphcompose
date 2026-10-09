@@ -29,26 +29,37 @@ export interface GraphDeps<TName extends string> {
   readonly requestApproval?: (channelName: string, req: ChannelRequest) => Promise<void>;
   readonly piiPolicies?: (agent: string) => {
     override: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     instances: readonly any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     disable: readonly any[];
   };
   readonly toolPiiPolicies?: (tool: string) => {
     override: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     instances: readonly any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     disable: readonly any[];
   };
   readonly toolGuardrails?: (tool: string) => {
     override: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     instances: readonly any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     disable: readonly any[];
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly workflowPiiPolicies?: readonly any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly workflowGuardrails?: readonly any[];
   readonly guardrails?: (agent: string) => {
     override: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     instances: readonly any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     disable: readonly any[];
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly channelAdapters?: (channel: string) => any;
   /** The workflow's graph: its transitions (`@Workflow({ flow })`). */
   readonly flow: Flow;
@@ -59,15 +70,18 @@ export interface GraphDeps<TName extends string> {
   /** The routing strategy of a router: its own model (Jev or a chat model). */
   readonly routerFor: (router: LoadedRouter) => Router;
   readonly observer?: ObserverManager;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters, @typescript-eslint/no-explicit-any
   readonly container?: { get: <T>(token: any) => T };
   readonly quorumRouters?: (
     name: string,
   ) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
   readonly mockedWorkflows?: ReadonlyMap<
     import("../components/injection.js").Class,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (...args: any[]) => any
   >;
   readonly batchStrategies?: (
     name: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ) => import("../concurrency/batch.decorator.js").BatchParallelStrategy<any, any>;
 }

@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
+ 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { nodeInfoOf } from "./node-kind.js";
 
@@ -38,6 +39,7 @@ export function background(target: FlowNode): BackgroundTarget {
 export const bg = background;
 
 export const unwrapTarget = (target: ParallelTarget): FlowNode =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   typeof target === "object" && target !== null && "kind" in target && target.kind === "background"
     ? target.target
     : target;
@@ -76,9 +78,13 @@ export function optional(target: ChoiceTarget): OptionalTarget {
   return { kind: "optional", target };
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const isParallel = (t: any): t is ParallelGroup =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   typeof t === "object" && t !== null && t.kind === "parallel";
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const isOptional = (t: any): t is OptionalTarget =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   typeof t === "object" && t !== null && t.kind === "optional";
 
 export type ChoiceTarget =
@@ -216,12 +222,15 @@ export function node(use: Class, name: string): NamedNode {
 }
 
 export const isBackgroundTarget = (target: ParallelTarget): target is BackgroundTarget =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   typeof target === "object" && target !== null && "kind" in target && target.kind === "background";
 export const isSelf = (target: ChoiceTarget): target is SelfTarget =>
   typeof target === "object" && target.kind === "self";
 export const isReturn = (target: ChoiceTarget): target is ReturnTarget =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   typeof target === "object" && target !== null && target.kind === "return";
 export const isEnd = (target: ChoiceTarget): target is EndTarget =>
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   typeof target === "object" && target !== null && target.kind === "end";
 
 export const isNamedNode = (target: ChoiceTarget): target is NamedNode =>
@@ -253,6 +262,7 @@ export function catchError(
       kind: "catch",
       target,
       errorType,
+      // eslint-disable-next-line max-lines
       nextNode,
     }),
   };

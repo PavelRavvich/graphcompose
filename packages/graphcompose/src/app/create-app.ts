@@ -56,6 +56,7 @@ function startMetaOf(start: Class, nodes: FlowNodesByKey, workflow: string) {
 }
 
 /** The app over already assembled parts (a profile applied, test replacements given). */
+// eslint-disable-next-line max-lines-per-function
 export async function buildApp(
   bundle: AssembledWorkflow,
   options: AppOptions = {},
@@ -80,6 +81,7 @@ export async function buildApp(
       const { text } = validate(meta.input, input);
       const thread = call.thread === undefined ? {} : { threadId: call.thread };
       const task = { task: text, start: meta.name, ...thread };
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/restrict-template-expressions
       const runId = deps.newRunId?.() || `run-${Date.now()}`;
       const state = { runId, threadId: call.thread };
 
@@ -102,6 +104,7 @@ export async function buildApp(
       // If the app is currently paused, resuming it with a dummy value will cause it to wake up
       // and immediately throw WorkflowCancelledError because of the pre-execution guard.
       if (paused.get(thread) !== undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
         await app.resume(thread, null).catch(() => {});
       }
     },

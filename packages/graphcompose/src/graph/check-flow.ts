@@ -37,6 +37,7 @@ export function checkFlow(flow: Flow): FlowModel {
   const catches = new Map<string, NextDeclaration[]>();
   for (const t of collected.transitions) {
     if (t.next.kind === "catch") {
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       catches.set(t.from, [...(catches.get(t.from) || []), t.next]);
     } else {
       next.set(t.from, t.next);

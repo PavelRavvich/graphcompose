@@ -104,9 +104,12 @@ describe("AC8: the judge points are called in the documented order", () => {
   it("beforeToolCall → approval → run → afterToolCall → beforeAgentAnswer", async () => {
     const visits: string[] = [];
     const probe = {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       beforeToolCall: async (ctx: any) => visits.push(`beforeToolCall:${ctx.call?.callId ?? "-"}`),
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       afterToolCall: async (ctx: any) => visits.push(`afterToolCall:${ctx.call?.callId ?? "-"}`),
       onChannelDecision: async (decision: any, ctx: any) =>
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         visits.push(`onChannelDecision:${ctx.call?.callId ?? "-"}`),
       beforeAgentAnswer: async (ctx: any) => visits.push(`beforeAgentAnswer:-`),
     };
