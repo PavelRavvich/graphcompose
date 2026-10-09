@@ -128,7 +128,7 @@ describe("gc create / gc generate end to end", () => {
     const steps = [
       planGenerate("agent", "billing", { workflow, description: "Handles invoices" }, project),
     ];
-    await applyChanges(project, steps[0] ?? { create: [], modify: [] });
+    await applyChanges(project, await (steps[0] ?? { create: [], modify: [] }));
     for (const plan of [
       () => planGenerate("tool", "refund", { workflow, agent: "billing" }, project),
       () =>
@@ -148,7 +148,7 @@ describe("gc create / gc generate end to end", () => {
       () => planGenerate("router", "escalation", { workflow }, project),
       () => planGenerate("workflow", "onboarding", {}, project),
     ]) {
-      await applyChanges(project, plan());
+      await applyChanges(project, await plan());
     }
 
     const out = check(workflow);

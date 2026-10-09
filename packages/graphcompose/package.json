@@ -1,7 +1,7 @@
 {
   "name": "graphcompose",
   "version": "0.1.0",
-  "description": "Typed agent workflows on LangGraph \u2014 Angular-style components, Jev routing, FinOps, evaluation",
+  "description": "Typed agent workflows on LangGraph — Angular-style components, Jev routing, FinOps, evaluation",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -88,6 +88,7 @@
     "schema": "tsx src/config/write-profile-schema.ts"
   },
   "dependencies": {
+    "@apidevtools/swagger-parser": "^13.1.0",
     "@inquirer/prompts": "^8.7.2",
     "@langchain/core": "^1.2.12",
     "@langchain/langgraph": "^1.4.17",
@@ -102,6 +103,7 @@
     "@opentelemetry/sdk-trace-base": "^2.11.0",
     "dotenv": "^18.0.3",
     "langsmith": "^0.10.5",
+    "openapi-types": "^12.1.3",
     "tsx": "^4.19.0",
     "typescript": "^5.9.3",
     "yaml": "^2.9.1",

@@ -40,7 +40,7 @@ describe("#116: gc g agent joins the star; gc g router", () => {
     );
   });
 
-  it("gc g router needs the workflow's replyWith workflow finish, and creates the router with its replyWith route", () => {
+  it("gc g router needs the workflow's replyWith workflow finish, and creates the router with its replyWith route", async () => {
     const root = mkdtempSync(join(tmpdir(), "gc-router-"));
     mkdirSync(join(root, "src/desk"), { recursive: true });
     writeFileSync(join(root, "src/desk/desk.workflow.ts"), "");
@@ -51,7 +51,7 @@ describe("#116: gc g agent joins the star; gc g router", () => {
     );
     mkdirSync(join(root, "src/desk/workflow-finishes"));
     writeFileSync(join(root, "src/desk/workflow-finishes/text.workflow-finish.ts"), "");
-    const [router] = planGenerate("router", "escalation", options, root).create;
+    const [router] = (await planGenerate("router", "escalation", options, root)).create;
     expect(router?.path).toBe("src/desk/routers/escalation.router.ts");
     expect(router?.content).toContain("export class EscalationRouter {}");
     expect(router?.content).toContain(

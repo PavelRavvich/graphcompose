@@ -15,6 +15,7 @@ const { positionals, values } = parseArgs({
     command: { type: "string" },
     tool: { type: "string" },
     folder: { type: "string" },
+    url: { type: "string" },
   },
 });
 
@@ -26,7 +27,7 @@ try {
     );
   const written = await applyChanges(
     process.cwd(),
-    planGenerate(kind, name, values, process.cwd()),
+    await planGenerate(kind, name, values, process.cwd()),
   );
   process.stdout.write(`${written.map((path) => `  ${path}`).join("\n")}\n`);
 } catch (error) {

@@ -5,11 +5,12 @@ import { mcpFiles, ragFiles } from "./parts.js";
 import { planWorkflow, toolFiles } from "./plan.js";
 import { planAgent, planRouter } from "./generate-flow.js";
 import { agentFile, need, read, targetWorkflow } from "./project-files.js";
+import { planOpenApi } from "./openapi.js";
 import { wire } from "./wire.js";
 import { FILESYSTEM_SERVER_PACKAGE, filesystemServerVersion, workflowScripts } from "./project.js";
 import type { Changes, FileToWrite } from "./write.js";
 
-export const KINDS = ["workflow", "agent", "router", "tool", "mcp", "rag"] as const;
+export const KINDS = ["workflow", "agent", "router", "tool", "mcp", "rag", "openapi"] as const;
 export type Kind = (typeof KINDS)[number];
 
 export interface GenerateOptions {
@@ -20,6 +21,7 @@ export interface GenerateOptions {
   readonly command?: string | undefined;
   readonly tool?: string | undefined;
   readonly folder?: string | undefined;
+  readonly url?: string | undefined;
 }
 
 function withScripts(
@@ -47,7 +49,7 @@ function withScripts(
   };
 }
 
-const PLANS: Readonly<Record<Kind, (root: string, name: string, o: GenerateOptions) => Changes>> = {
+const PLANS: Readonly<Record<Kind, (root: string, name: string, o: GenerateOptions) => Changes | Promise<Changes>>> = {
   workflow: (root, name) => {
     const n = namesOf(name);
     const spec = {
@@ -132,15 +134,16 @@ const PLANS: Readonly<Record<Kind, (root: string, name: string, o: GenerateOptio
           ];
     return { create: rag.files, modify };
   },
+  openapi: (root, name, o) => planOpenApi(root, name, o),
 };
 
 /** `gc generate <kind> <name>`: what to create and which existing files to rewire. */
-export function planGenerate(
+export async function planGenerate(
   kind: string,
   name: string,
   options: GenerateOptions,
   root: string,
-): Changes {
+): Promise<Changes> {
   if (!(KINDS as readonly string[]).includes(kind))
     throw new ScaffoldError(`Unknown kind "${kind}" — one of: ${KINDS.join(", ")}`);
   return PLANS[kind as Kind](root, name, options);
