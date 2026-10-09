@@ -107,7 +107,7 @@ describe("fork-join", () => {
     const joinedContrib = result.contributions.find((c) =>
       (typeof c.content === "string" ? c.content : "").startsWith("Joined:"),
     );
-    if (!joinedContrib) throw new Error("Missing");
+    if (!joinedContrib) throw new Error("Missing: " + JSON.stringify(result.contributions));
     expect(joinedContrib.content).toBe("Joined: Result A and Result B");
     expect(joinedContrib.agent).toBe("joinNode");
     expect(result.payload.customJoin).toBe(true);

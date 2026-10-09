@@ -28,9 +28,9 @@ function finishOf<TName extends string>(
 function outcomeOf(state: AgentStateType, paused: boolean): TernOutcome & { status: RunStatus } {
   const status: RunStatus = paused ? "paused" : state.guarded === "" ? "answered" : "guarded";
   return {
-    replyWith: paused ? "" : state.replyWith,
+    replyWith: paused ? "" : (state.replyWith ?? ""),
     status,
-    stopReason: paused ? "waiting for approval" : state.routeReason,
+    stopReason: paused ? "waiting for approval" : (state.routeReason ?? ""),
     route: state.contributions.map((item) => item.agent),
     steps: state.contributions,
     costUsd: totalCost(state.usage),

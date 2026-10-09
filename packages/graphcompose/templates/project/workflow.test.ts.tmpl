@@ -1,4 +1,4 @@
-import { answer, decide, testWith } from "graphcompose/testing";
+import { replyWith, routeTo, testWith } from "graphcompose/testing";
 import { expect } from "vitest";
 import { {{agent}}Agent } from "./agents/{{agentKebab}}.agent.js";
 import { MainRouter } from "./routers/main.router.js";
@@ -11,10 +11,10 @@ const test = testWith({{pascal}}Workflow);
 
 test("the main router sends the text to {{agentKebab}} and finishes with its answer", async ({
   app,
-  modelOf,
+  mockLlm,
 }) => {
-  modelOf(MainRouter).respond(decide({{agent}}Agent), decide(TextWorkflowFinish));
-  modelOf({{agent}}Agent).respond(answer("Done."));
+  mockLlm(MainRouter).thenReturn(routeTo({{agent}}Agent), routeTo(TextWorkflowFinish));
+  mockLlm({{agent}}Agent).thenReturn(replyWith("Done."));
 
   const result = await app.execute(TextWorkflowStart, { text: "Hello" });
 

@@ -18,7 +18,7 @@ export interface McpStubCall {
 /** A stubbed MCP server: `mcpOf(ShortlistServer).thenReturn({ read_text_file: async () => ({ … }) })`. */
 export interface McpStub<TServer extends McpServerClient<ServerTools>> {
   /** Adds (or replaces) handlers per server tool. */
-  respond(handlers: ServerToolHandlers<ToolsOf<TServer>>): McpStub<TServer>;
+  thenReturn(handlers: ServerToolHandlers<ToolsOf<TServer>>): McpStub<TServer>;
   /** Every call the server got, in order. */
   readonly calls: readonly McpStubCall[];
 }
@@ -38,7 +38,7 @@ export class McpStubs {
     const calls = this.#calls.get(server) ?? [];
     this.#calls.set(server, calls);
     const stub: McpStub<TServer> = {
-      respond: (given) => {
+      thenReturn: (given) => {
         for (const [tool, handler] of Object.entries(given)) {
           // one handler per declared tool; at this boundary its argument and result are plain data
           if (handler !== undefined) handlers.set(tool, handler as Handler);
