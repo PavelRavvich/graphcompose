@@ -46,3 +46,7 @@ export { toolOf } from "../components/runtime.js";
 export { mcpServerStub } from "../components/mcp-client.js";
 
 export { VCRMode, VcrChatModel } from "./vcr.js";
+
+export { Dataset, type TestCase } from "./dataset.js";
+export { Suite, type SuiteConfig, type SuiteReport, type SuiteEvaluateOptions, type CaseResult } from "./suite.js";
+export { Compare, type ComparisonReport } from "./compare.js";
