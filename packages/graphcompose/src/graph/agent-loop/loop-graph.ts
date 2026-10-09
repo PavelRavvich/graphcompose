@@ -1,5 +1,6 @@
 import { END, START, StateGraph, type BaseCheckpointSaver } from "@langchain/langgraph";
 import { makeAnswerNode } from "./answer-node.js";
+import { makeJudgeNode } from "./judge-node.js";
 import { makeApprovalNode } from "./approval-node.js";
 import { makeBoundaryNode, routeToActions } from "./boundary.js";
 import { makeCollectNode } from "./collect-node.js";
@@ -37,7 +38,9 @@ function createLoopGraph(deps: AgentLoopDeps, checkpointer: BaseCheckpointSaver 
     .addConditionalEdges(LOOP_NODE.approval, routeToActions(deps), ACTIONS)
     .addEdge(LOOP_NODE.tool, LOOP_NODE.collect)
     .addEdge(LOOP_NODE.collect, LOOP_NODE.model)
-    .addEdge(LOOP_NODE.replyWith, END)
+    .addNode(LOOP_NODE.judge, makeJudgeNode(deps))
+    .addEdge(LOOP_NODE.replyWith, LOOP_NODE.judge)
+    .addConditionalEdges(LOOP_NODE.judge, (state) => state.reply === null ? LOOP_NODE.model : END, [LOOP_NODE.model, END])
     .compile(checkpointer === undefined ? {} : { checkpointer });
 }
 

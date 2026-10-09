@@ -39,6 +39,8 @@ export interface AgentMeta {
   readonly maxToolCalls?: number;
   /** `@Tool` or `@McpTool` classes. */
   readonly tools?: readonly Class[];
+  readonly judges?: readonly Class[];
+  readonly maxRetries?: number;
   readonly piiPolicies?: readonly Class[];
   readonly guardrails?: readonly Class[];
   readonly overridePiiPolicies?: readonly Class[];

@@ -42,9 +42,11 @@ export function loopInputOf(state: FlowStateType, agent: string): AgentLoopState
     modelCalls: 0,
     toolCalls: 0,
     reply: null,
+    retries: 0,
     batchItem: undefined,
     _batchCursor: {},
     lastError: null,
+    cancelRequested: state.cancelRequested ?? false,
   };
 }
 

@@ -106,6 +106,13 @@ export class ObserverManager {
     return this.dispatch("onChannelEnd", ctx);
   }
 
+  async onJudgeStart(ctx: import("./observability.js").JudgeContextStart) {
+    return this.dispatch("onJudgeStart", ctx);
+  }
+  async onJudgeEnd(ctx: import("./observability.js").JudgeContextUpdate) {
+    return this.dispatch("onJudgeEnd", ctx);
+  }
+
   async onError(error: Error, state: AppState) {
     return this.dispatch("onError", error, state);
   }

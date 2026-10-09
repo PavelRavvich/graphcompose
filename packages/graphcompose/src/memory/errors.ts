@@ -4,14 +4,14 @@ export class MemoryError extends Error {
 
 export class MemoryStorageError extends MemoryError {
   override name = "MemoryStorageError";
-  constructor(message: string, public readonly cause?: unknown) {
+  constructor(message: string, public override readonly cause?: unknown) {
     super(message);
   }
 }
 
 export class MemoryCompactionError extends MemoryError {
   override name = "MemoryCompactionError";
-  constructor(message: string, public readonly cause?: unknown) {
+  constructor(message: string, public override readonly cause?: unknown) {
     super(message);
   }
 }

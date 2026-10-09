@@ -1,3 +1,4 @@
+import { WorkflowCancelledError } from "../core/errors.js";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 import type { Class } from "../components/injection.js";
 

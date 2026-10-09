@@ -57,6 +57,7 @@ export const AgentLoopState = Annotation.Root({
   toolCalls: Annotation<number>({ reducer: add, default: () => 0 }),
   /** The agent's replyWith; null while it is still working. */
   reply: Annotation<string | null>({ reducer: replace, default: () => null }),
+  retries: Annotation<number>({ reducer: add, default: () => 0 }),
 });
 
 export type AgentLoopStateType = typeof AgentLoopState.State;
@@ -82,4 +83,5 @@ export const LOOP_NODE = {
   tool: "tool",
   collect: "collect",
   replyWith: "agent-replyWith",
+  judge: "judge",
 } as const;

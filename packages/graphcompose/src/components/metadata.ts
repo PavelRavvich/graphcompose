@@ -70,7 +70,8 @@ export type ComponentMeta =
         readonly deps: readonly Token[];
       };
     }
-  | { readonly kind: "workflow"; readonly meta: WorkflowMeta };
+  | { readonly kind: "workflow"; readonly meta: WorkflowMeta }
+  | { readonly kind: "judge"; readonly meta: import("./judge-decorators.js").JudgeMeta };
 
 /** Decorator metadata per class. Symbol.metadata is not available at runtime on Node 26. */
 const components = new WeakMap<object, ComponentMeta>();
@@ -112,5 +113,6 @@ const kindName: Readonly<Record<ComponentMeta["kind"], string>> = {
   injectable: "Injectable",
   rag: "Rag",
   workflow: "Workflow",
+  judge: "Judge",
   channel: "Channel",
 };

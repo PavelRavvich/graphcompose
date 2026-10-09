@@ -19,6 +19,8 @@ export interface AgentDefinition {
   readonly summariesLimit: number;
   /** Context-mode knowledge bases: retrieved before the first model call. */
   readonly knowledge: readonly KnowledgeSource[];
+  readonly judges?: readonly import("../../components/injection.js").Class[];
+  readonly maxRetries?: number;
 }
 
 /** What an agent's loop is built from. */

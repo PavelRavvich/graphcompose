@@ -192,6 +192,28 @@ export interface OnPiiPolicyEnd {
 export interface OnActionStart {
   onActionStart(ctx: WorkflowActionContext): Promise<void> | void;
 }
+export interface JudgeContextStart {
+  readonly name: string;
+  readonly agentName: string;
+  readonly input: unknown;
+  readonly state: AppState;
+}
+
+export interface JudgeContextUpdate {
+  readonly name: string;
+  readonly agentName: string;
+  readonly update: import("../components/judge-decorators.js").JudgeResult;
+  readonly state: AppState;
+}
+
+export interface OnJudgeStart {
+  onJudgeStart(ctx: JudgeContextStart): Promise<void> | void;
+}
+
+export interface OnJudgeEnd {
+  onJudgeEnd(ctx: JudgeContextUpdate): Promise<void> | void;
+}
+
 export interface OnActionEnd {
   onActionEnd(ctx: WorkflowActionContextUpdate): Promise<void> | void;
 }

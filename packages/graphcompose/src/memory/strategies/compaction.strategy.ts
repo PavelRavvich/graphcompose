@@ -62,8 +62,8 @@ export class StandardCompactionStrategy extends BaseMemoryStrategy<CompactionOpt
     let response;
     try {
       const model = this.gateway.chatModel({
-        purpose: "compaction",
-        model: options.llmModel,
+        user: { kind: "compaction" },
+        settings: { model: options.llmModel } as any,
       });
 
       response = await model.invoke([

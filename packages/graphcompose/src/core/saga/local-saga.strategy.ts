@@ -18,7 +18,7 @@ export class LocalSagaStrategy extends BaseSagaStrategy {
 
     const history = state.history || [];
     // Extract unique node names in reverse order of their execution
-    const executedNodes = Array.from(new Set(history.map((h) => h.node).reverse()));
+    const executedNodes = Array.from(new Set(history.map((h: any) => h.node || h.task).reverse()));
 
     for (const nodeName of executedNodes) {
       const nodeClass = await context.getComponentClass(nodeName);

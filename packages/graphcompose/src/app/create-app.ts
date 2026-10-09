@@ -99,13 +99,9 @@ export async function buildApp(
       }
     },
     cancel: async (thread) => {
-      await flowReal.graph.updateState(
-        { configurable: { thread_id: thread, runId: thread } },
-        { cancelRequested: true }
-      );
       // If the app is currently paused, resuming it with a dummy value will cause it to wake up
       // and immediately throw WorkflowCancelledError because of the pre-execution guard.
-      if (paused.has(thread)) {
+      if (paused.get(thread) !== undefined) {
         await app.resume(thread, null).catch(() => {});
       }
     },

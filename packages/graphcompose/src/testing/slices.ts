@@ -114,6 +114,7 @@ const freshState = (task: string, runId: string): FlowStateType => ({
   batchItem: undefined,
   _batchCursor: {},
   lastError: null,
+  cancelRequested: false,
 });
 
 export function agentSlice(built: BuiltApp, target: FlowNode): AgentSlice {
