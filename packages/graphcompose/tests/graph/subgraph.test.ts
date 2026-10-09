@@ -74,21 +74,27 @@ describe("Subgraph Cycle Validation", () => {
   it("allows acyclic workflow references", () => {
     const validator = new WorkflowGraphValidator();
     {
-      expect(() => validator.validateAcyclic(ParentWorkflow)).not.toThrow();
+      expect(() => {
+        validator.validateAcyclic(ParentWorkflow);
+      }).not.toThrow();
     }
   });
 
   it("allows acyclic subgraph wrappers", () => {
     const validator = new WorkflowGraphValidator();
     {
-      expect(() => validator.validateAcyclic(ParentWithWrapperWorkflow)).not.toThrow();
+      expect(() => {
+        validator.validateAcyclic(ParentWithWrapperWorkflow);
+      }).not.toThrow();
     }
   });
 
   it("detects cyclic workflow dependencies", () => {
     const validator = new WorkflowGraphValidator();
     {
-      expect(() => validator.validateAcyclic(CycleA)).toThrowError(DependencyCycleError);
+      expect(() => {
+        validator.validateAcyclic(CycleA);
+      }).toThrowError(DependencyCycleError);
     }
   });
 });
