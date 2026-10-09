@@ -7,7 +7,9 @@ import { WorkflowFinish } from "../../src/graph/workflow-finish.decorator.js";
 import { Subgraph } from "../../src/graph/subgraph.decorator.js";
 import { componentOf } from "../../src/components/metadata.js";
 
-class MockDto {}
+class MockDto {
+  readonly foo: string = "";
+}
 
 @WorkflowStart({ name: "start", input: MockDto })
 class StartNode {}
@@ -17,12 +19,14 @@ class FinishNode {}
 
 @WorkflowAction({ name: "dummy" })
 class DummyAction {
-  async execute() { return {}; }
+  async execute() {
+    return {};
+  }
 }
 
 @Workflow({
   name: "child",
-  flow: [from(StartNode).next(DummyAction), from(DummyAction).next(FinishNode)]
+  flow: [from(StartNode).next(DummyAction), from(DummyAction).next(FinishNode)],
 })
 class ChildWorkflow {}
 
@@ -30,31 +34,31 @@ class ChildWorkflow {}
   name: "child_subgraph",
   workflow: ChildWorkflow,
   start: StartNode,
-  finish: FinishNode
+  finish: FinishNode,
 })
 class ChildSubgraph {}
 
 @Workflow({
   name: "parent",
-  flow: [from(StartNode).next(ChildWorkflow), from(ChildWorkflow).next(FinishNode)]
+  flow: [from(StartNode).next(ChildWorkflow), from(ChildWorkflow).next(FinishNode)],
 })
 class ParentWorkflow {}
 
 @Workflow({
   name: "parent_with_wrapper",
-  flow: [from(StartNode).next(ChildSubgraph), from(ChildSubgraph).next(FinishNode)]
+  flow: [from(StartNode).next(ChildSubgraph), from(ChildSubgraph).next(FinishNode)],
 })
 class ParentWithWrapperWorkflow {}
 
 @Workflow({
   name: "cycle_a",
-  flow: []
+  flow: [],
 })
 class CycleA {}
 
 @Workflow({
   name: "cycle_b",
-  flow: []
+  flow: [],
 })
 class CycleB {}
 
@@ -69,16 +73,22 @@ if (metaA?.kind === "workflow" && metaB?.kind === "workflow") {
 describe("Subgraph Cycle Validation", () => {
   it("allows acyclic workflow references", () => {
     const validator = new WorkflowGraphValidator();
-    expect(() => validator.validateAcyclic(ParentWorkflow)).not.toThrow();
+    {
+      expect(() => validator.validateAcyclic(ParentWorkflow)).not.toThrow();
+    }
   });
 
   it("allows acyclic subgraph wrappers", () => {
     const validator = new WorkflowGraphValidator();
-    expect(() => validator.validateAcyclic(ParentWithWrapperWorkflow)).not.toThrow();
+    {
+      expect(() => validator.validateAcyclic(ParentWithWrapperWorkflow)).not.toThrow();
+    }
   });
 
   it("detects cyclic workflow dependencies", () => {
     const validator = new WorkflowGraphValidator();
-    expect(() => validator.validateAcyclic(CycleA)).toThrowError(DependencyCycleError);
+    {
+      expect(() => validator.validateAcyclic(CycleA)).toThrowError(DependencyCycleError);
+    }
   });
 });

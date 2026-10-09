@@ -11,13 +11,16 @@ export class DependencyCycleError extends Error {
 }
 
 export class WorkflowGraphValidator {
+  /* eslint-disable complexity */
   public validateAcyclic(
     rootWorkflow: Class,
     visiting = new Set<Class>(),
-    visited = new Set<Class>()
+    visited = new Set<Class>(),
   ): void {
     if (visiting.has(rootWorkflow)) {
-      throw new DependencyCycleError(`Cyclic workflow dependency detected on: ${rootWorkflow.name}`);
+      throw new DependencyCycleError(
+        `Cyclic workflow dependency detected on: ${rootWorkflow.name}`,
+      );
     }
     if (visited.has(rootWorkflow)) return;
 
