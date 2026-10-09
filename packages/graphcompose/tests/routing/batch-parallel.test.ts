@@ -12,14 +12,9 @@ class NumberStrategy {
     return [1, 2, 3, 4, 5];
   }
 }
- 
- 
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 @WorkflowStart({ name: "Start", description: "Start", input: class {} as any })
- 
- 
-
 class Start {}
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 @WorkflowFinish({ name: "Finish", description: "Finish", output: class {} as any })
@@ -48,7 +43,7 @@ class Summary {
     models: { temperature: 0, maxTokens: 1000, thinking: "default", cache: true },
     router: { kind: "jev", model: "jev:small" },
     tools: { maxToolCalls: 8 },
-    history: { limit: 5 }
+    history: { limit: 5 },
   },
   providers: [Start, Worker, Summary, Finish, NumberStrategy],
   flow: [

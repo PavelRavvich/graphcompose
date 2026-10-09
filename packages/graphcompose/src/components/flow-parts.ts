@@ -17,21 +17,41 @@ export interface FlowParts {
  * each agent node's `@Agent` settings under the node's name, and every router with its texts loaded.
  */
 export async function flowOf(bundle: WorkflowMeta): Promise<FlowParts> {
-  const model = checkFlow(bundle.flow);
-  const refs = [...model.nodes.values()];
-  const actions = refs
-    .filter((ref) => ref.kind === "action")
-    .map((ref) => ({
-      name: ref.name,
-      cls: ref.use,
-    }));
-  const agents = refs
-    .filter((ref) => ref.kind === "agent")
-    .map((ref) => ({
-      ...requireComponent(ref.use, "agent", `@Workflow "${bundle.name}"`).meta,
-      name: ref.name,
-    }));
-  return { agents, actions, routers: [...(await loadRouters(model)).values()] };
+  const actions: { name: string; cls: Class }[] = [];
+  const agents: AgentMeta[] = [];
+  const routers = new Map<string, LoadedRouter>();
+
+  const visited = new Set<string>();
+
+  const collect = async (meta: WorkflowMeta) => {
+    if (visited.has(meta.name)) return;
+    visited.add(meta.name);
+
+    const model = checkFlow(meta.flow);
+    const refs = [...model.nodes.values()];
+
+    for (const ref of refs) {
+      if (ref.kind === "action") {
+        actions.push({ name: ref.name, cls: ref.use });
+      } else if (ref.kind === "agent") {
+        agents.push({
+          ...requireComponent(ref.use, "agent", `@Workflow "${meta.name}"`).meta,
+          name: ref.name,
+        });
+      } else if (ref.kind === "workflow") {
+        const subMeta = requireComponent(ref.use, "workflow", "flowOf").meta;
+        await collect(subMeta);
+      }
+    }
+
+    const loadedRouters = await loadRouters(model);
+    for (const [k, v] of loadedRouters) {
+      if (!routers.has(k)) routers.set(k, v);
+    }
+  };
+
+  await collect(bundle);
+  return { agents, actions, routers: [...routers.values()] };
 }
 
 const isDefinition = (value: unknown): value is WorkflowDefinition =>

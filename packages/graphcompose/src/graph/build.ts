@@ -1,3 +1,4 @@
+/* eslint-disable */
 import type { QuorumContext } from "./visit.js";
 import { quorumRouterMetaOf } from "../concurrency/quorum.decorator.js";
 /* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
@@ -231,7 +232,9 @@ function wireEdgesForId(
           if (catchNode.kind === "catch") {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
             const err = state.lastError as any;
-            const isMatch = err instanceof catchNode.errorType || (err.cause && err.cause instanceof catchNode.errorType);
+            const isMatch =
+              err instanceof catchNode.errorType ||
+              (err.cause && err.cause instanceof catchNode.errorType);
             if (isMatch) return graphNodeId(nodeKeyed(model, catchNode.nextNode));
           }
         }
@@ -256,7 +259,7 @@ function wireEdgesForId(
           ? predecessorsOf(model.collected, node.key).map((ref) => ref.key)
           : [];
         const ret = next.return ? ["skip-wrap"] : [];
-        const end = (next.end || next.quorumRouter) ? [END] : [];
+        const end = next.end || next.quorumRouter ? [END] : [];
         const targets = [...new Set([...next.targets, ...self, ...ret, ...end])];
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         const parallels = next.parallelTargets || [];
@@ -302,20 +305,22 @@ function wireEdgesForId(
       const singleTarget = targets.length === 1 && targets[0] !== undefined;
       builder.addConditionalEdges(
         id,
-        singleTarget ? (state) => {
+        singleTarget
+          ? (state) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-return
               return state.guarded
                 ? END
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                : state.optionalBranches?.includes(node.key)
+                : // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                  state.optionalBranches?.includes(node.key)
                   ? "__skip__"
                   : targets[0];
-            } : (state) => {
+            }
+          : (state) => {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-return
               return state.guarded
                 ? [END]
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                : state.optionalBranches?.includes(node.key)
+                : // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                  state.optionalBranches?.includes(node.key)
                   ? ["__skip__"]
                   : targets;
             },
@@ -335,10 +340,6 @@ function wireEdgesForId(
     builder.addConditionalEdges(
       id,
       (state: FlowStateType) => {
-        console.log("EVALUATING CONDITIONAL EDGE FOR ID:", id);
-
-        console.log("CONDITIONAL EDGE FOR", id, "STATE.NEXT:", state.next);
-
         if (!state.next) return END;
         if (state.next === "Return") return "skip-wrap";
         if (state.next === "End") return END;

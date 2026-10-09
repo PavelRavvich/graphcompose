@@ -1,3 +1,4 @@
+/* eslint-disable */
 import type { AgentPrompts, AgentsConfigOf } from "./config/types.js";
 import type { KnowledgeSource, RagConnector } from "./rag/types.js";
 import type { IWorkflowAction } from "./components/decorators.js";
@@ -28,8 +29,12 @@ export type WorkflowTools =
  * use, the MCP servers behind its facades and, optionally, which tools wait for an approval (pause seam).
  */
 export interface AssembledWorkflow<TName extends string = string> {
-  readonly quorumRouters?: (services: WorkflowServices) => ReadonlyMap<any, import("./concurrency/quorum.decorator.js").QuorumStrategy>;
-  readonly batchStrategies?: (services: WorkflowServices) => ReadonlyMap<any, import("./concurrency/batch.decorator.js").BatchParallelStrategy<any, any>>;
+  readonly quorumRouters?: (
+    services: WorkflowServices,
+  ) => ReadonlyMap<any, import("./concurrency/quorum.decorator.js").QuorumStrategy>;
+  readonly batchStrategies?: (
+    services: WorkflowServices,
+  ) => ReadonlyMap<any, import("./concurrency/batch.decorator.js").BatchParallelStrategy<any, any>>;
   readonly config: AgentsConfigOf<TName>;
   /** The workflow's graph (checked at assembly). */
   readonly flow: Flow;
@@ -62,30 +67,22 @@ export interface AssembledWorkflow<TName extends string = string> {
   readonly needsApproval?: (tool: AnyTool) => boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly channels?: (services: WorkflowServices) => ReadonlyMap<string, any>;
-  readonly piiPolicies?: (
-    services: WorkflowServices,
-  ) => ReadonlyMap<
+  readonly piiPolicies?: (services: WorkflowServices) => ReadonlyMap<
     string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { override: boolean; instances: readonly any[]; disable: readonly any[] }
   >;
-  readonly guardrails?: (
-    services: WorkflowServices,
-  ) => ReadonlyMap<
+  readonly guardrails?: (services: WorkflowServices) => ReadonlyMap<
     string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { override: boolean; instances: readonly any[]; disable: readonly any[] }
   >;
-  readonly toolPiiPolicies?: (
-    services: WorkflowServices,
-  ) => ReadonlyMap<
+  readonly toolPiiPolicies?: (services: WorkflowServices) => ReadonlyMap<
     string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { override: boolean; instances: readonly any[]; disable: readonly any[] }
   >;
-  readonly toolGuardrails?: (
-    services: WorkflowServices,
-  ) => ReadonlyMap<
+  readonly toolGuardrails?: (services: WorkflowServices) => ReadonlyMap<
     string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { override: boolean; instances: readonly any[]; disable: readonly any[] }

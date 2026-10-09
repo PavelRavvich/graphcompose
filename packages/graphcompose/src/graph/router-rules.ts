@@ -52,8 +52,8 @@ function chooseKeys(
   if (!step) return [];
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const parallelNames = step.parallelTargets
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
-    ? step.parallelTargets.map((p: any) => p.optionName)
+    ? // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+      step.parallelTargets.map((p: any) => p.optionName)
     : [];
 
   // To get the non-parallel targets, we can look at step.targets, but they include the nodes inside parallel targets.

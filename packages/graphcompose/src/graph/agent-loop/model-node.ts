@@ -76,7 +76,6 @@ export function makeModelNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
   // eslint-disable-next-line max-lines-per-function, complexity
   return async (state, config) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    require('fs').appendFileSync('model-logs.txt', "MODEL NODE FOR: " + deps.agent.name + " CANCELLED? " + config?.configurable?.branchCancelToken?.cancelled + " HAS CANCEL TOKEN? " + !!config?.configurable?.branchCancelToken + "\n");
     if (config?.configurable?.branchCancelToken?.cancelled) {
       throw new QuorumCancelledError();
     }

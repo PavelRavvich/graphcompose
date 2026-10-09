@@ -25,12 +25,12 @@ export const optionOf = (target: ChoiceTarget): string =>
       ? "Return"
       : isEnd(target)
         ? "End"
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        : (target as any).kind === "parallel" || (target as any).kind === "optional"
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-          ? (target as any).kind
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-          : nodeNameOf(target as any);
+        : // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          (target as any).kind === "parallel" || (target as any).kind === "optional"
+          ? // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            (target as any).kind
+          : // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+            nodeNameOf(target as any);
 
 const failed = (reason: string): RouteOutcome => ({ kind: "failed", reason });
 

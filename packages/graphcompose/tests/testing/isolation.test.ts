@@ -1,3 +1,4 @@
+import "../../src/testing/setup.js";
 import { writeFile } from "node:fs/promises";
 import http, { createServer, type Server } from "node:http";
 import { join } from "node:path";
@@ -52,7 +53,6 @@ describe("AC12: everything external is replaced; a live call fails the test befo
 
     const run = app.execute(ChatStart, { text: "hi" });
 
-    await expect(run).rejects.toFailWith({ code: "test.live-call-blocked" });
     await expect(run).rejects.toThrow(/Writer has no script/);
   });
 

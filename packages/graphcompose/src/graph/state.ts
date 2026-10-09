@@ -24,7 +24,15 @@ export const AgentState = Annotation.Root({
   /** Id of this run (tools and logs). */
   runId: Annotation<string>({ reducer: (_previous, next) => next, default: () => "" }),
   /** The node the last router chose (an agent's name while it runs). */
-  next: Annotation<string>({ reducer: (p, n) => { if (!p) return n; if (p === "__end__") return n; if (n === "__end__") return p; return n; }, default: () => "" }),
+  next: Annotation<string>({
+    reducer: (p, n) => {
+      if (!p) return n;
+      if (p === "__end__") return n;
+      if (n === "__end__") return p;
+      return n;
+    },
+    default: () => "",
+  }),
   /** Why the last router chose what it chose ("" before any router decided). */
   routeReason: Annotation<string>({ reducer: (_previous, next) => next, default: () => "" }),
   contributions: Annotation<Contribution[]>({ reducer: append, default: () => [] }),

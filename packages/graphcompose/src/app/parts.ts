@@ -37,7 +37,7 @@ export const toolLookup = (tools: readonly AnyTool[]): ((name: string) => AnyToo
 export const actionLookup = (
   bundle: AssembledWorkflow,
   services: WorkflowServices,
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): ((name: string) => any) | undefined => {
   const actionsMap = bundle.actions?.(services);
   if (!actionsMap) return undefined;

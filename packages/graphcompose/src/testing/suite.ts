@@ -41,7 +41,7 @@ export class Suite<TInput = unknown, TExpected = unknown> {
   // eslint-disable-next-line complexity
   async evaluate(
     target: (input: TInput) => Promise<unknown>,
-    options: SuiteEvaluateOptions
+    options: SuiteEvaluateOptions,
   ): Promise<SuiteReport> {
     const concurrency = options.concurrency ?? 5;
     const cases = [...this.config.dataset.cases];
@@ -54,17 +54,15 @@ export class Suite<TInput = unknown, TExpected = unknown> {
         const id = tc.id ?? randomUUID();
         try {
           const output = await target(tc.input);
-          
+
           let allPassed = true;
           let allFeedback = "";
           const allMetrics: Record<string, unknown> = {};
 
           for (const judge of this.config.judges) {
             const judgeRes = await judge.evaluate(
-               
-               
               { replyWith: output as string, ...(output as object), expected: tc.expected },
-              { runId: id, chatModel: options.chatModel }
+              { runId: id, chatModel: options.chatModel },
             );
 
             if (!judgeRes.passed) allPassed = false;
@@ -77,7 +75,7 @@ export class Suite<TInput = unknown, TExpected = unknown> {
             passed: allPassed,
             feedback: allFeedback.trim() || undefined,
             metrics: allMetrics,
-            output
+            output,
           };
         } catch (error) {
           return {
@@ -85,7 +83,7 @@ export class Suite<TInput = unknown, TExpected = unknown> {
             passed: false,
             feedback: "Target threw an exception",
             metrics: {},
-            error: error instanceof Error ? error : new Error(String(error))
+            error: error instanceof Error ? error : new Error(String(error)),
           };
         }
       });
@@ -120,7 +118,7 @@ export class Suite<TInput = unknown, TExpected = unknown> {
       failCount,
       passRate,
       metrics: aggregatedMetrics,
-      results
+      results,
     };
   }
 }

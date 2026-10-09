@@ -144,8 +144,12 @@ class MaskingPolicy {
 
 @Guardrail({ name: "SafeGuard" })
 class SafeGuard {
-  async beforeToolCall() { /* noop */ }
-  async afterToolCall() { /* noop */ }
+  async beforeToolCall() {
+    /* noop */
+  }
+  async afterToolCall() {
+    /* noop */
+  }
 }
 
 @Tool({
@@ -220,7 +224,7 @@ describe("Observability Tails Hooks", () => {
 
     // Check Action
     // eslint-disable-next-line no-console
-      console.log("HOOK EVENTS:", hookEvents);
+    console.log("HOOK EVENTS:", hookEvents);
     expect(hookEvents).toContain("ActionStart:FormatAction");
     expect(hookEvents).toContain("ActionEnd:FormatAction");
 

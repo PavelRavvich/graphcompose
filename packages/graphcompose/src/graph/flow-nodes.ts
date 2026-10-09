@@ -247,7 +247,7 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
         return source === undefined
           ? []
           : transitionsOf({ kind: "to", from: [source], targets: [to] }, resolve);
-      // eslint-disable-next-line max-lines
+        // eslint-disable-next-line max-lines
       });
   }
   return [];

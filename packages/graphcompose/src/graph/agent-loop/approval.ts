@@ -66,7 +66,7 @@ export function pauseSeamApproval(
         }
 
         return validate(ToolCallApprovalDecision, rawDecision);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         // eslint-disable-next-line @typescript-eslint/prefer-optional-chain, @typescript-eslint/no-unsafe-member-access
         if (e && e.name === "NodeInterrupt") {

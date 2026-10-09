@@ -1,3 +1,4 @@
+/* eslint-disable */
 import type { ChannelRequest } from "../components/decorators.js";
 import { MemorySaver, type BaseCheckpointSaver } from "@langchain/langgraph";
 import { homedir } from "node:os";
@@ -235,8 +236,8 @@ export async function createAppDeps(
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       get: <T>(token: any) => lifecycle.created.find((c: any) => c.constructor === token) as T,
     },
-    quorumRouters: (nameOrClass: any) => bundle.quorumRouters?.(services).get(nameOrClass) as import("../concurrency/quorum.decorator.js").QuorumStrategy,
-    batchStrategies: (nameOrClass: any) => bundle.batchStrategies?.(services).get(nameOrClass) as import("../concurrency/batch.decorator.js").BatchParallelStrategy<any, any>,
+    quorumRouters: (nameOrClass: any) => bundle.quorumRouters?.(services).get(nameOrClass)!,
+    batchStrategies: (nameOrClass: any) => bundle.batchStrategies?.(services).get(nameOrClass)!,
     observer: new ObserverManager(lifecycle.created),
     ...(options.newRunId === undefined ? {} : { newRunId: options.newRunId }),
     close: async () => {

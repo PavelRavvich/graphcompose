@@ -12,7 +12,7 @@ class MockAccuracyJudge extends BaseJudge {
     return {
       passed,
       feedback: passed ? undefined : "Accuracy failed",
-      metrics: { accuracy: passed ? 1 : 0 }
+      metrics: { accuracy: passed ? 1 : 0 },
     };
   }
 }
@@ -22,7 +22,7 @@ class MockToneJudge extends BaseJudge {
     const score = state.replyWith.length > 5 ? 10 : 2;
     return {
       passed: score > 5,
-      metrics: { tone: score }
+      metrics: { tone: score },
     };
   }
 }
@@ -31,13 +31,13 @@ describe("Ticket 125: Element Suites and Comparisons", () => {
   it("should evaluate a dataset over a target and return a SuiteReport", async () => {
     const dataset = Dataset.from([
       { id: "c1", input: { query: "A" }, expected: "A_reply" },
-      { id: "c2", input: { query: "B" }, expected: "B_reply" }
+      { id: "c2", input: { query: "B" }, expected: "B_reply" },
     ]);
 
     const suite = new Suite({
       name: "Test Suite",
       dataset,
-      judges: [new MockAccuracyJudge(), new MockToneJudge()]
+      judges: [new MockAccuracyJudge(), new MockToneJudge()],
     });
 
     const target = async (input: { query: string }) => {
@@ -54,23 +54,21 @@ describe("Ticket 125: Element Suites and Comparisons", () => {
     expect(report.failCount).toBe(1);
     expect(report.passRate).toBe(0.5);
 
-    expect((report.metrics.accuracy?.mean ?? 0)).toBe(0.5); // 1 + 0 / 2
-    expect((report.metrics.tone?.mean ?? 0)).toBe(10); // Both strings are > 5 chars (A_reply, wrong_B)
+    expect(report.metrics.accuracy?.mean ?? 0).toBe(0.5); // 1 + 0 / 2
+    expect(report.metrics.tone?.mean ?? 0).toBe(10); // Both strings are > 5 chars (A_reply, wrong_B)
   });
 
   it("should compare two suite reports", () => {
-    const dataset = Dataset.from([
-      { input: 1, expected: 1 }
-    ]);
+    const dataset = Dataset.from([{ input: 1, expected: 1 }]);
 
     const reportV1 = {
       suiteName: "Test Suite",
       totalCases: 100,
       passCount: 50,
       failCount: 50,
-      passRate: 0.50,
+      passRate: 0.5,
       metrics: { accuracy: { mean: 0.5 }, tone: { mean: 4.0 } },
-      results: []
+      results: [],
     };
 
     const reportV2 = {
@@ -78,19 +76,19 @@ describe("Ticket 125: Element Suites and Comparisons", () => {
       totalCases: 100,
       passCount: 80,
       failCount: 20,
-      passRate: 0.80,
+      passRate: 0.8,
       metrics: { accuracy: { mean: 0.8 }, tone: { mean: 5.0 } },
-      results: []
+      results: [],
     };
 
     const comparison = Compare.reports("V1", reportV1, "V2", reportV2);
     expect(comparison.baselineName).toBe("V1");
     expect(comparison.candidateName).toBe("V2");
-    expect(comparison.passRateDelta).toBeCloseTo(0.30);
-    expect((comparison.metricDeltas.accuracy?.delta ?? 0)).toBeCloseTo(0.3);
-    expect((comparison.metricDeltas.accuracy?.deltaPercent ?? 0)).toBeCloseTo(60); // (0.3 / 0.5) * 100
-    expect((comparison.metricDeltas.tone?.delta ?? 0)).toBeCloseTo(1.0);
-    expect((comparison.metricDeltas.tone?.deltaPercent ?? 0)).toBeCloseTo(25); // (1.0 / 4.0) * 100
+    expect(comparison.passRateDelta).toBeCloseTo(0.3);
+    expect(comparison.metricDeltas.accuracy?.delta ?? 0).toBeCloseTo(0.3);
+    expect(comparison.metricDeltas.accuracy?.deltaPercent ?? 0).toBeCloseTo(60); // (0.3 / 0.5) * 100
+    expect(comparison.metricDeltas.tone?.delta ?? 0).toBeCloseTo(1.0);
+    expect(comparison.metricDeltas.tone?.deltaPercent ?? 0).toBeCloseTo(25); // (1.0 / 4.0) * 100
 
     const summary = comparison.summary();
     expect(summary).toContain("V2 vs V1");

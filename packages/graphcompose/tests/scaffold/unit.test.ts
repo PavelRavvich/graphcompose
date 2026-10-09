@@ -105,15 +105,17 @@ describe("writing", () => {
     });
 
     // the clash is caught while planning — before anything is written
-    await expect(planGenerate(
+    await expect(
+      planGenerate(
         "tool",
         "search orders",
         { workflow: "src/desk/desk.workflow.ts", agent: "answerer" },
         root,
       ),
-    ).toThrow("src/desk/agents/answerer.agent.ts: SearchOrdersTool is already in tools");
-    await expect(planGenerate("tool", "x", { workflow: "src/desk/desk.workflow.ts" }, root),
-    ).toThrow("gc generate tool needs --agent <name>");
+    ).rejects.toThrow("src/desk/agents/answerer.agent.ts: SearchOrdersTool is already in tools");
+    await expect(
+      planGenerate("tool", "x", { workflow: "src/desk/desk.workflow.ts" }, root),
+    ).rejects.toThrow("gc generate tool needs --agent <name>");
     await expect(planGenerate("widget", "x", {}, root)).rejects.toThrow("Unknown kind");
   });
 });

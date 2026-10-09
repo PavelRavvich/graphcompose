@@ -11,14 +11,9 @@ class NumberStrategy {
     return [1, 2, 3, 4, 5];
   }
 }
- 
- 
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 @WorkflowStart({ name: "Start", description: "Start", input: class {} as any })
- 
- 
-
 class Start {}
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 @WorkflowFinish({ name: "Finish", description: "Finish", output: class {} as any })

@@ -19,7 +19,13 @@ class CancelFlightAgent {
   }
 }
 
-@Agent({ name: "book_flight", model: "gpt-4", description: "b", prompt: "p", compensate: CancelFlightAgent })
+@Agent({
+  name: "book_flight",
+  model: "gpt-4",
+  description: "b",
+  prompt: "p",
+  compensate: CancelFlightAgent,
+})
 class BookFlightAgent {
   async run() {
     throw new MockTimeoutError("Flight API down");
@@ -54,38 +60,42 @@ class Finish {}
     models: { temperature: 0, maxTokens: 1000, thinking: "default", cache: true },
     router: { kind: "llm", model: "openrouter:openai/gpt-4" },
     tools: { maxToolCalls: 8 },
-    history: { limit: 5 }
+    history: { limit: 5 },
   },
 })
 class TripBookingWorkflow {
-  settings = () => ({ limits: { steps: 50 }, models: {} as any }) as unknown as import("../../src/graph/settings.js").WorkflowSettings;
+  settings = () =>
+    ({
+      limits: { steps: 50 },
+      models: {} as any,
+    }) as unknown as import("../../src/graph/settings.js").WorkflowSettings;
 }
 
 const test = testWith(TripBookingWorkflow);
 
 describe("Saga and Error Routing", () => {
   test("routes to WorkflowFinish on generic error", async ({ app, mockLlm }) => {
-      mockLlm(BookFlightAgent).thenAnswer(() => {
-        throw new Error("Database down");
-      });
-
-      const res = await app.execute(Start, { text: "hello" });
-      expect(res.status).toBe("answered");
-
-      expect(mockLlm(BookFlightAgent).requests.length).toBe(1);
-      expect(mockLlm(FallbackAgent).requests.length).toBe(0);
+    mockLlm(BookFlightAgent).thenAnswer(() => {
+      throw new Error("Database down");
     });
+
+    const res = await app.execute(Start, { text: "hello" });
+    expect(res.status).toBe("answered");
+
+    expect(mockLlm(BookFlightAgent).requests.length).toBe(1);
+    expect(mockLlm(FallbackAgent).requests.length).toBe(0);
+  });
 
   test("routes to fallback on specific error", async ({ app, mockLlm }) => {
-      mockLlm(BookFlightAgent).thenAnswer(() => {
-        throw new MockTimeoutError("Flight API down");
-      });
-      mockLlm(FallbackAgent).thenAnswer(() => replyWith('{"recovered": true}'));
-
-      const res = await app.execute(Start, { text: "hello" });
-      expect(res.status).toBe("answered");
-
-      expect(mockLlm(BookFlightAgent).requests.length).toBe(1);
-      expect(mockLlm(FallbackAgent).requests.length).toBe(1);
+    mockLlm(BookFlightAgent).thenAnswer(() => {
+      throw new MockTimeoutError("Flight API down");
     });
+    mockLlm(FallbackAgent).thenAnswer(() => replyWith('{"recovered": true}'));
+
+    const res = await app.execute(Start, { text: "hello" });
+    expect(res.status).toBe("answered");
+
+    expect(mockLlm(BookFlightAgent).requests.length).toBe(1);
+    expect(mockLlm(FallbackAgent).requests.length).toBe(1);
+  });
 });

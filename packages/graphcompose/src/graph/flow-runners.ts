@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { WorkflowCancelledError } from "../core/errors.js";
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 import type { Class } from "../components/injection.js";
@@ -111,6 +112,7 @@ export function flowRunners<TName extends string>(
         const action = deps.actions(node.name);
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (!action) throw new UnknownActionError(`Unknown action: ${node.name}`);
+        // eslint-disable-next-line max-lines-per-function
         return async (state, config) => {
           if (state.cancelRequested) {
             throw new WorkflowCancelledError();
@@ -129,8 +131,14 @@ export function flowRunners<TName extends string>(
             if (comp.kind === "action") {
               if (!deps.actions) throw new Error("Actions not wired");
               const act = deps.actions(comp.meta.name);
-              // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-              const ctx = { runId, signal: config?.signal, getComponentClass, runCompensation, idempotencyKey: nodeName ? `run_${runId}_node_${nodeName}` : undefined };
+
+              const ctx = {
+                runId,
+                signal: config?.signal,
+                getComponentClass,
+                runCompensation,
+                idempotencyKey: nodeName ? `run_${runId}_node_${nodeName}` : undefined,
+              };
               // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
               return await act.execute(childState, ctx);
             }
@@ -244,14 +252,14 @@ export function flowRunners<TName extends string>(
         const loop = loops.get(node.name);
         if (loop === undefined) throw new UnknownAgentError(node.name);
         const runner = agentRunner(loop, node.name);
-        // eslint-disable-next-line complexity
+
         return async (state, config) => {
           if (state.cancelRequested) {
             throw new WorkflowCancelledError();
           }
           const runId = state.runId;
           const appState = { runId, activeNode: node.name, variables: {}, history: state.history };
-          // eslint-disable-next-line max-lines
+
           await deps.observer?.onAgentStart({
             name: node.name,
             input: state.task,

@@ -82,6 +82,6 @@ export interface GraphDeps<TName extends string> {
   >;
   readonly batchStrategies?: (
     name: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ) => import("../concurrency/batch.decorator.js").BatchParallelStrategy<any, any>;
 }

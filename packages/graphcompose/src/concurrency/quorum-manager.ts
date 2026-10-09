@@ -29,7 +29,6 @@ export class QuorumManager {
     max?: number,
     timeoutSeconds?: number,
   ) {
-    require('fs').appendFileSync('model-logs.txt', "REGISTER BRANCH FOR: " + quorumId + "\n");
     if (!this.activeQuorums.has(quorumId)) {
       const q: QuorumState = {
         min,
@@ -63,7 +62,6 @@ export class QuorumManager {
   }
 
   addVote(quorumId: string, isValid: boolean): boolean {
-    console.log("ADD VOTE CALLED FOR:", quorumId, "VALID?", isValid); require('fs').appendFileSync('model-logs.txt', "ADD VOTE CALLED FOR: " + quorumId + " VALID? " + isValid + "\n");
     const quorum = this.activeQuorums.get(quorumId);
     if (!quorum) return false;
 

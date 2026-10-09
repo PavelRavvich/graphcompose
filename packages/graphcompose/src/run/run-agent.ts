@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { QuorumManager } from "../concurrency/quorum-manager.js";
 import { randomUUID } from "node:crypto";
 import type { UsageRecord } from "../finops/usage.js";
@@ -56,6 +55,7 @@ export async function runAgent<TName extends string>(
     const runId = deps.newRunId?.() ?? randomUUID();
     const flow = await flowGraphOf(deps, run);
     const config = streamConfig(deps, { threadId, runId }, options);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     (config.configurable as any).quorumManager = new QuorumManager();
     const record = recorder(deps, account, spent);
     const initial = {

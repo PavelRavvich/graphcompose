@@ -47,7 +47,7 @@ export function mergePolicies(
   aPolicies: { override: boolean; instances: readonly any[]; disable: readonly any[] } | undefined,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tPolicies?: { override: boolean; instances: readonly any[]; disable: readonly any[] },
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any[] {
   const wGuard = wPolicies ?? [];
 

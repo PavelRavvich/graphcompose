@@ -76,8 +76,7 @@ function loadRouter(model: FlowModel, ref: FlowNodeRef): LoadedRouter {
 }
 
 /** Every router of the flow with its texts loaded, by node key. */
- 
- 
+
 export async function loadRouters(model: FlowModel): Promise<ReadonlyMap<string, LoadedRouter>> {
   const routers = [...model.nodes.values()].filter((ref) => ref.kind === "router");
   const loaded = routers.map((ref) => loadRouter(model, ref));

@@ -4,7 +4,13 @@ import { namesOf } from "./names.js";
 import type { Changes, FileToWrite } from "./write.js";
 import { targetWorkflow } from "./project-files.js";
 
-function getDtoType(schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject | undefined): { tsType: string; decorator: string; itemTsType?: string; itemDecorator?: string; isArray?: boolean } {
+function getDtoType(schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject | undefined): {
+  tsType: string;
+  decorator: string;
+  itemTsType?: string;
+  itemDecorator?: string;
+  isArray?: boolean;
+} {
   if (!schema) return { tsType: "unknown", decorator: "Property" };
   // simple resolution, assuming fully dereferenced
   const sch = schema as OpenAPIV3.SchemaObject;
@@ -13,26 +19,35 @@ function getDtoType(schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject |
   if (sch.type === "number") return { tsType: "number", decorator: "Decimal" };
   if (sch.type === "boolean") return { tsType: "boolean", decorator: "Flag" };
   if (sch.type === "array") {
-     const item = getDtoType(sch.items);
-     return { tsType: `${item.tsType}[]`, decorator: `ListOf`, itemDecorator: item.decorator, isArray: true };
+    const item = getDtoType(sch.items);
+    return {
+      tsType: `${item.tsType}[]`,
+      decorator: `ListOf`,
+      itemDecorator: item.decorator,
+      isArray: true,
+    };
   }
   if (sch.type === "object") {
-     return { tsType: "Record<string, unknown>", decorator: "Property" }; // Fallback
+    return { tsType: "Record<string, unknown>", decorator: "Property" }; // Fallback
   }
   return { tsType: "unknown", decorator: "Property" };
 }
 
 /* eslint-disable max-lines-per-function, complexity, @typescript-eslint/prefer-nullish-coalescing */
-export async function planOpenApi(root: string, name: string, options: { url?: string; workflow?: string }): Promise<Changes> {
+export async function planOpenApi(
+  root: string,
+  name: string,
+  options: { url?: string; workflow?: string },
+): Promise<Changes> {
   const url = options.url;
   if (!url) throw new Error("--url <openapi-url> is required for openapi generation");
 
-  const api = await SwaggerParser.dereference(url) as OpenAPIV3.Document;
+  const api = (await SwaggerParser.dereference(url)) as OpenAPIV3.Document;
   const { dir } = targetWorkflow(root, options.workflow ?? "", "tool");
-  
+
   const files: FileToWrite[] = [];
   const ns = namesOf(name);
-  
+
   let toolsContent = `import { Tool, type ToolContext, type ToolHandler } from "graphcompose/tool";\n`;
   toolsContent += `import { Text, Integer, Decimal, Flag, ListOf, Nested } from "graphcompose/dto";\n\n`;
 
@@ -51,16 +66,16 @@ export async function planOpenApi(root: string, name: string, options: { url?: s
       let dto = `export class ${opName.pascal}Input {\n`;
       const params = op.parameters || [];
       for (const p of params) {
-         const param = p as OpenAPIV3.ParameterObject;
-         const pType = getDtoType(param.schema);
-         const required = param.required ? "!" : "?";
-         
-         if (pType.isArray && pType.itemDecorator) {
-             dto += `  @${pType.decorator}(${pType.itemDecorator}, { prompt: ${JSON.stringify(param.description || "")} })\n`;
-         } else {
-             dto += `  @${pType.decorator}({ prompt: ${JSON.stringify(param.description || "")} })\n`;
-         }
-         dto += `  ${param.name.replace(/[^a-zA-Z0-9]/g, "")}${required}: ${pType.tsType};\n`;
+        const param = p as OpenAPIV3.ParameterObject;
+        const pType = getDtoType(param.schema);
+        const required = param.required ? "!" : "?";
+
+        if (pType.isArray && pType.itemDecorator) {
+          dto += `  @${pType.decorator}(${pType.itemDecorator}, { prompt: ${JSON.stringify(param.description || "")} })\n`;
+        } else {
+          dto += `  @${pType.decorator}({ prompt: ${JSON.stringify(param.description || "")} })\n`;
+        }
+        dto += `  ${param.name.replace(/[^a-zA-Z0-9]/g, "")}${required}: ${pType.tsType};\n`;
       }
       dto += `}\n\n`;
       dtosContent.push(dto);
@@ -84,7 +99,7 @@ export async function planOpenApi(root: string, name: string, options: { url?: s
       tool += `    return res.json();\n`;
       tool += `  }\n`;
       tool += `}\n\n`;
-      
+
       tools.push(tool);
     }
   }
@@ -93,7 +108,7 @@ export async function planOpenApi(root: string, name: string, options: { url?: s
 
   files.push({
     path: `${dir}/${ns.kebab}.openapi.ts`,
-    content: fileContent
+    content: fileContent,
   });
 
   return { create: files, modify: [] };

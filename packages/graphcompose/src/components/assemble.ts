@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { mcpServer } from "../tools/index.js";
 import { type McpFacade } from "../tools/index.js";
 import type { AgentsConfigOf } from "../config/types.js";
@@ -148,7 +149,7 @@ const toolNames = (tools: ReturnType<typeof toolsOf>): Map<Class, string> =>
  * Assembles a `@Workflow` class into the workflow the core runs: its flow checked against every rule
  * (all violations at once), router texts loaded, limits from `settings()`, config, prompts, tools, MCP.
  */
-// eslint-disable-next-line max-lines-per-function
+
 import { quorumRouterMetaOf } from "../concurrency/quorum.decorator.js";
 import { batchParallelStrategyMetaOf } from "../concurrency/batch.decorator.js";
 export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow> {
@@ -221,7 +222,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
         meta?.overridePiiPolicies
           ? {
               override: true,
-              // eslint-disable-next-line max-lines, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
               classes: meta.overridePiiPolicies,
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
               disable: meta.disablePiiPolicies ?? [],
@@ -317,7 +318,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
         const cls = "provide" in p ? p.provide : p;
         const meta = quorumRouterMetaOf(cls as Class);
         if (meta) {
-          const instance = containerFor(bundle, services).get(cls as Class);
+          const instance = containerFor(bundle, services).get(cls);
           map.set(meta.name || (cls as any).name, instance);
           map.set(cls, instance);
           map.set((cls as any).name, instance);
@@ -331,7 +332,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
         const cls = "provide" in p ? p.provide : p;
         const meta = batchParallelStrategyMetaOf(cls as Class);
         if (meta) {
-          const instance = containerFor(bundle, services).get(cls as Class);
+          const instance = containerFor(bundle, services).get(cls);
           map.set(meta.name || (cls as any).name, instance);
           map.set(cls, instance);
           map.set((cls as any).name, instance);

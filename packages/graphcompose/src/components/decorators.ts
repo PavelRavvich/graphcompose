@@ -295,7 +295,7 @@ export interface Guardrail {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     decision: any,
     ctx: GuardrailContext,
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type, @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type, @typescript-eslint/no-explicit-any
   ) => Promise<void | { overrideArguments?: any }>;
   beforeAgentAnswer?: (ctx: GuardrailContext) => Promise<void>;
 }

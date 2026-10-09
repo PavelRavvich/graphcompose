@@ -100,7 +100,7 @@ describe("Agent Retry Loop with Judges", () => {
     });
 
     // eslint-disable-next-line no-console
-      console.log("FINAL RESULT:", JSON.stringify(result, null, 2));
+    console.log("FINAL RESULT:", JSON.stringify(result, null, 2));
     expect(evalCount).toBe(2);
     expect(result.reply).toBe("good response");
     expect(result.retries).toBe(1);

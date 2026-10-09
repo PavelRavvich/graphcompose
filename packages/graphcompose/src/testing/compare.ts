@@ -14,10 +14,10 @@ export class Compare {
     baselineName: string,
     baselineReport: SuiteReport,
     candidateName: string,
-    candidateReport: SuiteReport
+    candidateReport: SuiteReport,
   ): ComparisonReport {
     const passRateDelta = candidateReport.passRate - baselineReport.passRate;
-    
+
     const metricDeltas: Record<string, { delta: number; deltaPercent: number }> = {};
     for (const [key, baseMetric] of Object.entries(baselineReport.metrics)) {
       const candMetric = candidateReport.metrics[key];
@@ -36,13 +36,13 @@ export class Compare {
       summary: () => {
         let text = `Comparison: ${candidateName} vs ${baselineName}\n`;
         text += `Pass Rate: ${(candidateReport.passRate * 100).toFixed(1)}% vs ${(baselineReport.passRate * 100).toFixed(1)}% `;
-        text += `(${(passRateDelta > 0 ? "+" : "")}${(passRateDelta * 100).toFixed(1)}%)\n`;
+        text += `(${passRateDelta > 0 ? "+" : ""}${(passRateDelta * 100).toFixed(1)}%)\n`;
         text += `Metrics:\n`;
         for (const [k, d] of Object.entries(metricDeltas)) {
-          text += `  - ${k}: ${(d.delta > 0 ? "+" : "")}${d.delta.toFixed(2)} (${(d.deltaPercent > 0 ? "+" : "")}${d.deltaPercent.toFixed(1)}%)\n`;
+          text += `  - ${k}: ${d.delta > 0 ? "+" : ""}${d.delta.toFixed(2)} (${d.deltaPercent > 0 ? "+" : ""}${d.deltaPercent.toFixed(1)}%)\n`;
         }
         return text;
-      }
+      },
     };
   }
 }

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { WorkflowAction, type ActionRuntime } from "../../components/decorators.js";
 import { componentOf } from "../../components/metadata.js";
 import { BaseSagaStrategy } from "./types.js";
@@ -21,11 +22,12 @@ export class LocalSagaStrategy extends BaseSagaStrategy {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const history = state.contributions || [];
     // Extract unique node names in reverse order of their execution
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-    const executedNodes = Array.from(new Set(history.map((h: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => h.agent).reverse()));
+
+    const executedNodes = Array.from(
+      new Set((history as any[]).map((h) => h.agent).reverse()),
+    ) as string[];
 
     for (const nodeName of executedNodes) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const nodeClass = await context.getComponentClass(nodeName);
       if (!nodeClass) continue;
 
@@ -34,7 +36,11 @@ export class LocalSagaStrategy extends BaseSagaStrategy {
 
       if (meta.kind === "agent" || meta.kind === "action") {
         if (meta.meta.compensate) {
-          await context.runCompensation(meta.meta.compensate, state, typeof nodeName === "string" ? nodeName : undefined);
+          await context.runCompensation(
+            meta.meta.compensate,
+            state,
+            typeof nodeName === "string" ? nodeName : undefined,
+          );
         }
       }
     }

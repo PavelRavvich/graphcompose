@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { describe, it, expect } from "vitest";
 import { Workflow, Agent, Tool } from "../../../src/components/decorators.js";
 import { from } from "../../../src/router/index.js";
@@ -7,7 +8,12 @@ import { testWith } from "../../../src/testing/test-with.js";
 import { QuorumRouter, type QuorumStrategy } from "../../../src/concurrency/quorum.decorator.js";
 import { replyWith } from "../../../src/testing/script.js";
 
-@Tool({ name: "slow_tool", description: "A slow tool", input: WorkflowStartText, output: WorkflowStartText })
+@Tool({
+  name: "slow_tool",
+  description: "A slow tool",
+  input: WorkflowStartText,
+  output: WorkflowStartText,
+})
 class SlowTool {
   run = async () => {
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -15,17 +21,34 @@ class SlowTool {
   };
 }
 
-@Tool({ name: "fast_tool", description: "A fast tool", input: WorkflowStartText, output: WorkflowStartText })
+@Tool({
+  name: "fast_tool",
+  description: "A fast tool",
+  input: WorkflowStartText,
+  output: WorkflowStartText,
+})
 class FastTool {
   run = async () => {
     return { text: "ok" };
   };
 }
 
-@Agent({ name: "fast_agent", model: "gpt-4", description: "Fast", prompt: "You are fast", tools: [FastTool] })
+@Agent({
+  name: "fast_agent",
+  model: "gpt-4",
+  description: "Fast",
+  prompt: "You are fast",
+  tools: [FastTool],
+})
 class FastAgent {}
 
-@Agent({ name: "slow_agent", model: "gpt-4", description: "Slow", prompt: "You are slow", tools: [SlowTool] })
+@Agent({
+  name: "slow_agent",
+  model: "gpt-4",
+  description: "Slow",
+  prompt: "You are slow",
+  tools: [SlowTool],
+})
 class SlowAgent {}
 
 @QuorumRouter({ name: "quorum_router" })
@@ -34,7 +57,6 @@ class MyQuorumRouter implements QuorumStrategy {
     return true;
   }
   route(state: any, hasQuorum: boolean): any {
-    console.log("QUORUM ROUTE CALLED, returning Finish!");
     return Finish;
   }
 }
@@ -58,28 +80,38 @@ class Finish {}
     models: { temperature: 0, maxTokens: 1000, thinking: "default", cache: true },
     router: { kind: "llm", model: "openrouter:openai/gpt-4" },
     tools: { maxToolCalls: 8 },
-    history: { limit: 5 }
+    history: { limit: 5 },
   },
 })
 class QuorumTestWorkflow implements WorkflowDefinition {
-  settings = () => ({ limits: { steps: 50 }, models: {} as any }) as unknown as import("../../../src/graph/settings.js").WorkflowSettings;
+  settings = () =>
+    ({
+      limits: { steps: 50 },
+      models: {} as any,
+    }) as unknown as import("../../../src/graph/settings.js").WorkflowSettings;
 }
 
 const test = testWith(QuorumTestWorkflow);
 
 describe("QuorumRouter", () => {
-  test("aborts the slower branch when the quorum is met, saving an LLM call", async ({ app, mockLlm }) => {
+  test("aborts the slower branch when the quorum is met, saving an LLM call", async ({
+    app,
+    mockLlm,
+  }) => {
     mockLlm(FastAgent).thenReturn(replyWith("{}"));
-    mockLlm(SlowAgent).thenReturn({ kind: "tool-call", tool: "slow_tool", args: { text: "hello" } }, replyWith("{}"));
+    mockLlm(SlowAgent).thenReturn(
+      { kind: "tool-call", tool: "slow_tool", args: { text: "hello" } },
+      replyWith("{}"),
+    );
 
- 
- 
-
-    // eslint-disable-next-line no-console
-    try { await app.execute(Start, { text: "hello" }); } catch (e) { console.error("AGGREGATE ERRORS:", (e as any).errors); throw e; }
+    try {
+      await app.execute(Start, { text: "hello" });
+    } catch (e) {
+      console.error("AGGREGATE ERRORS:", (e as any).errors);
+      throw e;
+    }
 
     expect(mockLlm(FastAgent).requests.length).toBe(1);
-    require('fs').writeFileSync('slow-agent-requests.json', JSON.stringify(mockLlm(SlowAgent).requests.map(r => r.messages), null, 2));
     expect(mockLlm(SlowAgent).requests.length).toBe(1); // It made the tool call, but was aborted before the second call
   });
 });

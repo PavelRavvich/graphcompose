@@ -49,7 +49,9 @@ function withScripts(
   };
 }
 
-const PLANS: Readonly<Record<Kind, (root: string, name: string, o: GenerateOptions) => Changes | Promise<Changes>>> = {
+const PLANS: Readonly<
+  Record<Kind, (root: string, name: string, o: GenerateOptions) => Changes | Promise<Changes>>
+> = {
   workflow: (root, name) => {
     const n = namesOf(name);
     const spec = {
