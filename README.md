@@ -85,43 +85,54 @@ only `graphcompose` — both enforced by ESLint.
 
 ## Environments
 
-GraphCompose supports Angular-style environment files. Place your files in the `environments/` folder next to your workflow:
+Angular-style environment files, next to the workflow file in `environments/`. The workflow itself
+says nothing about them.
 
 ```ts
-// src/environments/environment.ts
-import { environmentToken } from "graphcompose/core";
-
-export interface AppEnvironment {
-  readonly apiUrl: string;
+// src/environments/environment.ts — the contract: which fields every environment has
+declare module "graphcompose" {
+  interface Environment {
+    readonly apiUrl: string;
+    readonly apiKey: string;
+    readonly currency: string;
+  }
 }
-
-// 1. Create a strictly-typed DI token for your environment
-export const ENV = environmentToken<AppEnvironment>();
-
-// 2. Export the environment values
-export const environment: AppEnvironment = {
-  apiUrl: "https://api.example.com",
-};
+export {};
 ```
-
-You can create variations like `environment.staging.ts`. The CLI will automatically load them based on the `--env` flag:
-
-```bash
-npx gc chat --env=staging
-```
-
-The `environment` object is provided via Dependency Injection using the token you created. You can inject it into any service or tool:
 
 ```ts
-import { Injectable } from "graphcompose/core";
-import { Inject } from "graphcompose/components/injection";
-import { ENV, type AppEnvironment } from "../environments/environment.js";
+// src/environments/dev.environment.ts — one file per environment: dev, staging, test, …
+import { defineEnvironment, fromEnv } from "graphcompose";
 
-@Injectable()
-export class MyService {
-  constructor(@Inject(ENV) private readonly env: AppEnvironment) {}
+export default defineEnvironment({
+  apiUrl: "https://api.example.com", // a value in the file
+  apiKey: fromEnv("API_KEY", { secret: true }), // a process variable, masked when printed
+  currency: fromEnv("CURRENCY", { default: "USD" }), // a process variable with a default
+});
+```
+
+`defineEnvironment` is typed by `Environment`: a missing or mistyped field is a `tsc` error in that
+file. Services inject the values with the framework's `ENV` token:
+
+```ts
+import { ENV, Injectable, type Environment } from "graphcompose";
+
+@Injectable({ deps: [ENV] })
+export class Api {
+  constructor(private readonly env: Environment) {}
 }
 ```
+
+- `gc chat --workflow src/app.workflow.ts` loads `dev`; `--env staging` loads
+  `staging.environment.ts` (every workflow command takes `--env`). An unknown name fails at once
+  (exit 3) listing the available ones; a `fromEnv` variable without a value or default fails the
+  start naming every missing variable. `gc check` validates the selected environment without
+  running anything; `gc describe` shows it with secrets masked.
+- From code: `createApp(Workflow, { env: "staging" })`. In tests: `testWith(Workflow, { env: "test" })`
+  or `testWith(Workflow, { environment: { … } })` (typed by `Environment`).
+- A service injecting `ENV` in a workflow without `environments/` fails at start with
+  `[di.missing-environment]`.
+- Model provider keys are not part of it: they stay process variables (`EnvironmentVariable.named`).
 
 ## Run Context & Observers
 

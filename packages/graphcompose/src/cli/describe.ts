@@ -8,13 +8,18 @@ import { isJevModel } from "../graph/router-model.js";
 import { configSnapshot } from "../run/versions.js";
 import { shortVersion, versionOf } from "../terns/index.js";
 import { isMcpFacade, type AnyTool } from "../tools/index.js";
+import { NO_ENVIRONMENT_VALUES, type DescribedEnvironment } from "../environments/resolve.js";
 
-/** Tools are built with a router that is never called — describing needs no key and no network. */
+/**
+ * Tools are built with a router that is never called and, unless one is given, an empty environment —
+ * describing needs no key, no network and no environment.
+ */
 export const describeServices: WorkflowServices = {
   router: (name) => ({
     name,
     route: () => Promise.reject(new Error("describe does not call routers")),
   }),
+  environment: NO_ENVIRONMENT_VALUES,
 };
 
 /** A component's reasoning; unset = its model provider's. */
@@ -125,17 +130,40 @@ function agentLines(bundle: AssembledWorkflow, tools: ReadonlyMap<string, AnyToo
   });
 }
 
+/** Describing services with the app's environment (its tools may inject `ENV`). */
+export const describeServicesWith = (
+  environment: DescribedEnvironment | undefined,
+): WorkflowServices =>
+  environment === undefined
+    ? describeServices
+    : { ...describeServices, environment: environment.values };
+
+const environmentLines = (environment: DescribedEnvironment | undefined): string[] =>
+  environment === undefined
+    ? []
+    : [
+        `environment ${environment.name}`,
+        ...Object.entries(environment.fields).map(([key, value]) => `  ${key} = ${value}`),
+      ];
+
 /** The workflow at a glance: settings, the flow as transitions, and which agent can use which tool. */
-export function describeWorkflow(bundle: AssembledWorkflow, profile = "base"): string[] {
+export function describeWorkflow(
+  bundle: AssembledWorkflow,
+  profile = "base",
+  environment?: DescribedEnvironment,
+): string[] {
   const c = bundle.config;
   const tools = new Map(
-    resolveTools(bundle, describeServices).map((tool) => [tool.name, tool] as const),
+    resolveTools(bundle, describeServicesWith(environment)).map(
+      (tool) => [tool.name, tool] as const,
+    ),
   );
   const assigned = new Set(Object.values(c.agents).flatMap((agent) => agent.tools ?? []));
   const unassigned = [...tools.keys()].filter((name) => !assigned.has(name));
   return [
     `${c.name} ${c.version}${profile === "base" ? "" : ` (profile ${profile})`} · config ${shortVersion(versionOf(configSnapshot(bundle)))}`,
     ...bundleLines(bundle),
+    ...environmentLines(environment),
     ...flowSection(bundle),
     "agents",
     ...agentLines(bundle, tools),

@@ -131,7 +131,7 @@ describe("#186 AC3: invalid batch options fail at assembly with a named rule", (
   });
 
   it("createApp refuses the workflow, naming every broken rule", async () => {
-    const built = createApp(BadBatch, { env: {} });
+    const built = createApp(BadBatch, { processEnv: {} });
 
     await expect(built).rejects.toBeInstanceOf(GraphRuleError);
     const codes = await built.catch((error: unknown) =>

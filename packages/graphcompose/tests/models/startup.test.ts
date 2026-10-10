@@ -25,7 +25,7 @@ describe("AC6: the check runs at every startup, before any model call", () => {
   it("AC6: a workflow whose settings do not fit fails with a ConfigurationError listing every problem", async () => {
     const stub = providerStub([], [KIMI_ENTRY]);
     const start = createAppDeps(await workflowOf(Priced), {
-      env: { OPENROUTER_API_KEY: "k", TERN_DB: ":memory:" },
+      processEnv: { OPENROUTER_API_KEY: "k", TERN_DB: ":memory:" },
       providerFetch: stub.fetch,
     });
 
@@ -38,7 +38,7 @@ describe("AC6: the check runs at every startup, before any model call", () => {
 
   it("AC6: the startup log shows each model's provider, reasoning and caching, and where they come from", async () => {
     const deps = await createAppDeps(await workflowOf(Priced), {
-      env: { OPENROUTER_API_KEY: "k", TERN_DB: ":memory:" },
+      processEnv: { OPENROUTER_API_KEY: "k", TERN_DB: ":memory:" },
       providerFetch: providerStub([], [KIMI_ENTRY, { id: "local/llama" }]).fetch,
     });
     await deps.close();

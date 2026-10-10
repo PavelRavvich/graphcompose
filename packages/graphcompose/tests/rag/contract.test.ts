@@ -8,7 +8,6 @@ import { bundleWith, Handbook, HandbookFromApi } from "./fixture.js";
 
 const services: WorkflowServices = {
   router: (name) => ({ name, route: () => Promise.reject(new Error("unused")) }),
-  env: {},
 };
 const costs: number[] = [];
 const ctx: ToolContext = {

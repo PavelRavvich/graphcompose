@@ -3,12 +3,17 @@ import { configSnapshot } from "../run/versions.js";
 import { shortVersion, versionOf } from "../terns/index.js";
 import { isMcpFacade } from "../tools/index.js";
 import { resolveTools, type AssembledWorkflow } from "../workflow.js";
-import { describeServices } from "./describe.js";
+import type { DescribedEnvironment } from "../environments/resolve.js";
+import { describeServicesWith } from "./describe.js";
 
 /** `gc describe --json`: the workflow at a glance, as data (the same facts as the text). */
-export function describeData(bundle: AssembledWorkflow, profile = "base"): Record<string, unknown> {
+export function describeData(
+  bundle: AssembledWorkflow,
+  profile = "base",
+  environment?: DescribedEnvironment,
+): Record<string, unknown> {
   const c = bundle.config;
-  const tools = resolveTools(bundle, describeServices).map((tool) => ({
+  const tools = resolveTools(bundle, describeServicesWith(environment)).map((tool) => ({
     name: tool.name,
     description: tool.description,
     kind: isMcpFacade(tool) ? "mcp" : "local",
@@ -20,6 +25,9 @@ export function describeData(bundle: AssembledWorkflow, profile = "base"): Recor
     name: c.name,
     version: c.version,
     profile,
+    ...(environment === undefined
+      ? {}
+      : { environment: { name: environment.name, fields: environment.fields } }),
     config: shortVersion(versionOf(configSnapshot(bundle))),
     flow: flowLines(bundle.flow),
     routers: bundle.routers.map((router) => ({

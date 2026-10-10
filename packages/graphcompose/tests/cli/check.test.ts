@@ -39,7 +39,7 @@ describe("#198 AC3: gc check runs every key-free validation", () => {
       error: { code: "check.failed" },
     });
     const result = parsed.result as CheckResult;
-    expect(result.checks).toEqual(["assembly", "prompts"]);
+    expect(result.checks).toEqual(["assembly", "environment", "prompts"]);
     expect(result.problems.map((p) => p.code)).toEqual(
       expect.arrayContaining(["graph.dead-end", "graph.unreachable-node"]),
     );
@@ -50,11 +50,12 @@ describe("#198 AC3: gc check runs every key-free validation", () => {
     const call = await gc(["check", "--workflow", WORKFLOW]);
 
     expect(call).toMatchObject({ code: 0, stderr: "" });
-    expect(call.stdout).toBe(`ok: ${WORKFLOW} — assembly, prompts\n`);
+    expect(call.stdout).toBe(`ok: ${WORKFLOW} — assembly, environment, prompts\n`);
   });
 
   it("checks needing the network run only with their flag (--models)", () => {
     expect(CHECKS.map((check) => [check.name, check.flag])).toEqual([
+      ["environment", undefined],
       ["prompts", undefined],
       ["models", "models"],
     ]);
@@ -80,7 +81,7 @@ describe("#199 + #198: the prompts check runs on every gc check", () => {
     const result = envelope(call).result as CheckResult & {
       problems: readonly { line?: number }[];
     };
-    expect(result.checks).toEqual(["assembly", "prompts"]);
+    expect(result.checks).toEqual(["assembly", "environment", "prompts"]);
     expect(result.problems[1]).toEqual({
       file: "tests/components/prompts/typo.prompt.md",
       line: 4,
@@ -92,6 +93,9 @@ describe("#199 + #198: the prompts check runs on every gc check", () => {
   it("a workflow whose prompts render passes with --prompts: exit 0", async () => {
     const call = await gc(["check", "--prompts", "--workflow", WORKFLOW]);
 
-    expect(call).toMatchObject({ code: 0, stdout: `ok: ${WORKFLOW} — assembly, prompts\n` });
+    expect(call).toMatchObject({
+      code: 0,
+      stdout: `ok: ${WORKFLOW} — assembly, environment, prompts\n`,
+    });
   });
 });

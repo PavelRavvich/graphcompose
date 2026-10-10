@@ -73,6 +73,14 @@ export function checkGraph(
   });
 }
 
+/**
+ * A core value the app does not have (e.g. no environment): registered so the graph checks pass,
+ * failing with its message — naming the component that needs it — only when something injects it.
+ */
+export class UnavailableValue {
+  constructor(readonly message: (dependant: string) => string) {}
+}
+
 /** How one app's container differs: values that replace registrations (test mocks), a creation hook. */
 export interface ContainerOptions {
   readonly overrides?: ReadonlyMap<Token, unknown>;
@@ -86,6 +94,12 @@ export interface Container {
   readonly created: readonly string[];
 }
 
+const failIfUnavailable = (reg: Registration | undefined, dependant: string): void => {
+  if (reg?.kind === "value" && reg.value instanceof UnavailableValue) {
+    throw new ComponentError(reg.value.message(dependant));
+  }
+};
+
 /** Creates components once (singletons), dependencies first; `created` records the order. */
 export function createContainer(
   providers: readonly Provider[],
@@ -98,9 +112,10 @@ export function createContainer(
   }
   const instances = new Map<Token, unknown>();
   const created: string[] = [];
-  const resolve = (token: Token): unknown => {
+  const resolve = (token: Token, dependant = "the app"): unknown => {
     if (instances.has(token)) return instances.get(token);
     const reg = registered.get(token);
+    failIfUnavailable(reg, dependant);
     if (reg === undefined && token instanceof InjectionToken) {
       throw new ComponentError(
         `"${tokenName(token)}" is not registered in @Workflow({ providers })`,
@@ -114,7 +129,7 @@ export function createContainer(
     return value;
   };
   const instantiate = (cls: Class): unknown => {
-    const args = depsOf(cls).map(resolve);
+    const args = depsOf(cls).map((dep) => resolve(dep, tokenName(cls)));
     if (args.length === 0 && cls.length > 0) {
       if (!componentOf(cls)) {
         throw new ComponentError(

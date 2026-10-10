@@ -16,13 +16,14 @@ import type { Flow } from "./graph/flow.js";
 import type { LoadedRouter } from "./graph/router-texts.js";
 import type { ModelProviderSettings, WorkflowLimits } from "./graph/settings.js";
 import type { ContainerOptions } from "./components/container.js";
+import type { Environment } from "./environments/define.js";
 
 /** What the core offers the tools of a workflow. */
 export interface WorkflowServices {
   /** A router on the workflow's default router model (Jev) — cheap decisions inside tools. */
   readonly router: (name: string) => Router;
-  /** The process environment (tools reading settings); default process.env. */
-  readonly env?: NodeJS.ProcessEnv;
+  /** The app's environment (`ENV`); absent = the app has none. */
+  readonly environment?: Environment;
   /** Framework wiring of the app's container: replacements (test mocks) and lifecycle. */
   readonly container?: ContainerOptions;
 }

@@ -14,7 +14,7 @@ import { providerStub } from "./models/stub.js";
 describe("createAppDeps", () => {
   it("wires every agent of the flow with a prompt, and its Jev router", async () => {
     const deps = await createAppDeps(await workflowOf(TestWorkflow), {
-      env: { OPENROUTER_API_KEY: "k", TERN_DB: ":memory:" },
+      processEnv: { OPENROUTER_API_KEY: "k", TERN_DB: ":memory:" },
       providerFetch: providerStub([], [{ id: "test/researcher" }, { id: "test/coder" }]).fetch,
     });
 
@@ -50,7 +50,7 @@ describe("AC12: createAppDeps on an injected model gateway", () => {
     );
     const routeTo = vi.fn(scriptedDecisions());
     const env = { TERN_DB: ":memory:", SPEND_LEDGER_DIR: mkdtempSync(join(tmpdir(), "gc-135-")) };
-    const app = await createApp(TestWorkflow, { env, gateway: { chatModel, routeTo } });
+    const app = await createApp(TestWorkflow, { processEnv: env, gateway: { chatModel, routeTo } });
 
     const result = await app.execute(TestChat, { text: "What time is it?" });
     await app.close();

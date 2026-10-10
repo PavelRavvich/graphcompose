@@ -17,7 +17,6 @@ const ctx: ToolContext = {
 };
 const services: WorkflowServices = {
   router: (name) => ({ name, route: () => Promise.reject(new Error("unused")) }),
-  env: {},
 };
 const readTool: FakeTool = {
   name: "read",

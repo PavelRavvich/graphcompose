@@ -45,27 +45,3 @@ export const loadWorkflow = async (
   path: string,
   options: { readonly typescript?: boolean } = {},
 ): Promise<AssembledWorkflow> => workflowOf(await loadWorkflowClass(path, options));
-
-import { dirname, join } from "node:path";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function loadEnvironment(workflowPath: string, envId?: string): Promise<any> {
-  if (envId === undefined) return process.env;
-  const workflowDir = dirname(resolve(workflowPath));
-  const tsPath = join(workflowDir, "environments", `environment.${envId}.ts`);
-  const jsPath = join(workflowDir, "environments", `environment.${envId}.js`);
-
-  let envPath = tsPath;
-  if (!existsSync(envPath)) {
-    envPath = jsPath;
-    if (!existsSync(envPath))
-      throw new WorkflowLoadError(`Environment file not found: ${tsPath} or ${jsPath}`);
-  }
-
-  await registerTypeScript();
-  const module = (await import(pathToFileURL(envPath).href)) as Record<string, unknown>;
-  if (!("environment" in module)) {
-    throw new WorkflowLoadError(`Environment file ${envPath} must export 'environment'`);
-  }
-  return module.environment;
-}

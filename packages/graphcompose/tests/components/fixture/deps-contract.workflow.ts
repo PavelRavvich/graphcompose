@@ -24,7 +24,7 @@ import {
 
 /** Scripted models and in-memory stores: nothing external. */
 export const offline = (book = new ScriptBook()): AppOptions => ({
-  env: {},
+  processEnv: {},
   gateway: createScriptedGateway(book),
   stores: { terns: createSqliteTernStore(":memory:"), ledger: createMemoryLedger() },
 });

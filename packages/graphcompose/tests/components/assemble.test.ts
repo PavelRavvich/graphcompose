@@ -21,7 +21,6 @@ import { starOf, TestSettings } from "../fixtures/test-flow/star.js";
 
 const services: WorkflowServices = {
   router: (name) => ({ name, route: () => Promise.reject(new Error("unused")) }),
-  env: {},
 };
 const ctx: ToolContext = {
   runId: "r",

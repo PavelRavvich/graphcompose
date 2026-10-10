@@ -18,12 +18,12 @@ export { COMMON_OPTIONS, optionsOf, type CommandSpec, type OptionSpec } from "./
 const WORKFLOW_COMMANDS: Readonly<Record<string, CommandSpec>> = {
   chat: {
     summary: "interactive chat with the workflow",
-    usage: "gc chat --workflow <path> [--thread <id>] [--profile <name>]",
+    usage: "gc chat --workflow <path> [--thread <id>] [--profile <name>] [--env <name>]",
     options: [WORKFLOW, THREAD, PROFILE, ENV],
   },
   run: {
     summary: "one task, the reply to stdout",
-    usage: 'gc run --workflow <path> [--thread <id>] [--profile <name>] "<task>"',
+    usage: 'gc run --workflow <path> [--thread <id>] [--profile <name>] [--env <name>] "<task>"',
     positionals: "<task…> (or the old form: <workflow.ts> <task…>)",
     options: [
       WORKFLOW,
@@ -35,17 +35,19 @@ const WORKFLOW_COMMANDS: Readonly<Record<string, CommandSpec>> = {
   },
   describe: {
     summary: "agents, their tools, knowledge bases and settings (no API key needed)",
-    usage: "gc describe --workflow <path> [--profile <name>] [--json]",
-    options: [WORKFLOW, PROFILE],
+    usage: "gc describe --workflow <path> [--profile <name>] [--env <name>] [--json]",
+    options: [WORKFLOW, PROFILE, ENV],
   },
   check: {
-    summary: "every validation that needs no API key: assembly, graph rules, prompts (+ models)",
-    usage: "gc check --workflow <path> [--models] [--profile <name>] [--json]",
+    summary:
+      "every validation that needs no API key: assembly, graph rules, environment, prompts (+ models)",
+    usage: "gc check --workflow <path> [--models] [--profile <name>] [--env <name>] [--json]",
     options: [
       WORKFLOW,
       flag("models", "also check models against their providers (lists them over the network)"),
       flag("prompts", "prompts: files exist, every {{variable}} is known — always checked"),
       PROFILE,
+      ENV,
     ],
   },
   eval: {
@@ -96,8 +98,8 @@ const WORKFLOW_COMMANDS: Readonly<Record<string, CommandSpec>> = {
   },
   "rag:index": {
     summary: "build / update the workflow's knowledge bases",
-    usage: "gc rag:index --workflow <path> [--kb <name>]",
-    options: [WORKFLOW, text("kb", "<name>", "only this knowledge base")],
+    usage: "gc rag:index --workflow <path> [--kb <name>] [--env <name>]",
+    options: [WORKFLOW, text("kb", "<name>", "only this knowledge base"), ENV],
   },
 };
 

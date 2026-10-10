@@ -43,8 +43,8 @@ export const THREAD: OptionSpec = {
 export const ENV: OptionSpec = {
   name: "env",
   type: "string",
-  value: "<id>",
-  help: "load environments/environment.<id>.ts next to the workflow",
+  value: "<name>",
+  help: "the environment: environments/<name>.environment.ts next to the workflow (default dev)",
 };
 export const DRY_RUN: OptionSpec = {
   name: "dry-run",
