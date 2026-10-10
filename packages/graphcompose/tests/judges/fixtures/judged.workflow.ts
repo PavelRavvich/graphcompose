@@ -39,7 +39,9 @@ export class Grounded implements JudgeHandler {
 export class Writer {}
 
 @WorkflowStart({ name: "task", description: "A task", input: WorkflowStartText })
-export class TaskStart {}
+export class TaskStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "reply", description: "The reply", output: WorkflowFinishText })
 export class Reply {}

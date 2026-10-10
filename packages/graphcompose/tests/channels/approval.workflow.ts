@@ -93,7 +93,9 @@ export class Refund implements ToolHandler<RefundRequest, RefundDone> {
 export class Clerk {}
 
 @WorkflowStart({ name: "chat", description: "A message", input: WorkflowStartText })
-export class ChatStart {}
+export class ChatStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "reply", description: "The reply", output: WorkflowFinishText })
 export class Reply {}

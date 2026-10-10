@@ -24,7 +24,12 @@ import { nodeNameOf } from "./failure-facts.js";
 import { McpStubs, stubbedMcpConnect, type McpStub } from "./mcp-stubs.js";
 import { mockInstanceOf } from "./mocks.js";
 import { ScriptBook, type ModelScript } from "./script-book.js";
-import { createScriptedGateway, judgeScriptKeyOf, routerKeyOf } from "./scripted-gateway.js";
+import {
+  createScriptedGateway,
+  judgeScriptKeyOf,
+  routerKeyOf,
+  type ModelTarget,
+} from "./scripted-gateway.js";
 import { mcpServersOf, usedComponentsOf } from "./workflow-parts.js";
 import { createVcrGateway, type VcrConfig } from "./vcr.js";
 
@@ -156,17 +161,17 @@ export class TestEnvironment {
     return built;
   }
 
-  mockLlm(target: FlowNode): ModelScript {
+  mockLlm(target: ModelTarget): ModelScript {
+    const label = typeof target === "function" ? target.name : labelOf(target);
     const judge = judgeScriptKeyOf(target, this.#judges);
     if (judge !== undefined) {
-      this.book.name(judge, labelOf(target));
+      this.book.name(judge, label);
       return this.book.scriptOf(judge);
     }
-    const key = scriptKeyOf(target);
-    if (key === undefined || !this.#nodes.has(target)) {
-      throw new TestSetupError(
-        `mockLlm(${labelOf(target)}): not an agent, router or judge of this workflow`,
-      );
+    const node = [...this.#nodes].find((item) => item === target);
+    const key = node === undefined ? undefined : scriptKeyOf(node);
+    if (key === undefined) {
+      throw new TestSetupError(`mockLlm(${label}): not an agent, router or judge of this workflow`);
     }
     return this.book.scriptOf(key);
   }

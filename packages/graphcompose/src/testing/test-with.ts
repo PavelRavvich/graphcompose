@@ -1,13 +1,12 @@
 import { test, type Mocked, type TestAPI } from "vitest";
 import type { Class } from "../components/injection.js";
 import type { McpServerClient, ServerTools } from "../components/mcp-client.js";
-import type { FlowNode } from "../graph/flow.js";
 import { TestEnvironment, type TestWithOptions } from "./environment.js";
 import type { McpStub } from "./mcp-stubs.js";
 import { blockNetwork } from "./network-guard.js";
 import type { ModelScript } from "./script-book.js";
 import { createTestApp, type TestApp } from "./test-app.js";
-import { chatKeyOf } from "./scripted-gateway.js";
+import { chatKeyOf, type ModelTarget } from "./scripted-gateway.js";
 import "./vitest-types.js";
 
 /** What every test of `testWith(Workflow)` gets as its fixtures. */
@@ -24,7 +23,7 @@ export interface WorkflowFixtures {
    * The script of an agent, a router or a `@Judge`'s model (by class):
    * `mockLlm(Scout).thenReturn(replyWith("…"))`, `mockLlm(AnswerGrounded).thenReturn(replyWith("PASS"))`.
    */
-  readonly mockLlm: (component: FlowNode) => ModelScript;
+  readonly mockLlm: (component: ModelTarget) => ModelScript;
   /**
    * The script of the workflow's compaction model (`@Workflow({ compaction })`); unscripted, it
    * writes a fixed summary at no cost.

@@ -23,26 +23,17 @@ class CancelPaymentAction {
   prompt: "p",
   compensate: CancelPaymentAction,
 })
-class ProcessPaymentAgent {
-  async run() {
-    logs.push("process_payment");
-    return {};
-  }
-}
+class ProcessPaymentAgent {}
 
 @Agent({ name: "slow-agent", model: "gpt-4", description: "Slow", prompt: "p" })
-class SlowAgent {
-  async run() {
-    logs.push("slow_agent");
-    // Simulate a pause so we can cancel it
-    return new Promise((resolve) => setTimeout(resolve, 50));
-  }
-}
+class SlowAgent {}
 
 import { WorkflowStartText, WorkflowFinishText } from "../../src/dto/standard/framework.js";
 import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
 @WorkflowStart({ name: "Start", description: "Start", input: WorkflowStartText })
-class Start {}
+class Start {
+  declare readonly input: WorkflowStartText;
+}
 @WorkflowFinish({ name: "Finish", description: "Finish", output: WorkflowFinishText })
 class Finish {}
 

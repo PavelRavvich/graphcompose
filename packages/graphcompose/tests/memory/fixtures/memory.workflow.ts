@@ -70,7 +70,9 @@ export class Windowed {}
 export class Noter {}
 
 @WorkflowStart({ name: "task", description: "A task", input: WorkflowStartText })
-export class TaskStart {}
+export class TaskStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "replyWith", description: "The reply", output: WorkflowFinishText })
 export class Answer {}

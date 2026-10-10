@@ -34,7 +34,7 @@ const unbounded = (flow: Flow): readonly RuleViolation[] =>
 
 describe("#142 AC1: a router on a cycle without maxVisits → router.unbounded-cycle", () => {
   it("names the router and one cycle through it", () => {
-    const flow: Flow = [from(Start).next(Loop), from(Loop).routes(A, Done), from(A).next(Loop)];
+    const flow: Flow = [from(Start).next(Loop), from(Loop).routes(), from(A).next(Loop)];
 
     expect(unbounded(flow)).toEqual([
       {
@@ -48,7 +48,7 @@ describe("#142 AC1: a router on a cycle without maxVisits → router.unbounded-c
   it("is reported together with the other violations", () => {
     const flow: Flow = [
       from(Start).next(Loop),
-      from(Loop).routes(A, Done),
+      from(Loop).routes(),
       from(A).next(Loop),
       from(B).next(Done),
     ];
@@ -62,9 +62,9 @@ describe("#142 AC1: a router on a cycle without maxVisits → router.unbounded-c
   it("two routers on one cycle: both need maxVisits", () => {
     const flow: Flow = [
       from(Start).next(Ping),
-      from(Ping).routes(A, Done),
+      from(Ping).routes(),
       from(A).next(Pong),
-      from(Pong).routes(B, Done),
+      from(Pong).routes(),
       from(B).next(Ping),
     ];
 
@@ -78,7 +78,7 @@ describe("#142 AC1: a router on a cycle without maxVisits → router.unbounded-c
     const flow: Flow = [
       from(Start).next(A),
       from(A).next(UnboundedGate),
-      from(UnboundedGate).routes(Self, Done),
+      from(UnboundedGate).routes(),
     ];
 
     expect(unbounded(flow).map((item) => item.message)).toEqual([
@@ -91,26 +91,24 @@ describe("#142 AC2: a router not on a cycle may omit maxVisits", () => {
   it("routers only on a path assemble without maxVisits", () => {
     const flow: Flow = [
       from(Start).next(Second),
-      from(Second).routes(A, Done),
+      from(Second).routes(),
       from(A).next(Only),
-      from(Only).routes(Done),
+      from(Only).routes(),
     ];
 
     expect(checkFlow(flow).nodes.size).toBe(5);
   });
 
   it("Self after a workflow start is not a cycle", () => {
-    expect(
-      unbounded([from(Start).next(UnboundedGate), from(UnboundedGate).routes(Self, Done)]),
-    ).toEqual([]);
+    expect(unbounded([from(Start).next(UnboundedGate), from(UnboundedGate).routes()])).toEqual([]);
   });
 
   it("bounded cycles assemble: the job-scout star, the code-review gate, Self with maxVisits", () => {
     const selfGate: Flow = [
       from(Start).next(Pick),
-      from(Pick).routes(A, B),
+      from(Pick).routes(),
       from(A, B).next(Gate),
-      from(Gate).routes(Self, Done),
+      from(Gate).routes(),
     ];
 
     expect(checkFlow(jobScoutFlow).nodes.size).toBe(6);

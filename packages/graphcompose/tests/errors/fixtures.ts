@@ -64,7 +64,9 @@ export class Buyer {}
 export class Checker {}
 
 @WorkflowStart({ name: "order", description: "An order", input: WorkflowStartText })
-export class Order {}
+export class Order {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "done", description: "Bought and checked", output: WorkflowFinishText })
 export class Done {}

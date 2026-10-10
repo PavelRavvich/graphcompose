@@ -1,5 +1,5 @@
 import type { App, ExecutionOptions, ExecutionOutput } from "../app/types.js";
-import type { Class } from "../components/injection.js";
+import type { WorkflowStartClass } from "../graph/workflow-start.decorator.js";
 import type { WorkflowStartText } from "../dto/standard/framework.js";
 import { eventOf, failureResponseOf, responseOf } from "./a2a-mapping.js";
 import type {
@@ -18,7 +18,7 @@ export type A2ACallOptions = Pick<ExecutionOptions, "signal" | "executionContext
  */
 export interface IA2AAdapter {
   execute(
-    start: Class,
+    start: WorkflowStartClass,
     req: A2AExecutionRequest,
     onEvent?: (event: A2AEvent) => void,
     options?: A2ACallOptions,
@@ -43,7 +43,7 @@ export class A2AAdapter implements IA2AAdapter {
   constructor(private readonly app: App) {}
 
   public execute(
-    start: Class,
+    start: WorkflowStartClass,
     req: A2AExecutionRequest,
     onEvent?: (event: A2AEvent) => void,
     options: A2ACallOptions = {},

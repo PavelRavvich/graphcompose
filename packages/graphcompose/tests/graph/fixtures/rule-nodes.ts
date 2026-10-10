@@ -24,9 +24,14 @@ export class Done {}
 @testNode("workflow-finish", "other-done")
 export class OtherDone {}
 
-/** Not a flow node (e.g. a tool or a channel). */
+/**
+ * Not a flow node. A class with members of its own (a tool, a service) is rejected by the compiler;
+ * one whose members a node may have too (here a lifecycle hook) only by the assembly (`graph.not-a-node`).
+ */
 export class SomeTool {
-  readonly kind = "tool";
+  onStart(): string {
+    return "started";
+  }
 }
 
 const jev = "typesafe/jev-1.13";

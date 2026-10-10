@@ -94,11 +94,7 @@ export class Triage {}
 @Workflow({
   name: "luna-routed",
   version: "1.0.0",
-  flow: [
-    chain(TaskStart, Intake, Triage),
-    from(Triage).routes(Coder, Reply),
-    from(Coder).next(Reply),
-  ],
+  flow: [chain(TaskStart, Intake, Triage), from(Triage).routes(), from(Coder).next(Reply)],
   defaults: DEFAULTS,
 })
 export class LunaRouted implements WorkflowDefinition {

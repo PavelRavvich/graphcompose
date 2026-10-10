@@ -1,8 +1,9 @@
 import type { ContentBlock } from "@langchain/core/messages";
 import type { Class } from "../components/injection.js";
-import type { WorkflowFinishText, WorkflowStartText } from "../dto/standard/framework.js";
+import type { WorkflowFinishText } from "../dto/standard/framework.js";
 import type { CostReport } from "../finops/usage.js";
 import type { FlowNode } from "../graph/flow.js";
+import type { StartInputOf, WorkflowStartClass } from "../graph/workflow-start.decorator.js";
 import type { PendingPause } from "../pause/index.js";
 import type { AgentExecutionOutput, RunStreamEvent } from "../run/types.js";
 
@@ -113,10 +114,14 @@ export interface App {
   /** One line per model use: its provider, reasoning and caching (the startup log). */
   readonly models: readonly string[];
   /** The workflow start a plain text goes to (input `WorkflowStartText`), if the flow has one. */
-  readonly textStart: Class | undefined;
-  execute(
-    start: Class,
-    input: WorkflowStartText,
+  readonly textStart: WorkflowStartClass | undefined;
+  /**
+   * Runs the workflow from a `@WorkflowStart` class; `input` is checked against the DTO the start
+   * declares (`declare readonly input: ChatIn`), so a missing required field is a compile error.
+   */
+  execute<S extends WorkflowStartClass>(
+    start: S,
+    input: StartInputOf<S>,
     options?: ExecutionOptions,
   ): Promise<ExecutionOutput>;
   resume(

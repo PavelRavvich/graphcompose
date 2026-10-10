@@ -11,7 +11,9 @@ import type { WorkflowDefinition } from "../../../src/graph/settings.js";
 import { WorkflowSettings } from "../../../src/graph/settings.js";
 
 @WorkflowStart({ name: "startNode", description: "Start", input: WorkflowStartText })
-export class StartNode {}
+export class StartNode {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "finishNode", description: "Finish", output: WorkflowFinishText })
 export class FinishNode {}

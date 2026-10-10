@@ -8,6 +8,8 @@ import { checkGraph, createContainer } from "../../src/components/container.js";
 import { recordComponent } from "../../src/components/metadata.js";
 import type { WorkflowServices } from "../../src/workflow.js";
 import type { ToolContext } from "../../src/tools/index.js";
+import type { ToolHandlerClass } from "../../src/components/decorators.js";
+import type { FlowNodeClass } from "../../src/graph/flow.js";
 import { testConfig } from "../helpers.js";
 import {
   FilesServer,
@@ -249,11 +251,14 @@ describe("components — errors at assembly", () => {
   });
 
   it("AC3: a non-component in tools fails", async () => {
+    /** Shaped like a tool (the compiler accepts it), but not decorated: the assembly rejects it. */
     class Plain {
-      readonly plain = true;
+      run(): Promise<object> {
+        return Promise.resolve({});
+      }
     }
 
-    const agent = (prompt: any, tools: (abstract new () => unknown)[] = []) => {
+    const agent = (prompt: any, tools: ToolHandlerClass[] = []) => {
       @Agent({
         name: "a",
         description: "d",
@@ -266,7 +271,7 @@ describe("components — errors at assembly", () => {
       class A {}
       return A;
     };
-    const bundleWith = (agentClass: abstract new () => unknown) => {
+    const bundleWith = (agentClass: FlowNodeClass) => {
       @Workflow({ ...baseBundle, name: "x", flow: starOf(agentClass) })
       class B extends TestSettings {}
       return B;

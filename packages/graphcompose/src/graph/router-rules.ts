@@ -92,10 +92,10 @@ function routesMismatch(
   const parts = [
     missingRoutes.length > 0 ? `no route for ${labels(missingRoutes).join(", ")}` : "",
     extraRoutes.length > 0
-      ? `routes not in its choose(...): ${labels(extraRoutes).join(", ")}`
+      ? `routes the other routers lack: ${labels(extraRoutes).join(", ")}`
       : "",
   ].filter((part) => part !== "");
-  const message = `router ${router.label}: routes differ from choose(...) — ${parts.join("; ")}`;
+  const message = `router ${router.label}: its routes differ from the shared from(…).routes() — ${parts.join("; ")}`;
   return [
     violation("router.routes-mismatch", message, [
       router.label,

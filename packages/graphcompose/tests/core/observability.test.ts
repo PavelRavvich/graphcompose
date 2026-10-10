@@ -127,7 +127,9 @@ class ObsTool {
 }
 
 @WorkflowStart({ name: "Start", description: "Start", input: WorkflowStartText })
-class ObsStart {}
+class ObsStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "ObsFinish", description: "Finish", output: WorkflowFinishText })
 class ObsFinish {}
@@ -167,11 +169,7 @@ class ObsRouter {}
   version: "1.0.0",
   defaults: testConfig.defaults,
   observers: [GlobalObserver],
-  flow: [
-    from(ObsStart).next(ObsRouter),
-    from(ObsRouter).routes(ObsAgent, ObsFinish),
-    from(ObsAgent).next(ObsRouter),
-  ],
+  flow: [from(ObsStart).next(ObsRouter), from(ObsRouter).routes(), from(ObsAgent).next(ObsRouter)],
 })
 class ObsWorkflow extends TestSettings {}
 

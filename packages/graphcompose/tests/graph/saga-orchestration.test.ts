@@ -30,12 +30,7 @@ class CancelHotelAction {
   prompt: "p",
   compensate: CancelHotelAction,
 })
-class BookHotelAgent {
-  async run() {
-    logs.push("book_hotel");
-    return {};
-  }
-}
+class BookHotelAgent {}
 
 @Agent({
   name: "process-payment",
@@ -44,24 +39,17 @@ class BookHotelAgent {
   prompt: "p",
   compensate: CancelPaymentAction,
 })
-class ProcessPaymentAgent {
-  async run() {
-    logs.push("process_payment");
-    return {};
-  }
-}
+class ProcessPaymentAgent {}
 
 @Agent({ name: "book-flight", model: "gpt-4", description: "b", prompt: "p" }) // Fails intentionally
-class BookFlightAgent {
-  async run() {
-    throw new Error("Flight fully booked");
-  }
-}
+class BookFlightAgent {}
 
 import { WorkflowStartText, WorkflowFinishText } from "../../src/dto/standard/framework.js";
 import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
 @WorkflowStart({ name: "Start", description: "Start", input: WorkflowStartText })
-class Start {}
+class Start {
+  declare readonly input: WorkflowStartText;
+}
 @WorkflowFinish({ name: "Finish", description: "Finish", output: WorkflowFinishText })
 class Finish {}
 

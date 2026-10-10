@@ -15,7 +15,9 @@ class Ticket extends WorkflowStartText {
 }
 
 @WorkflowStart({ name: "ticket", description: "A helpdesk ticket", input: Ticket })
-class TicketWorkflowStart {}
+class TicketWorkflowStart {
+  declare readonly input: Ticket;
+}
 
 /** Each workflow start leads to its own agent. */
 const twoStarts: Flow = [

@@ -52,25 +52,31 @@ job-scout is a star:
 
 ```ts
 flow: [
-  from(ChatWorkflowStart).to(MainRouter),
-  from(MainRouter).choose(Profiler, Scout, Shortlist, ChatWorkflowFinish),
-  from(Profiler, Scout, Shortlist).to(MainRouter),
+  from(ChatWorkflowStart).next(MainRouter),
+  from(MainRouter).routes(),
+  from(Profiler, Scout, Shortlist).next(MainRouter),
 ],
 ```
 
-- DSL: `from(A, B).to(C)` (unconditional, several sources = fan-in), `from(Router).choose(X, Y)`
-  (the router picks one), `chain(A, B, C)` (a straight line; a router only last), `node(Class, "name")`
+- DSL: `from(A, B).next(C)` (unconditional, several sources = fan-in), `from(Router).routes()`
+  (the router picks one of its `@Router({ routes })` targets — the one list of them; #200), `chain(A, B, C)` (a straight line; a router only last), `node(Class, "name")`
   (a second place for a class, declared once as a constant), `Self` (back to the node the router was
   called after).
 - Node kinds: `@WorkflowStart` (where a run starts: input DTO, runs the input guards), `@Router`
   (picks the next node), `@Agent` (its loop), `@WorkflowFinish` (where a run finishes: output DTO,
-  the last answer, runs the output guards). A start and a finish may share a name (`chat` / `chat`);
+  the last answer, runs the output guards). A start declares its input for the compiler,
+  `declare readonly input: ChatIn` (checked against `input:` by `@WorkflowStart`), so
+  `app.execute(ChatWorkflowStart, input)` checks `input` and rejects a class that is not a start;
+  `app.execute(…).output` is the finish's `WorkflowFinishText` (a finish DTO may add optional fields only).
+  Slots are typed by kind: `tools` (`ToolHandler`), `judges` (`JudgeHandler`), `guardrails`,
+  `piiPolicies` and flow nodes (`FlowNodeInstance`) — a service there is a compile error. A start and a finish may share a name (`chat` / `chat`);
   LangGraph node ids are `<kind>.<name>` (`workflow-start.chat`).
   `@WorkflowPause` (#117) completes the trio.
 - **Assembly rules** fail at assembly, before any model call, with **all** violations at once
   (`GraphRuleError`, stable codes `graph.*` / `router.*`): every node is a decorated class, one next
-  step per node, `choose` only from a router, a cycle needs a router, a workflow start exists, no
-  unreachable node or dead end, nothing after a workflow finish, a router's `routes` equal its `choose(...)`.
+  step per node, `routes()` only from a router, a cycle needs a router, a workflow start exists, no
+  unreachable node or dead end, nothing after a workflow finish, routers in one `from(R1, R2).routes()`
+  have equal `routes`.
 - `@Router` (Wiki → Routers): `instructions` says **how** to choose; `routes` array uses `route().to()` to define conditions
   each choice means (`route(Profiler, "Reading the resume …")`) — route text is required; a route
   **to a workflow finish** is worded as a stop instruction ("Stop and send the answer: …"), never as "the
@@ -121,7 +127,7 @@ flow: [
   `rag: [{ use, mode: "tool" | "context" }]` (Wiki → Knowledge bases).
 - Add a tool: a `@Tool` class in `tools/` with `input` / `output` DTOs in `*.dto.ts`, referenced
   from an agent. Add an agent: `agents/<name>.agent.ts` and use `file("./<name>.prompt.md")`, placed in the `flow`
-  and in its router's `choose(...)` and `routes`. A workflow = its components under one directory
+  (`from(…, Agent).next(Router)`) and in its router's `routes`. A workflow = its components under one directory
   with a `*.workflow.ts`; commands find it by path (`--workflow`). Test tools with
   `toolOf(new Tool(fakes))`.
 - **Component rules** (Wiki → Components): decorator = metadata (one option per line), constructor =

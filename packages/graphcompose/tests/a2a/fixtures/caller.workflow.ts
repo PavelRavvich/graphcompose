@@ -9,6 +9,7 @@ import {
   type WorkflowDefinition,
 } from "../../../src/graph/index.js";
 import type { Class } from "../../../src/components/injection.js";
+import type { WorkflowStartClass } from "../../../src/graph/workflow-start.decorator.js";
 import type { ToolClass } from "../../../src/testing/index.js";
 import { Tool, type ToolHandler } from "../../../src/tool/index.js";
 
@@ -43,7 +44,7 @@ export class DeskCredentials {
 /** The caller workflow, bound to a remote desk at `url` (known once the server listens). */
 export interface CallerParts {
   readonly Caller: Class;
-  readonly PlanStart: Class;
+  readonly PlanStart: WorkflowStartClass;
   readonly AskDesk: ToolClass<Question>;
   readonly AskTicket: ToolClass<Question>;
   readonly RemoteDeskAgent: Class<A2AClient>;
@@ -100,7 +101,9 @@ export function callerOf(url: string): CallerParts {
   class Planner {}
 
   @WorkflowStart({ name: "plan", description: "A request", input: WorkflowStartText })
-  class PlanStart {}
+  class PlanStart {
+    declare readonly input: WorkflowStartText;
+  }
 
   @WorkflowFinish({ name: "done", description: "The plan", output: WorkflowFinishText })
   class PlanDone {}

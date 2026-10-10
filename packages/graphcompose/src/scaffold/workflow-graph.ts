@@ -90,6 +90,23 @@ function componentsOf(root: string, module: FileToWrite, source: ts.SourceFile):
   });
 }
 
+/**
+ * The module's classes plus what its routers import: `from(Router).routes()` names no targets, so
+ * the finish (and any agent only a router routes to) is found through the router's file (#200).
+ */
+function withRouterTargets(root: string, own: readonly Component[]): Component[] {
+  const found = [...own];
+  for (const router of own.filter((c) => c.decorator === "Router")) {
+    const source = readSource(root, router.path);
+    if (source === undefined) continue;
+    const content = source.getFullText();
+    for (const target of componentsOf(root, { path: router.path, content }, source)) {
+      if (!found.some((c) => c.className === target.className)) found.push(target);
+    }
+  }
+  return found;
+}
+
 /** `--workflow <path>` read and resolved. */
 export function workflowGraph(root: string, path: string | undefined, kind: string): WorkflowGraph {
   const { dir, module } = targetWorkflow(root, path ?? "", kind);
@@ -98,7 +115,7 @@ export function workflowGraph(root: string, path: string | undefined, kind: stri
     module,
     dir,
     source,
-    components: componentsOf(root, module, source),
+    components: withRouterTargets(root, componentsOf(root, module, source)),
     flow: flowCalls(source),
   };
 }

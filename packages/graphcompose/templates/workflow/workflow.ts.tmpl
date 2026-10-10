@@ -4,7 +4,6 @@ import { DecisionsModelProvider } from "graphcompose/models";
 import { usd } from "graphcompose/units";
 import { OpenRouterModelProvider } from "./model-providers/openrouter.model-provider.js";
 import { TextWorkflowStart } from "./workflow-starts/text.workflow-start.js";
-import { TextWorkflowFinish } from "./workflow-finishes/text.workflow-finish.js";
 import { MainRouter } from "./routers/main.router.js";
 {{imports}}
 
@@ -15,7 +14,7 @@ import { MainRouter } from "./routers/main.router.js";
   // the graph: the text goes to the main router, which picks an agent or finishes the run
   flow: [
     from(TextWorkflowStart).next(MainRouter),
-    from(MainRouter).routes({{agents}}, TextWorkflowFinish),
+    from(MainRouter).routes(),
     from({{agents}}).next(MainRouter),
   ],
   defaults: {

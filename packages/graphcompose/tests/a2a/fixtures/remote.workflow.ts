@@ -72,7 +72,9 @@ export class QuickLookup implements ToolHandler<LookupQuery, LookupResult> {
 export class Desk {}
 
 @WorkflowStart({ name: "ask", description: "An order question", input: WorkflowStartText })
-export class AskStart {}
+export class AskStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "answer", description: "The desk's answer", output: WorkflowFinishText })
 export class DeskAnswer {}

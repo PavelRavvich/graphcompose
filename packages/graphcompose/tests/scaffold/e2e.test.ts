@@ -81,7 +81,7 @@ describe("gc create / gc generate end to end", () => {
     // #141 AC6: the start and the finish of a new workflow are TextWorkflowStart / TextWorkflowFinish
     const desk = (file: string): string => readFileSync(join(project, "src/desk", file), "utf8");
     expect(desk("workflow-starts/text.workflow-start.ts")).toContain(
-      "export class TextWorkflowStart {}",
+      "export class TextWorkflowStart {\n  declare readonly input: WorkflowStartText;\n}",
     );
     expect(desk("workflow-finishes/text.workflow-finish.ts")).toContain(
       "export class TextWorkflowFinish {}",

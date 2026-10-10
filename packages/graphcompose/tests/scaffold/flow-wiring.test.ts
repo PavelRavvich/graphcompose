@@ -10,23 +10,13 @@ import { addAgentToFlow } from "../../src/scaffold/wire-flow.js";
 const workflow = (flow: string) => ({ path: "src/desk/desk.workflow.ts", content: flow });
 
 describe("#116: gc g agent joins the star; gc g router", () => {
-  it("adds the agent before the finish in routes(…) and to the agents going back to the router", () => {
+  it("#200: adds the agent to the agents going back to the router; routes() stays empty", () => {
     const file = workflow(
-      "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routes(TriageAgent, TextWorkflowFinish),\n  from(TriageAgent).next(MainRouter),\n]",
+      "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routes(),\n  from(TriageAgent).next(MainRouter),\n]",
     );
 
     expect(addAgentToFlow(file, "BillingAgent", "MainRouter", ["TriageAgent"]).content).toBe(
-      "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routes(TriageAgent, BillingAgent, TextWorkflowFinish),\n  from(TriageAgent, BillingAgent).next(MainRouter),\n]",
-    );
-  });
-
-  it("a choice with one target gets the agent first", () => {
-    const file = workflow(
-      "[from(MainRouter).routes(TextWorkflowFinish), from(TriageAgent).next(MainRouter)]",
-    );
-
-    expect(addAgentToFlow(file, "BillingAgent", "MainRouter", ["TriageAgent"]).content).toBe(
-      "[from(MainRouter).routes(BillingAgent, TextWorkflowFinish), from(TriageAgent, BillingAgent).next(MainRouter)]",
+      "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routes(),\n  from(TriageAgent, BillingAgent).next(MainRouter),\n]",
     );
   });
 
@@ -39,13 +29,13 @@ describe("#116: gc g agent joins the star; gc g router", () => {
       ScaffoldError,
     );
     expect(() => addAgentToFlow(file, "BillingAgent", "MainRouter", ["TriageAgent"])).toThrow(
-      "src/desk/desk.workflow.ts: no from(MainRouter).routes(…)",
+      "src/desk/desk.workflow.ts: no from(MainRouter).routes() and from(<agents>).next(MainRouter)",
     );
   });
 
-  it("adding an agent that is already in the star doubles nothing: both places are reported as skipped", () => {
+  it("adding an agent that is already in the star doubles nothing: it is reported as skipped", () => {
     const file = workflow(
-      "[from(MainRouter).routes(TriageAgent, BillingAgent, TextWorkflowFinish), from(TriageAgent, BillingAgent).next(MainRouter)]",
+      "[from(MainRouter).routes(), from(TriageAgent, BillingAgent).next(MainRouter)]",
     );
 
     const again = addAgentToFlow(file, "BillingAgent", "MainRouter", [
@@ -55,7 +45,6 @@ describe("#116: gc g agent joins the star; gc g router", () => {
 
     expect(again.content).toBe(file.content);
     expect(again.skipped).toEqual([
-      "src/desk/desk.workflow.ts: BillingAgent already in from(MainRouter).routes(…)",
       "src/desk/desk.workflow.ts: BillingAgent already in from(…).next(MainRouter)",
     ]);
   });

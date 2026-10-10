@@ -25,7 +25,9 @@ import { testNode } from "./nodes.js";
   description: "A message from the job seeker",
   input: WorkflowStartText,
 })
-class ChatWorkflowStart {}
+class ChatWorkflowStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @testNode("agent", "profiler")
 class Profiler {}
@@ -58,7 +60,7 @@ class MainRouter {}
 /** The job-scout flow (#116 approved shape) over test nodes. */
 export const jobScoutFlow: Flow = [
   from(ChatWorkflowStart).next(MainRouter),
-  from(MainRouter).routes(Profiler, Scout, Shortlist, ChatWorkflowFinish),
+  from(MainRouter).routes(),
   from(Profiler, Scout, Shortlist).next(MainRouter),
 ];
 

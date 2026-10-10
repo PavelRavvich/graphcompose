@@ -20,7 +20,7 @@ import type { Changes } from "./write.js";
 const classNames = (graph: WorkflowGraph, decorator: string): string[] =>
   ofKind(graph, decorator).map((c) => c.className);
 
-/** The router the agents go back to: `from(R).routes(…)` and `from(<agents>).next(R)` (#197). */
+/** The router the agents go back to: `from(R).routes()` and `from(<agents>).next(R)` (#197). */
 function starRouterOf(graph: WorkflowGraph): Component {
   const agents = classNames(graph, "Agent");
   const routers = ofKind(graph, "Router").filter(
@@ -30,7 +30,7 @@ function starRouterOf(graph: WorkflowGraph): Component {
   if (router === undefined || routers.length > 1) {
     const found = routers.length === 0 ? "no" : routers.map((r) => r.className).join(", ");
     throw new ScaffoldError(
-      `${graph.module.path}: expected one router the agents go back to (from(Router).routes(…) and from(<agents>).next(Router)), found ${found} — add the agent by hand`,
+      `${graph.module.path}: expected one router the agents go back to (from(Router).routes() and from(<agents>).next(Router)), found ${found} — add the agent by hand`,
     );
   }
   return router;
@@ -38,8 +38,8 @@ function starRouterOf(graph: WorkflowGraph): Component {
 
 /**
  * `gc g agent <name> --workflow …`: the agent and its prompt next to the workflow's agents; the agent
- * joins the star — a route in the router the agents go back to (before the finish route) and both
- * transitions in the flow. Resolved from the workflow module, whatever the layout.
+ * joins the star — a route in the router the agents go back to (before the finish route) and the
+ * transition back to it in the flow (`from(Router).routes()` reads the router's routes, #200). Resolved from the workflow module, whatever the layout.
  */
 export function planAgent(root: string, name: string, o: GenerateOptions): Changes {
   const graph = workflowGraph(root, o.workflow, "agent");

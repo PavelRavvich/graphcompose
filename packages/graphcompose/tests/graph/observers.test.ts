@@ -34,7 +34,9 @@ class WorkerAgent {}
 import { WorkflowStartText } from "../../src/dto/index.js";
 
 @WorkflowStart({ name: "start", description: "Start", input: WorkflowStartText })
-class Start {}
+class Start {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "finish", description: "Finish", output: WorkflowStartText })
 class Finish {}

@@ -12,6 +12,7 @@ import { recordComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta, WorkflowActionMeta } from "./meta-types.js";
 import type { AgentState, AgentStateUpdate } from "../graph/state.js";
 import type { WorkflowDefinition } from "../graph/settings.js";
+import type { Guardrail, PiiPolicy } from "./policy-decorators.js";
 
 /**
  * The contract of a tool (`@Tool`, `@McpTool`): `implements ToolHandler<OrderQuery, OrderStatus>` — its
@@ -20,6 +21,9 @@ import type { WorkflowDefinition } from "../graph/settings.js";
 export interface ToolHandler<TInput, TOutput> {
   run: (input: TInput, ctx: ToolContext) => Promise<TOutput>;
 }
+
+/** What `tools: [...]` takes: `@Tool` / `@McpTool` classes, the ones implementing `ToolHandler`. */
+export type ToolHandlerClass = Class<ToolHandler<never, unknown>>;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { PromptOptions } from "./prompt-options.js";
@@ -41,12 +45,12 @@ export interface ToolOptions<
   readonly promptUrls?: readonly string[];
   readonly channel?: Class;
   readonly timeoutMs?: number;
-  readonly piiPolicies?: readonly Class[];
-  readonly guardrails?: readonly Class[];
-  readonly overridePiiPolicies?: readonly Class[];
-  readonly disablePiiPolicies?: readonly Class[];
-  readonly overrideGuardrails?: readonly Class[];
-  readonly disableGuardrails?: readonly Class[];
+  readonly piiPolicies?: readonly Class<PiiPolicy>[];
+  readonly guardrails?: readonly Class<Guardrail>[];
+  readonly overridePiiPolicies?: readonly Class<PiiPolicy>[];
+  readonly disablePiiPolicies?: readonly Class<PiiPolicy>[];
+  readonly overrideGuardrails?: readonly Class<Guardrail>[];
+  readonly disableGuardrails?: readonly Class<Guardrail>[];
   readonly input: In;
   readonly output: Out;
   /** Constructor dependencies, in order; checked against the constructor by the compiler. */

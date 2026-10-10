@@ -7,7 +7,7 @@ import { componentOf, type ToolMeta } from "../components/metadata.js";
 import { adapt } from "../components/runtime.js";
 import { validate } from "../dto/schema.js";
 import { nodeInfoOf } from "../graph/node-kind.js";
-import { workflowStartMetaOf } from "../graph/workflow-start.decorator.js";
+import { workflowStartMetaOf, type WorkflowStartClass } from "../graph/workflow-start.decorator.js";
 import { renderToolResult, type ToolContext, type ToolOutput } from "../tools/index.js";
 import { newRunContext } from "../core/run-context.js";
 import {
@@ -32,7 +32,7 @@ export function collectTools(app: App, exports: readonly Class[], context: unkno
     const meta = toolMetaOf(exp);
     if (meta) {
       addTool(registry, { app, exp, meta, context });
-    } else if (nodeInfoOf(exp)?.kind === "workflow-start") {
+    } else if (isStart(exp)) {
       hasWorkflows = true;
       addWorkflowStart(registry, app, exp, context);
     }
@@ -105,7 +105,16 @@ const toolResult = (output: ToolOutput<unknown>): CallToolResult =>
         isError: output.kind === "error",
       };
 
-function addWorkflowStart(registry: ToolRegistry, app: App, exp: Class, context: unknown): void {
+/** An exported `@WorkflowStart` class (its options are recorded by the decorator). */
+const isStart = (exp: Class): exp is WorkflowStartClass =>
+  nodeInfoOf(exp)?.kind === "workflow-start";
+
+function addWorkflowStart(
+  registry: ToolRegistry,
+  app: App,
+  exp: WorkflowStartClass,
+  context: unknown,
+): void {
   const startMeta = workflowStartMetaOf(exp);
   if (!startMeta) return;
   registry.tools.push({

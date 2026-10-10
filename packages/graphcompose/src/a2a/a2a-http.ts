@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { z } from "zod";
-import type { Class } from "../components/injection.js";
+import type { WorkflowStartClass } from "../graph/workflow-start.decorator.js";
 import type { IA2AAdapter } from "./a2a-adapter.js";
 import { A2ARequestSchema, type A2AEvent, type A2AExecutionResponse } from "./types.js";
 
@@ -57,7 +57,7 @@ async function answer(req: IncomingMessage, res: ServerResponse, exchange: Excha
  */
 export function a2aHttpListener(
   adapter: IA2AAdapter,
-  start: Class,
+  start: WorkflowStartClass,
   base = "",
 ): (req: IncomingMessage, res: ServerResponse) => void {
   const routes: Record<string, Exchange> = {

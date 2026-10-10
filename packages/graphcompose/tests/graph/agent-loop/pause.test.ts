@@ -19,7 +19,9 @@ import { WorkflowStartText, WorkflowFinishText } from "../../../src/dto/index.js
 import { createMemoryPausedRunRepository } from "../../../src/app/paused-runs.js";
 
 @WorkflowStart({ name: "start", description: "Start", input: WorkflowStartText })
-class Start {}
+class Start {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "finish", description: "Finish", output: WorkflowFinishText })
 class Finish {}
