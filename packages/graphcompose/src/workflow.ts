@@ -18,6 +18,7 @@ import type { LoadedRouter } from "./graph/router-texts.js";
 import type { ModelProviderSettings, WorkflowLimits } from "./graph/settings.js";
 import type { ContainerOptions } from "./components/container.js";
 import type { Environment } from "./environments/define.js";
+import type { IncompatibleResumePolicy } from "./run/resume-guard.js";
 
 /** What the core offers the tools of a workflow. */
 export interface WorkflowServices {
@@ -59,6 +60,8 @@ export interface AssembledWorkflow<TName extends string = string> {
   readonly limits: WorkflowLimits;
   /** From the workflow's `settings()`; absent = OpenRouter and Jev. */
   readonly models?: ModelProviderSettings;
+  /** From the workflow's `settings()`: resumes of runs paused under another config; absent = reject. */
+  readonly onIncompatibleResume?: IncompatibleResumePolicy | undefined;
   /** Every router of the flow with its texts loaded. */
   readonly routers: readonly LoadedRouter[];
   readonly prompts: AgentPrompts<TName>;

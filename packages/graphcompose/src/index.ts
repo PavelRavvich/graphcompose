@@ -18,7 +18,18 @@ export {
   type McpConnect,
 } from "./app/app-deps.js";
 export { createApp, NotAWorkflowStartError, type AppOptions } from "./app/create-app.js";
-export type { PausedRunRepository } from "./app/paused-runs.js";
+export type { PausedRun, PausedRunRepository } from "./app/paused-runs.js";
+export {
+  createSqlitePausedRunRepository,
+  type SqlitePausedRunRepository,
+} from "./app/sqlite-paused-runs.js";
+export {
+  IncompatibleResumeError,
+  type IncompatibleResume,
+  type IncompatibleResumePolicy,
+  type ResumeDecision,
+  type ResumeVersions,
+} from "./run/resume-guard.js";
 export type { App, ExecutionOptions, ExecutionOutput } from "./app/types.js";
 export { loadWorkflow, loadWorkflowClass, WorkflowLoadError } from "./cli/load-workflow.js";
 export { withProfile } from "./profile-workflow.js";

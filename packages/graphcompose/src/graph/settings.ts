@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Usd } from "../units/index.js";
 import type { ModelProviderType } from "../models/model-provider.decorator.js";
+import type { IncompatibleResumePolicy } from "../run/resume-guard.js";
 
 /** Limits of one run: steps (agent and router visits) and spend. */
 export interface PerRunLimits {
@@ -44,6 +45,11 @@ export interface WorkflowSettingsBuilder {
   /** `@ModelProvider` classes; each model must be served by exactly one (or the default). */
   readonly modelProviders: (providers: readonly ModelProviderType[]) => WorkflowSettingsBuilder;
   readonly defaultModelProvider: (provider: ModelProviderType) => WorkflowSettingsBuilder;
+  /**
+   * Decides a resume of a run paused under another config hash (an earlier deployment): "resume"
+   * continues it on the current graph, "reject" fails with `IncompatibleResumeError` (the default).
+   */
+  readonly onIncompatibleResume: (policy: IncompatibleResumePolicy) => WorkflowSettingsBuilder;
   readonly build: () => WorkflowSettings;
 }
 
@@ -52,11 +58,13 @@ export class WorkflowSettings {
   private constructor(
     readonly limits: WorkflowLimits,
     readonly models: ModelProviderSettings,
+    readonly onIncompatibleResume: IncompatibleResumePolicy | undefined,
   ) {}
 
   static builder(): WorkflowSettingsBuilder {
     let limits: WorkflowLimits = {};
     let models: ModelProviderSettings = {};
+    let onIncompatibleResume: IncompatibleResumePolicy | undefined;
     const builder: WorkflowSettingsBuilder = {
       limits: (value) => {
         const parsed = WorkflowLimitsSchema.safeParse(value);
@@ -77,7 +85,16 @@ export class WorkflowSettings {
         models = { ...models, defaultModelProvider: provider };
         return builder;
       },
-      build: () => new WorkflowSettings(Object.freeze({ ...limits }), Object.freeze({ ...models })),
+      onIncompatibleResume: (policy) => {
+        onIncompatibleResume = policy;
+        return builder;
+      },
+      build: () =>
+        new WorkflowSettings(
+          Object.freeze({ ...limits }),
+          Object.freeze({ ...models }),
+          onIncompatibleResume,
+        ),
     };
     return builder;
   }

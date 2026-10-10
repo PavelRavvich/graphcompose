@@ -182,6 +182,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     ...channelPartsOf(bundle),
     limits: settings.limits,
     models: settings.models,
+    onIncompatibleResume: settings.onIncompatibleResume,
     routers: graph.routers,
     prompts,
     tools: toolBuilder(bundle, agents, tools.local, tools.mcp, mcp.names),

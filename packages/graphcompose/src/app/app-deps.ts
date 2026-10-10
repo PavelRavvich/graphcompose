@@ -62,6 +62,12 @@ export interface AppDeps extends RunDeps<string> {
 
 /** Where an app keeps its state; each one given is shared and stays open when the app closes. */
 export interface AppStores {
+  /**
+   * Where paused runs keep their graph state. Default: an in-process `MemorySaver` — dev and tests
+   * only, a pause is lost on restart. In production give a durable `BaseCheckpointSaver` (e.g.
+   * `SqliteSaver` / `PostgresSaver` from `@langchain/langgraph-checkpoint-*`) together with
+   * `pausedRuns: createSqlitePausedRunRepository()`: `createApp(W, { stores: { checkpointer }, pausedRuns })`.
+   */
   readonly checkpointer?: BaseCheckpointSaver;
   readonly ledger?: SpendLedger;
   readonly terns?: TernStore;
@@ -137,6 +143,7 @@ function storesOf(options: AppDepsOptions, env: NodeJS.ProcessEnv) {
     ownsTerns: given === undefined,
     ledger:
       options.stores?.ledger ?? createFileLedger(env.SPEND_LEDGER_DIR ?? DEFAULT_LEDGER_DIR, clock),
+    // dev default: see AppStores.checkpointer
     checkpointer: options.stores?.checkpointer ?? new MemorySaver(),
   };
 }
