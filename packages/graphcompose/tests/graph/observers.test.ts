@@ -5,10 +5,10 @@ import {
   OnWorkflowStart,
   AppState,
   OnAgentStart,
-  AgentContext,
+  type AgentStartEvent,
   Injectable,
   OnAgentEnd,
-  AgentContextUpdate,
+  type AgentEndEvent,
 } from "../../src/core/index.js";
 import { from, node, WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
 import { testWith, replyWith } from "../../src/testing/index.js";
@@ -20,10 +20,10 @@ class MyMetricsObserver implements OnWorkflowStart, OnAgentStart, OnAgentEnd {
   onWorkflowStart(state: AppState) {
     logs.push(`start-wf`);
   }
-  onAgentStart(ctx: AgentContext) {
+  onAgentStart(ctx: AgentStartEvent) {
     logs.push(`start-agent-${ctx.name}`);
   }
-  onAgentEnd(ctx: AgentContextUpdate) {
+  onAgentEnd(ctx: AgentEndEvent) {
     logs.push(`end-agent-${ctx.name}`);
   }
 }

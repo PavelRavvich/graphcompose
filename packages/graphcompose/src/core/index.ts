@@ -39,5 +39,6 @@ export { studioGraphOf } from "../studio.js";
 export type { Router } from "../routers/index.js";
 export { file } from "../components/file.js";
 export * from "./observability.js";
+export * from "./observer-hooks.js";
 export type { OnDestroy } from "../components/lifecycle.js";
 export * from "./observer-manager.js";

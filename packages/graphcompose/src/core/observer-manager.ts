@@ -1,148 +1,127 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { Container } from "../components/container.js";
+import type { ExecutionOutput } from "../app/types.js";
 import type {
+  ActionEndEvent,
+  ActionStartEvent,
+  AgentEndEvent,
+  AgentStartEvent,
   AppState,
-  AgentContext,
-  RouterContext,
-  RagContext,
-  AgentContextUpdate,
-  RouterContextUpdate,
-  RagContextUpdate,
-  ToolContext,
-  ToolContextUpdate,
-  ModelRequest,
-  ModelResponse,
-  GuardrailContext,
-  GuardrailContextUpdate,
-  PiiPolicyContext,
-  PiiPolicyContextUpdate,
-  WorkflowActionContext,
-  WorkflowActionContextUpdate,
-  ChannelContext,
-  ChannelContextUpdate,
+  ChannelEndEvent,
+  ChannelStartEvent,
+  GuardrailEndEvent,
+  GuardrailStartEvent,
+  JudgeEndEvent,
+  JudgeStartEvent,
+  ModelEndEvent,
+  ModelStartEvent,
+  PiiPolicyEndEvent,
+  PiiPolicyStartEvent,
+  RagEndEvent,
+  RagStartEvent,
+  RouterEndEvent,
+  RouterStartEvent,
+  ToolEndEvent,
+  ToolStartEvent,
 } from "./observability.js";
+import type { ObserverHook, WorkflowObserver } from "./observer-hooks.js";
 
-export class ObserverManager {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private instances: any[] = [];
+/** Told when an observer's hook throws; the run goes on. */
+export type ObserverFailure = (observer: string, hook: ObserverHook, error: unknown) => void;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(containerInstances: any[]) {
-    this.instances = containerInstances;
-  }
+const warn: ObserverFailure = (observer, hook, error) => {
+  const message = error instanceof Error ? error.message : String(error);
+  process.emitWarning(`${observer}.${hook} threw: ${message}`, { code: "observer.failed" });
+};
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async dispatch(methodName: string, ...args: any[]): Promise<void> {
-    for (const instance of this.instances) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (typeof instance[methodName] === "function") {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        await instance[methodName](...args);
+/**
+ * Calls a hook on the workflow's observers (`@Workflow({ observers })`), in their order. An
+ * observer that throws is reported to `onFailure` and skipped: it never fails the run.
+ */
+export class ObserverManager implements Required<WorkflowObserver> {
+  constructor(
+    private readonly observers: readonly WorkflowObserver[],
+    private readonly onFailure: ObserverFailure = warn,
+  ) {}
+
+  private async each(
+    hook: ObserverHook,
+    call: (observer: WorkflowObserver) => Promise<void> | void,
+  ): Promise<void> {
+    for (const observer of this.observers) {
+      try {
+        await call(observer);
+      } catch (error) {
+        this.onFailure(observer.constructor.name, hook, error);
       }
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onWorkflowStart(state: AppState) {
-    return this.dispatch("onWorkflowStart", state);
+  onWorkflowStart(state: AppState): Promise<void> {
+    return this.each("onWorkflowStart", (o) => o.onWorkflowStart?.(state));
   }
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onWorkflowEnd(result: unknown, state: AppState) {
-    return this.dispatch("onWorkflowEnd", result, state);
+  onWorkflowEnd(result: ExecutionOutput, state: AppState): Promise<void> {
+    return this.each("onWorkflowEnd", (o) => o.onWorkflowEnd?.(result, state));
   }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onAgentStart(ctx: AgentContext) {
-    return this.dispatch("onAgentStart", ctx);
+  onAgentStart(event: AgentStartEvent): Promise<void> {
+    return this.each("onAgentStart", (o) => o.onAgentStart?.(event));
   }
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onAgentEnd(ctx: AgentContextUpdate) {
-    return this.dispatch("onAgentEnd", ctx);
+  onAgentEnd(event: AgentEndEvent): Promise<void> {
+    return this.each("onAgentEnd", (o) => o.onAgentEnd?.(event));
   }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onRouterStart(ctx: RouterContext) {
-    return this.dispatch("onRouterStart", ctx);
+  onRouterStart(event: RouterStartEvent): Promise<void> {
+    return this.each("onRouterStart", (o) => o.onRouterStart?.(event));
   }
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onRouterEnd(ctx: RouterContextUpdate) {
-    return this.dispatch("onRouterEnd", ctx);
+  onRouterEnd(event: RouterEndEvent): Promise<void> {
+    return this.each("onRouterEnd", (o) => o.onRouterEnd?.(event));
   }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onToolStart(ctx: ToolContext) {
-    return this.dispatch("onToolStart", ctx);
+  onToolStart(event: ToolStartEvent): Promise<void> {
+    return this.each("onToolStart", (o) => o.onToolStart?.(event));
   }
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onToolEnd(ctx: ToolContextUpdate) {
-    return this.dispatch("onToolEnd", ctx);
+  onToolEnd(event: ToolEndEvent): Promise<void> {
+    return this.each("onToolEnd", (o) => o.onToolEnd?.(event));
   }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onModelStart(req: ModelRequest) {
-    return this.dispatch("onModelStart", req);
+  onModelStart(event: ModelStartEvent): Promise<void> {
+    return this.each("onModelStart", (o) => o.onModelStart?.(event));
   }
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onModelEnd(res: ModelResponse) {
-    return this.dispatch("onModelEnd", res);
+  onModelEnd(event: ModelEndEvent): Promise<void> {
+    return this.each("onModelEnd", (o) => o.onModelEnd?.(event));
   }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onRagStart(ctx: RagContext) {
-    return this.dispatch("onRagStart", ctx);
+  onRagStart(event: RagStartEvent): Promise<void> {
+    return this.each("onRagStart", (o) => o.onRagStart?.(event));
   }
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onRagEnd(ctx: RagContextUpdate) {
-    return this.dispatch("onRagEnd", ctx);
+  onRagEnd(event: RagEndEvent): Promise<void> {
+    return this.each("onRagEnd", (o) => o.onRagEnd?.(event));
   }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onGuardrailStart(ctx: GuardrailContext) {
-    return this.dispatch("onGuardrailStart", ctx);
+  onError(error: Error, state: AppState): Promise<void> {
+    return this.each("onError", (o) => o.onError?.(error, state));
   }
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onGuardrailEnd(ctx: GuardrailContextUpdate) {
-    return this.dispatch("onGuardrailEnd", ctx);
+  onGuardrailStart(event: GuardrailStartEvent): Promise<void> {
+    return this.each("onGuardrailStart", (o) => o.onGuardrailStart?.(event));
   }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onPiiPolicyStart(ctx: PiiPolicyContext) {
-    return this.dispatch("onPiiPolicyStart", ctx);
+  onGuardrailEnd(event: GuardrailEndEvent): Promise<void> {
+    return this.each("onGuardrailEnd", (o) => o.onGuardrailEnd?.(event));
   }
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onPiiPolicyEnd(ctx: PiiPolicyContextUpdate) {
-    return this.dispatch("onPiiPolicyEnd", ctx);
+  onPiiPolicyStart(event: PiiPolicyStartEvent): Promise<void> {
+    return this.each("onPiiPolicyStart", (o) => o.onPiiPolicyStart?.(event));
   }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onActionStart(ctx: WorkflowActionContext) {
-    return this.dispatch("onActionStart", ctx);
+  onPiiPolicyEnd(event: PiiPolicyEndEvent): Promise<void> {
+    return this.each("onPiiPolicyEnd", (o) => o.onPiiPolicyEnd?.(event));
   }
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onActionEnd(ctx: WorkflowActionContextUpdate) {
-    return this.dispatch("onActionEnd", ctx);
+  onActionStart(event: ActionStartEvent): Promise<void> {
+    return this.each("onActionStart", (o) => o.onActionStart?.(event));
   }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onChannelStart(ctx: ChannelContext) {
-    return this.dispatch("onChannelStart", ctx);
+  onActionEnd(event: ActionEndEvent): Promise<void> {
+    return this.each("onActionEnd", (o) => o.onActionEnd?.(event));
   }
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onChannelEnd(ctx: ChannelContextUpdate) {
-    return this.dispatch("onChannelEnd", ctx);
+  onChannelStart(event: ChannelStartEvent): Promise<void> {
+    return this.each("onChannelStart", (o) => o.onChannelStart?.(event));
   }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onJudgeStart(ctx: import("./observability.js").JudgeContextStart) {
-    return this.dispatch("onJudgeStart", ctx);
+  onChannelEnd(event: ChannelEndEvent): Promise<void> {
+    return this.each("onChannelEnd", (o) => o.onChannelEnd?.(event));
   }
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onJudgeEnd(ctx: import("./observability.js").JudgeContextUpdate) {
-    return this.dispatch("onJudgeEnd", ctx);
+  onJudgeStart(event: JudgeStartEvent): Promise<void> {
+    return this.each("onJudgeStart", (o) => o.onJudgeStart?.(event));
   }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  async onError(error: Error, state: AppState) {
-    return this.dispatch("onError", error, state);
+  onJudgeEnd(event: JudgeEndEvent): Promise<void> {
+    return this.each("onJudgeEnd", (o) => o.onJudgeEnd?.(event));
   }
 }

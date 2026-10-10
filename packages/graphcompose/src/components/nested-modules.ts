@@ -84,7 +84,7 @@ function mergedVariables(modules: readonly WorkflowMeta[]): Record<string, strin
 /** The parent's settings with the DI parts of every nested module merged in. */
 function mergedModule(own: WorkflowMeta, children: readonly WorkflowMeta[]): WorkflowMeta {
   const all = [own, ...children];
-  const union = (pick: (meta: WorkflowMeta) => readonly Class[] | undefined): Class[] => [
+  const union = <T>(pick: (meta: WorkflowMeta) => readonly T[] | undefined): T[] => [
     ...new Set(all.flatMap((meta) => pick(meta) ?? [])),
   ];
   return {

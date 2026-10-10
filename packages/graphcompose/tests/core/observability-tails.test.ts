@@ -22,12 +22,18 @@ import {
   type OnToolStart,
   type OnWorkflowEnd,
   type OnWorkflowStart,
-  type GuardrailContext,
-  type GuardrailContextUpdate,
-  type PiiPolicyContext,
-  type PiiPolicyContextUpdate,
-  type ChannelContext,
-  type ChannelContextUpdate,
+  type ActionEndEvent,
+  type ActionStartEvent,
+  type AgentEndEvent,
+  type AgentStartEvent,
+  type ChannelEndEvent,
+  type ChannelStartEvent,
+  type GuardrailEndEvent,
+  type GuardrailStartEvent,
+  type PiiPolicyEndEvent,
+  type PiiPolicyStartEvent,
+  type ToolEndEvent,
+  type ToolStartEvent,
 } from "../../src/core/index.js";
 import { ActionRuntime } from "../../src/components/decorators.js";
 import { from } from "../../src/router/index.js";
@@ -73,57 +79,45 @@ class TailsObserver
     hookEvents.push("WorkflowEnd");
   }
 
-  async onAgentStart(ctx: any) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  async onAgentStart(ctx: AgentStartEvent) {
     hookEvents.push(`AgentStart:${ctx.name}`);
   }
-  async onAgentEnd(ctx: any) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  async onAgentEnd(ctx: AgentEndEvent) {
     hookEvents.push(`AgentEnd:${ctx.name}`);
   }
 
-  async onToolStart(ctx: any) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  async onToolStart(ctx: ToolStartEvent) {
     hookEvents.push(`ToolStart:${ctx.toolName}`);
   }
-  async onToolEnd(ctx: any) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  async onToolEnd(ctx: ToolEndEvent) {
     hookEvents.push(`ToolEnd:${ctx.toolName}`);
   }
 
-  async onActionStart(ctx: any) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  async onActionStart(ctx: ActionStartEvent) {
     hookEvents.push(`ActionStart:${ctx.name}`);
   }
-  async onActionEnd(ctx: any) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  async onActionEnd(ctx: ActionEndEvent) {
     hookEvents.push(`ActionEnd:${ctx.name}`);
   }
 
-  async onGuardrailStart(ctx: any) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  async onGuardrailStart(ctx: GuardrailStartEvent) {
     hookEvents.push(`GuardrailStart:${ctx.name}`);
   }
-  async onGuardrailEnd(ctx: any) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  async onGuardrailEnd(ctx: GuardrailEndEvent) {
     hookEvents.push(`GuardrailEnd:${ctx.name}`);
   }
 
-  async onPiiPolicyStart(ctx: any) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  async onPiiPolicyStart(ctx: PiiPolicyStartEvent) {
     hookEvents.push(`PiiStart:${ctx.name}`);
   }
-  async onPiiPolicyEnd(ctx: any) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  async onPiiPolicyEnd(ctx: PiiPolicyEndEvent) {
     hookEvents.push(`PiiEnd:${ctx.name}`);
   }
 
-  async onChannelStart(ctx: any) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  async onChannelStart(ctx: ChannelStartEvent) {
     hookEvents.push(`ChannelStart:${ctx.name}`);
   }
-  async onChannelEnd(ctx: any) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  async onChannelEnd(ctx: ChannelEndEvent) {
     hookEvents.push(`ChannelEnd:${ctx.name}`);
   }
 }
@@ -157,10 +151,8 @@ class SafeGuard {
   description: "Does things",
   input: ToolInput,
   output: ToolInput,
-  deps: [TailsObserver],
 })
 class SafeTool {
-  constructor(public obs: TailsObserver) {}
   async run() {
     return { text: "done" };
   }
@@ -193,7 +185,7 @@ class FinishNode {}
   name: "tails-test",
   version: "1.0.0",
   defaults: testConfig.defaults,
-  providers: [TailsObserver],
+  observers: [TailsObserver],
   flow: [
     from(StartNode).next(SafeAgent),
     from(SafeAgent).next(FormatAction),
@@ -211,20 +203,17 @@ describe("Observability Tails Hooks", () => {
       .scriptOf("agent:SafeAgent")
       .thenReturn(callTool(SafeTool, { text: "hello" }), replyWith("Hello user!"));
 
-    const { app, deps } = await buildApp(await workflowOf(TailsWorkflow), {
+    const { app } = await buildApp(await workflowOf(TailsWorkflow), {
       gateway: createScriptedGateway(book),
       stores: { terns: createSqliteTernStore(":memory:") },
     });
 
-    deps.tools("SafeTool");
     await app.execute(StartNode, { text: "hi" });
 
     // Assert the exact flow
     // Workflow -> Agent -> Pii -> Guardrail -> Tool -> Guardrail -> Pii -> Agent -> Action -> WorkflowEnd
 
     // Check Action
-    // eslint-disable-next-line no-console
-    console.log("HOOK EVENTS:", hookEvents);
     expect(hookEvents).toContain("ActionStart:FormatAction");
     expect(hookEvents).toContain("ActionEnd:FormatAction");
 

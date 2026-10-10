@@ -5,6 +5,7 @@ import type { RagMode } from "../rag/types.js";
 import type { Flow } from "../graph/flow.js";
 import type { BaseMemoryStrategy } from "../memory/types.js";
 import type { Class, Provider } from "./injection.js";
+import type { ObserverClass } from "../core/observer-hooks.js";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { PromptOptions } from "./prompt-options.js";
@@ -96,7 +97,8 @@ export interface WorkflowMeta {
   readonly compactionPrompt?: string;
   readonly promptVariables?: Readonly<Record<string, string>>;
   readonly channelClasses?: readonly Class[];
-  readonly observers?: readonly Class[];
+  /** Observer classes (`implements OnToolEnd, …`), created by the container; only these get hooks. */
+  readonly observers?: readonly ObserverClass[];
 }
 
 /** `@Channel` — settings of a channel. */

@@ -5,14 +5,14 @@ import {
   Tool,
   Workflow,
   type AppState,
-  type ModelRequest,
-  type ModelResponse,
-  type AgentContext,
-  RouterContext,
-  RagContext,
-  type AgentContextUpdate,
-  RouterContextUpdate,
-  RagContextUpdate,
+  type ModelStartEvent,
+  type ModelEndEvent,
+  type AgentStartEvent,
+  type RouterStartEvent,
+  type RagStartEvent,
+  type AgentEndEvent,
+  type RouterEndEvent,
+  type RagEndEvent,
   type OnAgentEnd,
   type OnAgentStart,
   type OnError,
@@ -26,8 +26,8 @@ import {
   type OnToolStart,
   type OnWorkflowEnd,
   type OnWorkflowStart,
-  type ToolContextUpdate,
-  type ToolContext,
+  type ToolEndEvent,
+  type ToolStartEvent,
 } from "../../src/core/index.js";
 import { Router, WorkflowStart, from } from "../../src/graph/index.js";
 import { WorkflowFinish } from "../../src/graph/workflow-finish.decorator.js";
@@ -71,42 +71,42 @@ class GlobalObserver
     hookEvents.push("WorkflowStart");
     capturedState = state;
   }
-  async onWorkflowEnd(res: any, state: AppState) {
+  async onWorkflowEnd() {
     hookEvents.push("WorkflowEnd");
   }
 
-  async onAgentStart(ctx: AgentContext) {
+  async onAgentStart(ctx: AgentStartEvent) {
     hookEvents.push(`AgentStart:${ctx.name}`);
   }
-  async onAgentEnd(ctx: AgentContextUpdate) {
+  async onAgentEnd(ctx: AgentEndEvent) {
     hookEvents.push(`AgentEnd:${ctx.name}`);
   }
 
-  async onRouterStart(ctx: RouterContext) {
+  async onRouterStart(ctx: RouterStartEvent) {
     hookEvents.push(`RouterStart:${ctx.name}`);
   }
-  async onRouterEnd(ctx: RouterContextUpdate) {
+  async onRouterEnd(ctx: RouterEndEvent) {
     hookEvents.push(`RouterEnd:${ctx.name}`);
   }
 
-  async onToolStart(ctx: ToolContext) {
+  async onToolStart(ctx: ToolStartEvent) {
     hookEvents.push(`ToolStart:${ctx.toolName}`);
   }
-  async onToolEnd(ctx: ToolContextUpdate) {
+  async onToolEnd(ctx: ToolEndEvent) {
     hookEvents.push(`ToolEnd:${ctx.toolName}`);
   }
 
-  async onModelStart(req: ModelRequest) {
+  async onModelStart(req: ModelStartEvent) {
     hookEvents.push(`ModelStart:${req.callerName}`);
   }
-  async onModelEnd(res: ModelResponse) {
+  async onModelEnd(res: ModelEndEvent) {
     hookEvents.push(`ModelEnd:${res.callerName}`);
   }
 
-  async onRagStart(ctx: RagContext) {
+  async onRagStart(ctx: RagStartEvent) {
     hookEvents.push(`RagStart:${ctx.name}`);
   }
-  async onRagEnd(ctx: RagContextUpdate) {
+  async onRagEnd(ctx: RagEndEvent) {
     hookEvents.push(`RagEnd:${ctx.name}`);
   }
   async onError(err: Error, state: AppState) {
@@ -119,19 +119,15 @@ class GlobalObserver
   description: "Does things",
   input: ToolInput,
   output: ToolInput,
-  deps: [GlobalObserver],
 })
 class ObsTool {
-  constructor(public obs: GlobalObserver) {}
   async run(input: ToolInput) {
     return { text: "done" };
   }
 }
 
 @WorkflowStart({ name: "Start", description: "Start", input: WorkflowStartText })
-class ObsStart {
-  constructor(public obs: GlobalObserver) {}
-}
+class ObsStart {}
 
 @WorkflowFinish({ name: "ObsFinish", description: "Finish", output: WorkflowFinishText })
 class ObsFinish {}
@@ -170,7 +166,7 @@ class ObsRouter {}
   name: "obs-test",
   version: "1.0.0",
   defaults: testConfig.defaults,
-  providers: [GlobalObserver],
+  observers: [GlobalObserver],
   flow: [
     from(ObsStart).next(ObsRouter),
     from(ObsRouter).routes(ObsAgent, ObsFinish),
@@ -190,13 +186,11 @@ describe("Global Observability Hooks", () => {
       .scriptOf("agent:ObsAgent")
       .thenReturn(callTool(ObsTool, { text: "hello" }), replyWith("Hello user!"));
 
-    const { app, deps } = await buildApp(await workflowOf(ObsWorkflow), {
+    const { app } = await buildApp(await workflowOf(ObsWorkflow), {
       gateway: createScriptedGateway(book),
       stores: { terns: createSqliteTernStore(":memory:") },
     });
 
-    // Eagerly instantiate ObsTool to ensure GlobalObserver is in lifecycle.created
-    deps.tools("ObsTool");
     book.scriptOf("router:ObsRouter").thenReturn(routeTo(ObsAgent), routeTo(ObsFinish));
     book
       .scriptOf("agent:ObsAgent")
@@ -218,7 +212,7 @@ describe("Global Observability Hooks", () => {
     expect(hookEvents).toContain("RagEnd:ObsRag");
 
     expect(capturedState).not.toBeNull();
-    expect((capturedState as any)?.runId).toBeDefined();
+    expect((capturedState as AppState | null)?.runId).toMatch(/^run-/);
 
     await app.close();
   });

@@ -6,7 +6,7 @@ We need deep, read-only visibility into every stage of the application's lifecyc
 
 ## The Solution: Universal Hook Matrix
 
-All hooks are duck-typed. Any DI component can implement any subset of these hooks to observe the system. Every hook receives the full `AppState` (RunId, ThreadId, Graph Variables, History) plus context-specific metadata.
+An observer is a class listed in `@Workflow({ observers: [...] })` that implements any subset of these hooks (one interface per hook, `WorkflowObserver` = all of them, optional); only listed classes are called, and assembly rejects one with no hook or a misspelled hook (#203). The payload types are `AgentStartEvent`, `ToolEndEvent`, … in `graphcompose/core`. Every hook receives the full `AppState` (RunId, ThreadId, Graph Variables, History) plus context-specific metadata.
 
 ### 1. Workflow Level
 
