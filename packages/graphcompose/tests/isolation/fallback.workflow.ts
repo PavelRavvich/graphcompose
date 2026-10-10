@@ -2,7 +2,7 @@ import { Agent, Workflow } from "../../src/core/index.js";
 import { MODEL_MAX } from "../../src/index.js";
 import { chain, WorkflowSettings, type WorkflowDefinition } from "../../src/graph/index.js";
 import {
-  JevModelProvider,
+  DecisionsModelProvider,
   ModelCost,
   ModelProvider,
   OpenAiCompatibleProvider,
@@ -98,7 +98,7 @@ const defaults = {
 export class WithFallback implements WorkflowDefinition {
   settings(): WorkflowSettings {
     return WorkflowSettings.builder()
-      .modelProviders([Primary202, JevModelProvider, Backup202])
+      .modelProviders([Primary202, DecisionsModelProvider, Backup202])
       .build();
   }
 }
@@ -112,7 +112,7 @@ export class WithFallback implements WorkflowDefinition {
 export class UnmappedFallback implements WorkflowDefinition {
   settings(): WorkflowSettings {
     return WorkflowSettings.builder()
-      .modelProviders([Unmapped202, JevModelProvider, Backup202])
+      .modelProviders([Unmapped202, DecisionsModelProvider, Backup202])
       .build();
   }
 }
