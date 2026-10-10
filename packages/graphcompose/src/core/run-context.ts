@@ -23,21 +23,25 @@ export interface RunContext {
   readonly metadata: Readonly<Record<string, string>>;
   /** Who the thread belongs to (`execute(…, { owner })`); only that owner may continue it. */
   readonly owner?: string;
+  /** The validated input of the workflow start the run began at (`{}` when unknown); kept by its resumes. */
+  readonly input: Readonly<Record<string, unknown>>;
 }
 
-/** A run context with defaults: its own thread, a signal nobody aborts, no metadata. */
+/** A run context with defaults: its own thread, a signal nobody aborts, no metadata, no input. */
 export function newRunContext(context: {
   readonly runId: string;
   readonly threadId?: string | undefined;
   readonly signal?: AbortSignal | undefined;
   readonly metadata?: Readonly<Record<string, string>> | undefined;
   readonly owner?: string | undefined;
+  readonly input?: Readonly<Record<string, unknown>> | undefined;
 }): RunContext {
   return {
     runId: runIdOf(context.runId),
     threadId: context.threadId ?? context.runId,
     signal: context.signal ?? new AbortController().signal,
     metadata: context.metadata ?? {},
+    input: context.input ?? {},
     ...(context.owner === undefined ? {} : { owner: context.owner }),
   };
 }

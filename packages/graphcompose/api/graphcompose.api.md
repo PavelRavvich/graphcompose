@@ -713,6 +713,7 @@ export interface ExecutionOutput extends Pick<AgentExecutionOutput, "status" | "
     readonly output?: WorkflowFinishText;
     readonly path: readonly FlowNode[];
     readonly pause?: PendingPause;
+    readonly runId: string;
     // (undocumented)
     readonly spend: CostReport;
     // (undocumented)
@@ -1792,6 +1793,7 @@ export function runAgent<TName extends string>(input: unknown, deps: RunDeps<TNa
 
 // @public
 export interface RunContext {
+    readonly input: Readonly<Record<string, unknown>>;
     readonly metadata: Readonly<Record<string, string>>;
     readonly owner?: string;
     readonly runId: RunId;
@@ -1827,6 +1829,7 @@ export interface RunOptions {
     readonly onStream?: (event: RunStreamEvent) => void;
     readonly owner?: string | undefined;
     readonly replayOf?: string;
+    readonly runId?: string;
     readonly signal?: AbortSignal | undefined;
 }
 
@@ -2215,17 +2218,17 @@ export type WorkflowTools = readonly AnyTool[] | ((services: WorkflowServices) =
 
 // Warnings were encountered during analysis:
 //
-// src/app/app-deps.ts:44:3 - (ae-undocumented) Missing documentation for "observer".
-// src/app/app-deps.ts:45:3 - (ae-undocumented) Missing documentation for "evaluation".
-// src/app/app-deps.ts:63:3 - (ae-undocumented) Missing documentation for "ledger".
-// src/app/app-deps.ts:64:3 - (ae-undocumented) Missing documentation for "terns".
-// src/app/app-deps.ts:91:3 - (ae-undocumented) Missing documentation for "stores".
-// src/app/app-deps.ts:94:3 - (ae-undocumented) Missing documentation for "newThreadId".
-// src/app/app-deps.ts:95:3 - (ae-undocumented) Missing documentation for "newRunId".
-// src/app/app-deps.ts:96:3 - (ae-undocumented) Missing documentation for "container".
-// src/app/create-app.ts:31:1 - (ae-undocumented) Missing documentation for "NotAWorkflowStartError".
-// src/app/create-app.ts:32:12 - (ae-undocumented) Missing documentation for "name".
-// src/app/create-app.ts:44:3 - (ae-undocumented) Missing documentation for "profileRoot".
+// src/app/app-deps.ts:54:3 - (ae-undocumented) Missing documentation for "observer".
+// src/app/app-deps.ts:55:3 - (ae-undocumented) Missing documentation for "evaluation".
+// src/app/app-deps.ts:73:3 - (ae-undocumented) Missing documentation for "ledger".
+// src/app/app-deps.ts:74:3 - (ae-undocumented) Missing documentation for "terns".
+// src/app/app-deps.ts:101:3 - (ae-undocumented) Missing documentation for "stores".
+// src/app/app-deps.ts:104:3 - (ae-undocumented) Missing documentation for "newThreadId".
+// src/app/app-deps.ts:105:3 - (ae-undocumented) Missing documentation for "newRunId".
+// src/app/app-deps.ts:106:3 - (ae-undocumented) Missing documentation for "container".
+// src/app/create-app.ts:32:1 - (ae-undocumented) Missing documentation for "NotAWorkflowStartError".
+// src/app/create-app.ts:33:12 - (ae-undocumented) Missing documentation for "name".
+// src/app/create-app.ts:45:3 - (ae-undocumented) Missing documentation for "profileRoot".
 // src/app/limit-check.ts:9:3 - (ae-undocumented) Missing documentation for "code".
 // src/app/limit-check.ts:10:12 - (ae-undocumented) Missing documentation for "name".
 // src/app/paused-runs.ts:11:3 - (ae-undocumented) Missing documentation for "run".
@@ -2238,13 +2241,13 @@ export type WorkflowTools = readonly AnyTool[] | ((services: WorkflowServices) =
 // src/app/types.ts:76:3 - (ae-undocumented) Missing documentation for "owner".
 // src/app/types.ts:81:3 - (ae-undocumented) Missing documentation for "cancelled".
 // src/app/types.ts:92:3 - (ae-undocumented) Missing documentation for "thread".
-// src/app/types.ts:95:3 - (ae-undocumented) Missing documentation for "output".
-// src/app/types.ts:96:3 - (ae-undocumented) Missing documentation for "finishes".
-// src/app/types.ts:101:3 - (ae-undocumented) Missing documentation for "spend".
-// src/app/types.ts:110:3 - (ae-undocumented) Missing documentation for "name".
-// src/app/types.ts:111:3 - (ae-undocumented) Missing documentation for "version".
-// src/app/types.ts:127:3 - (ae-undocumented) Missing documentation for "resume".
-// src/app/types.ts:137:3 - (ae-undocumented) Missing documentation for "close".
+// src/app/types.ts:100:3 - (ae-undocumented) Missing documentation for "output".
+// src/app/types.ts:101:3 - (ae-undocumented) Missing documentation for "finishes".
+// src/app/types.ts:106:3 - (ae-undocumented) Missing documentation for "spend".
+// src/app/types.ts:115:3 - (ae-undocumented) Missing documentation for "name".
+// src/app/types.ts:116:3 - (ae-undocumented) Missing documentation for "version".
+// src/app/types.ts:132:3 - (ae-undocumented) Missing documentation for "resume".
+// src/app/types.ts:142:3 - (ae-undocumented) Missing documentation for "close".
 // src/channels/terminal-channel.ts:4:1 - (ae-undocumented) Missing documentation for "TerminalUserChannel".
 // src/channels/test-channels.ts:3:1 - (ae-undocumented) Missing documentation for "AutoApproveChannel".
 // src/channels/test-channels.ts:9:3 - (ae-undocumented) Missing documentation for "requestApproval".
@@ -2703,17 +2706,17 @@ export type WorkflowTools = readonly AnyTool[] | ((services: WorkflowServices) =
 // src/run/types.ts:24:3 - (ae-undocumented) Missing documentation for "key".
 // src/run/types.ts:25:3 - (ae-undocumented) Missing documentation for "dailyCap".
 // src/run/types.ts:33:1 - (ae-undocumented) Missing documentation for "RunOptions".
-// src/run/types.ts:36:3 - (ae-undocumented) Missing documentation for "account".
-// src/run/types.ts:41:3 - (ae-undocumented) Missing documentation for "executionContext".
-// src/run/types.ts:53:1 - (ae-undocumented) Missing documentation for "AgentExecutionOutput".
-// src/run/types.ts:54:3 - (ae-undocumented) Missing documentation for "status".
-// src/run/types.ts:55:3 - (ae-undocumented) Missing documentation for "replyWith".
-// src/run/types.ts:62:3 - (ae-undocumented) Missing documentation for "finishes".
-// src/run/types.ts:63:3 - (ae-undocumented) Missing documentation for "stopReason".
-// src/run/types.ts:64:3 - (ae-undocumented) Missing documentation for "budgetUsd".
-// src/run/types.ts:65:3 - (ae-undocumented) Missing documentation for "cost".
-// src/run/types.ts:66:3 - (ae-undocumented) Missing documentation for "threadId".
-// src/run/types.ts:67:3 - (ae-undocumented) Missing documentation for "ternId".
+// src/run/types.ts:38:3 - (ae-undocumented) Missing documentation for "account".
+// src/run/types.ts:43:3 - (ae-undocumented) Missing documentation for "executionContext".
+// src/run/types.ts:55:1 - (ae-undocumented) Missing documentation for "AgentExecutionOutput".
+// src/run/types.ts:56:3 - (ae-undocumented) Missing documentation for "status".
+// src/run/types.ts:57:3 - (ae-undocumented) Missing documentation for "replyWith".
+// src/run/types.ts:64:3 - (ae-undocumented) Missing documentation for "finishes".
+// src/run/types.ts:65:3 - (ae-undocumented) Missing documentation for "stopReason".
+// src/run/types.ts:66:3 - (ae-undocumented) Missing documentation for "budgetUsd".
+// src/run/types.ts:67:3 - (ae-undocumented) Missing documentation for "cost".
+// src/run/types.ts:68:3 - (ae-undocumented) Missing documentation for "threadId".
+// src/run/types.ts:69:3 - (ae-undocumented) Missing documentation for "ternId".
 // src/tools/define-tool.ts:18:3 - (ae-undocumented) Missing documentation for "code".
 // src/tools/define-tool.ts:19:12 - (ae-undocumented) Missing documentation for "name".
 // src/tools/types.ts:6:3 - (ae-undocumented) Missing documentation for "executionContext".

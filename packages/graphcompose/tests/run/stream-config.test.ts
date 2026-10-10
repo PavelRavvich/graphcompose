@@ -29,6 +29,6 @@ describe("#181: the run's config is built once, with its RunContext", () => {
 
     const { run } = extractRunContext({ signal }, "run-x");
 
-    expect(run).toEqual({ runId: "run-x", threadId: "run-x", signal, metadata: {} });
+    expect(run).toEqual({ runId: "run-x", threadId: "run-x", signal, metadata: {}, input: {} });
   });
 });

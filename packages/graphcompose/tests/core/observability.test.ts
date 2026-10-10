@@ -195,7 +195,7 @@ describe("Global Observability Hooks", () => {
     book
       .scriptOf("agent:ObsAgent")
       .thenReturn(callTool(ObsTool, { text: "hello" }), replyWith("Hello user!"));
-    await app.execute(ObsStart, { text: "Hi" });
+    const result = await app.execute(ObsStart, { text: "Hi" });
 
     // Ensure all hook types fired
     expect(hookEvents).toContain("WorkflowStart");
@@ -212,7 +212,8 @@ describe("Global Observability Hooks", () => {
     expect(hookEvents).toContain("RagEnd:ObsRag");
 
     expect(capturedState).not.toBeNull();
-    expect((capturedState as AppState | null)?.runId).toMatch(/^run-/);
+    // #238: the run's own id, the one its result carries
+    expect((capturedState as AppState | null)?.runId).toBe(result.runId);
 
     await app.close();
   });

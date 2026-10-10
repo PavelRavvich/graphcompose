@@ -23,6 +23,8 @@ export interface RunIdentity {
   readonly threadId: string;
   readonly runId: string;
   readonly quorumManager: QuorumManager;
+  /** The start's validated input (`ctx.run.input`). */
+  readonly input?: Readonly<Record<string, unknown>> | undefined;
 }
 
 /** The run's `RunContext`: built once here, read by every node through `configurable.run`. */
@@ -33,6 +35,7 @@ const runContextOf = (identity: RunIdentity, options: RunOptions): RunContext =>
     signal: options.signal,
     metadata: options.metadata,
     owner: options.owner,
+    input: identity.input,
   });
 
 /**

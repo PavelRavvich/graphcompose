@@ -31,6 +31,8 @@ export type RunStreamEvent =
   | { readonly kind: "toolCall"; readonly tool: string; readonly args?: unknown };
 
 export interface RunOptions {
+  /** The run's id, made once by the app (its observer events use it too); default: a new one. */
+  readonly runId?: string;
   /** Id of the Tern this run replays (eval). */
   readonly replayOf?: string;
   readonly account?: SpendAccount;
@@ -69,7 +71,7 @@ export interface AgentExecutionOutput {
   readonly compacted?: Compacted;
   /** The conversation in the tracing UI (session = thread), when tracing is on. */
   readonly traceUrl?: string;
-  /** Checkpoint id of this run — used to resume a paused run. */
+  /** The run's id (observer events, `ctx.run.runId`, its Tern, its checkpoint — a resume keeps it). */
   readonly runId: string;
   /** Present only when `status` is "paused": the tool call waiting for an approval. */
   readonly pending?: PendingPause;

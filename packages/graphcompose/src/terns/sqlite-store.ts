@@ -69,7 +69,7 @@ function ternWrites(db: DatabaseSync, now: Clock): Pick<TernStore, "append" | "c
       db.prepare(
         `INSERT INTO terns (id, thread_id, bundle, created_at, task, replyWith, status, stop_reason,
            route, steps, cost_usd, prompt_version, model_version, replay_of, config_version,
-           config_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           config_hash, run_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         t.id,
         t.threadId,
@@ -87,6 +87,7 @@ function ternWrites(db: DatabaseSync, now: Clock): Pick<TernStore, "append" | "c
         t.replayOf,
         t.configVersion,
         t.configHash,
+        t.runId,
       );
       return Promise.resolve(t);
     },

@@ -44,33 +44,43 @@ export function runAgent<TName extends string>(
   return inRunScope(() => runOnce(input, deps, options));
 }
 
+/** What every Tern of the run has: its run, thread, task, replay and versions. */
+const ternBaseOf = <TName extends string>(
+  deps: RunDeps<TName>,
+  run: Pick<TernBase, "runId" | "threadId" | "task">,
+  options: RunOptions,
+): TernBase => ({
+  ...run,
+  bundle: deps.config.name,
+  replayOf: options.replayOf ?? null,
+  ...runVersions(deps),
+});
+
 async function runOnce<TName extends string>(
   input: unknown,
   deps: RunDeps<TName>,
   options: RunOptions,
 ): Promise<AgentExecutionOutput> {
-  const { task, threadId: requested, start } = RunInputSchema.parse(input);
+  const parsed = RunInputSchema.parse(input);
+  const { task, threadId: requested, start } = parsed;
+  const startInput = parsed.input ?? { text: task };
   const account = options.account ?? workflowAccount(deps);
   const { threadId, history, summaries } = await openThread(deps, requested);
   const spent: UsageRecord[] = [];
-  const base: TernBase = {
-    threadId,
-    bundle: deps.config.name,
-    task,
-    replayOf: options.replayOf ?? null,
-    ...runVersions(deps),
-  };
+  const runId = options.runId ?? deps.newRunId?.() ?? randomUUID();
+  const base = ternBaseOf(deps, { runId, threadId, task }, options);
   let release = (): void => undefined;
   try {
     const { budgetUsd, run, hold } = await allowedBudget(deps, account);
     release = hold.release;
-    const runId = deps.newRunId?.() ?? randomUUID();
     const flow = await flowGraphOf(deps, run);
     const quorumManager = quorumOf(deps, runId);
-    const config = streamConfig(deps, { threadId, runId, quorumManager }, options);
+    const identity = { threadId, runId, quorumManager, input: startInput };
+    const config = streamConfig(deps, identity, options);
     const record = recorder(hold, spent);
     const initial = {
       task,
+      startInput,
       budgetUsd,
       history,
       summaries,

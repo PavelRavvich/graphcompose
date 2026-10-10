@@ -12,6 +12,8 @@ export interface TernStep {
 
 export interface Tern {
   readonly id: string;
+  /** The run that wrote it (`ExecutionOutput.runId`, `ctx.run.runId`); null for Terns before #238. */
+  readonly runId: string | null;
   readonly threadId: string;
   readonly bundle: string;
   readonly createdAt: string;

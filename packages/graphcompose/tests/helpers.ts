@@ -128,6 +128,7 @@ export const usageRecord = (caller: string, costUsd: number): UsageRecord => ({
 export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateType {
   return {
     task: "Do the thing",
+    startInput: { text: "Do the thing" },
     history: [],
     runId: "run-test",
     next: "",

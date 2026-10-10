@@ -66,6 +66,7 @@ export function nestedFlowNodesByKey(flow: Flow): FlowNodesByKey {
 export function runResultOf(run: AgentExecutionOutput, nodes: FlowNodesByKey): ExecutionOutput {
   return {
     thread: run.threadId,
+    runId: run.runId,
     status: run.status,
     replyWith: run.replyWith,
     route: run.route,
