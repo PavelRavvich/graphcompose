@@ -1,6 +1,7 @@
 import { Annotation } from "@langchain/langgraph";
 import { AgentState } from "./state.js";
 import type { ForkOutput } from "./fork-join.js";
+import type { ErrorRecord } from "../core/error-record.js";
 
 const replace = <TValue>(_previous: TValue, next: TValue): TValue => next;
 
@@ -49,8 +50,11 @@ export const FlowState = Annotation.Root({
     reducer: mergeForks,
     default: () => ({}),
   }),
-  /** The last caught error in the flow. */
-  lastError: Annotation<Error | null>({ reducer: replace, default: () => null }),
+  /**
+   * The error a `catchError` caught at the last node, as a plain record (it survives a serialising
+   * checkpointer); cleared by the next node that runs.
+   */
+  lastError: Annotation<ErrorRecord | null>({ reducer: replace, default: () => null }),
 });
 
 export type FlowStateType = typeof FlowState.State;

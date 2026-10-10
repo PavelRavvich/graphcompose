@@ -31,8 +31,10 @@ export type RouterFailureCode = "router.failed" | "router.unknown-route";
 
 /** A router could not routeTo — the run fails (no guessing); its spend is kept. */
 export class RouterDecisionError extends PaidStepError {
+  static override readonly code: string = "step.router";
   override name = "RouterDecisionError";
-  readonly code: RouterFailureCode;
+  /** Why the decision failed (refines the class's code `RouterDecisionError.code`, `step.router`). */
+  override readonly code: RouterFailureCode;
   readonly router: string;
 
   constructor(
@@ -41,7 +43,7 @@ export class RouterDecisionError extends PaidStepError {
     reason: string,
     usage: readonly UsageRecord[],
   ) {
-    super(`Router "${router}" [${code}]: ${reason}`, usage, undefined);
+    super(`Router "${router}" [${code}]: ${reason}`, usage, undefined, { router, reason: code });
     this.code = code;
     this.router = router;
   }

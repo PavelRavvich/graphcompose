@@ -18,6 +18,7 @@ import { visitNode, type FlowNodeRunner, type SpentToday, type VisitDeps } from 
 import type { GraphDeps } from "./deps.js";
 import { graphNodeId, type Builder } from "./build-shared.js";
 import { nodeEdges, startEdges } from "./build-edges.js";
+import { catchCodesOf } from "./build-catch.js";
 import { compileJoinBarriers } from "./build-joins.js";
 import { addBatchNodes, compileBatchParallelLoops } from "./build-batch.js";
 import { quorumContextOf, quorumRouterRunner } from "./build-quorum.js";
@@ -153,7 +154,7 @@ function compileFlow(
     const visitDeps = {
       ...sharedDeps,
       ...(maxVisits === undefined ? {} : { maxVisits }),
-      catchesErrors: (model.catches.get(node.key) ?? []).length > 0,
+      catchCodes: catchCodesOf(model, node.key),
     };
     addFlowNode(builder, model, node, runner, visitDeps);
   }

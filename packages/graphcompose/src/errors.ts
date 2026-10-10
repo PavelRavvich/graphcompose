@@ -1,22 +1,20 @@
-export class ExecutionError extends Error {
-  public readonly isFatal: boolean;
-  constructor(message: string, options?: { cause?: Error; isFatal?: boolean }) {
-    super(message, options);
-    this.name = this.constructor.name;
-    this.isFatal = options?.isFatal ?? true;
-  }
-}
-
-// DI / Component Layers
-export class ProviderExecutionError extends ExecutionError {}
-export class AdapterExecutionError extends ExecutionError {}
-export class ToolExecutionError extends ExecutionError {}
-export class AgentExecutionError extends ExecutionError {}
-export class RouterExecutionError extends ExecutionError {}
-export class WorkflowExecutionError extends ExecutionError {}
-export class SubgraphExecutionError extends ExecutionError {}
-
-// Domain / Infra
-export class InsufficientFundsError extends ExecutionError {}
-export class QuorumFailedError extends ExecutionError {}
-export class RateLimitExceededError extends ExecutionError {}
+/**
+ * The errors a run can fail with — every one a `GraphComposeError` with a stable `code`, so a flow
+ * can `catchError(<class>)` it (also after a resume from a checkpoint) and a caller can tell them
+ * apart. `limit` ⊃ `limit.budget`; `step` ⊃ `step.agent`, `step.guard`, `step.router`.
+ */
+export {
+  GraphComposeError,
+  WorkflowCancelledError,
+  type ErrorDetails,
+  type GraphComposeErrorOptions,
+} from "./core/errors.js";
+export { errorRecordOf, type ErrorRecord } from "./core/error-record.js";
+export { BudgetExceededError, LimitExceededError, type LimitKey } from "./graph/limits.js";
+export { AgentFailedError, GuardFailedError, PaidStepError } from "./graph/errors.js";
+export { RouterDecisionError, type RouterFailureCode } from "./graph/nodes/flow-router.js";
+export { ModelCallError, type ModelCallErrorCode } from "./models/circuit-breaker.js";
+export { ToolTimeoutError } from "./tools/index.js";
+export { DtoValidationError } from "./dto/errors.js";
+export { NotPausedError } from "./run/resume-agent.js";
+export { UnknownThreadError } from "./run/thread.js";

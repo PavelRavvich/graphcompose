@@ -1,3 +1,4 @@
+import { GraphComposeError } from "../core/errors.js";
 import { Command } from "@langchain/langgraph";
 import type { UsageRecord } from "../finops/usage.js";
 import type { FlowGraph } from "../graph/build.js";
@@ -16,7 +17,9 @@ import { isWaiting, pausedLoopOf } from "./paused.js";
 import type { AgentExecutionOutput, RunDeps } from "./types.js";
 import { runVersions } from "./versions.js";
 
-export class NotPausedError extends Error {
+/** `resume` of a run that is not waiting for a decision. */
+export class NotPausedError extends GraphComposeError {
+  static override readonly code: string = "run.not-paused";
   override name = "NotPausedError";
 }
 

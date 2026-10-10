@@ -84,19 +84,9 @@ function compensatorOf(use: Class): Class | undefined {
   return meta && "compensate" in meta ? meta.compensate : undefined;
 }
 
-/**
- * Exemption for cancel/compensation actions. Note: it checks `kind` on the inner decorator
- * meta, which no decorator records, so it never matches (kept as-is; see #180 report).
- */
-function isCancelOrCompensationAction(ref: FlowNodeRef): boolean {
-  const meta = componentOf(ref.use)?.meta;
-  return (
-    meta !== undefined &&
-    "kind" in meta &&
-    meta.kind === "action" &&
-    (ref.label.includes("Cancel") || ref.label.includes("Compensation"))
-  );
-}
+/** Exemption for cancel/compensation actions: a `@WorkflowAction` named `Cancel…` / `…Compensation…`. */
+const isCancelOrCompensationAction = (ref: FlowNodeRef): boolean =>
+  ref.kind === "action" && (ref.label.includes("Cancel") || ref.label.includes("Compensation"));
 
 function reachableFromStarts(flow: CollectedFlow): Set<string> {
   const next = nextStepsByNode(flow.transitions);

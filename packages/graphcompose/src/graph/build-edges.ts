@@ -12,6 +12,7 @@ import {
   pathMap,
   type Builder,
 } from "./build-shared.js";
+import { caughtErrorTarget } from "./build-catch.js";
 
 export class UnknownWorkflowStartError extends Error {
   override name = "UnknownWorkflowStartError";
@@ -67,24 +68,6 @@ function parallelSends(
 ): Send[] | undefined {
   const match = next.parallelTargets.find((p) => p.optionName === state.next);
   return match?.targets.map((t) => new Send(graphNodeId(nodeKeyed(model, t)), state));
-}
-
-/** The catch handler a caught error leads to; an unhandled error is rethrown. */
-function caughtErrorTarget(
-  model: FlowModel,
-  catches: readonly NextDeclaration[],
-  error: Error,
-): string {
-  for (const catchNode of catches) {
-    if (catchNode.kind === "catch") {
-      const isMatch =
-        error instanceof catchNode.errorType ||
-        (error.cause && error.cause instanceof catchNode.errorType);
-      if (isMatch) return graphNodeId(nodeKeyed(model, catchNode.nextNode));
-    }
-  }
-  // Unhandled error
-  throw error;
 }
 
 function catchingChooseRoute(
