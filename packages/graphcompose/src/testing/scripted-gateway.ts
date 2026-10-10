@@ -1,5 +1,13 @@
 import type { ChatModelUser, DecisionSpec, ModelGateway } from "../llm/gateway.js";
-import { isSelf, isReturn, isEnd, type ChoiceTarget } from "../graph/flow.js";
+import {
+  isEnd,
+  isNamedNode,
+  isReturn,
+  isSelf,
+  type ChoiceTarget,
+  type FlowNode,
+} from "../graph/flow.js";
+import { componentOf } from "../components/metadata.js";
 import { SELF_OPTION } from "../graph/route.js";
 import { routerCaller, type RouteOutcome } from "../routers/index.js";
 import type { UsageRecord } from "../finops/usage.js";
@@ -10,10 +18,30 @@ import type { ComponentScript, ScriptBook, ModelRequest } from "./script-book.js
 import { ScriptedChatModel } from "./scripted-chat-model.js";
 
 /** The script key of a chat model's user and of a router. */
-export const chatKeyOf = (user: ChatModelUser): string =>
-  user.kind === "compaction"
-    ? "compaction"
-    : `${user.kind}:${user.kind === "agent" ? user.agent : user.router}`;
+export function chatKeyOf(user: ChatModelUser): string {
+  switch (user.kind) {
+    case "compaction":
+      return "compaction";
+    case "agent":
+      return `agent:${user.agent}`;
+    case "judge":
+      return judgeKeyOf(user.judge);
+    case "router":
+      return `router:${user.router}`;
+  }
+}
+export const judgeKeyOf = (judge: string): string => `judge:${judge}`;
+
+/** The script key of a `@Judge` class among the workflow's judges (by name); else none. */
+export function judgeScriptKeyOf(
+  target: FlowNode,
+  judges: ReadonlySet<string>,
+): string | undefined {
+  if (isNamedNode(target)) return undefined;
+  const component = componentOf(target);
+  if (component?.kind !== "judge" || !judges.has(component.meta.name)) return undefined;
+  return judgeKeyOf(component.meta.name);
+}
 export const routerKeyOf = (router: string): string => `router:${router}`;
 
 /** The option a router sees for a target: its node name, or `self`. */

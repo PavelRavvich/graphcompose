@@ -15,7 +15,7 @@ import {
   type ChannelHandler,
   type IWorkflowAction,
 } from "../../src/components/decorators.js";
-import { BaseJudge, Judge } from "../../src/components/judge-decorators.js";
+import { Judge, type JudgeHandler } from "../../src/components/judge-decorators.js";
 import { type Provider } from "../../src/components/injection.js";
 import { Agent, InjectionToken, provide } from "../../src/core/index.js";
 import { Text } from "../../src/dto/index.js";
@@ -78,10 +78,11 @@ class AdaptedChannel implements ChannelHandler {
   }
 }
 
-@Judge({ name: "needs-judge", deps: [MISSING] })
-class NeedsJudge extends BaseJudge {
-  constructor(readonly value: string) {
-    super();
+@Judge({ name: "needs-judge", model: "test/j", deps: [MISSING] })
+class NeedsJudge implements JudgeHandler {
+  constructor(readonly value: string) {}
+  judge(): Promise<{ passed: boolean }> {
+    return Promise.resolve({ passed: true });
   }
 }
 

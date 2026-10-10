@@ -1,3 +1,4 @@
+import type { JudgeHandler } from "./components/judge-decorators.js";
 import type { BaseMemoryStrategy } from "./memory/types.js";
 import type { AgentPrompts, AgentsConfigOf } from "./config/types.js";
 import type { KnowledgeSource, RagConnector } from "./rag/types.js";
@@ -76,6 +77,8 @@ export interface AssembledWorkflow<TName extends string = string> {
   readonly memoryStrategies?: (
     services: WorkflowServices,
   ) => ReadonlyMap<string, BaseMemoryStrategy>;
+  /** The agents' `@Judge`s by judge name, created by the workflow's container. */
+  readonly judges?: (services: WorkflowServices) => ReadonlyMap<string, JudgeHandler>;
   /** Context-mode knowledge bases per agent (retrieved before the agent runs). */
   readonly knowledge?: (
     services: WorkflowServices,

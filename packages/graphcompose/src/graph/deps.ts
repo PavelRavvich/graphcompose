@@ -15,6 +15,7 @@ import type {
   InboundChannelAdapter,
 } from "../components/decorators.js";
 import type { WorkflowLimits } from "./settings.js";
+import type { JudgeHandler } from "../components/judge-decorators.js";
 
 /** What the workflow's graph is built from: its flow, its agents and the existing nodes' parts. */
 export interface GraphDeps<TName extends string> {
@@ -28,6 +29,8 @@ export interface GraphDeps<TName extends string> {
   readonly actions?: (name: string) => IWorkflowAction;
   /** Agents' own memory strategies (`@Agent({ memoryStrategy })`); the rest use the built-in one. */
   readonly memory?: ReadonlyMap<string, BaseMemoryStrategy>;
+  /** The agents' `@Judge`s by judge name, created by the container (models in `registry.judges`). */
+  readonly judges?: ReadonlyMap<string, JudgeHandler>;
   /** Context-mode knowledge bases per agent (knowledge bases, #88). */
   readonly knowledge?: (agent: string) => readonly KnowledgeSource[];
   /** Optional pause seam (approval of tool calls). Off by default. */

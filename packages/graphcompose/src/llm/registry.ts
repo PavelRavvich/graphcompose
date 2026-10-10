@@ -23,6 +23,8 @@ export interface ModelRegistry {
   readonly agents: ReadonlyMap<string, ModelBinding>;
   /** The conversation-compaction model, when the workflow compacts. */
   readonly compaction?: ModelBinding | undefined;
+  /** Each `@Judge`'s own model, by judge name. */
+  readonly judges: ReadonlyMap<string, ModelBinding>;
 }
 
 /**
@@ -45,7 +47,7 @@ export function resolveSettings(
   };
 }
 
-/** Builds one binding per agent; each model comes from the gateway (which shares identical ones). */
+/** Builds one binding per agent and judge; each model comes from the gateway (which shares identical ones). */
 export function createModelRegistry(
   config: AgentsConfigOf<string>,
   gateway: Pick<ModelGateway, "chatModel">,
@@ -65,5 +67,10 @@ export function createModelRegistry(
     config.compaction === undefined
       ? undefined
       : bindFor({ kind: "compaction" })(config.compaction.model);
-  return { agents, compaction };
+  const judges = new Map(
+    Object.entries(config.judges ?? {}).map(
+      ([judge, settings]) => [judge, bindFor({ kind: "judge", judge })(settings)] as const,
+    ),
+  );
+  return { agents, compaction, judges };
 }

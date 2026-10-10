@@ -16,9 +16,10 @@ import type { ModelProviderDirectory } from "../models/resolve.js";
 export type ChatModelUser =
   | { readonly kind: "agent"; readonly agent: string }
   | { readonly kind: "compaction" }
+  | { readonly kind: "judge"; readonly judge: string }
   | { readonly kind: "router"; readonly router: string };
 
-/** A chat model request: its user and complete settings (agents, compaction, LLM routers). */
+/** A chat model request: its user and complete settings (agents, compaction, judges, LLM routers). */
 export interface ChatModelSpec {
   readonly user: ChatModelUser;
   readonly settings: ResolvedModelSettings;
@@ -37,7 +38,7 @@ export interface DecisionSpec {
 }
 
 /**
- * The one seam every model call goes through. Agents and compaction get their chat model from
+ * The one seam every model call goes through. Agents, judges and compaction get their chat model from
  * `chatModel`; routers and guards routeTo through `routeTo`.
  * Model providers, scripted and replayed models replace the gateway, nothing behind it.
  */

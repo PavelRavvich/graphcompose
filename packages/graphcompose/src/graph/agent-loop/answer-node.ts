@@ -27,11 +27,13 @@ export function makeAnswerNode(
     const isString = typeof content === "string";
     const textReply = isString ? content.trim() : (state.move?.text.trim() ?? "");
     const trimmedContent = isString ? content.trim() : content;
+    // with judges, the reply becomes the agent's contribution only once they pass it (judge node)
+    const judged = (deps.agent.judges ?? []).length > 0;
     return {
       messages: state.move === null ? [] : [state.move],
       move: null,
       reply: textReply,
-      contributions: [{ agent, content: trimmedContent }],
+      contributions: judged ? [] : [{ agent, content: trimmedContent }],
     };
   };
 }

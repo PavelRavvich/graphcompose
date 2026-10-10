@@ -101,6 +101,9 @@ export const AgentSettingsSchema = ModelSettingsSchema.extend({
   historySummaries: z.number().int().nonnegative().optional(),
   /** Tool calls per call of the agent; crossing it fails the run. Default: defaults.tools.maxToolCalls, else 20. */
   maxToolCalls: z.number().int().nonnegative().optional(),
+  /** Judges of the agent's reply (names in `judges`), and how often a rejected reply is retried (default 0). */
+  judges: z.array(z.string()).optional(),
+  maxRetries: z.number().int().nonnegative().optional(),
   /** Knowledge bases the agent uses (from `@Agent({ rag })`): name, mode and passages per retrieval. */
   rag: z
     .array(
@@ -179,6 +182,8 @@ export const AgentsConfigSchema = z.object({
       output: z.record(z.string(), GuardSettingsSchema).optional(),
     })
     .optional(),
+  /** `@Judge` models by judge name. */
+  judges: z.record(z.string(), ModelSettingsSchema).optional(),
   agents: z
     .record(z.string(), AgentSettingsSchema)
     .refine((agents) => Object.keys(agents).length > 0, "at least one agent is required"),

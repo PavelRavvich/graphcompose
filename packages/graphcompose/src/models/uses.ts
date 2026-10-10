@@ -38,7 +38,7 @@ const guardUses = (config: AgentsConfigOf<string>): ModelUse[] =>
     ),
   );
 
-/** Every model use of a workflow: agents, compaction, the default router, guards and flow routers. */
+/** Every model use of a workflow: agents, compaction, judges, the default router, guards and flow routers. */
 export function modelUsesOf(
   config: AgentsConfigOf<string>,
   routers: readonly ModelNamingRouter[],
@@ -52,6 +52,7 @@ export function modelUsesOf(
   return [
     ...Object.entries(config.agents).map(([name, agent]) => chat(`agents.${name}`, agent)),
     ...(config.compaction === undefined ? [] : [chat("compaction", config.compaction.model)]),
+    ...Object.entries(config.judges ?? {}).map(([name, judge]) => chat(`judges.${name}`, judge)),
     routerUse("defaults.router", config.defaults.router, config),
     ...guardUses(config),
     ...routers.map((router): ModelUse =>

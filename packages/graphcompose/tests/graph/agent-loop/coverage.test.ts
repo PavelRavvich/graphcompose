@@ -150,13 +150,10 @@ describe("agent-loop coverage", () => {
   });
 
   it("judge-node calls observer", async () => {
-    class TestJudge {
-      evaluate() {
-        return { passed: true };
-      }
-    }
+    const handler = { judge: () => Promise.resolve({ passed: true }) };
+    const judges = [{ name: "j1", handler, binding: { settings: { model: "m" } } }];
     const observer = { onJudgeStart: vi.fn(), onJudgeEnd: vi.fn() };
-    const deps = { agent: { name: "a1", judges: [TestJudge], binding: {} }, observer };
+    const deps = { agent: { name: "a1", judges, binding: {} }, observer };
     const node = makeJudgeNode(deps);
     await node({ reply: "test", runId: "1", messages: [] }, {});
     expect(observer.onJudgeStart).toHaveBeenCalled();

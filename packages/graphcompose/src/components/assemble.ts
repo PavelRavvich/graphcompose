@@ -16,7 +16,7 @@ import {
 import type { IWorkflowAction } from "./decorators.js";
 import type { McpServerClient, ServerTools } from "./mcp-client.js";
 import type { Token } from "./injection.js";
-import { ragClassesOf, ragMeta, ragSettings, searchToolName } from "./rag.js";
+import { ragClassesOf } from "./rag.js";
 import { type Class } from "./injection.js";
 import { ComponentError, componentOf, requireComponent } from "./metadata.js";
 import { containerPartsOf, policyMapsOf } from "./assemble-parts.js";
@@ -34,34 +34,8 @@ import { PromptLoader } from "./prompt-render.js";
 import { checkMemoryStrategies, memoryPartsOf } from "./memory-parts.js";
 import { moduleOf, workflowTreeOf } from "./nested-modules.js";
 import { checkObservers } from "./observer-checks.js";
-
-/** An agent's settings as the config holds them (tools by name). */
-function agentSettings(
-  agent: AgentMeta,
-  names: ReadonlyMap<Class, string>,
-): AgentsConfigOf<string>["agents"][string] {
-  const optional = {
-    thinking: agent.thinking,
-    temperature: agent.temperature,
-    maxTokens: agent.maxTokens,
-    cache: agent.cache,
-    historyLimit: agent.historyLimit,
-    historySummaries: agent.historySummaries,
-    maxToolCalls: agent.maxToolCalls,
-    price: agent.price,
-  };
-  const search = (agent.rag ?? [])
-    .filter((b) => b.mode === "tool")
-    .map((b) => searchToolName(ragMeta(b.use)));
-  const rag = ragSettings(agent);
-  return {
-    model: agent.model,
-    description: agent.description,
-    tools: [...(agent.tools ?? []).map((cls) => names.get(cls) ?? cls.name), ...search],
-    ...(rag.length === 0 ? {} : { rag }),
-    ...Object.fromEntries(Object.entries(optional).filter(([, value]) => value !== undefined)),
-  };
-}
+import { judgeClassesOf, judgePartsOf, judgeSettingsOf, type JudgeClass } from "./judge-parts.js";
+import { agentSettings } from "./agent-settings.js";
 
 function toolsOf(bundle: WorkflowMeta, agents: readonly AgentMeta[]) {
   const classes = [...new Set(agents.flatMap((agent) => agent.tools ?? []))];
@@ -131,6 +105,7 @@ function configOf(
   agents: readonly AgentMeta[],
   names: ReadonlyMap<Class, string>,
   mcp: Mcp,
+  judges: ReadonlyMap<string, JudgeClass>,
 ): AgentsConfigOf<string> {
   return {
     name: bundle.name,
@@ -141,6 +116,7 @@ function configOf(
     ...(mcp.servers.length === 0
       ? {}
       : { mcpServers: Object.fromEntries(mcp.servers.map((s) => [s.name, s.config])) }),
+    ...(judges.size === 0 ? {} : { judges: judgeSettingsOf(judges) }),
     agents: Object.fromEntries(agents.map((agent) => [agent.name, agentSettings(agent, names)])),
   };
 }
@@ -174,6 +150,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   const rags = ragClassesOf(bundle, agents);
   checkProviderClasses(bundle);
   checkMemoryStrategies(agents);
+  const judges = judgeClassesOf(agents);
   checkGraph(
     componentClassesOf(bundle, agents, tools, rags, graph.actions),
     bundle.providers ?? [],
@@ -183,7 +160,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   const names = toolNames(tools, rags);
   const prompts = await promptsOf(agents, loader);
   loader.throwIfAny();
-  const config = configOf(bundle, agents, names, mcp);
+  const config = configOf(bundle, agents, names, mcp, judges);
   const settings = settingsOf(bundleClass, bundle);
 
   validateAgentsConfig(config, [...names.values()]);
@@ -207,6 +184,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     },
     ...(rags.length === 0 ? {} : ragParts(bundle, agents, rags)),
     ...memoryPartsOf(bundle, agents),
+    ...judgePartsOf(bundle, judges),
     mcpServers: mcp.handles,
     serverTools: mcp.serverTools,
     toolDependencies: toolDependenciesOf(bundle, [...tools.local, ...tools.mcp], names),

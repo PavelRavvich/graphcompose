@@ -11,7 +11,13 @@ export {
 } from "./core/errors.js";
 export { errorRecordOf, type ErrorRecord } from "./core/error-record.js";
 export { BudgetExceededError, LimitExceededError, type LimitKey } from "./graph/limits.js";
-export { AgentFailedError, GuardFailedError, PaidStepError } from "./graph/errors.js";
+export {
+  AgentFailedError,
+  GuardFailedError,
+  PaidStepError,
+  QualityGateError,
+  type JudgeFeedback,
+} from "./graph/errors.js";
 export { RouterDecisionError, type RouterFailureCode } from "./graph/nodes/flow-router.js";
 export { ModelCallError, type ModelCallErrorCode } from "./models/circuit-breaker.js";
 export { ToolTimeoutError } from "./tools/index.js";

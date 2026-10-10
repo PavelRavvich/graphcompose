@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 import { Dataset } from "../../src/testing/dataset.js";
 import { Suite } from "../../src/testing/suite.js";
 import { Compare } from "../../src/testing/compare.js";
-import { BaseJudge, JudgeResult, JudgeContext } from "../../src/components/judge-decorators.js";
+import type {
+  JudgeContext,
+  JudgeHandler,
+  JudgeVerdict,
+} from "../../src/components/judge-decorators.js";
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { AIMessage } from "@langchain/core/messages";
 
-class MockAccuracyJudge extends BaseJudge {
-  override async evaluate(state: any, context: JudgeContext): Promise<JudgeResult> {
-    const passed = state.replyWith === state.expected;
+class MockAccuracyJudge implements JudgeHandler {
+  async judge(reply: string, context: JudgeContext): Promise<JudgeVerdict> {
+    const passed = reply === context.expected;
     return {
       passed,
       feedback: passed ? undefined : "Accuracy failed",
@@ -17,9 +21,9 @@ class MockAccuracyJudge extends BaseJudge {
   }
 }
 
-class MockToneJudge extends BaseJudge {
-  override async evaluate(state: any, context: JudgeContext): Promise<JudgeResult> {
-    const score = state.replyWith.length > 5 ? 10 : 2;
+class MockToneJudge implements JudgeHandler {
+  async judge(reply: string): Promise<JudgeVerdict> {
+    const score = reply.length > 5 ? 10 : 2;
     return {
       passed: score > 5,
       metrics: { tone: score },

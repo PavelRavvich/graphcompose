@@ -134,6 +134,30 @@ export class Api {
   `[di.missing-environment]`.
 - Model provider keys are not part of it: they stay process variables (`EnvironmentVariable.named`).
 
+## Quality gates (judges)
+
+`@Agent({ judges: [AnswerGrounded], maxRetries: 1 })` runs every judge on the agent's reply. A judge
+is a `@Judge({ name, model, deps })` class implementing `JudgeHandler`; the container creates it with
+its `deps`, and `ctx.model.invoke(...)` calls the judge's **own** model through the model gateway, so
+its spend is in the run's cost report (`judge:<name>`, category `review`). A rejected reply goes back
+to the agent with the feedback; once `maxRetries` retries are spent the run throws
+`QualityGateError` (`code: "step.agent.quality-gate"`, `feedback` per judge). A judge without a model
+fails at app start (`[judge.no-model]`). In tests, script the judge's model like an agent's:
+`mockLlm(AnswerGrounded).thenReturn(replyWith("PASS"))`.
+
+```ts
+@Judge({ name: "answer-grounded", model: "openai/gpt-5-mini", deps: [JOB_SEARCH] })
+export class AnswerGrounded implements JudgeHandler {
+  constructor(private readonly search: JobSearch) {}
+  async judge(reply: string, ctx: JudgeContext): Promise<JudgeVerdict> {
+    const verdict = await ctx.model.invoke(
+      `Does this reply cite a real job? PASS or FAIL: why\n${reply}`,
+    );
+    return verdict.startsWith("PASS") ? { passed: true } : { passed: false, feedback: verdict };
+  }
+}
+```
+
 ## Run Context & Observers
 
 GraphCompose executes all workflows with a strict **Run Context**. Inside your internal services or custom nodes, use `extractRunContext` to extract typed `runId`, `threadId`, etc.:

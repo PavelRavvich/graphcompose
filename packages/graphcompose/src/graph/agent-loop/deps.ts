@@ -8,7 +8,7 @@ import type { ToolCallApproval } from "./approval.js";
 import type { JudgePoints } from "./judge-points.js";
 import type { AgentLoopLimits } from "./limits.js";
 import type { PromptInput } from "../../components/prompt-input.js";
-import type { Class } from "../../components/injection.js";
+import type { JudgeHandler } from "../../components/judge-decorators.js";
 
 /** Everything needed to run one configured agent. */
 export interface AgentDefinition {
@@ -23,8 +23,17 @@ export interface AgentDefinition {
   readonly memory?: BaseMemoryStrategy;
   /** Context-mode knowledge bases: retrieved before the first model call. */
   readonly knowledge: readonly KnowledgeSource[];
-  readonly judges?: readonly import("../../components/injection.js").Class[];
+  /** Quality gates of the reply (`@Agent({ judges })`), each with its own model; none = no gate. */
+  readonly judges?: readonly AgentJudge[];
+  /** How often a reply the judges rejected is retried before `QualityGateError`; default 0. */
   readonly maxRetries?: number;
+}
+
+/** One `@Judge` of an agent: its name, its instance (from the container) and its model binding. */
+export interface AgentJudge {
+  readonly name: string;
+  readonly handler: JudgeHandler;
+  readonly binding: ModelBinding;
 }
 
 /** What an agent's loop is built from. */
@@ -35,8 +44,6 @@ export interface AgentLoopDeps {
   /** Set only with a pause seam: which calls wait for a decision, and how it is asked. */
   readonly approval?: ToolCallApproval | undefined;
   readonly judges: JudgePoints;
-  /** The workflow's container: `@Judge` classes are created through it, with their `deps`. */
-  readonly container?: { readonly get: <T>(token: Class<T>) => T | undefined };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly piiPolicies?: { override: boolean; instances: readonly any[]; disable: readonly any[] };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
