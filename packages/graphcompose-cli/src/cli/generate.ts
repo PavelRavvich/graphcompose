@@ -27,7 +27,8 @@ export const handle: CommandHandler = async (context) => {
   const count = plan.create.length + plan.modify.length;
   if (flagOption(context.values, "dry-run")) return dryRun(context, plan, `${String(count)} files`);
   const force = flagOption(context.values, "force");
-  const outcome = await write(context.io.cwd, plan, {}, { force });
+  const reset = flagOption(context.values, "reset");
+  const outcome = await write(context.io.cwd, plan, {}, { force, reset });
   [...(outcome.created ?? []), ...(outcome.modified ?? []), ...(outcome.warnings ?? [])].forEach(
     (line) => {
       context.say(`  ${line}`);

@@ -80,6 +80,11 @@ export interface CostReport {
 // @public
 export type CostSource = "api" | "price-table" | "tool";
 
+// Warning: (ae-forgotten-export) The symbol "WorkflowServices" needs to be exported by the entry point internal.d.ts
+//
+// @public
+export function createStartComponents(bundle: AssembledWorkflow, services: WorkflowServices): void;
+
 // @public
 export interface DescribedEnvironment {
     readonly fields: Readonly<Record<string, string>>;
@@ -94,8 +99,6 @@ export interface DescribedEnvironment {
 // @public
 export function describedEnvironmentFor(workflowFile: string, env: string | undefined, processEnv: NodeJS.ProcessEnv): Promise<DescribedEnvironment | undefined>;
 
-// Warning: (ae-forgotten-export) The symbol "WorkflowServices" needs to be exported by the entry point internal.d.ts
-//
 // @public
 export const describeServices: WorkflowServices;
 

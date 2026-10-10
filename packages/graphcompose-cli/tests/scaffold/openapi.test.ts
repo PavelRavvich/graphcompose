@@ -69,8 +69,9 @@ describe("gc generate openapi", () => {
     expect(tsc.out).toBe("");
     const tests = run(bin("vitest/vitest.mjs"), ["run", "--root", project]);
     expect(tests.ok, tests.out).toBe(true);
-    // the generated tests (stubbed API) and the hand-written testWith check all ran
-    expect(tests.out).toMatch(/Tests\s+6 passed/);
+    // the generated tests (stubbed API), the project's ApiService test (#239) and the hand-written
+    // testWith check all ran
+    expect(tests.out).toMatch(/Tests\s+7 passed/);
     const lint = run(bin("eslint/bin/eslint.js"), ["--no-ignore", join(project, "src")], repo);
     expect(lint.ok, lint.out).toBe(true);
     // the files it writes and the rewired agent (the workflow module is not prettier-clean from `gc create`)
@@ -113,7 +114,7 @@ describe("gc generate openapi", () => {
     expect(file("agents/keeper.agent.ts")).toContain(
       "tools: [GetPetTool, DeletePetTool, ListPetsTool, CreatePetTool]",
     );
-    expect(file("zoo.workflow.ts")).toContain("providers: [PetsApi]");
+    expect(file("zoo.workflow.ts")).toContain("providers: [ApiService, PetsApi]");
     // typed DTOs, no `any`; path parameters filled in
     expect(file("tools/get-pet.tool.ts")).toContain(
       "implements ToolHandler<GetPetInput, GetPetOutput>",

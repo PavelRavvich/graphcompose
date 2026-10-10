@@ -128,10 +128,16 @@ describe("gc generate on job-scout's layout", () => {
     ]);
     expect(forced.ok, forced.out).toBe(true);
     const envelope = JSON.parse(forced.stdout) as { warnings: string[]; modified: string[] };
-    expect(envelope.warnings).toEqual([
+    expect(envelope.warnings.slice(0, 2)).toEqual([
       "skipped: src/job-scout.workflow.ts: BillingAgent already in from(…).next(MainRouter)",
       "skipped: src/routers/main.router.ts: BillingAgent already in routes",
     ]);
+    // #237: the agent's own wiring (tools, MCP tool, knowledge base) is kept, not wiped
+    expect(envelope.warnings.length).toBeGreaterThan(2);
+    expect(
+      envelope.warnings.slice(2).every((w) => w.startsWith("kept: src/agents/billing.agent.ts: ")),
+    ).toBe(true);
+    expect(text("src/agents/billing.agent.ts")).toContain("RefundTool");
     expect(envelope.modified).toEqual([]);
     expect(text(workflow)).toBe(before.workflow);
     expect(text("src/routers/main.router.ts")).toBe(before.router);

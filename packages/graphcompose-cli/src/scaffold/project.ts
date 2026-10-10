@@ -49,6 +49,26 @@ function workflowTest(spec: WorkflowSpec): FileToWrite {
   };
 }
 
+/**
+ * The environments next to the workflow file, where the app looks for them (#239), and the service
+ * that injects `ENV` — the project's tools use it — with its test.
+ */
+function environmentFiles(spec: WorkflowSpec): FileToWrite[] {
+  const workflow = namesOf(spec.name);
+  const dir = workflowDir(workflow);
+  const file = (path: string, template: string): FileToWrite => ({
+    path: `${dir}/${path}`,
+    content: render(`project/${template}.tmpl`, {}),
+  });
+  return [
+    file("environments/environment.ts", "environment.ts"),
+    file("environments/dev.environment.ts", "dev.environment.ts"),
+    file("environments/staging.environment.ts", "staging.environment.ts"),
+    file("services/api.service.ts", "api.service.ts"),
+    file("services/api.service.test.ts", "api.service.test.ts"),
+  ];
+}
+
 /** `gc create`: a standalone project with its first workflow and its test. */
 export function planProject(spec: WorkflowSpec): FileToWrite[] {
   const project = namesOf(spec.name);
@@ -79,16 +99,8 @@ export function planProject(spec: WorkflowSpec): FileToWrite[] {
     { path: ".env.example", content: render("project/env.example.tmpl", {}) },
     { path: ".gitignore", content: render("project/gitignore.tmpl", {}) },
     { path: "README.md", content: render("project/README.md.tmpl", variables) },
-    { path: "src/environments/environment.ts", content: render("project/environment.ts.tmpl", {}) },
-    {
-      path: "src/environments/dev.environment.ts",
-      content: render("project/dev.environment.ts.tmpl", {}),
-    },
-    {
-      path: "src/environments/staging.environment.ts",
-      content: render("project/staging.environment.ts.tmpl", {}),
-    },
-    ...planWorkflow(spec),
+    ...environmentFiles(spec),
+    ...planWorkflow(spec, true),
     workflowTest(spec),
   ];
 }

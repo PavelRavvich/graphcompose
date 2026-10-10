@@ -3,6 +3,7 @@ import { envelope, fixture, gc } from "../cli/gc.js";
 
 const APP = fixture("environments/app/settings.workflow.ts");
 const NONE = fixture("environments/none/no-environment.workflow.ts");
+const OBSERVED = fixture("environments/observed/observed.workflow.ts");
 
 describe("#182 AC2: --env <name> on every workflow command", () => {
   it("an unknown name fails at once with exit 3, listing the available environments", async () => {
@@ -50,6 +51,24 @@ describe("#182: gc check validates the selected environment without running anyt
     const call = await gc(["check", "--workflow", NONE, "--json"]);
     expect(call.code).toBe(3);
     expect(envelope(call).result).toMatchObject({ problems: [{ code: "di.missing-environment" }] });
+  });
+});
+
+describe("#239: gc check creates what the app's start creates", () => {
+  it("an observer injecting ENV, no environments/ folder → [di.missing-environment], as createApp", async () => {
+    const call = await gc(["check", "--workflow", OBSERVED, "--json"]);
+    expect(call.code).toBe(3);
+    expect(envelope(call).result).toMatchObject({
+      checks: ["assembly", "environment", "prompts"],
+      problems: [
+        {
+          code: "di.missing-environment",
+          message: expect.stringMatching(
+            /^\[di\.missing-environment\] RunLog injects ENV, but the app has no environment/,
+          ) as string,
+        },
+      ],
+    });
   });
 });
 

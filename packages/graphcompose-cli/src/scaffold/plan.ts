@@ -48,17 +48,33 @@ export interface WorkflowSpec {
 /** Where a workflow's files live: `src/<workflow>/`. */
 export const workflowDir = (workflow: Names): string => `src/${workflow.kebab}`;
 
-/** A tool and its test in `folder` (`<workflow>/tools`). */
-export function toolFiles(folder: string, tool: Names): FileToWrite[] {
+/** What the tools of `gc create` add (#239): they inject the project's `ApiService`. */
+const apiVariables = (tool: Names): Record<string, string> => ({
+  serviceImport: 'import { ApiService } from "../services/api.service.js";',
+  deps: "  deps: [ApiService],\n",
+  constructor: "  constructor(private readonly api: ApiService) {}\n\n",
+  serviceUse: `, API: \${this.api.url("/${tool.kebab}")}`,
+});
+
+const NO_API = { serviceImport: "", deps: "", constructor: "", serviceUse: "" };
+
+/**
+ * A tool and its test in `folder` (`<workflow>/tools`). With `workflow` (`gc create`, #239) the tool
+ * injects the project's `ApiService` and its test runs it in the workflow's app, on its environment.
+ */
+export function toolFiles(folder: string, tool: Names, workflow?: Names): FileToWrite[] {
+  const variables = { ...vars(tool), ...(workflow === undefined ? NO_API : apiVariables(tool)) };
+  const test =
+    workflow === undefined
+      ? render("tool/tool.test.ts.tmpl", variables)
+      : render("tool/tool-api.test.ts.tmpl", {
+          ...variables,
+          workflowPascal: workflow.pascal,
+          workflowKebab: workflow.kebab,
+        });
   return [
-    {
-      path: `${folder}/${tool.kebab}.tool.ts`,
-      content: render("tool/tool.ts.tmpl", vars(tool)),
-    },
-    {
-      path: `${folder}/${tool.kebab}.tool.test.ts`,
-      content: render("tool/tool.test.ts.tmpl", vars(tool)),
-    },
+    { path: `${folder}/${tool.kebab}.tool.ts`, content: render("tool/tool.ts.tmpl", variables) },
+    { path: `${folder}/${tool.kebab}.tool.test.ts`, content: test },
   ];
 }
 
@@ -122,8 +138,11 @@ function extras(
   return { files, agent, server };
 }
 
-/** Every file of one new workflow (agents, tools with tests, MCP, knowledge base, the module). */
-export function planWorkflow(spec: WorkflowSpec): FileToWrite[] {
+/**
+ * Every file of one new workflow (agents, tools with tests, MCP, knowledge base, the module); `api`:
+ * its tools inject the project's `ApiService` (`gc create`, #239).
+ */
+export function planWorkflow(spec: WorkflowSpec, api = false): FileToWrite[] {
   const workflow = namesOf(spec.name);
   const dir = workflowDir(workflow);
   const agents = spec.agents.map((a) => ({
@@ -143,12 +162,15 @@ export function planWorkflow(spec: WorkflowSpec): FileToWrite[] {
     ...(spec.mcp.kind === "none"
       ? []
       : [`import { ${more.server} } from "./mcp/${namesOf(spec.mcp.name).kebab}.server.js";`]),
+    ...(api ? ['import { ApiService } from "./services/api.service.js";'] : []),
   ].join("\n");
   const module = render("workflow/workflow.ts.tmpl", {
     ...vars(workflow),
     imports,
     agents: agents.map((a) => `${a.names.pascal}Agent`).join(", "),
     servers: more.server,
+    // the service the tools inject (`deps: [ApiService]`) — the container creates registered ones
+    providers: api ? "  providers: [ApiService],\n" : "",
   });
   const router = routerFile(`${dir}/routers`, namesOf("main"), MAIN_ROUTER, [
     ...agents.map((a) => agentRoute(a.names, a.spec.description)),
@@ -162,7 +184,9 @@ export function planWorkflow(spec: WorkflowSpec): FileToWrite[] {
     },
     ...endpointFiles(dir),
     router,
-    ...agents.flatMap((a) => a.tools.flatMap((t) => toolFiles(`${dir}/tools`, t))),
+    ...agents.flatMap((a) =>
+      a.tools.flatMap((t) => toolFiles(`${dir}/tools`, t, api ? workflow : undefined)),
+    ),
     ...more.files,
     more.agent,
     ...otherAgentFiles,

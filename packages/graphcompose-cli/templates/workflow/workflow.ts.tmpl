@@ -28,7 +28,7 @@ import { MainRouter } from "./routers/main.router.js";
     output: { pii: { threshold: 0.7, refusal: "The answer contained personal data and was withheld." } },
   },
   mcp: [{{servers}}],
-})
+{{providers}}})
 export class {{pascal}}Workflow implements WorkflowDefinition {
   settings(): WorkflowSettings {
     return WorkflowSettings.builder()

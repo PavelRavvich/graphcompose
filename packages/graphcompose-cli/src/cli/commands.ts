@@ -141,8 +141,9 @@ const SCAFFOLD_COMMANDS: Readonly<Record<string, CommandSpec>> = {
       text("operations", "<ids>", "openapi: only these operations (operationIds, comma-separated)"),
       flag(
         "force",
-        "regenerate files that exist; wiring already there is kept and reported, never doubled",
+        "regenerate files that exist; the wiring in them (tools, rag, routes, …) is kept and reported, never doubled",
       ),
+      flag("reset", "with --force: overwrite files that exist as generated, dropping their wiring"),
       DRY_RUN,
     ],
   },

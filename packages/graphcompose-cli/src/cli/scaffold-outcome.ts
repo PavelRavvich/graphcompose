@@ -17,8 +17,8 @@ export function dryRun(context: CommandContext, plan: Changes, what: string): Co
 }
 
 /**
- * Writes the plan under `root` (all or nothing) and reports created / modified files; wiring left out
- * because it is already there (`--force`) is reported as warnings.
+ * Writes the plan under `root` (all or nothing) and reports created / modified files; with `--force`,
+ * wiring left out because it is already there and wiring kept in regenerated files are warnings.
  */
 export async function write(
   root: string,
@@ -31,6 +31,9 @@ export async function write(
     result: { ...result, written: [...applied.created, ...applied.modified] },
     created: applied.created,
     modified: applied.modified,
-    warnings: applied.skipped.map((line) => `skipped: ${line}`),
+    warnings: [
+      ...applied.skipped.map((line) => `skipped: ${line}`),
+      ...applied.kept.map((line) => `kept: ${line}`),
+    ],
   };
 }
