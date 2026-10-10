@@ -94,7 +94,6 @@ export type ToolsOf<TServer> = TServer extends {
 
 // Warnings were encountered during analysis:
 //
-// /Users/pavelravvich/projects/gc-feature-195/node_modules/@langchain/protocol/protocol.ts:1:1 - (ae-wrong-input-file-type) Incorrect file type; API Extractor expects to analyze compiler outputs with the .d.ts file extension. Troubleshooting tips: https://api-extractor.com/link/dts-error
 // src/components/mcp-client.ts:7:3 - (ae-undocumented) Missing documentation for "input".
 // src/components/mcp-client.ts:8:3 - (ae-undocumented) Missing documentation for "output".
 // src/components/mcp-client.ts:14:1 - (ae-undocumented) Missing documentation for "ServerTools".

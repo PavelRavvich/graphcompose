@@ -78,7 +78,6 @@ export class SlidingWindowStrategy extends BaseMemoryStrategy {
 
 // Warnings were encountered during analysis:
 //
-// /Users/pavelravvich/projects/gc-feature-195/node_modules/@langchain/protocol/protocol.ts:1:1 - (ae-wrong-input-file-type) Incorrect file type; API Extractor expects to analyze compiler outputs with the .d.ts file extension. Troubleshooting tips: https://api-extractor.com/link/dts-error
 // src/graph/contributions.ts:29:3 - (ae-undocumented) Missing documentation for "task".
 // src/graph/contributions.ts:30:3 - (ae-undocumented) Missing documentation for "replyWith".
 // src/graph/contributions.ts:31:3 - (ae-undocumented) Missing documentation for "status".

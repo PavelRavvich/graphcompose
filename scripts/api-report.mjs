@@ -48,6 +48,8 @@ function report(subpath, types) {
         extractorMessageReporting: {
           default: { logLevel: "none", addToApiReportFile: true },
           "ae-missing-release-tag": { logLevel: "none", addToApiReportFile: false },
+          // about a dependency's own sources, with a machine-specific absolute path: not our API
+          "ae-wrong-input-file-type": { logLevel: "none", addToApiReportFile: false },
         },
         tsdocMessageReporting: { default: { logLevel: "none" } },
         compilerMessageReporting: { default: { logLevel: "warning" } },

@@ -79,7 +79,6 @@ export interface ToolOptions<In extends DtoClass, Out extends DtoClass, D extend
 
 // Warnings were encountered during analysis:
 //
-// /Users/pavelravvich/projects/gc-feature-195/node_modules/@langchain/protocol/protocol.ts:1:1 - (ae-wrong-input-file-type) Incorrect file type; API Extractor expects to analyze compiler outputs with the .d.ts file extension. Troubleshooting tips: https://api-extractor.com/link/dts-error
 // src/components/decorators.ts:22:3 - (ae-undocumented) Missing documentation for "run".
 // src/components/decorators.ts:37:1 - (ae-undocumented) Missing documentation for "ToolOptions".
 // src/components/decorators.ts:42:3 - (ae-undocumented) Missing documentation for "name".

@@ -84,7 +84,6 @@ export class SqliteFtsConnector implements RagConnector {
 
 // Warnings were encountered during analysis:
 //
-// /Users/pavelravvich/projects/gc-feature-195/node_modules/@langchain/protocol/protocol.ts:1:1 - (ae-wrong-input-file-type) Incorrect file type; API Extractor expects to analyze compiler outputs with the .d.ts file extension. Troubleshooting tips: https://api-extractor.com/link/dts-error
 // src/rag/sqlite-fts.ts:11:3 - (ae-undocumented) Missing documentation for "folder".
 // src/rag/sqlite-fts.ts:12:3 - (ae-undocumented) Missing documentation for "dbFile".
 // src/rag/sqlite-fts.ts:65:9 - (ae-undocumented) Missing documentation for "index".

@@ -370,7 +370,6 @@ export function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>;
 
 // Warnings were encountered during analysis:
 //
-// /Users/pavelravvich/projects/gc-feature-195/node_modules/@langchain/protocol/protocol.ts:1:1 - (ae-wrong-input-file-type) Incorrect file type; API Extractor expects to analyze compiler outputs with the .d.ts file extension. Troubleshooting tips: https://api-extractor.com/link/dts-error
 // src/models/model-failure.ts:3:3 - (ae-undocumented) Missing documentation for "Timeout".
 // src/models/model-failure.ts:4:3 - (ae-undocumented) Missing documentation for "RateLimited".
 // src/models/model-failure.ts:5:3 - (ae-undocumented) Missing documentation for "ServerError".

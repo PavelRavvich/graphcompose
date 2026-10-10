@@ -195,7 +195,6 @@ export interface IA2AAdapter {
 
 // Warnings were encountered during analysis:
 //
-// /Users/pavelravvich/projects/gc-feature-195/node_modules/@langchain/protocol/protocol.ts:1:1 - (ae-wrong-input-file-type) Incorrect file type; API Extractor expects to analyze compiler outputs with the .d.ts file extension. Troubleshooting tips: https://api-extractor.com/link/dts-error
 // src/a2a/a2a-adapter.ts:20:3 - (ae-undocumented) Missing documentation for "execute".
 // src/a2a/a2a-adapter.ts:27:3 - (ae-undocumented) Missing documentation for "resume".
 // src/a2a/a2a-adapter.ts:45:10 - (ae-undocumented) Missing documentation for "execute".

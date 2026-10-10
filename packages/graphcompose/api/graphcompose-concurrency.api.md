@@ -81,7 +81,6 @@ export interface QuorumStrategy<T = any> {
 
 // Warnings were encountered during analysis:
 //
-// /Users/pavelravvich/projects/gc-feature-195/node_modules/@langchain/protocol/protocol.ts:1:1 - (ae-wrong-input-file-type) Incorrect file type; API Extractor expects to analyze compiler outputs with the .d.ts file extension. Troubleshooting tips: https://api-extractor.com/link/dts-error
 // src/concurrency/batch.decorator.ts:3:1 - (ae-undocumented) Missing documentation for "BatchParallelStrategyOptions".
 // src/concurrency/batch.decorator.ts:4:3 - (ae-undocumented) Missing documentation for "name".
 // src/concurrency/batch.decorator.ts:7:1 - (ae-undocumented) Missing documentation for "BatchParallelStrategyMeta".

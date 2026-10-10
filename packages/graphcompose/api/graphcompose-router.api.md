@@ -232,7 +232,6 @@ export interface WorkflowStartOptions<In extends DtoClass<WorkflowStartText> = D
 
 // Warnings were encountered during analysis:
 //
-// /Users/pavelravvich/projects/gc-feature-195/node_modules/@langchain/protocol/protocol.ts:1:1 - (ae-wrong-input-file-type) Incorrect file type; API Extractor expects to analyze compiler outputs with the .d.ts file extension. Troubleshooting tips: https://api-extractor.com/link/dts-error
 // src/graph/flow-node.ts:10:3 - (ae-undocumented) Missing documentation for "input".
 // src/graph/flow-node.ts:11:3 - (ae-undocumented) Missing documentation for "execute".
 // src/graph/flow-node.ts:12:3 - (ae-undocumented) Missing documentation for "settings".

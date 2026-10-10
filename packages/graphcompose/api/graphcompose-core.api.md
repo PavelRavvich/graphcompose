@@ -894,7 +894,6 @@ export class WorkflowSettings {
 
 // Warnings were encountered during analysis:
 //
-// /Users/pavelravvich/projects/gc-feature-195/node_modules/@langchain/protocol/protocol.ts:1:1 - (ae-wrong-input-file-type) Incorrect file type; API Extractor expects to analyze compiler outputs with the .d.ts file extension. Troubleshooting tips: https://api-extractor.com/link/dts-error
 // src/components/bind-tool.ts:20:1 - (ae-undocumented) Missing documentation for "BindTool".
 // src/components/bind-tool.ts:22:1 - (ae-undocumented) Missing documentation for "BindTool".
 // src/components/decorators.ts:215:1 - (ae-undocumented) Missing documentation for "ChannelRequest".

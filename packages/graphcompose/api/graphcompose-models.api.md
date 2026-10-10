@@ -583,7 +583,6 @@ export interface WireRequest {
 
 // Warnings were encountered during analysis:
 //
-// /Users/pavelravvich/projects/gc-feature-195/node_modules/@langchain/protocol/protocol.ts:1:1 - (ae-wrong-input-file-type) Incorrect file type; API Extractor expects to analyze compiler outputs with the .d.ts file extension. Troubleshooting tips: https://api-extractor.com/link/dts-error
 // src/models/capabilities.ts:6:3 - (ae-undocumented) Missing documentation for "supported".
 // src/models/capabilities.ts:7:3 - (ae-undocumented) Missing documentation for "efforts".
 // src/models/capabilities.ts:8:3 - (ae-undocumented) Missing documentation for "budget".
