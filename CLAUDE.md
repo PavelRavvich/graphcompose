@@ -28,15 +28,16 @@ Multi-agent project on LangGraph + LangChain (TypeScript). Built with a three-ph
 
 ## Commands
 
-| Command (repo root)                    | What it does                                                              |
-| -------------------------------------- | ------------------------------------------------------------------------- |
-| `make setup`                           | install dependencies (npm workspaces)                                     |
-| `make check`                           | **the gate**: build + format + lint + typecheck + coverage, both packages |
-| `npm run dev`                          | rebuild the framework on change (watch)                                   |
-| `make smoke`                           | real-model smoke tests of the framework (needs `.env`), never in CI       |
-| `make fmt`                             | auto-format                                                               |
-| `npm run studio`                       | LangGraph Studio (graphs from `langgraph.json`)                           |
-| `scripts/langfuse.sh up\|down\|status` | local Langfuse for tracing; writes keys to `.env`                         |
+| Command (repo root)                    | What it does                                                                             |
+| -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `make setup`                           | install dependencies (npm workspaces)                                                    |
+| `make check`                           | **the gate**: build + API reports + compiled docs + format + lint + typecheck + coverage |
+| `npm run dev`                          | rebuild the framework on change (watch)                                                  |
+| `npm run check:docs`                   | typecheck the docs' ts blocks, check the commands they mention                           |
+| `make smoke`                           | real-model smoke tests of the framework (needs `.env`), never in CI                      |
+| `make fmt`                             | auto-format                                                                              |
+| `npm run studio`                       | LangGraph Studio (graphs from `langgraph.json`)                                          |
+| `scripts/langfuse.sh up\|down\|status` | local Langfuse for tracing; writes keys to `.env`                                        |
 
 In `examples/job-scout/` (each is `graphcompose <command> --workflow src/job-scout.workflow.ts`):
 `npm run chat` · `npm run run -- "task"` · `npm run describe` · `npm run eval` / `replay` ·
@@ -46,114 +47,409 @@ takes `--profile <name>` (`profiles/<workflow>/<name>.yaml`) and `--thread <id>`
 
 ## Architecture
 
-**The workflow file is the graph** (Wiki → Workflow): `@Workflow({ flow: [...] })` lists the
-transitions with a small DSL from `graphcompose`, checked at assembly and built into LangGraph.
-job-scout is a star:
+Everything below is checked against the code: every ` ```ts ` block of this file compiles against
+the built package (`npm run check:docs`), and the worked example is assembled and run by script in
+the framework's tests (`tests/docs/claude-md.test.ts`). If a block here is wrong, `make check` fails.
 
-```ts
-flow: [
-  from(ChatWorkflowStart).next(MainRouter),
-  from(MainRouter).routes(),
-  from(Profiler, Scout, Shortlist).next(MainRouter),
-],
+### A workflow, end to end
+
+A workflow is a folder of components, one class per file, wired by a `*.workflow.ts` module.
+Commands find it by path (`gc chat --workflow src/desk/desk.workflow.ts`). The shape every
+workflow follows — a support desk with one tool, one injected service, one agent and a router:
+
+```ts file=src/desk/tools/order-status.dto.ts
+// tools/order-status.dto.ts — data crossing a tool boundary are DTO classes, one decorator per field
+import { Text } from "graphcompose/dto";
+
+export class OrderQuery {
+  @Text({ prompt: "the order id" })
+  orderId!: string;
+}
+
+export class OrderInfo {
+  @Text({ prompt: "where the order is" })
+  status!: string;
+}
 ```
 
-- DSL: `from(A, B).next(C)` (unconditional, several sources = fan-in), `from(Router).routes()`
-  (the router picks one of its `@Router({ routes })` targets — the one list of them; #200), `chain(A, B, C)` (a straight line; a router only last), `node(Class, "name")`
-  (a second place for a class, declared once as a constant), `Self` (back to the node the router was
-  called after).
-- Node kinds: `@WorkflowStart` (where a run starts: input DTO, runs the input guards), `@Router`
-  (picks the next node), `@Agent` (its loop), `@WorkflowFinish` (where a run finishes: output DTO,
-  the last answer, runs the output guards). A start declares its input for the compiler,
-  `declare readonly input: ChatIn` (checked against `input:` by `@WorkflowStart`), so
-  `app.execute(ChatWorkflowStart, input)` checks `input` and rejects a class that is not a start;
-  `app.execute(…).output` is the finish's `WorkflowFinishText` (a finish DTO may add optional fields only).
-  Slots are typed by kind: `tools` (`ToolHandler`), `judges` (`JudgeHandler`), `guardrails`,
-  `piiPolicies` and flow nodes (`FlowNodeInstance`) — a service there is a compile error. A start and a finish may share a name (`chat` / `chat`);
-  LangGraph node ids are `<kind>.<name>` (`workflow-start.chat`).
-  `@WorkflowPause` (#117) completes the trio.
-- **Assembly rules** fail at assembly, before any model call, with **all** violations at once
-  (`GraphRuleError`, stable codes `graph.*` / `router.*`): every node is a decorated class, one next
-  step per node, `routes()` only from a router, a cycle needs a router, a workflow start exists, no
-  unreachable node or dead end, nothing after a workflow finish, routers in one `from(R1, R2).routes()`
-  have equal `routes`.
-- `@Router` (Wiki → Routers): `instructions` says **how** to choose; `routes` array uses `route().to()` to define conditions
-  each choice means (`route(Profiler, "Reading the resume …")`) — route text is required; a route
-  **to a workflow finish** is worded as a stop instruction ("Stop and send the answer: …"), never as "the
-  answer is ready". `maxVisits` bounds visits of one router. A router that fails or picks an unknown
-  route **fails the run** (`RouterDecisionError`) — no guessing.
-- `@Agent` — the agent's own loop (#150, `src/graph/agent-loop/`, a compiled subgraph): own model,
-  prompt, tools; every finished tool call stored by `callId` (a crash re-runs only an unfinished
-  call — `ToolContext.callId` is the idempotency key); limits per call `modelCalls` 12 /
-  `toolCalls` 20 (`maxToolCalls`); `approval` — only with a pause seam: a write tool waits for a
-  decision, one call per pause (`resumeAgent`).
-- Guards — Jev yes/no checks; an input guard trip ends the run at the workflow start with the
-  guard's refusal, an output guard checks the answer at the workflow finish.
-- **Limits** in `settings()`: `WorkflowSettings.builder().limits({ perRun, perDay }).build()`,
-  e.g. `perRun: { steps: 12, cost: usd(0.1) }`, `perDay: { cost: usd(1) }`. Steps = visits of
-  agents and routers (default (agents + routers) × 3). Hitting any limit **fails the run** with
-  `LimitExceededError` naming the boundary key (`limits.perRun.steps`, `limits.perRun.cost`,
-  `limits.perDay.cost`, `routers.<name>.maxVisits`; a money limit is its subclass
-  `BudgetExceededError`). `perDay.cost` requires `perRun.cost` (each run reserves its run cap of
-  the day before its first call); without it the app fails at start with
-  `[limits.per-run-required]`. LangGraph `recursionLimit` is only a safety net far above the steps.
-- **Run errors** (`graphcompose` root): every one a `GraphComposeError` with a stable `code`
-  (`limit` ⊃ `limit.budget`, `step` ⊃ `step.agent` / `step.guard` / `step.router`,
-  `workflow.cancelled`, …). `catchError(Node, ErrorClass).next(Handler)` matches by code — the
-  class's, its subclasses', and anything it caused — on a plain `{ name, code, message, details }`
-  record in state, so it holds after a resume from a checkpoint; a limit hit before the node runs
-  is that node's failure. A cancelled run rejects with `WorkflowCancelledError`.
-- Every turn: spend to the daily ledger, a Tern to SQLite, financials in the result, optional
-  tracing (Langfuse) and conversation compaction (summaries queue).
-- **Memory** (`graphcompose/memory`): by default an agent sees the thread's last
-  `defaults.history.limit` turns (its own `historyLimit`) and, with `compaction`, the latest
-  summaries — the built-in strategy (`SlidingWindowStrategy`; compaction is its after-turn update,
-  cost in the run's report). `@Agent({ memoryStrategy: Cls })` replaces it for that agent only:
-  `Cls extends BaseMemoryStrategy`, created by the container (`@Injectable({ deps })`);
-  `buildContext` picks the turns and summaries the agent's model calls see, the optional
-  `updateMemory` runs after every finished turn. Anything else fails assembly (`[memory.not-a-strategy]`).
-- Components, Angular style (Wiki → Components): annotated classes, one per file, folders by kind
-  (`workflow-starts/`, `routers/`, `agents/`, `workflow-finishes/`, `tools/`, `mcp/`, `rag/`, `services/`); the
-  `@Workflow` module places nodes in its `flow` and lists `mcp` servers and `providers` by class
-  reference; dependencies through the constructor, declared in `deps` (compiler-checked); instructions via `file("./*.prompt.md")`. `@Injectable` services stay until #121 renames them.
-- **Data are DTO classes** (`graphcompose/dto`, Wiki → Standard DTOs): one field decorator per field
-  (`@Text`, `@Integer`, `@Flag`, `@OneOf`, `@ListOf`, `@Nested`, …), plain data, no methods. Tool
-  `input` / `output`, MCP server tools (`tools: { name: { input, output } }`), workflow start
-  inputs and workflow finish outputs are DTOs; standard ones (`WorkflowStartText`,
-  `WorkflowFinishText`, `ToolCallApprovalDecision`, `RagSearchResult`, `PlainText`, …) come from the
-  framework.
-  zod lives only inside the framework (external input it parses is still validated there).
-- Knowledge bases: a `@Rag` class implementing `RagConnector` in `rag/`, bound by agents with
-  `rag: [{ use, mode: "tool" | "context" }]` (Wiki → Knowledge bases).
-- Add a tool: a `@Tool` class in `tools/` with `input` / `output` DTOs in `*.dto.ts`, referenced
-  from an agent. Add an agent: `agents/<name>.agent.ts` and use `file("./<name>.prompt.md")`, placed in the `flow`
-  (`from(…, Agent).next(Router)`) and in its router's `routes`. A workflow = its components under one directory
-  with a `*.workflow.ts`; commands find it by path (`--workflow`). Test tools with
-  `toolOf(new Tool(fakes))`.
-- **Component rules** (Wiki → Components): decorator = metadata (one option per line), constructor =
-  dependencies (`private readonly`, one per line), methods = a contract — `implements` for your own
-  (`ToolHandler<In, Out>`, `RagConnector`), `extends` + `override` for a standard implementation
-  (`SqliteFtsConnector`, `McpServerClient`); services do I/O, helpers are pure. An `@McpTool` is a
-  tool with its `*.server.ts` server injected.
-- **File conventions** (Wiki → Components): `*.workflow-start.ts`, `*.router.ts`,
-  `*.workflow-finish.ts`,
-  `*.agent.ts` with explicit `instructions: file()`, `*.tool.ts` + `*.tool.test.ts`, `*.dto.ts`,
-  `*.server.ts` + `*.mcp.ts`, `*.rag.ts`, `*.service.ts` (`@Injectable`), `*.helper.ts`; tools keep
-  `run`, bulky helpers go to `*.helper.ts`.
-- **Framework and examples apart** (ESLint-enforced both ways): `packages/graphcompose` never imports
-  `examples/`; an example imports only the public `graphcompose` entry points, like an outside
-  project — and so does every file `gc generate` writes (#197). The allowlist is generated from
-  `packages/graphcompose/package.json#exports` minus `deprecatedExports` (scripts/public-entries.mjs,
-  #195): a new entry is allowed by adding it there, never by an `eslint-disable`.
-- **Public entries (#195)**: the root `graphcompose` is the authoring API (decorators, DI, flow DSL,
-  settings, environments, observers, `createApp`, errors, types); focused entries `/dto`, `/units`,
-  `/models`, `/testing`, and the integrations `/mcp`, `/rag`, `/a2a`, `/memory`. The root import has
-  no side effects (tests/public-api/side-effects.test.ts): load tracing, MCP, SQLite and the like
-  lazily, inside the function that needs them. One name per meaning across entries
-  (tests/public-api/names.test.ts). A public surface change updates the committed api-extractor
-  reports (`npm run api:update` → packages/graphcompose/api/*.api.md; `npm run check` fails on a stale
-  one). `/core`, `/graph`, `/router`, `/tool`, `/channels`, `/concurrency` are deprecated re-exports
-  for one minor release; `gc migrate imports` rewrites old imports.
+```ts file=src/desk/services/order-book.service.ts
+// services/order-book.service.ts — a service: does the I/O, created by the container
+import { Injectable } from "graphcompose";
+
+@Injectable()
+export class OrderBook {
+  statusOf(orderId: string): Promise<string> {
+    return Promise.resolve(`order ${orderId} shipped`);
+  }
+}
+```
+
+```ts file=src/desk/tools/order-status.tool.ts
+// tools/order-status.tool.ts — `deps` lists the constructor's dependencies, in order (compiler-checked)
+import { Tool, type ToolContext, type ToolHandler } from "graphcompose";
+import { OrderBook } from "../services/order-book.service.js";
+import { OrderInfo, OrderQuery } from "./order-status.dto.js";
+
+@Tool({
+  name: "order_status",
+  description: "The status of an order",
+  input: OrderQuery,
+  output: OrderInfo,
+  deps: [OrderBook],
+})
+export class OrderStatus implements ToolHandler<OrderQuery, OrderInfo> {
+  constructor(private readonly book: OrderBook) {}
+
+  async run({ orderId }: OrderQuery, ctx: ToolContext): Promise<OrderInfo> {
+    ctx.run.signal.throwIfAborted(); // the run: runId, threadId, signal, metadata, owner
+    return { status: await this.book.statusOf(orderId) };
+  }
+}
+```
+
+```ts file=src/desk/agents/support.agent.ts
+// agents/support.agent.ts — the agent's own loop: its model, prompt and tools
+import { Agent } from "graphcompose";
+import { OrderStatus } from "../tools/order-status.tool.js";
+
+@Agent({
+  name: "support",
+  description: "Answers questions about orders",
+  promptUrls: ["./support.prompt.md"],
+  model: "moonshotai/kimi-k2.6",
+  tools: [OrderStatus],
+})
+export class SupportAgent {}
+```
+
+```md file=src/desk/agents/support.prompt.md
+You answer questions about orders. Look every order up with order_status; never guess a status.
+```
+
+```ts file=src/desk/workflow-starts/chat.workflow-start.ts
+// workflow-starts/chat.workflow-start.ts — where a run starts: its input DTO
+import { WorkflowStart } from "graphcompose";
+import { WorkflowStartText } from "graphcompose/dto";
+
+@WorkflowStart({ name: "chat", description: "A customer's message", input: WorkflowStartText })
+export class ChatWorkflowStart {
+  declare readonly input: WorkflowStartText; // types app.execute(ChatWorkflowStart, input)
+}
+```
+
+```ts file=src/desk/workflow-finishes/chat.workflow-finish.ts
+// workflow-finishes/chat.workflow-finish.ts — where a run finishes: its output DTO
+import { WorkflowFinish } from "graphcompose";
+import { WorkflowFinishText } from "graphcompose/dto";
+
+@WorkflowFinish({ name: "chat", description: "The answer", output: WorkflowFinishText })
+export class ChatWorkflowFinish {}
+```
+
+```ts file=src/desk/routers/main.router.ts
+// routers/main.router.ts — `prompt` says how to choose, `routes` what each choice means
+import { Router } from "graphcompose";
+import { SupportAgent } from "../agents/support.agent.js";
+import { ChatWorkflowFinish } from "../workflow-finishes/chat.workflow-finish.js";
+
+@Router({
+  name: "main",
+  description: "Sends the message to the agent that handles it, or sends the answer",
+  prompt: "Pick who handles the customer's message next.",
+  model: "typesafe/jev-1.13",
+  maxVisits: 3,
+  routes: [
+    { prompt: "Questions about orders", target: SupportAgent },
+    {
+      prompt:
+        "Stop and send the answer: the contributions so far answer the message, or the last agent asked a question and waits for the reply, or it cannot be done",
+      target: ChatWorkflowFinish,
+    },
+  ],
+})
+export class MainRouter {}
+```
+
+```ts file=src/desk/desk.workflow.ts
+// desk.workflow.ts — the module: the graph (`flow`), defaults, providers; limits in settings()
+import { Workflow, WorkflowSettings, from, type WorkflowDefinition } from "graphcompose";
+import { usd } from "graphcompose/units";
+import { SupportAgent } from "./agents/support.agent.js";
+import { MainRouter } from "./routers/main.router.js";
+import { OrderBook } from "./services/order-book.service.js";
+import { ChatWorkflowStart } from "./workflow-starts/chat.workflow-start.js";
+
+@Workflow({
+  name: "desk",
+  version: "1.0.0",
+  flow: [
+    from(ChatWorkflowStart).next(MainRouter),
+    from(MainRouter).routes(), // the targets are the router's `routes` — the one list of them
+    from(SupportAgent).next(MainRouter),
+  ],
+  defaults: {
+    models: { temperature: 0 },
+    router: { kind: "jev", model: "typesafe/jev-1.13" },
+    tools: { maxToolCalls: 4 },
+    history: { limit: 5 },
+  },
+  providers: [OrderBook],
+})
+export class Desk implements WorkflowDefinition {
+  settings(): WorkflowSettings {
+    return WorkflowSettings.builder()
+      .limits({ perRun: { steps: 8, cost: usd(0.05) }, perDay: { cost: usd(1) } })
+      .build();
+  }
+}
+```
+
+The test drives it by script — no model, no network:
+
+```ts file=tests/desk.test.ts
+import { expect } from "vitest";
+import { callTool, replyWith, routeTo, testWith } from "graphcompose/testing";
+import { Desk } from "../src/desk/desk.workflow.js";
+import { MainRouter } from "../src/desk/routers/main.router.js";
+import { SupportAgent } from "../src/desk/agents/support.agent.js";
+import { OrderBook } from "../src/desk/services/order-book.service.js";
+import { OrderStatus } from "../src/desk/tools/order-status.tool.js";
+import { ChatWorkflowStart } from "../src/desk/workflow-starts/chat.workflow-start.js";
+import { ChatWorkflowFinish } from "../src/desk/workflow-finishes/chat.workflow-finish.js";
+
+const test = testWith(Desk);
+
+test("an order question goes to support, which looks the order up", async ({ app, mockLlm }) => {
+  mockLlm(MainRouter).thenReturn(routeTo(SupportAgent), routeTo(ChatWorkflowFinish));
+  mockLlm(SupportAgent).thenReturn(
+    callTool(OrderStatus, { orderId: "7" }),
+    replyWith("Order 7 has shipped."),
+  );
+
+  const result = await app.execute(ChatWorkflowStart, { text: "where is order 7?" });
+
+  expect(result).toFollowPath([
+    ChatWorkflowStart,
+    MainRouter,
+    SupportAgent,
+    MainRouter,
+    ChatWorkflowFinish,
+  ]);
+  expect(result).toFinishWith(ChatWorkflowFinish, { text: "Order 7 has shipped." });
+});
+
+test("a service is replaced by a mock", async ({ app, mockLlm, mockOf }) => {
+  mockOf(OrderBook).statusOf.mockResolvedValue("order 7 lost");
+  mockLlm(MainRouter).thenReturn(routeTo(SupportAgent), routeTo(ChatWorkflowFinish));
+  mockLlm(SupportAgent).thenReturn(callTool(OrderStatus, { orderId: "7" }), replyWith("Lost."));
+
+  await app.execute(ChatWorkflowStart, { text: "where is order 7?" });
+
+  expect(mockOf(OrderBook).statusOf.mock.calls).toEqual([["7"]]);
+});
+```
+
+```ts file=vitest.config.ts
+// vitest.config.ts — registers the workflow matchers (toFollowPath, toFinishWith, …)
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: { include: ["tests/**/*.test.ts"], setupFiles: ["graphcompose/testing/setup"] },
+});
+```
+
+**Adding an agent** = its `agents/<name>.agent.ts` (+ `<name>.prompt.md`), one route in its
+router's `routes`, and its source in the flow (`from(…, NewAgent).next(MainRouter)`). **Adding a
+tool** = `tools/<name>.dto.ts` + `tools/<name>.tool.ts`, listed in an agent's `tools`; a service it
+needs goes in `providers`. `gc generate <kind> <name> --workflow <path>` writes and wires both.
+
+### The flow DSL
+
+`@Workflow({ flow: [...] })` is the graph, built into LangGraph and checked at assembly:
+
+<!-- snippet-context
+import { Agent, BatchParallelStrategy, LimitExceededError, Router, catchError, chain, from, node, type Flow } from "graphcompose";
+import { ChatWorkflowStart } from "./src/desk/workflow-starts/chat.workflow-start.js";
+import { ChatWorkflowFinish } from "./src/desk/workflow-finishes/chat.workflow-finish.js";
+@Agent({ name: "planner", description: "Plans", prompt: "Plan.", model: "m" }) class Planner {}
+@Agent({ name: "researcher", description: "Researches", prompt: "Research {{item}}.", model: "m" }) class Researcher {}
+@Agent({ name: "critic", description: "Critiques", prompt: "Critique.", model: "m" }) class Critic {}
+@Agent({ name: "writer", description: "Writes", prompt: "Write.", model: "m" }) class Writer {}
+@Router({ name: "review", description: "Reviews", prompt: "Pick.", model: "m", routes: [{ prompt: "Done", target: ChatWorkflowFinish }] }) class ReviewRouter {}
+@BatchParallelStrategy() class Topics { extract(): string[] { return ["a", "b"]; } }
+export const flows: Flow[] = [
+// @snippet
+];
+-->
+
+```ts
+[
+  from(ChatWorkflowStart).next(Planner), // unconditional; from(A, B).next(C) is a fan-in
+  from(ReviewRouter).routes(), // the router picks one of its @Router({ routes }) targets
+  chain(ChatWorkflowStart, Planner, Writer, ReviewRouter), // a straight line, a router only last
+  from(Planner).nextParallel(Researcher, Critic), // fan-out: both run
+  from(Researcher, Critic).join(Writer), // waits for both
+  from(Planner).batchParallel(Researcher, Topics, { concurrencyLimit: 2, batchSize: 1 }),
+  catchError(Writer, LimitExceededError).next(ChatWorkflowFinish), // a failure goes on, by code
+],
+[chain(ChatWorkflowStart, Writer, node(Writer, "second-draft"), ChatWorkflowFinish)],
+```
+
+- `batchParallel(Target, Strategy, { concurrencyLimit, batchSize })`: a `@BatchParallelStrategy()`
+  class's `extract(state)` returns the items; each target run sees its item as `{{item}}` in its
+  prompt (an action as `ctx.item`).
+- `catchError(Node, ErrorClass).next(Handler)` matches by the error's stable `code` — the class's,
+  its subclasses', and anything it caused — on a plain record in state, so it holds after a resume;
+  `compensateWith` is the same step for a compensating target.
+- `node(Class, "name")` — a second place for a class, declared once as a constant;
+  `from(A, B).joinQuorum(Strategy, { min }).routes(Target)` — the first `min` answers are enough.
+- **Node kinds:** `@WorkflowStart` (input DTO, input guards), `@Router`, `@Agent`,
+  `@WorkflowAction` (code, no model: `execute(state, ctx)`), `@WorkflowFinish` (output DTO, output
+  guards). A start declares `declare readonly input: Dto`, so `app.execute(Start, input)` checks
+  `input` and rejects a class that is not a start. LangGraph node ids are `<kind>.<name>`.
+- **Assembly rules** fail before any model call with **all** violations at once (`GraphRuleError`,
+  stable codes `graph.*` / `router.*`): every node decorated, one next step per node, `routes()` only
+  from a router, a cycle needs a router (with `maxVisits`), a workflow start exists, no unreachable
+  node or dead end, nothing after a workflow finish.
+- **Routers:** a route **to a workflow finish** is worded as a stop instruction
+  ("Stop and send the answer: …"), never "the answer is ready". A router that fails or picks an unknown route **fails the
+  run** (`RouterDecisionError`). A router's `model` is a decision model (Jev, …) or a chat model.
+
+### Components and dependency injection
+
+- **One class per file, folders by kind:** `workflow-starts/`, `routers/`, `agents/`,
+  `workflow-finishes/`, `tools/`, `services/`, `mcp/`, `rag/`, `environments/`; files
+  `*.workflow-start.ts`, `*.router.ts`, `*.agent.ts` (+ `*.prompt.md`), `*.workflow-finish.ts`,
+  `*.tool.ts`, `*.dto.ts`, `*.service.ts`, `*.server.ts` + `*.mcp.ts`, `*.rag.ts`, `*.helper.ts`.
+- **Decorator = metadata, constructor = dependencies, methods = a contract:** `implements` for your
+  own (`ToolHandler<In, Out>`, `JudgeHandler`, `RagConnector`), `extends` + `override` for a standard
+  implementation (`McpServerClient`, `SqliteFtsConnector`). Prompts are `prompt` (inline) or
+  `promptUrls` (files next to the component) plus `promptVariables`; `{{variables}}` are checked at
+  assembly (`[prompt.unknown-variable]`).
+- **`deps`, one contract for every kind** (`@Injectable`, `@Tool`, `@McpTool`, `@Rag`, `@Judge`,
+  `@WorkflowAction`, `@Guardrail`, `@PiiPolicy`, `@Channel`, inbound adapters): `deps` are checked
+  against the constructor by the compiler and injected by the container. A token is a class or an
+  `InjectionToken<T>`; values go in with `provide(TOKEN, value)` (a raw `{ provide, useValue }`
+  does not compile). A dependency without a provider fails at assembly (`Consumer: "TOKEN" is not
+registered …`); a class in `providers` without a decorator fails with `[di.undecorated-provider]`.
+- **Scopes (#184):** `scope: "app"` (default, one instance shared by every run) or `"run"` (one per
+  run in a child container; `onDestroy` when the run ends). Per-run state belongs in a run-scoped
+  component. App → run dependencies fail with `[di.scope-mismatch]`; lint
+  (`graphcompose/no-run-state-in-singleton`) flags `this.x = …` in `run()` of an app-scoped one.
+
+<!-- snippet-context
+import { Injectable, InjectionToken, provide, type Provider } from "graphcompose";
+interface SearchConfig { readonly maxResults: number }
+// @snippet
+export const providers: Provider[] = [SearchSession, provide(SEARCH_CONFIG, { maxResults: 20 })];
+-->
+
+```ts
+export const SEARCH_CONFIG = new InjectionToken<SearchConfig>("SEARCH_CONFIG");
+
+@Injectable({ scope: "run", deps: [SEARCH_CONFIG] })
+export class SearchSession {
+  readonly seen = new Set<string>(); // one per run: never shared between two runs
+  constructor(readonly config: SearchConfig) {}
+}
+```
+
+- **Data are DTO classes** (`graphcompose/dto`): `@Text`, `@Integer`, `@Flag`, `@OneOf`,
+  `@ListOf`, `@Nested`, …; plain data, no methods. Standard ones: `WorkflowStartText`,
+  `WorkflowFinishText`, `ToolCallApprovalDecision`, `RagSearchResult`, `PlainText`. zod stays inside
+  the framework.
+- **Tool names** are unique over what a model sees — local, MCP and `search_<rag>` — else
+  `[tool.duplicate-name]`. A tool with a `channel` (approval) needs that channel in
+  `@Workflow({ channelClasses })`, else assembly fails.
+- **Observers are registered**, not discovered: `@Workflow({ observers: [...] })`, typed hooks
+  (`implements OnToolEnd, …`); an observer with no or a misspelled hook fails assembly
+  (`[observer.no-hooks]`, `[observer.unknown-hook]`), one that throws is a warning.
+- **Memory** (`graphcompose/memory`): agents see the thread's last `defaults.history.limit` turns
+  (+ `compaction` summaries); `@Agent({ memoryStrategy })` replaces that for one agent
+  (`extends BaseMemoryStrategy`).
+- **Knowledge bases:** a `@Rag` class implementing `RagConnector`, bound per agent with
+  `rag: [{ use, mode: "tool" | "context" }]`. **MCP:** `@McpServer` (`extends McpServerClient`)
+  in `mcp: [...]`, its tools as `@McpTool` classes.
+
+### Environments
+
+The app's settings live in `environments/` next to the workflow file: the contract in
+`environment.ts` (`declare module "graphcompose" { interface Environment { … } }`), the values in
+`<name>.environment.ts` (`export default defineEnvironment({ … })`, `fromEnv("VAR", { default,
+secret })` for process variables). Services inject them with `ENV` (`@Injectable({ deps: [ENV] })`,
+`constructor(env: Environment)`), never `process.env`. `--env <name>` / `createApp(W, { env })` /
+`testWith(W, { env | environment })` pick one (default `dev`); a missing value fails at start
+naming it. Model provider keys stay process variables (`EnvironmentVariable.named`). README →
+Environments has the full example.
+
+### Judges and decision models
+
+`@Agent({ judges: [AnswerGrounded], maxRetries: 1 })` runs each `@Judge({ name, model, deps })`
+(`implements JudgeHandler`) on the agent's reply; a rejection goes back to the agent with the
+feedback, and when retries are spent the run throws `QualityGateError`. A judge's own model is a chat
+model (`ctx.model.invoke`) or a **decision model** (`ctx.model.decide({ state, questions })` with
+`Decision.noul` / `Decision.choice` / `Decision.score`, answers typed by the questions; `DECISION_MODELS`
+served by `DecisionsModelProvider`). The wrong call for the model's kind throws `ModelKindError`.
+Routers and guards use decision models too. README → Quality gates has a full judge.
+
+### Runs: context, limits, errors
+
+- `app.execute(Start, input, { thread, owner, signal, metadata, onStream })` → `ExecutionOutput`
+  (`output` is the finish DTO, `path`, `spend`, `thread`); `app.resume(thread, decision)` continues a
+  paused run; `app.cancel(thread)` aborts a running one (`WorkflowCancelledError`) or drops a paused
+  one (`resume` → `NotPausedError`). A thread with an `owner` rejects another owner
+  (`ThreadOwnerError`).
+- Tools and actions read their run as `ctx.run` (`RunContext`: `runId`, `threadId`, `signal`,
+  `metadata`, `owner`); actions get `ctx.idempotencyKey` = `${runId}:${node}` (`:${index}` in a
+  batch), tools `ctx.callId`. Framework code reads it with the internal `extractRunContext` — never
+  by parsing `configurable`.
+- **Limits** in `settings()`: `.limits({ perRun: { steps, cost }, perDay: { cost } })` (values with
+  units: `usd()`). Steps = visits of agents and routers (default (agents + routers) × 3). Hitting one
+  **fails the run** with `LimitExceededError` naming the key (`limits.perRun.steps`,
+  `limits.perRun.cost`, `limits.perDay.cost`, `routers.<name>.maxVisits`; money:
+  `BudgetExceededError`). `perDay.cost` requires `perRun.cost` (`[limits.per-run-required]`).
+- **Errors** (root entry) are `GraphComposeError`s with stable `code`s (`limit` ⊃ `limit.budget`,
+  `step.agent` / `step.guard` / `step.router`, `workflow.cancelled`, …); a new error class gets a
+  `static code`.
+
+### Testing
+
+- Whole workflows: `testWith(Workflow, options?)` from `graphcompose/testing` gives Vitest fixtures
+  `app`, `mockLlm`, `mockOf`, `mcpOf`, `recoverApp`; models answer by script — `replyWith(text)`,
+  `callTool(Tool, args)` (args typed by the tool's input DTO), `routeTo(Target)`,
+  `decideWith(answers)` (a decision judge), `failWith(ModelFailure.Timeout)`; the network is blocked.
+  Matchers by class: `toFollowPath`, `toFinishWith`, … (`setupFiles: ["graphcompose/testing/setup"]`).
+- A recorded run instead of scripts: `testWith(W, { vcr: { cassetteName, dir, mode: VCRMode.REPLAY } })`
+  — an unrecorded call throws `CassetteMissingError` (REPLAY by default under `CI`).
+- Units: `toolOf(new Tool(fakes))` for a tool, `testRunContext()` for a `ctx.run`, fakes from
+  `@langchain/core/utils/testing`. Tests never call a real model; real-model checks are `make smoke`.
+
+### Imports
+
+An example (and any project) imports only the public entries: the root `graphcompose` (decorators,
+DI, flow DSL, settings, environments, observers, judges and decisions, `createApp`, errors, types),
+`graphcompose/dto`, `/units`, `/models`, `/testing` (+ `/testing/setup`), and the integrations `/mcp`,
+`/rag`, `/a2a`, `/memory`. ESLint enforces it from `packages/graphcompose/package.json#exports`
+minus `deprecatedExports` (`scripts/public-entries.mjs`): a new entry is allowed by adding it there,
+never by an `eslint-disable`. `/core`, `/graph`, `/router`, `/tool`, `/channels`, `/concurrency` are
+deprecated re-exports; `gc migrate imports` rewrites them. The root import has no side effects
+(load tracing, MCP, SQLite lazily), and each name has one meaning across entries. A public surface
+change updates the api-extractor reports (`npm run api:update` → `packages/graphcompose/api/*.api.md`).
+The framework never imports `examples/` (ESLint-enforced).
+
+### Quality gates
+
+`make check` = `npm run check`: the root allowlist (`.root-allowlist`), the suppression budget
+(`.suppressions.json`), build, the API reports, **compiled docs**, prettier, ESLint, `tsc` (tests
+included), tests with coverage, and `gc check --models` on the example. Compiled docs
+(`scripts/check-docs.mjs`) typecheck every ` ```ts ` block of README, CLAUDE, QUALITY and WORKFLOW
+(and `docs/`) against the built package, and check that every `scripts/…`, `npm run …`, `make …` and
+`gc …` they mention — and every `gc …` the CLI prints — exists. Snippet conventions:
+
+- ` ```ts file=src/x.ts ` — written at that path, so other blocks of the same doc import it.
+- A hidden `<!-- snippet-context … -->` comment right before a block supplies imports and
+  declarations; a line `// @snippet` in it marks where the block goes (to wrap a fragment).
+- ` ```ts no-check: <reason> ` opts a block out — the reason is required; use it sparingly.
 
 ## Naming grammar (#127)
 
@@ -167,8 +463,7 @@ Components):
   (`WorkflowStartText`, `ToolCallApprovalDecision`, `RagSearchResult`); paired concepts get paired
   names (`@WorkflowStart` / `@WorkflowFinish`, `WorkflowPauseQuestion` / `WorkflowPauseAnswer`);
   nothing "chat", "user", "human" or "person" in framework names — a run may be a CI pipeline, an
-  approval may come from a system. `scripts/check-old-names.sh` (in `make check`) keeps the retired
-  names out.
+  approval may come from a system.
 - **When + what** for things tied to a moment: `BeforeToolCallJudge`, `AfterToolCallJudge`,
   `BeforeAgentAnswerJudge`.
 - **One limit → flat `max…`** (`maxVisits`); **several related → an object** named by what they
@@ -194,16 +489,6 @@ Board `Status`: **Triage → Backlog → In progress → Test → Done** (Done: 
 
 Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status>`.
 
-## Component Validation & Context (Epic #177)
-
-- **Strict DI injection:** One `deps` contract for every component kind (`@Tool`, `@McpTool`, `@Injectable`, `@Rag`, `@WorkflowAction`, `@Guardrail`, `@PiiPolicy`, `@Channel`, inbound adapters, `@Judge`): `deps` are checked against the constructor by the compiler and injected by the container. A dependency without a provider fails at assembly (`Consumer: "TOKEN" is not registered …`). Every class in `providers` must carry a decorator (`@Injectable({ deps })` or its component decorator), else assembly fails with `[di.undecorated-provider]`; values go through `provide(token, value)` — a raw `{ provide, useValue }` literal does not compile.
-- **Scopes (#184):** every DI decorator takes `scope: "app" | "run"` (default `"app"`: one instance for the app, shared by every run). Per-run state (what a run has seen, a session) belongs in a `scope: "run"` component: `@Injectable({ scope: "run" })`, `@Tool({ scope: "run", deps: [SearchSession] })`. Each run (`app.execute`, `app.resume`, a `testWith` tool slice call) gets its own instances in a child container, and `onDestroy` (`implements OnDestroy`) runs when it ends — answered, paused or failed. An app-scoped component depending on a run-scoped one fails assembly with `[di.scope-mismatch] GreenhouseJobs (app) → SearchSession (run)`; using a run-scoped component outside a run fails with `[di.run-scope-outside-run]`. Lint (`graphcompose/no-run-state-in-singleton`, `scripts/eslint-run-state.mjs`) flags `this.x = …` inside `run()` of an app-scoped component.
-- **Tool names:** unique over the names a model sees — local, MCP and `search_<rag>` — else `[tool.duplicate-name]` at assembly.
-- **Channel constraints:** If an `@McpTool` or `@Tool` specifies a `channel`, that channel class MUST be explicitly registered in the `@Workflow({ channelClasses: [...] })` array. Otherwise, compilation throws `ComponentError`.
-- **Observers are registered, not discovered:** only classes listed in `@Workflow({ observers: [...] })` get hooks (`implements OnToolEnd, …`, payloads like `ToolEndEvent` from `graphcompose`). A service that merely has an `onError` method is never called. Assembly rejects an observer with no hook (`[observer.no-hooks]`) or a misspelled one (`[observer.unknown-hook] … did you mean onToolEnd?`). An observer that throws is reported as a process warning; the run goes on.
-- **Environment:** the app's settings live in `environments/` next to the workflow file: the contract in `environment.ts` (`declare module "graphcompose" { interface Environment { … } }`), the values in `<name>.environment.ts` (`export default defineEnvironment({ … })`, `fromEnv("VAR", { default, secret })` for process variables). Services inject them with `ENV` from `graphcompose` (`@Injectable({ deps: [ENV] })`, `constructor(env: Environment)`), never `process.env`. `--env <name>` / `createApp(W, { env })` / `testWith(W, { env | environment })` pick one; the default is `dev`. Model provider keys stay process variables (`EnvironmentVariable.named`).
-- **RunContext:** tools and actions read their run as `ctx.run` (`runId: RunId`, `threadId`, `signal`, `metadata` from `execute(…, { metadata })`, `owner` from `execute(…, { owner })` — a thread is bound to its owner; `execute`/`resume`/`cancel` by another throw `ThreadOwnerError`); actions get `ctx.idempotencyKey` = `${runId}:${node}` (`:${index}` inside `batchParallel`). It is built once in `streamConfig` (`configurable.run`); framework nodes read it with the internal `extractRunContext` — never parse `configurable` by hand. `app.cancel(thread)` aborts a running run (`WorkflowCancelledError`) or drops a paused one (`resume` → `NotPausedError`) and returns `{ cancelled }`.
-
 ## Hard rules
 
 - Read `WORKFLOW.md` (tracker, wiki, branches, PRs) and `QUALITY.md` (code, types, agents, FinOps,
@@ -225,7 +510,8 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 - Read existing code before planning — the spec may be stale, the code is not.
 - **No specs, plans or docs as files.** Specs and implementation plans → GitHub Issues (bodies via
   stdin). Docs → GitHub Wiki via `scripts/wiki.sh`. **ALWAYS update the `../<repo>.wiki` repository directly whenever making API, DSL, or architectural changes so that the wiki is always up-to-date.** Decisions → wiki pages `ADR-NNNN-Title`.
-- Routers never import graph/agents/prompts; import routers only via `src/routers/index.ts`.
+- Inside the framework, `src/routers` never imports graph/agents/prompts, and the rest imports it
+  only via `src/routers/index.ts` (ESLint-enforced; the same for `src/tools` and `src/terns`).
 - **Example code before spec**: a new decorator or a new parameter enters a spec only after example
   code using it is agreed.
 - New names follow the naming grammar (above, #127).
@@ -263,14 +549,16 @@ packages/graphcompose-cli/    the `gc` / `graphcompose` command (#205; depends o
     migrate/        `gc migrate imports` (#195): rewrites the old entries' imports to the new ones
     chat.ts, cli.ts, check.ts, describe.ts, rag-index.ts, eval/   command handlers
   tests/            CLI tests; workflows come from the framework's tests/fixtures
-  bin/              gc launcher
+  bin/              the CLI launcher (bin names `gc` and `graphcompose`)
 examples/job-scout/          the example (package job-scout-example; depends on graphcompose)
   src/              job-scout.workflow.ts, studio.ts; workflow-starts/ (*.workflow-start.ts), routers/
-                    (*.router.ts), agents/ (*.agent.ts using file()), workflow-finishes/
+                    (*.router.ts), agents/ (*.agent.ts + *.prompt.md), workflow-finishes/
                     (*.workflow-finish.ts), tools/ (*.tool.ts +
                     *.dto.ts), services/ (*.service.ts), mcp/ (*.server.ts, *.mcp.ts, *.dto.ts),
                     rag/ (*.rag.ts), helpers/ (*.helper.ts), config/, scripts/, data/
   tests/  profiles/  golden/
-scripts/        bootstrap-repo, bootstrap-labels, ticket, wiki, langfuse, coverage-badge, check-rules-files
+scripts/        the gate's checks (check-root, check-suppressions, check-docs + docs/, api-report,
+                public-entries, eslint-run-state), bootstrap-repo, bootstrap-labels, ticket, wiki,
+                langfuse, coverage-badge
 ../<repo>.wiki  GitHub Wiki working copy (separate git repo, never inside this repo)
 ```

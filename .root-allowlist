@@ -25,10 +25,3 @@ package.json
 packages
 scripts
 tsconfig.base.json
-# Planning notes still at the root — move to Issues/Wiki with the docs rewrite (#196), then delete:
-BACKLOG.md
-EXAMPLES_IDEAS.md
-DSL_PHASE_2_SPEC.md
-SAGA_PLAN.md
-ticket-168-spec.md
-ticket-169-observability.md

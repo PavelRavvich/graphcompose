@@ -99,7 +99,17 @@ time a run pauses at one of its tools (`req`: `runId`, `agentName`, `toolName`, 
 (`@InboundChannelAdapter`) turns the reply your channel receives (a button click, a webhook body)
 into the decision.
 
-```typescript
+<!-- snippet-context
+import { Injectable } from "graphcompose";
+@Injectable()
+export class SlackClient {
+  post(_text: string): Promise<void> {
+    return Promise.resolve();
+  }
+}
+-->
+
+```typescript file=channels.ts
 import {
   Channel,
   InboundChannelAdapter,
@@ -128,6 +138,18 @@ export class SlackChannel implements ChannelHandler {
 Set `channel` on `@Tool` / `@McpTool` to the channel class, and list the class in
 `@Workflow({ channelClasses })`. Every call of that tool pauses the run before the tool runs.
 
+<!-- snippet-context
+import { Tool, type ToolHandler } from "graphcompose";
+import { Text } from "graphcompose/dto";
+import { SlackChannel } from "./channels.js";
+class DeleteUser {
+  @Text() userId!: string;
+}
+class Deleted {
+  @Text() userId!: string;
+}
+-->
+
 ```typescript
 @Tool({
   name: "delete_user",
@@ -136,8 +158,10 @@ Set `channel` on `@Tool` / `@McpTool` to the channel class, and list the class i
   output: Deleted,
   channel: SlackChannel, // calls wait for an approval through SlackChannel
 })
-export class DeleteUserTool {
-  // ...
+export class DeleteUserTool implements ToolHandler<DeleteUser, Deleted> {
+  run({ userId }: DeleteUser): Promise<Deleted> {
+    return Promise.resolve({ userId }); // runs only once the call is approved
+  }
 }
 ```
 
@@ -145,9 +169,15 @@ export class DeleteUserTool {
 
 When starting the graph, you can pass string context (like user ID, tenant, etc.) using the `metadata` parameter. This metadata is passed to the `requestApproval` method of your channel, and tools and actions read it as `ctx.run.metadata` (its resume keeps it).
 
+<!-- snippet-context
+import type { App, WorkflowStartClass } from "graphcompose";
+declare const app: App;
+declare const ChatStart: WorkflowStartClass;
+-->
+
 ```typescript
 const result = await app.execute(
-  Start,
+  ChatStart,
   { text: "Delete user 123" },
   { metadata: { approverEmail: "admin@example.com" } },
 );
@@ -159,6 +189,12 @@ The paused run's result carries its `thread`. Once the reply arrives out-of-band
 clicks "Approve" in Slack), resume that thread with it. With an `inboundAdapter`, pass the raw reply
 and the adapter turns it into the decision; without one, pass a `ChannelDecision`. `gc chat` asks in
 the terminal and resumes by itself.
+
+<!-- snippet-context
+import type { App, WorkflowStartClass } from "graphcompose";
+declare const app: App;
+declare const ChatStart: WorkflowStartClass;
+-->
 
 ```typescript
 const paused = await app.execute(ChatStart, { text: "Delete user 123" });
