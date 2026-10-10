@@ -12,7 +12,11 @@ import {
   type ChannelRequest,
   type IWorkflowAction,
 } from "../../../src/components/decorators.js";
-import { BaseJudge, Judge, type JudgeResult } from "../../../src/components/judge-decorators.js";
+import {
+  Judge,
+  type JudgeHandler,
+  type JudgeVerdict,
+} from "../../../src/components/judge-decorators.js";
 import { Injectable, InjectionToken } from "../../../src/core/index.js";
 import { Text } from "../../../src/dto/index.js";
 import type { RagRetrieval } from "../../../src/rag/types.js";
@@ -101,13 +105,11 @@ export class VaultChannel implements ChannelHandler {
   }
 }
 
-@Judge({ name: "strict", deps: [Vault] })
-export class StrictJudge extends BaseJudge {
-  constructor(private readonly vault: Vault) {
-    super();
-  }
-  override evaluate(state: { replyWith: string }): Promise<JudgeResult> {
-    return Promise.resolve({ passed: !state.replyWith.includes(this.vault.secret) });
+@Judge({ name: "strict", model: "test/strict", deps: [Vault] })
+export class StrictJudge implements JudgeHandler {
+  constructor(private readonly vault: Vault) {}
+  judge(reply: string): Promise<JudgeVerdict> {
+    return Promise.resolve({ passed: !reply.includes(this.vault.secret) });
   }
 }
 

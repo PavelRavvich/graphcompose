@@ -1,4 +1,5 @@
 import type { BaseMemoryStrategy } from "../memory/types.js";
+import type { JudgeHandler } from "../components/judge-decorators.js";
 import type { BaseCheckpointSaver } from "@langchain/langgraph";
 import type { AssembledWorkflow, WorkflowServices } from "../workflow.js";
 import type { KnowledgeSource } from "../rag/types.js";
@@ -97,6 +98,15 @@ export const memoryFor = (
 ): { readonly memory?: ReadonlyMap<string, BaseMemoryStrategy> } => {
   const memory = bundle.memoryStrategies?.(services);
   return memory === undefined ? {} : { memory };
+};
+
+/** The agents' judges by name, created by the workflow's container. */
+export const judgesFor = (
+  bundle: AssembledWorkflow,
+  services: WorkflowServices,
+): { readonly judges?: ReadonlyMap<string, JudgeHandler> } => {
+  const judges = bundle.judges?.(services);
+  return judges === undefined ? {} : { judges };
 };
 
 /** The pause seam, when the workflow has tools that wait for an approval; on the app's checkpointer. */

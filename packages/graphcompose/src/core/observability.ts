@@ -1,5 +1,5 @@
 import type { BaseMessage, MessageContent } from "@langchain/core/messages";
-import type { JudgeResult } from "../components/judge-decorators.js";
+import type { JudgeVerdict } from "../components/judge-decorators.js";
 import type { FlowStateType, FlowStateUpdate } from "../graph/flow-state.js";
 import type { AgentStateUpdate } from "../graph/state.js";
 import type { RagRetrieval } from "../rag/types.js";
@@ -124,6 +124,6 @@ export interface JudgeStartEvent {
 export interface JudgeEndEvent {
   readonly name: string;
   readonly agentName: string;
-  readonly update: JudgeResult;
+  readonly update: JudgeVerdict;
   readonly state: AppState;
 }

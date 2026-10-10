@@ -16,6 +16,14 @@ export {
   type ChannelRequest,
   type ChannelDecision,
 } from "../components/decorators.js";
+export {
+  Judge,
+  type JudgeContext,
+  type JudgeHandler,
+  type JudgeMeta,
+  type JudgeModel,
+  type JudgeVerdict,
+} from "../components/judge-decorators.js";
 export { ENV, ROUTER_FACTORY } from "../components/runtime.js";
 export { ComponentError } from "../components/metadata.js";
 export {

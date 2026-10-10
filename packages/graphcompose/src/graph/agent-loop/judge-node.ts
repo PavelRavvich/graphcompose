@@ -1,104 +1,97 @@
-import { HumanMessage } from "@langchain/core/messages";
-import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import { HumanMessage, type MessageContent } from "@langchain/core/messages";
+import type { JudgeModel, JudgeVerdict } from "../../components/judge-decorators.js";
+import type { AppState } from "../../core/observability.js";
+import { recordUsage, type UsageRecord } from "../../finops/usage.js";
+import { AgentFailedError, QualityGateError, type JudgeFeedback } from "../errors.js";
 import type { AsyncNode } from "../types.js";
-import type { AgentLoopDeps } from "./deps.js";
-import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
-import { componentOf } from "../../components/metadata.js";
-import { extractRunContext } from "../run-context.js";
-import type { BaseJudge, JudgeMeta } from "../../components/judge-decorators.js";
-import type { Class } from "../../components/injection.js";
+import type { AgentJudge, AgentLoopDeps } from "./deps.js";
+import { loopUsage, type AgentLoopStateType, type AgentLoopUpdate } from "./state.js";
 
-// eslint-disable-next-line max-lines-per-function
-export function makeJudgeNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
+/** The cost caller of a judge's model calls (category `review`). */
+export const judgeCaller = (judge: string): string => `judge:${judge}`;
+
+/** A judge's model: each call through the gateway's binding, its spend added to `spent`. */
+function meteredModel(judge: AgentJudge, spent: UsageRecord[]): JudgeModel {
+  const { model, settings } = judge.binding;
+  return {
+    model: settings.model,
+    invoke: async (input) => {
+      const response = await model.invoke(typeof input === "string" ? input : [...input]);
+      spent.push(recordUsage(judgeCaller(judge.name), settings, response));
+      return response.text;
+    },
+  };
+}
+
+/** The judges that rejected the reply, in the agent's order; every judge runs. */
+async function rejectionsOf(
+  state: AgentLoopStateType,
+  deps: AgentLoopDeps,
+  reply: string,
+  spent: UsageRecord[],
+): Promise<JudgeFeedback[]> {
   const agent = deps.agent.name;
-  // eslint-disable-next-line max-lines-per-function, complexity
-  return async (state, config) => {
-    const runCtx = extractRunContext(config, state.runId);
-    const meta = deps.agent;
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    const judgesClasses = meta.judges || [];
-    const maxRetries = meta.maxRetries ?? 0;
-
-    if (judgesClasses.length === 0 || state.reply === null) {
-      return {}; // No judges or no reply to judge
-    }
-
-    const appState = {
+  const appState: AppState = { runId: state.runId, threadId: state.runId, activeNode: agent };
+  const rejected: JudgeFeedback[] = [];
+  for (const judge of deps.agent.judges ?? []) {
+    const ctx = {
+      agent,
       runId: state.runId,
-      threadId: state.runId,
-      activeNode: agent,
-      variables: {},
-      history: state.messages,
+      task: state.task,
+      attempt: state.retries,
+      model: meteredModel(judge, spent),
     };
+    const event = { name: judge.name, agentName: agent, state: appState };
+    await deps.observer?.onJudgeStart({ ...event, input: reply });
+    const verdict: JudgeVerdict = await judge.handler.judge(reply, ctx).catch((error: unknown) => {
+      throw new AgentFailedError(agent, [...loopUsage(state), ...spent], error);
+    });
+    await deps.observer?.onJudgeEnd({ ...event, update: verdict });
+    if (!verdict.passed) {
+      rejected.push({ judge: judge.name, feedback: verdict.feedback ?? "rejected (no feedback)" });
+    }
+  }
+  return rejected;
+}
 
-    let allPassed = true;
-    let combinedFeedback = "";
+/** What the agent reads before its retry: every rejecting judge's feedback. */
+const retryPrompt = (rejected: readonly JudgeFeedback[]): string =>
+  [
+    "Your reply did not pass the quality gate. Fix the following and reply again:",
+    ...rejected.map((r) => `- [${r.judge}] ${r.feedback}`),
+  ].join("\n");
 
-    for (const JudgeClass of judgesClasses) {
-      const judgeInstance =
-        deps.container?.get(JudgeClass as Class<BaseJudge>) ??
-        new (JudgeClass as new () => BaseJudge)();
-      const judgeMetaWrapper = componentOf(JudgeClass);
-      const judgeMeta = judgeMetaWrapper?.meta as JudgeMeta;
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      const judgeName = judgeMeta?.name || JudgeClass.name;
+/** The reply as the flow's contribution (the move the replyWith node appended). */
+function replyContent(state: AgentLoopStateType, reply: string): MessageContent {
+  const content = state.messages.at(-1)?.content;
+  return typeof content === "string" || content === undefined ? reply : content;
+}
 
-      // eslint-disable-next-line prefer-const
-      let chatModel: BaseChatModel | undefined = deps.agent.binding.model;
-
-      const ctx = {
-        runId: state.runId,
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        idempotencyKey: `run_${state.runId}_node_${agent}_judge_${judgeName}_retry_${state.retries}`,
-        chatModel,
-        executionContext: runCtx.executionContext,
+/**
+ * The quality gate after the agent's reply: every `@Judge` of the agent judges it with its own model
+ * (spend recorded as `judge:<name>`). All pass → the reply is the agent's contribution. A rejection
+ * sends the feedback back to the model for a retry; after `maxRetries` retries → `QualityGateError`.
+ */
+export function makeJudgeNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
+  const { name: agent, judges = [], maxRetries = 0 } = deps.agent;
+  return async (state) => {
+    if (judges.length === 0 || state.reply === null) return {};
+    const spent: UsageRecord[] = [];
+    const rejected = await rejectionsOf(state, deps, state.reply, spent);
+    if (rejected.length === 0) {
+      return {
+        usage: spent,
+        contributions: [{ agent, content: replyContent(state, state.reply) }],
       };
-
-      await deps.observer?.onJudgeStart({
-        name: judgeName,
-        agentName: agent,
-        input: state.reply,
-        state: appState,
-      });
-
-      // We pass the replyWith inside state to evaluate
-      const result = await judgeInstance.evaluate({ ...state, replyWith: state.reply }, ctx);
-
-      await deps.observer?.onJudgeEnd({
-        name: judgeName,
-        agentName: agent,
-        update: result,
-        state: appState,
-      });
-
-      if (!result.passed) {
-        allPassed = false;
-        if (result.feedback) {
-          combinedFeedback += `- [${judgeName}]: ${result.feedback}\n`;
-        }
-      }
     }
-
-    if (allPassed) {
-      return {}; // Move to END
-    }
-
-    // Failed quality gate
     if (state.retries >= maxRetries) {
-      throw new Error(
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-        `QualityGateError: Agent ${agent} failed to pass quality gates after ${maxRetries} retries.\nFeedback:\n${combinedFeedback}`,
-      );
+      throw new QualityGateError(agent, [...loopUsage(state), ...spent], rejected, state.retries);
     }
-
-    // Retry loop!
-    const feedbackMessage = new HumanMessage(
-      `Your response failed the quality gates. Please fix the following errors:\n${combinedFeedback}`,
-    );
     return {
       reply: null,
-      retries: 1, // reducer is add, so this increments by 1
-      messages: [feedbackMessage],
+      retries: 1,
+      usage: spent,
+      messages: [new HumanMessage(retryPrompt(rejected))],
     };
   };
 }

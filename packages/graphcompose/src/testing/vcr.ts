@@ -9,6 +9,7 @@ import crypto from "crypto";
 import {
   createModelGateway,
   type ChatModelSpec,
+  type ChatModelUser,
   type DecisionSpec,
   type ModelGateway,
 } from "../llm/gateway.js";
@@ -166,6 +167,13 @@ export class VcrChatModel extends BaseChatModel {
   }
 }
 
+/** Whose interactions a cassette entry holds: the agent, the router, the judge (`judge:<name>`) or compaction. */
+function cassetteKeyOf(user: ChatModelUser): string {
+  if (user.kind === "agent") return user.agent;
+  if (user.kind === "router") return user.router;
+  return user.kind === "judge" ? `judge:${user.judge}` : "compaction";
+}
+
 export function createVcrGateway(
   bundle: AssembledWorkflow,
   vcrConfig: VcrConfig,
@@ -186,12 +194,7 @@ export function createVcrGateway(
   const vcrGateway: ModelGateway = {
     chatModel: (spec: ChatModelSpec) => {
       const realModel = realGateway.chatModel(spec);
-      const agentName =
-        spec.user.kind === "agent"
-          ? spec.user.agent
-          : spec.user.kind === "router"
-            ? spec.user.router
-            : "compaction";
+      const agentName = cassetteKeyOf(spec.user);
       return new VcrChatModel(realModel, cassettePath, mode, agentName);
     },
     routeTo: async (spec: DecisionSpec) => {

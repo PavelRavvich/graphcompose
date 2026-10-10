@@ -1,10 +1,15 @@
 import type { PromptInput } from "../components/prompt-input.js";
 import type { AgentSettingsOf, AgentsConfigOf } from "../config/types.js";
-import { resolveAgentLimits, type AgentDefinition } from "./agent-loop/index.js";
+import { resolveAgentLimits, type AgentDefinition, type AgentJudge } from "./agent-loop/index.js";
 import type { GraphDeps } from "./deps.js";
 
 export class MissingAgentPromptError extends Error {
   override name = "MissingAgentPromptError";
+}
+
+/** A wiring bug: an agent names a judge the app did not create. */
+export class MissingJudgeError extends Error {
+  override name = "MissingJudgeError";
 }
 
 /** Summaries a reader sees by default: defaults.history.summaries, else compaction.keep, else none. */
@@ -21,7 +26,23 @@ const limitsOf = <TName extends string>(
   summariesLimit: agent?.historySummaries ?? defaultSummaries(config),
 });
 
-/** Every configured agent with its model, prompt, tools, limits and knowledge. */
+/** An agent's judges (`agents.<name>.judges`): each one's instance and its own model. */
+function judgesOf<TName extends string>(
+  agent: AgentSettingsOf<string> | undefined,
+  deps: GraphDeps<TName>,
+): Pick<AgentDefinition, "judges" | "maxRetries"> {
+  const judges = (agent?.judges ?? []).map((name): AgentJudge => {
+    const handler = deps.judges?.get(name);
+    const binding = deps.registry.judges.get(name);
+    if (handler === undefined || binding === undefined) {
+      throw new MissingJudgeError(`Judge "${name}" has no instance or no model`);
+    }
+    return { name, handler, binding };
+  });
+  return { judges, maxRetries: agent?.maxRetries ?? 0 };
+}
+
+/** Every configured agent with its model, prompt, tools, limits, knowledge and judges. */
 export function agentDefinitions<TName extends string>(
   deps: GraphDeps<TName>,
 ): ReadonlyMap<string, AgentDefinition> {
@@ -39,6 +60,7 @@ export function agentDefinitions<TName extends string>(
       instructions: instructions as PromptInput,
       tools: (agent?.tools ?? []).map(deps.tools),
       ...limitsOf(agent, deps.config),
+      ...judgesOf(agent, deps),
       knowledge: deps.knowledge?.(name) ?? [],
       ...(memory === undefined ? {} : { memory }),
     });

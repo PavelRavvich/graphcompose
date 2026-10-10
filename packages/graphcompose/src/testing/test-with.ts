@@ -20,7 +20,10 @@ export interface WorkflowFixtures {
    * The closed app fails every call with `test.app-closed`.
    */
   readonly recoverApp: () => Promise<TestApp>;
-  /** The script of an agent or a router (by class): `mockLlm(Scout).thenReturn(replyWith("…"))`. */
+  /**
+   * The script of an agent, a router or a `@Judge`'s model (by class):
+   * `mockLlm(Scout).thenReturn(replyWith("…"))`, `mockLlm(AnswerGrounded).thenReturn(replyWith("PASS"))`.
+   */
   readonly mockLlm: (component: FlowNode) => ModelScript;
   /**
    * The script of the workflow's compaction model (`@Workflow({ compaction })`); unscripted, it

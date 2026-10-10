@@ -87,7 +87,7 @@ describe("AC12: mockLlm — what a component sent its model", () => {
     "mockLlm of a class that is not an agent or router of the workflow fails",
     ({ mockLlm }) => {
       expect(() => mockLlm(Unused)).toThrow(
-        "mockLlm(Unused): not an agent or router of this workflow",
+        "mockLlm(Unused): not an agent, router or judge of this workflow",
       );
       expect(() => mockLlm(Writer)).toThrow(TestSetupError);
     },

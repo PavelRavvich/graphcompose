@@ -24,7 +24,7 @@ import { nodeNameOf } from "./failure-facts.js";
 import { McpStubs, stubbedMcpConnect, type McpStub } from "./mcp-stubs.js";
 import { mockInstanceOf } from "./mocks.js";
 import { ScriptBook, type ModelScript } from "./script-book.js";
-import { createScriptedGateway, routerKeyOf } from "./scripted-gateway.js";
+import { createScriptedGateway, judgeScriptKeyOf, routerKeyOf } from "./scripted-gateway.js";
 import { mcpServersOf, usedComponentsOf } from "./workflow-parts.js";
 import { createVcrGateway } from "./vcr.js";
 
@@ -78,6 +78,7 @@ export class TestEnvironment {
   readonly #mocks = new Map<Class, unknown>();
   readonly #apps: BuiltApp[] = [];
   readonly #nodes: ReadonlySet<FlowNode>;
+  readonly #judges: ReadonlySet<string>;
   readonly #options: AppOptions;
   #threads = 0;
   #runs = 0;
@@ -94,6 +95,7 @@ export class TestEnvironment {
     environment: Environment | undefined,
   ) {
     this.#nodes = new Set(nodes);
+    this.#judges = new Set(Object.keys(assembled.config.judges ?? {}));
     for (const node of nodes) {
       const key = scriptKeyOf(node);
       if (key !== undefined) this.book.name(key, labelOf(node));
@@ -153,10 +155,15 @@ export class TestEnvironment {
   }
 
   mockLlm(target: FlowNode): ModelScript {
+    const judge = judgeScriptKeyOf(target, this.#judges);
+    if (judge !== undefined) {
+      this.book.name(judge, labelOf(target));
+      return this.book.scriptOf(judge);
+    }
     const key = scriptKeyOf(target);
     if (key === undefined || !this.#nodes.has(target)) {
       throw new TestSetupError(
-        `mockLlm(${labelOf(target)}): not an agent or router of this workflow`,
+        `mockLlm(${labelOf(target)}): not an agent, router or judge of this workflow`,
       );
     }
     return this.book.scriptOf(key);

@@ -1,12 +1,12 @@
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { Dataset } from "./dataset.js";
-import type { BaseJudge } from "../components/judge-decorators.js";
+import type { JudgeHandler, JudgeModel } from "../components/judge-decorators.js";
 import { randomUUID } from "crypto";
 
 export interface SuiteConfig<TInput = unknown, TExpected = unknown> {
   name: string;
   dataset: Dataset<TInput, TExpected>;
-  judges: BaseJudge[];
+  judges: JudgeHandler[];
 }
 
 export interface SuiteEvaluateOptions {
@@ -34,6 +34,16 @@ export interface SuiteReport {
   results: CaseResult[];
 }
 
+const textOf = (value: unknown): string =>
+  typeof value === "string" ? value : JSON.stringify(value);
+
+/** The suite's chat model as a judge's model (no cost accounting: a suite has no run). */
+const suiteModel = (chatModel: BaseChatModel): JudgeModel => ({
+  model: chatModel.getName(),
+  invoke: async (input) =>
+    (await chatModel.invoke(typeof input === "string" ? input : [...input])).text,
+});
+
 export class Suite<TInput = unknown, TExpected = unknown> {
   constructor(public readonly config: SuiteConfig<TInput, TExpected>) {}
 
@@ -59,10 +69,14 @@ export class Suite<TInput = unknown, TExpected = unknown> {
           const allMetrics: Record<string, unknown> = {};
 
           for (const judge of this.config.judges) {
-            const judgeRes = await judge.evaluate(
-              { replyWith: output as string, ...(output as object), expected: tc.expected },
-              { runId: id, chatModel: options.chatModel },
-            );
+            const judgeRes = await judge.judge(textOf(output), {
+              agent: this.config.name,
+              runId: id,
+              task: textOf(tc.input),
+              attempt: 0,
+              model: suiteModel(options.chatModel),
+              expected: tc.expected,
+            });
 
             if (!judgeRes.passed) allPassed = false;
             if (judgeRes.feedback) allFeedback += judgeRes.feedback + "\n";

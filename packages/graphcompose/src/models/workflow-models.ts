@@ -46,6 +46,13 @@ export function withProviderPrices(
       : {
           compaction: { ...config.compaction, model: priced(config.compaction.model, directory) },
         }),
+    ...(config.judges === undefined
+      ? {}
+      : {
+          judges: Object.fromEntries(
+            Object.entries(config.judges).map(([name, judge]) => [name, priced(judge, directory)]),
+          ),
+        }),
   };
 }
 
