@@ -88,7 +88,9 @@ flow: [
   agents and routers (default (agents + routers) × 3). Hitting any limit **fails the run** with
   `LimitExceededError` naming the boundary key (`limits.perRun.steps`, `limits.perRun.cost`,
   `limits.perDay.cost`, `routers.<name>.maxVisits`; a money limit is its subclass
-  `BudgetExceededError`). LangGraph `recursionLimit` is only a safety net far above the steps.
+  `BudgetExceededError`). `perDay.cost` requires `perRun.cost` (each run reserves its run cap of
+  the day before its first call); without it the app fails at start with
+  `[limits.per-run-required]`. LangGraph `recursionLimit` is only a safety net far above the steps.
 - **Run errors** (`graphcompose` root): every one a `GraphComposeError` with a stable `code`
   (`limit` ⊃ `limit.budget`, `step` ⊃ `step.agent` / `step.guard` / `step.router`,
   `workflow.cancelled`, …). `catchError(Node, ErrorClass).next(Handler)` matches by code — the
@@ -185,7 +187,7 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 - **Channel constraints:** If an `@McpTool` or `@Tool` specifies a `channel`, that channel class MUST be explicitly registered in the `@Workflow({ channelClasses: [...] })` array. Otherwise, compilation throws `ComponentError`.
 - **Observers are registered, not discovered:** only classes listed in `@Workflow({ observers: [...] })` get hooks (`implements OnToolEnd, …`, payloads like `ToolEndEvent` from `graphcompose/core`). A service that merely has an `onError` method is never called. Assembly rejects an observer with no hook (`[observer.no-hooks]`) or a misspelled one (`[observer.unknown-hook] … did you mean onToolEnd?`). An observer that throws is reported as a process warning; the run goes on.
 - **Environment:** the app's settings live in `environments/` next to the workflow file: the contract in `environment.ts` (`declare module "graphcompose" { interface Environment { … } }`), the values in `<name>.environment.ts` (`export default defineEnvironment({ … })`, `fromEnv("VAR", { default, secret })` for process variables). Services inject them with `ENV` from `graphcompose` (`@Injectable({ deps: [ENV] })`, `constructor(env: Environment)`), never `process.env`. `--env <name>` / `createApp(W, { env })` / `testWith(W, { env | environment })` pick one; the default is `dev`. Model provider keys stay process variables (`EnvironmentVariable.named`).
-- **RunContext:** tools and actions read their run as `ctx.run` (`runId: RunId`, `threadId`, `signal`, `metadata` from `execute(…, { metadata })`); actions get `ctx.idempotencyKey` = `${runId}:${node}` (`:${index}` inside `batchParallel`). It is built once in `streamConfig` (`configurable.run`); framework nodes read it with the internal `extractRunContext` — never parse `configurable` by hand. `app.cancel(thread)` aborts a running run (`WorkflowCancelledError`) or drops a paused one (`resume` → `NotPausedError`) and returns `{ cancelled }`.
+- **RunContext:** tools and actions read their run as `ctx.run` (`runId: RunId`, `threadId`, `signal`, `metadata` from `execute(…, { metadata })`, `owner` from `execute(…, { owner })` — a thread is bound to its owner; `execute`/`resume`/`cancel` by another throw `ThreadOwnerError`); actions get `ctx.idempotencyKey` = `${runId}:${node}` (`:${index}` inside `batchParallel`). It is built once in `streamConfig` (`configurable.run`); framework nodes read it with the internal `extractRunContext` — never parse `configurable` by hand. `app.cancel(thread)` aborts a running run (`WorkflowCancelledError`) or drops a paused one (`resume` → `NotPausedError`) and returns `{ cancelled }`.
 
 ## Hard rules
 

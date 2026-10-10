@@ -1,4 +1,5 @@
 import { interrupt, isGraphInterrupt } from "@langchain/langgraph";
+import { redactedArguments } from "../../dto/redact.js";
 import { validate } from "../../dto/schema.js";
 import {
   ToolCallApprovalDecision,
@@ -46,20 +47,20 @@ const appStateOf = (ctx: AskContext) => ({
   activeNode: ctx.agent,
 });
 
-/** The run just paused at the ask: the tool's channel gets the request (once per pause). */
+/**
+ * The run just paused at the ask: the tool's channel gets the request (once per pause), its
+ * arguments with the input DTO's `sensitive` fields masked — a channel shows them to people (#202).
+ */
 async function askChannel(channels: ApprovalChannels, ctx: AskContext): Promise<void> {
   const channel = ctx.tool.channel;
   if (channel === undefined || channels.dispatch === undefined) return;
-  await channels.observer?.onChannelStart({
-    name: channel,
-    input: ctx.ask.arguments,
-    state: appStateOf(ctx),
-  });
+  const shown = redactedArguments(ctx.tool.input, ctx.ask.arguments);
+  await channels.observer?.onChannelStart({ name: channel, input: shown, state: appStateOf(ctx) });
   await channels.dispatch(channel, {
     runId: ctx.runId,
     agentName: ctx.agent,
     toolName: ctx.tool.name,
-    toolArguments: ctx.ask.arguments,
+    toolArguments: shown,
     metadata: ctx.metadata,
     executionContext: ctx.executionContext,
   });
@@ -94,7 +95,8 @@ export function pauseSeamApproval(channels: ApprovalChannels = {}): ToolCallAppr
         agent,
         callId: ask.callId,
         tool: ask.tool,
-        args: ask.arguments,
+        // what the caller and the paused-run store see: `sensitive` fields masked (#202)
+        args: redactedArguments(tool.input, ask.arguments),
       };
       let raw: unknown;
       try {

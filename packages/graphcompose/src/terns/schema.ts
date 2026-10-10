@@ -34,6 +34,9 @@ const MIGRATIONS: readonly string[] = [
   // 6 — paused runs survive a restart, with the versions they paused under (#201)
   `CREATE TABLE IF NOT EXISTS paused_runs (thread_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, run TEXT NOT NULL,
      workflow_version TEXT NOT NULL, config_hash TEXT NOT NULL, paused_at TEXT NOT NULL);`,
+  // 7 — a thread belongs to the owner it was created for (#202); older threads have none
+  `CREATE TABLE IF NOT EXISTS thread_owners (thread_id TEXT PRIMARY KEY REFERENCES threads(id),
+     owner TEXT NOT NULL);`,
 ];
 
 const TernRow = z.object({

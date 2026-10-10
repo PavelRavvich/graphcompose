@@ -11,16 +11,32 @@ type Clock = () => Date;
 export type NewThreadId = () => string;
 type Rows = (sql: string, ...params: SQLInputValue[]) => Tern[];
 
+const OwnerRow = z.object({ owner: z.string().nullable() });
+
 function threadMethods(
   db: DatabaseSync,
   now: Clock,
   newThreadId: NewThreadId,
-): Pick<TernStore, "createThread" | "hasThread"> {
+): Pick<TernStore, "createThread" | "hasThread" | "threadOwner"> {
   return {
-    createThread: (bundle) => {
+    createThread: (bundle, owner) => {
       const id = newThreadId();
       db.prepare("INSERT INTO threads VALUES (?, ?, ?)").run(id, bundle, now().toISOString());
+      if (owner !== undefined) {
+        db.prepare("INSERT INTO thread_owners VALUES (?, ?)").run(id, owner);
+      }
       return Promise.resolve(id);
+    },
+    threadOwner: (bundle, threadId) => {
+      const row = db
+        .prepare(
+          `SELECT o.owner FROM threads t LEFT JOIN thread_owners o ON o.thread_id = t.id
+           WHERE t.id = ? AND t.bundle = ?`,
+        )
+        .get(threadId, bundle);
+      if (row === undefined) return Promise.resolve(undefined);
+      const { owner } = OwnerRow.parse(row);
+      return Promise.resolve({ owner: owner ?? undefined });
     },
     hasThread: (bundle, threadId) => {
       const row = db

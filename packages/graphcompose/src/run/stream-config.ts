@@ -32,6 +32,7 @@ const runContextOf = (identity: RunIdentity, options: RunOptions): RunContext =>
     threadId: identity.threadId,
     signal: options.signal,
     metadata: options.metadata,
+    owner: options.owner,
   });
 
 /**

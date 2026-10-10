@@ -58,10 +58,21 @@ export interface ExecutionOptions {
   /** Token and tool-call events while the run works. */
   readonly onStream?: (event: RunStreamEvent) => void;
   readonly executionContext?: unknown;
+  /**
+   * Who the thread belongs to (a user, a tenant). A new thread is bound to it; continuing,
+   * resuming or cancelling a thread with another owner (or none for an owned thread) throws
+   * `ThreadOwnerError` before anything runs. Read by tools and actions as `ctx.run.owner`.
+   */
+  readonly owner?: string | undefined;
   /** Read by tools and actions as `ctx.run.metadata`; a resume keeps it unless it passes its own. */
   readonly metadata?: Readonly<Record<string, string>>;
   /** Extra LangGraph `configurable` keys for the run's nodes (the framework's own keys win). */
   readonly configurable?: Readonly<Record<string, unknown>>;
+}
+
+/** `app.cancel(thread, { owner })`: the caller's owner, checked like `execute`'s. */
+export interface CancelOptions {
+  readonly owner?: string | undefined;
 }
 
 /** What `app.cancel(thread)` did: `cancelled` when the thread had a running or a paused run. */
@@ -117,7 +128,7 @@ export interface App {
    * Cancels the thread's run: a running one is aborted (`ctx.run.signal`; its `execute` rejects
    * with `WorkflowCancelledError`), a paused one is dropped (its `resume` throws `NotPausedError`).
    */
-  cancel(thread: string): Promise<CancelOutput>;
+  cancel(thread: string, options?: CancelOptions): Promise<CancelOutput>;
   close(): Promise<void>;
   /** Resolves a service or component from the app's internal container. */
   resolve<T>(token: Class<T> | symbol | string): T;

@@ -1,7 +1,8 @@
 import { GraphComposeError } from "../core/errors.js";
 import { inRunScope } from "../components/run-scope.js";
 import { Command } from "@langchain/langgraph";
-import type { UsageRecord } from "../finops/usage.js";
+import { reserveSpend } from "../finops/reservations.js";
+import { totalCost, type UsageRecord } from "../finops/usage.js";
 import type { FlowGraph } from "../graph/build.js";
 import { flowGraphOf } from "../graph/flow-runtime.js";
 import type { AgentStateType } from "../graph/state.js";
@@ -68,7 +69,10 @@ async function resumeOnce<TName extends string>(
   const metadata = options.metadata ?? paused.metadata;
   const quorumManager = quorumOf(deps, paused.runId);
   const spent: UsageRecord[] = [];
-  const record = recorder(deps, workflowAccount(deps), spent);
+  // the pause released the run's hold: the rest of its budget is held again while it continues
+  const left = paused.budgetUsd - totalCost(before.usage);
+  const hold = await reserveSpend(deps.ledger, workflowAccount(deps), Math.max(0, left));
+  const record = recorder(hold, spent);
   const base = {
     threadId: paused.threadId,
     bundle: deps.config.name,
@@ -101,5 +105,7 @@ async function resumeOnce<TName extends string>(
     const cause = outcomeError(error, options.signal);
     await deps.terns.complete(paused.ternId, failedOutcome(cause, [...before.usage, ...spent]));
     throw cause;
+  } finally {
+    hold.release();
   }
 }

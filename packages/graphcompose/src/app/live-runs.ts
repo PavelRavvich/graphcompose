@@ -46,6 +46,7 @@ export const runOptionsOf = (
   signal,
   executionContext: call.executionContext,
   metadata: call.metadata,
+  owner: call.owner,
   configurable: call.configurable,
   ...(call.onStream === undefined ? {} : { onStream: call.onStream }),
 });

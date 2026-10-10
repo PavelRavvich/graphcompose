@@ -4,7 +4,9 @@ export type ModelProblemCode =
   | "model.ambiguous-provider"
   | "model.unknown-model"
   | "model.unsupported-setting"
-  | "model.no-price";
+  | "model.no-price"
+  | "model.fallback-unmapped"
+  | "model.fallback-no-price";
 
 /** One problem: the setting's key, its value, the model and what the model supports. */
 export interface ModelProblem {

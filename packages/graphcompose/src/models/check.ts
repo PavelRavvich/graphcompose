@@ -1,6 +1,7 @@
 import type { CircuitBreakers } from "./circuit-breaker.js";
 import { connectionOf } from "./connections.js";
 import { priceOf } from "./cost.js";
+import { fallbackProblems } from "./fallback-check.js";
 import type { ProviderConnection } from "./handler.js";
 import type { ModelProblem } from "./problems.js";
 import type { ModelProviderDirectory, RegisteredModelProvider } from "./resolve.js";
@@ -15,14 +16,19 @@ export interface ModelCheckOptions {
   readonly send?: ProviderFetch;
 }
 
-/** Problems found without asking any provider: a model nobody serves, or several do. */
+/**
+ * Problems found without asking any provider: a model nobody serves, or several do; a provider
+ * with a fallback that has no model for it, or no price for that model (#202).
+ */
 export function resolutionProblems(
   uses: readonly ModelUse[],
   directory: ModelProviderDirectory,
 ): readonly ModelProblem[] {
   return uses.flatMap((use) => {
     const resolution = directory.resolve(use);
-    return resolution.kind === "problem" ? [resolution.problem] : [];
+    return resolution.kind === "problem"
+      ? [resolution.problem]
+      : fallbackProblems(use, resolution.provider.options);
   });
 }
 

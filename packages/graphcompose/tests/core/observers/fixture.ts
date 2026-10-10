@@ -67,7 +67,7 @@ export class Finish {}
 class Limits implements WorkflowDefinition {
   settings() {
     return WorkflowSettings.builder()
-      .limits({ perDay: { cost: usd(100) }, perRun: { steps: 10 } })
+      .limits({ perDay: { cost: usd(100) }, perRun: { steps: 10, cost: usd(1) } })
       .build();
   }
 }

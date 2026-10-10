@@ -2,6 +2,7 @@ import { z } from "zod";
 import { DtoValidationError, pathOf } from "./errors.js";
 import { scalarSchemas } from "./formats.js";
 import { isOpen, registerDto } from "./metadata.js";
+import { rememberDtoOf } from "./redact.js";
 import type { DtoClass, ElementSpec, FieldSpec } from "./types.js";
 
 /** A rule across fields that one decorator cannot say (`from` ≤ `to`); `undefined` = fine. */
@@ -78,6 +79,7 @@ export function objectSchemaOf(dto: DtoClass): ObjectSchema {
       }
     });
   schemas.set(dto, schema);
+  rememberDtoOf(schema, dto);
   return schema;
 }
 

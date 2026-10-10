@@ -204,12 +204,22 @@ async execute(state: AgentState, ctx: ActionContext) {
   ctx.run.threadId;   // the conversation (ExecutionOutput.thread)
   ctx.run.signal;     // aborted by app.cancel(thread) or the caller's signal
   ctx.run.metadata;   // from execute(…, { metadata }), kept by the run's resumes
+  ctx.run.owner;      // from execute(…, { owner }): who the thread belongs to
   ctx.idempotencyKey; // `${runId}:${node}` (+ `:${index}` inside batchParallel)
 }
 
-await app.execute(Start, input, { thread, signal, metadata: { tenant: "acme" }, onStream });
-const { cancelled } = await app.cancel(thread);
+await app.execute(Start, input, { thread, owner: userId, signal, metadata: { tenant: "acme" }, onStream });
+const { cancelled } = await app.cancel(thread, { owner: userId });
 ```
+
+A thread created with an `owner` belongs to it: `execute` on that thread, `resume` and `cancel`
+with another owner (or none) throw `ThreadOwnerError` (`run.thread-owner`) before anything runs or
+is read. Tool arguments a channel shows (and `ExecutionOutput.pause.args`) have the input DTO's
+`sensitive` fields masked as `***`; the tool itself still gets them whole.
+
+Each run reserves its `limits.perRun.cost` of the day before its first model call, so concurrent
+runs never jointly pass `limits.perDay.cost`; a workflow that sets `perDay.cost` without
+`perRun.cost` fails at start with `[limits.per-run-required]`.
 
 `execute` and `resume` forward `signal`, `metadata`, `onStream` (token and tool-call events) and
 `configurable` (extra LangGraph keys; the framework's own win). `app.cancel(thread)` aborts a running
