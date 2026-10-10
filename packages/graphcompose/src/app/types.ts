@@ -108,4 +108,6 @@ export interface App {
   close(): Promise<void>;
   /** Resolves a service or component from the app's internal container. */
   resolve<T>(token: Class<T> | symbol | string): T;
+  /** Whether the workflow uses a tool of this name (local, MCP or knowledge-base search). */
+  hasTool(name: string): boolean;
 }

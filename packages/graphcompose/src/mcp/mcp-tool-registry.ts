@@ -57,7 +57,7 @@ interface ExportedTool {
 
 function addTool(registry: ToolRegistry, exported: ExportedTool): void {
   const { app, exp, meta } = exported;
-  const instance: unknown = app.resolve(exp);
+  const instance: unknown = app.hasTool(meta.name) ? app.resolve(exp) : undefined;
   if (!isToolHandler(instance)) {
     throw new Error(
       `@McpServer exports ${exp.name}, which is not a tool of workflow "${app.name}"`,
