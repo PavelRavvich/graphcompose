@@ -7,6 +7,7 @@ import { TestEnvironment } from "../../src/testing/environment.js";
 import {
   callTool,
   CassetteMissingError,
+  decideWith,
   replyWith,
   routeTo,
   testWith,
@@ -21,7 +22,10 @@ import {
   Reply,
   Support,
 } from "./fixtures/desk.workflow.js";
-import { recordDesk } from "./fixtures/vcr-recording.js";
+import { usd } from "../../src/units/index.js";
+import { recordDesk, recordRun } from "./fixtures/vcr-recording.js";
+import { DecisionDesk, LUNA } from "../judges/fixtures/decision-judged.workflow.js";
+import { TaskStart } from "../judges/fixtures/judged.workflow.js";
 
 const dir = mkdtempSync(join(tmpdir(), "vcr-"));
 const cassette = { cassetteName: "desk-order", dir };
@@ -103,4 +107,47 @@ describe("AC1 (#204): VCR — record once, replay in CI without a model", () => 
     expect(vcrModeOf(named, {})).toBe(VCRMode.AUTO);
     expect(vcrModeOf({ ...named, mode: VCRMode.RECORD }, { CI: "true" })).toBe(VCRMode.RECORD);
   });
+});
+
+describe("#226: VCR records and replays a judge's decisions", () => {
+  const judged = { cassetteName: "decision-judge", dir };
+  const judgedFile = cassetteFileOf(judged);
+  const replayJudged = testWith(DecisionDesk, { vcr: { ...judged, mode: VCRMode.REPLAY } });
+  let judgedRun: ExecutionOutput;
+
+  beforeAll(async () => {
+    judgedRun = await recordRun(
+      { workflow: DecisionDesk, start: TaskStart },
+      judgedFile,
+      "find a TS job",
+      (book) => {
+        book.scriptOf("agent:writer").thenReturn(replyWith("Acme is hiring a TS engineer."));
+        book
+          .scriptOf("judge:answer-grounded")
+          .thenReturn(
+            decideWith({ grounded: 0.9, tone: "neutral", quality: 2 }, { cost: usd(0.0003) }),
+          );
+      },
+    );
+  });
+
+  replayJudged(
+    "a judge on a decision model replays from the cassette with the network blocked",
+    async ({ app }) => {
+      const { interactions } = JSON.parse(readFileSync(judgedFile, "utf8")) as {
+        interactions: { kind: string; key: string }[];
+      };
+      expect(interactions.map(({ kind, key }) => `${kind} ${key}`)).toContain(
+        "decide judge:answer-grounded",
+      );
+
+      const result = await app.execute(TaskStart, { text: "find a TS job" });
+
+      expect(result.replyWith).toBe("Acme is hiring a TS engineer.");
+      const judgedSpend = (run: ExecutionOutput) =>
+        run.spend.trace.filter((line) => line.caller === "judge:answer-grounded");
+      expect(judgedSpend(result)).toMatchObject([{ model: LUNA, costUsd: 0.0003 }]);
+      expect(judgedSpend(result)).toEqual(judgedSpend(judgedRun));
+    },
+  );
 });

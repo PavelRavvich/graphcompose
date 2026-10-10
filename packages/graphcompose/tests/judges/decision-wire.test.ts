@@ -10,6 +10,9 @@ import { Decision } from "../../src/core/index.js";
 import { DecisionRequestError, DecisionResponseError } from "../../src/errors.js";
 import { createMemoryLedger } from "../../src/finops/ledger.js";
 import { createModelGateway } from "../../src/llm/gateway.js";
+import { resolutionProblems } from "../../src/models/check.js";
+import { modelUsesOf } from "../../src/models/uses.js";
+import { directoryOf } from "../../src/models/workflow-models.js";
 import { createSqliteTernStore } from "../../src/terns/index.js";
 import { completion, providerStub, type StubReply } from "../models/stub.js";
 import { ImageDesk, LUNA, PNG } from "./fixtures/decision-judged.workflow.js";
@@ -181,5 +184,27 @@ describe("the default gateway's decide", () => {
 
     await expect(decision).rejects.toBeInstanceOf(DecisionResponseError);
     await expect(decision).rejects.toThrow(/"quality": score 3 is past its 3 levels/u);
+  });
+});
+
+describe("the eval judge (compareProfiles) is defaults.router: any decision model, or a clear startup error", () => {
+  const config = (router: { kind: "jev" } | { kind: "llm" }) => ({
+    name: "c",
+    version: "1",
+    defaults: {
+      models: { temperature: 0, maxTokens: 100 },
+      router: { ...router, model: LUNA },
+      history: { limit: 1 },
+    },
+    agents: { a: { model: "x/y", description: "a" } },
+  });
+
+  it("a decision model decides through the Decisions API; as a chat model it is model.no-provider", () => {
+    const directory = directoryOf(undefined);
+
+    expect(resolutionProblems(modelUsesOf(config({ kind: "jev" }), []), directory)).toEqual([]);
+    expect(resolutionProblems(modelUsesOf(config({ kind: "llm" }), []), directory)).toMatchObject([
+      { code: "model.no-provider", key: "defaults.router", model: LUNA },
+    ]);
   });
 });

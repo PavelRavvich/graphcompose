@@ -1,7 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { providerClientsOf } from "../app/models.js";
-import { createProviderGateway, type DecisionSpec, type ModelGateway } from "../llm/gateway.js";
+import { DecisionError } from "../llm/decision-errors.js";
+import type { DecisionOutcome } from "../llm/decision-response.js";
+import {
+  createProviderGateway,
+  type DecideSpec,
+  type DecisionSpec,
+  type ModelGateway,
+} from "../llm/gateway.js";
 import { directoryOf } from "../models/workflow-models.js";
 import type { RouteOutcome } from "../routers/index.js";
 import type { AssembledWorkflow } from "../workflow.js";
@@ -51,9 +58,26 @@ const decisionRequestOf = ({ model, request }: DecisionSpec): string =>
     options: request.options,
   });
 
+/** A judge's decision: recorded from `real`, or replayed under `judge:<name>` and its request. */
+async function decideOf(
+  cassette: Cassette,
+  real: () => ModelGateway,
+  spec: DecideSpec,
+): Promise<DecisionOutcome> {
+  const { model, request } = spec;
+  const hash = requestHashOf({ model, state: request.state, questions: request.questions });
+  if (!cassette.recording) return cassette.decide(spec.caller, hash);
+  const decide = real().decide;
+  if (decide === undefined)
+    throw new DecisionError(`the recording gateway cannot decide (${model})`);
+  const outcome = await decide(spec);
+  cassette.record({ kind: "decide", key: spec.caller, request: hash, outcome });
+  return outcome;
+}
+
 /**
  * A gateway over a cassette: every chat model (agents, judges, compaction) and every decision
- * (routers, guards, judges — Jev and LLM alike) answers from it, or, while recording, from `real`
+ * (routers, guards — Jev and LLM alike) and every judge's `decide` answers from it, or, while recording, from `real`
  * — created on the first recorded call, so a replay never builds a provider client or needs a key.
  */
 export function vcrGateway(cassette: Cassette, real: () => ModelGateway): ModelGateway {
@@ -62,6 +86,7 @@ export function vcrGateway(cassette: Cassette, real: () => ModelGateway): ModelG
       new VcrChatModel(cassette, chatKeyOf(spec.user), spec.settings.model, () =>
         real().chatModel(spec),
       ),
+    decide: (spec) => decideOf(cassette, real, spec),
     routeTo: async (spec): Promise<RouteOutcome> => {
       const key = routerKeyOf(spec.router);
       const request = decisionRequestOf(spec);

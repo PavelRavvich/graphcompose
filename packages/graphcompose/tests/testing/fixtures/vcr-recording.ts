@@ -2,6 +2,7 @@ import { MemorySaver } from "@langchain/langgraph";
 import { buildApp } from "../../../src/app/create-app.js";
 import type { ExecutionOutput } from "../../../src/app/types.js";
 import { workflowOf } from "../../../src/components/assemble.js";
+import type { Class } from "../../../src/components/injection.js";
 import { createMemoryLedger } from "../../../src/finops/ledger.js";
 import { createSqliteTernStore } from "../../../src/terns/index.js";
 import { McpStubs, stubbedMcpConnect } from "../../../src/testing/mcp-stubs.js";
@@ -15,14 +16,24 @@ import { ChatStart, Desk } from "./desk.workflow.js";
  * Records a run of Desk into `file` the way `vcr: { mode: RECORD }` does, with the scripted
  * models standing in for the real providers (no key here): what replay must reproduce.
  */
-export async function recordDesk(
+export function recordDesk(
+  file: string,
+  text: string,
+  script: (book: ScriptBook) => void,
+): Promise<ExecutionOutput> {
+  return recordRun({ workflow: Desk, start: ChatStart }, file, text, script);
+}
+
+/** Records a run of any workflow from `start` into `file`, the scripted models standing in. */
+export async function recordRun(
+  { workflow, start }: { readonly workflow: Class; readonly start: Class },
   file: string,
   text: string,
   script: (book: ScriptBook) => void,
 ): Promise<ExecutionOutput> {
   const book = new ScriptBook();
   script(book);
-  const { app } = await buildApp(await workflowOf(Desk), {
+  const { app } = await buildApp(await workflowOf(workflow), {
     processEnv: {},
     gateway: vcrGateway(Cassette.recording(file), () => createScriptedGateway(book)),
     connectMcp: stubbedMcpConnect(new McpStubs(book), new Map(), new Set()),
@@ -34,7 +45,7 @@ export async function recordDesk(
     newRunId: () => "run-1",
   });
   try {
-    return await app.execute(ChatStart, { text });
+    return await app.execute(start, { text });
   } finally {
     await app.close();
   }
