@@ -36,7 +36,7 @@ export type {
   ExecutionOutput,
 } from "../app/types.js";
 export type { RunContext, RunId } from "../core/run-context.js";
-export { loadWorkflow, loadWorkflowClass, WorkflowLoadError } from "../cli/load-workflow.js";
+export { loadWorkflow, loadWorkflowClass, WorkflowLoadError } from "../loader/load-workflow.js";
 export { withProfile } from "../profile-workflow.js";
 export {
   compareProfiles,
@@ -45,7 +45,7 @@ export {
 } from "../eval/compare-profiles.js";
 export type { ProfileReport } from "../eval/compare-report.js";
 export type { PairwiseResult } from "../eval/compare.js";
-export { describeWorkflow } from "../cli/describe.js";
+export { describeWorkflow } from "../describe/describe-workflow.js";
 export type { GraphDeps } from "../graph/deps.js";
 export { resumeAgent } from "../run/resume-agent.js";
 export { runAgent } from "../run/run-agent.js";

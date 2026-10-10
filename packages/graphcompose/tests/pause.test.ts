@@ -1,10 +1,7 @@
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { MemorySaver } from "@langchain/langgraph";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { userInfo } from "node:os";
-import { summaryLine, terminalDecision } from "../src/cli/approve.js";
-import { inTerminal } from "./fakes/terminal.js";
 import { DtoValidationError } from "../src/dto/index.js";
 import { NotPausedError, resumeAgent, runAgent, type RunDeps } from "../src/index.js";
 import { createModelRegistry } from "../src/llm/registry.js";
@@ -178,42 +175,7 @@ describe("pause seam", () => {
   });
 });
 
-describe("terminal approval (CLI and chat)", () => {
-  it("asks about the pending call and continues with the replyWith", async () => {
-    const { deps, sent } = setup([callSend, "Sent."]);
-    const ask = vi.fn(() => Promise.resolve("y"));
-
-    const done = await inTerminal(deps, ask);
-
-    expect(ask).toHaveBeenCalledWith(
-      expect.stringContaining('alpha wants to call send_email {"to":"boss@example.com"}'),
-    );
-    expect(done.status).toBe("answered");
-    expect(sent).toEqual(["boss@example.com"]);
-  });
-
-  it("treats anything but yes — or ended input — as a rejection", async () => {
-    for (const reply of ["n", undefined]) {
-      const { deps, sent } = setup([callSend, "Ok, not sent."]);
-
-      const done = await inTerminal(deps, () => Promise.resolve(reply));
-
-      expect(done.replyWith).toBe("Ok, not sent.");
-      expect(sent).toEqual([]);
-    }
-  });
-
-  it("#141 AC5: the terminal fills `by` with the OS user and gives a reason when declined", () => {
-    const by = userInfo().username;
-
-    expect(terminalDecision(true)).toEqual({ approved: true, by });
-    expect(terminalDecision(false)).toEqual({
-      approved: false,
-      by,
-      feedback: "declined in the terminal",
-    });
-  });
-
+describe("resume decisions", () => {
   it("#141 AC5: a decision without `by` (the old { approve } shape) is refused", async () => {
     const { deps, sent } = setup([callSend, "Sent."]);
     const paused = await runAgent({ task: "Email the boss" }, deps);
@@ -221,13 +183,5 @@ describe("terminal approval (CLI and chat)", () => {
 
     await expect(resumeAgent(paused, old, deps)).rejects.toBeInstanceOf(DtoValidationError);
     expect(sent).toEqual([]);
-  });
-
-  it("summarises a result in one line", async () => {
-    const { deps } = setup([callSend, "Sent."]);
-    const done = await inTerminal(deps, () => Promise.resolve("y"));
-
-    expect(summaryLine(done)).toBe("alpha · stop: the agent answered after the approval decision");
-    expect(summaryLine({ ...done, route: [] })).toMatch(/^\(none\) · /);
   });
 });

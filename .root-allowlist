@@ -18,7 +18,7 @@ WORKFLOW.md
 eslint.config.js
 eslint.tests.js
 examples
-knip.json
+knip.jsonc
 langgraph.json
 package-lock.json
 package.json

@@ -3,7 +3,7 @@ import path from "node:path";
 import type { PromptOptions } from "./prompt-options.js";
 import type { PromptInput } from "./prompt-input.js";
 import type { FlowStateType } from "../graph/flow-state.js";
-import { renderTemplate } from "../scaffold/render.js";
+import { renderTemplate } from "./render-template.js";
 import { ComponentError } from "./metadata.js";
 import {
   displayPath,

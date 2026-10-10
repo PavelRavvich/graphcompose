@@ -8,7 +8,11 @@ const FAKE_INTERRUPT = [
 }));
 
 export const testRules = {
-  files: ["packages/graphcompose/tests/**/*.ts", "examples/*/tests/**/*.ts"],
+  files: [
+    "packages/graphcompose/tests/**/*.ts",
+    "packages/graphcompose-cli/tests/**/*.ts",
+    "examples/*/tests/**/*.ts",
+  ],
   rules: {
     "max-lines": "off",
     "max-lines-per-function": "off",

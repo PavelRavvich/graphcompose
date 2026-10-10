@@ -91,8 +91,8 @@ export const A2AEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     type: z.ZodLiteral<"progress">;
     payload: z.ZodObject<{
         step: z.ZodEnum<{
-            tool: "tool";
             text: "text";
+            tool: "tool";
         }>;
         content: z.ZodString;
     }, z.core.$strip>;
@@ -103,10 +103,10 @@ export const A2AEventSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
             thread: z.ZodOptional<z.ZodString>;
             status: z.ZodEnum<{
                 failed: "failed";
+                cancelled: "cancelled";
                 answered: "answered";
                 guarded: "guarded";
                 paused: "paused";
-                cancelled: "cancelled";
                 limited: "limited";
             }>;
             reply: z.ZodString;
@@ -163,10 +163,10 @@ export const A2AResponseSchema: z.ZodObject<{
     thread: z.ZodOptional<z.ZodString>;
     status: z.ZodEnum<{
         failed: "failed";
+        cancelled: "cancelled";
         answered: "answered";
         guarded: "guarded";
         paused: "paused";
-        cancelled: "cancelled";
         limited: "limited";
     }>;
     reply: z.ZodString;

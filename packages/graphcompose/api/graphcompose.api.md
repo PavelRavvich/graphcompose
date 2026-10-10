@@ -2250,7 +2250,6 @@ export type WorkflowTools = readonly AnyTool[] | ((services: WorkflowServices) =
 // src/channels/test-channels.ts:9:3 - (ae-undocumented) Missing documentation for "requestApproval".
 // src/channels/test-channels.ts:15:1 - (ae-undocumented) Missing documentation for "AutoRejectChannel".
 // src/channels/test-channels.ts:21:3 - (ae-undocumented) Missing documentation for "requestApproval".
-// src/cli/load-errors.ts:3:12 - (ae-undocumented) Missing documentation for "name".
 // src/components/bind-tool.ts:20:1 - (ae-undocumented) Missing documentation for "BindTool".
 // src/components/bind-tool.ts:22:1 - (ae-undocumented) Missing documentation for "BindTool".
 // src/components/decorators.ts:22:3 - (ae-undocumented) Missing documentation for "run".
@@ -2675,6 +2674,7 @@ export type WorkflowTools = readonly AnyTool[] | ((services: WorkflowServices) =
 // src/llm/decisions.ts:134:22 - (ae-forgotten-export) The symbol "noul" needs to be exported by the entry point index.d.ts
 // src/llm/decisions.ts:134:22 - (ae-forgotten-export) The symbol "score" needs to be exported by the entry point index.d.ts
 // src/llm/decisions.ts:134:22 - (ae-forgotten-export) The symbol "image" needs to be exported by the entry point index.d.ts
+// src/loader/load-errors.ts:3:12 - (ae-undocumented) Missing documentation for "name".
 // src/models/circuit-breaker.ts:28:54 - (ae-undocumented) Missing documentation for "code".
 // src/models/circuit-breaker.ts:29:3 - (ae-undocumented) Missing documentation for "code".
 // src/models/circuit-breaker.ts:30:12 - (ae-undocumented) Missing documentation for "name".

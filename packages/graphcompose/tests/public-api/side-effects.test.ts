@@ -2,6 +2,7 @@
  * #195: importing the root entry `graphcompose` has no side effects — no tracing (Langfuse,
  * OpenTelemetry), no MCP SDK, no SQLite, no `.env`, no environment reads by package code and no open
  * handles. Each import runs in a fresh Node process on `dist`, the package as a user installs it.
+ * #205: the import stays lean — a module budget, and nothing of the `gc` CLI (graphcompose-cli).
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -67,6 +68,11 @@ interface Probe {
 const FORBIDDEN =
   /node_modules\/(@langfuse|@opentelemetry|@modelcontextprotocol|dotenv|langfuse)\/|^node:(sqlite|child_process)$/;
 
+/** What only the CLI or `loadWorkflow` needs: the compiler, tsx, prompts, the OpenAPI parser. */
+const CLI_ONLY = /node_modules\/(typescript|tsx|esbuild|@inquirer|@apidevtools)\//;
+/** Modules the root import may load (1,149 at #205; the decorators entry loaded 3,769 before). */
+const MODULE_BUDGET = 1_400;
+
 function importInFreshProcess(module: string): Probe {
   const probe = join(dir, "probe.mjs");
   writeFileSync(probe, PROBE);
@@ -96,6 +102,14 @@ describe("the root entry has no side effects (#195)", () => {
     expect(root.loaded.filter((url) => FORBIDDEN.test(url))).toEqual([]);
     expect(root.reads).toEqual([]);
     expect(root.after).toEqual(root.before);
+  });
+
+  it("#205 AC1: stays under the module budget and loads nothing of the CLI", () => {
+    const root = importInFreshProcess(fileURLToPath(new URL("index.js", dist)));
+
+    expect(root.loaded.length).toBeLessThan(MODULE_BUDGET);
+    expect(root.loaded.filter((url) => CLI_ONLY.test(url))).toEqual([]);
+    expect(root.loaded.filter((url) => url.endsWith("/dist/internal.js"))).toEqual([]);
   });
 
   it("the probe sees modules and env reads: graphcompose/mcp loads the MCP SDK", () => {

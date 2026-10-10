@@ -2,7 +2,7 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import { testRules } from "./eslint.tests.js";
 import { runStateRules } from "./scripts/eslint-run-state.mjs";
-import { packageImportPatterns } from "./scripts/public-entries.mjs";
+import { cliImportPatterns, packageImportPatterns } from "./scripts/public-entries.mjs";
 
 /** What any framework module may not import (src/routers, tools and terns have their own rules). */
 const frameworkImportPatterns = [
@@ -163,6 +163,11 @@ export default tseslint.config(
     rules: {
       "no-restricted-imports": ["error", { patterns: packageImportPatterns() }],
     },
+  },
+  {
+    // the `gc` CLI (#205) is built on the framework's entries, `graphcompose/internal` included
+    files: ["packages/graphcompose-cli/src/**/*.ts"],
+    rules: { "no-restricted-imports": ["error", { patterns: cliImportPatterns() }] },
   },
   testRules,
   runStateRules,

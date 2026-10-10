@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { WorkflowServices } from "../../src/workflow.js";
 import { resolveTools } from "../../src/workflow.js";
 import { workflowOf } from "../../src/testing/index.js";
-import { describeWorkflow } from "../../src/cli/describe.js";
+import { describeWorkflow } from "../../src/describe/describe-workflow.js";
 import type { ToolContext } from "../../src/tools/index.js";
 import { bundleWith, Handbook, HandbookFromApi } from "./fixture.js";
 import { testRunContext } from "../../src/testing/index.js";

@@ -1,0 +1,62 @@
+// Unused files and dependencies fail `npm run check` (#205 AC2). Every ignore says why.
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // Unused exports are not checked: the framework's modules export to each other and to their tests
+  // by design, and its public surface is guarded by the api-extractor reports (#195, check:api).
+  "rules": {
+    "exports": "off",
+    "types": "off",
+    "nsExports": "off",
+    "nsTypes": "off",
+    "duplicates": "off",
+    "enumMembers": "off",
+  },
+  // `diff` is the system tool scripts/api-report.mjs shows a stale report with, not a package
+  "ignoreBinaries": ["diff"],
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.{mjs,cjs}", "eslint.tests.js"],
+      // the LangGraph CLI (`npm run studio`) looks for @langchain/langgraph in the root package.json
+      "ignoreDependencies": ["@langchain/langgraph"],
+    },
+    "packages/graphcompose": {
+      // the entries of package.json#exports (as sources) and the `studio` / `schema` scripts
+      "entry": [
+        "src/index.ts",
+        "src/internal.ts",
+        "src/{dto,units,models,testing,mcp,rag,a2a,memory}/index.ts",
+        "src/{core,graph,router,tool,channels,concurrency}/index.ts",
+        "src/studio.ts",
+        // loaded by path: `--workflow <file>` and the environment of `--env <name>`
+        "tests/fixtures/loader/*.workflow.ts",
+        "tests/fixtures/**/*.environment.ts",
+      ],
+      "project": ["src/**/*.ts", "tests/**/*.ts"],
+      "ignoreDependencies": [
+        // an optional peer: only graphcompose/testing imports it, in a user's own test run
+        "vitest",
+        // the tests start it as an MCP server process (resolved by path, never imported)
+        "@modelcontextprotocol/server-filesystem",
+      ],
+    },
+    "packages/graphcompose-cli": {
+      "entry": ["src/cli/main.ts", "tests/fixtures/**/*.workflow.ts"],
+      "project": ["src/**/*.ts", "tests/**/*.ts"],
+      // the version a generated project depends on (src/scaffold/project.ts), run by the e2e tests
+      "ignoreDependencies": ["@modelcontextprotocol/server-filesystem"],
+    },
+    "examples/job-scout": {
+      // the workflow, the Studio graph (langgraph.json), scripts, the environments of `--env` and
+      // environment.ts, their contract (a `declare module "graphcompose"` augmentation)
+      "entry": [
+        "src/job-scout.workflow.ts",
+        "src/studio.ts",
+        "src/scripts/*.ts",
+        "src/environments/{environment,*.environment}.ts",
+      ],
+      "project": ["src/**/*.ts", "tests/**/*.ts"],
+      // the shortlist MCP server process, started by path (src/config/paths.ts), never imported
+      "ignoreDependencies": ["@modelcontextprotocol/server-filesystem"],
+    },
+  },
+}

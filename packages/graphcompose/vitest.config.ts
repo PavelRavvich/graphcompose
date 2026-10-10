@@ -11,25 +11,8 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
-      // thin entry points, exercised by `make smoke` / `npm run studio`
-      exclude: [
-        "src/cli.ts",
-        "src/cli/main.ts",
-        "src/cli/create.ts",
-        "src/cli/generate.ts",
-        "src/scaffold/questions.ts",
-        "src/studio.ts",
-        "src/describe.ts",
-        "src/check.ts",
-        "src/rag-index.ts",
-        "src/chat.ts",
-        "src/cli/ask.ts",
-        "src/eval/cli.ts",
-        "src/eval/cli-deps.ts",
-        "src/eval/compare-cli.ts",
-        "src/graph/studio-graph.ts",
-        "src/config/write-profile-schema.ts",
-      ],
+      // thin entry points, exercised by `npm run studio` and `npm run schema`
+      exclude: ["src/studio.ts", "src/graph/studio-graph.ts", "src/config/write-profile-schema.ts"],
       reporter: ["text", "html", "json-summary"],
       thresholds: {
         lines: 80,

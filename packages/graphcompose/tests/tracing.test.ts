@@ -1,7 +1,6 @@
 import { BaseCallbackHandler } from "@langchain/core/callbacks/base";
 import { CallbackHandler } from "@langfuse/langchain";
 import { describe, expect, it } from "vitest";
-import { threadLine } from "../src/cli/approve.js";
 import { runAgent } from "../src/index.js";
 import { langfuseTracing } from "../src/tracing/langfuse.js";
 import { tracingOf, type RunTracing, type TraceContext } from "../src/tracing/index.js";
@@ -82,12 +81,9 @@ describe("tracing", () => {
       expect.arrayContaining(["router.main", "agent.alpha", "workflow-finish.replyWith"]),
     );
     expect(result.traceUrl).toBe(`http://traces/sessions/${result.threadId}`);
-    expect(threadLine({ thread: result.threadId, traceUrl: result.traceUrl })).toBe(
-      `thread ${result.threadId} · http://traces/sessions/${result.threadId}`,
-    );
   });
 
-  it("links the conversation when the project id is known, and prints the thread without tracing", async () => {
+  it("links the conversation when the project id is known, and has no link without tracing", async () => {
     const tracing = langfuseTracing({
       LANGFUSE_PUBLIC_KEY: "pk",
       LANGFUSE_SECRET_KEY: "sk",
@@ -104,6 +100,5 @@ describe("tracing", () => {
       fakeDeps({ "test/router": [routeTo("alpha"), routeTo("replyWith")], "test/alpha": ["ok"] }),
     );
     expect(plain.traceUrl).toBeUndefined();
-    expect(threadLine({ thread: plain.threadId })).toBe(`thread ${plain.threadId}`);
   });
 });

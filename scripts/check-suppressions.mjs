@@ -14,6 +14,8 @@ const BUDGET_FILE = join(ROOT, ".suppressions.json");
 const DIRS = [
   "packages/graphcompose/src",
   "packages/graphcompose/tests",
+  "packages/graphcompose-cli/src",
+  "packages/graphcompose-cli/tests",
   "examples/job-scout/src",
   "examples/job-scout/tests",
 ];

@@ -20,7 +20,7 @@ Multi-agent project on LangGraph + LangChain (TypeScript). Built with a three-ph
     `maxTokens` (`MODEL_MAX` = model's maximum), `thinking`, `cache`.
   - Everything is set in the workflow's components (`@Workflow` with its `flow` and `settings()`,
     `@Router`, `@Agent`) — reference: Wiki → Workflow, Routers, Components, Configuration.
-- Observability: `langsmith` tracing via env (`LANGSMITH_TRACING=true`). FinOps: built-in cost
+- Observability: Langfuse tracing via env (`LANGFUSE_*` keys, loaded only when set). FinOps: built-in cost
   accounting; limits in the workflow's `settings().limits(...)` — per run (steps, cost) and per day
   (cost, resets 00:00 UTC); hitting any limit fails the run (`QUALITY.md` → FinOps).
 - Vitest (+ v8 coverage), ESLint (`typescript-eslint` strict), Prettier,
@@ -234,10 +234,9 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 ## Layout
 
 ```
-packages/graphcompose/        the framework (npm package `graphcompose`; builds to dist/, bin `graphcompose`)
+packages/graphcompose/        the framework (npm package `graphcompose`; builds to dist/; no command — see -cli)
   src/
     index.ts        the root entry `graphcompose` (public/: components, flow, observers, app) + errors.ts
-    migrate/        `gc migrate imports` (#195): rewrites the old entries' imports to the new ones
     app/            createApp → app.execute / resume / close; app-deps.ts — production wiring (model gateway,
                     MCP, ledger, Terns, tracing), every part replaceable
     testing/        `graphcompose/testing`: testWith (Vitest fixtures), scripted gateway, matchers, setup.ts
@@ -245,8 +244,6 @@ packages/graphcompose/        the framework (npm package `graphcompose`; builds 
     dto/            `graphcompose/dto`: field decorators, DTO schemas and validation, standard/ DTOs
     units/          `graphcompose/units`: usd(), seconds(), minutes()
     workflow.ts     the assembled workflow type
-    cli/            main.ts → run-cli.ts (argv → exit code 0/1/2 usage/3 project/4 conflict, --json
-                    envelope), commands.ts (one option schema per command: parser + help), terminal helpers
     config/         typed config schema, profiles (YAML overlays), defaults resolution
     rag/            knowledge-base contract (RagConnector) + reference SQLite FTS5 connector
     graph/          flow.ts (DSL), route.ts, workflow-start / router / workflow-finish decorators,
@@ -254,10 +251,19 @@ packages/graphcompose/        the framework (npm package `graphcompose`; builds 
                     (LangGraph), limits.ts, settings.ts, flow-state.ts, visit.ts; nodes/ (flow-router,
                     agent loop, approval, guards, knowledge, finalize)
     llm/  routers/  tools/  guards/  terns/  run/  pause/  finops/  eval/  tracing/  prompts/  types/
-    chat.ts, cli.ts, describe.ts, rag-index.ts, studio.ts   command entry points
+    loader/, describe/   loadWorkflow (tsx) and describeWorkflow; studio.ts (LangGraph Studio)
+    internal.ts     `graphcompose/internal`: what the CLI is built on — not public, not for projects
   tests/            unit tests (helpers.ts = fakes; fixtures/ = test workflows); routers/ alone; smoke/ = real
   schema/           profile.schema.json (YAML autocomplete)
-  bin/              graphcompose launcher
+packages/graphcompose-cli/    the `gc` / `graphcompose` command (#205; depends on graphcompose, same version)
+  src/
+    cli/            main.ts → run-cli.ts (argv → exit code 0/1/2 usage/3 project/4 conflict, --json
+                    envelope), commands.ts (one option schema per command: parser + help), terminal helpers
+    scaffold/       `gc create` / `gc generate` (templates/ next to src/)
+    migrate/        `gc migrate imports` (#195): rewrites the old entries' imports to the new ones
+    chat.ts, cli.ts, check.ts, describe.ts, rag-index.ts, eval/   command handlers
+  tests/            CLI tests; workflows come from the framework's tests/fixtures
+  bin/              gc launcher
 examples/job-scout/          the example (package job-scout-example; depends on graphcompose)
   src/              job-scout.workflow.ts, studio.ts; workflow-starts/ (*.workflow-start.ts), routers/
                     (*.router.ts), agents/ (*.agent.ts using file()), workflow-finishes/

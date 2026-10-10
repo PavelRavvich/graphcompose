@@ -1,7 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { usage } from "../src/cli/usage.js";
 import * as publicApi from "../src/index.js";
 
 const root = new URL("../../..", import.meta.url).pathname;
@@ -32,25 +31,19 @@ describe("framework and examples apart (#91)", () => {
     expect(sources(framework).filter(decorated)).toEqual([]);
   });
 
-  it("AC5: the public API and the command help say workflow, not bundle", () => {
+  it("AC5: the public API says workflow, not bundle (the command help: graphcompose-cli)", () => {
     expect(Object.keys(publicApi).filter((name) => /bundle/i.test(name))).toEqual([]);
     expect(Object.keys(publicApi)).toEqual(
       expect.arrayContaining(["createAppDeps", "loadWorkflow"]),
     );
-    expect(usage()).not.toMatch(/bundle/i);
-    expect(usage()).toContain("--workflow");
   });
-  it("AC1 (#101): the package is graphcompose; the command is graphcompose, short gc", () => {
+  it("AC1 (#101, #205): the package is graphcompose, a library without a command", () => {
     const pkg = JSON.parse(
       readFileSync(join(root, "packages/graphcompose/package.json"), "utf8"),
-    ) as {
-      name: string;
-      bin: Record<string, string>;
-    };
+    ) as { name: string; bin?: unknown };
 
     expect(pkg.name).toBe("graphcompose");
-    expect(pkg.bin).toEqual({ graphcompose: "./bin/graphcompose.js", gc: "./bin/graphcompose.js" });
-    expect(usage()).toContain("GraphCompose");
+    expect(pkg.bin).toBeUndefined();
   });
 
   it("AC4 (#101): no graphInject / graphinject left in the repository's code, commands or docs", () => {
