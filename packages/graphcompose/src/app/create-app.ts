@@ -5,12 +5,17 @@ import { WorkflowStartText } from "../dto/standard/framework.js";
 import { validate } from "../dto/schema.js";
 import { workflowStartMetaOf } from "../graph/workflow-start.decorator.js";
 import { withProfile } from "../profile-workflow.js";
-import { resumeAgent, NotPausedError } from "../run/resume-agent.js";
+import { resumeAgent } from "../run/resume-agent.js";
 import { runAgent } from "../run/run-agent.js";
+import { runVersions } from "../run/versions.js";
 import type { AgentExecutionOutput } from "../run/types.js";
 import type { AssembledWorkflow } from "../workflow.js";
 import { createAppDeps, type AppDeps, type AppDepsOptions } from "./app-deps.js";
-import { createMemoryPausedRunRepository, type PausedRunRepository } from "./paused-runs.js";
+import {
+  createMemoryPausedRunRepository,
+  pausedRunBook,
+  type PausedRunRepository,
+} from "./paused-runs.js";
 import { UnknownToolError } from "./parts.js";
 import {
   flowNodesByKey,
@@ -34,7 +39,10 @@ export interface AppOptions extends AppDepsOptions {
   /** `profiles/<workflow>/<profile>.yaml` under `profileRoot` (default: the working directory). */
   readonly profile?: string | undefined;
   readonly profileRoot?: string;
-  /** Where paused runs wait for `resume` (default: in memory, this app only). */
+  /**
+   * Where paused runs wait for `resume` (default: in memory, this app only). For runs that survive
+   * a restart or a redeploy give `createSqlitePausedRunRepository()` plus a durable checkpointer.
+   */
   readonly pausedRuns?: PausedRunRepository;
 }
 
@@ -76,10 +84,13 @@ export async function buildApp(
   const nodes = flowNodesByKey(bundle.flow);
   const pathNodes = nestedFlowNodesByKey(bundle.flow);
   const deps = await createAppDeps(bundle, options);
-  const paused = options.pausedRuns ?? createMemoryPausedRunRepository();
-  const settle = (run: AgentExecutionOutput): ExecutionOutput => {
-    if (run.status === "paused") paused.set(run);
-    else paused.delete(run.threadId);
+  const paused = pausedRunBook(
+    options.pausedRuns ?? createMemoryPausedRunRepository(),
+    { workflowVersion: deps.config.version, configHash: runVersions(deps).configHash },
+    bundle.onIncompatibleResume,
+  );
+  const settle = async (run: AgentExecutionOutput): Promise<ExecutionOutput> => {
+    await paused.settle(run);
     return runResultOf(run, pathNodes);
   };
   let closed = false;
@@ -100,7 +111,7 @@ export async function buildApp(
 
       try {
         await deps.observer.onWorkflowStart(state);
-        const result = settle(
+        const result = await settle(
           await runAgent(task, deps, {
             signal: call.signal,
             executionContext: call.executionContext,
@@ -116,14 +127,13 @@ export async function buildApp(
     cancel: async (thread) => {
       // If the app is currently paused, resuming it with a dummy value will cause it to wake up
       // and immediately throw WorkflowCancelledError because of the pre-execution guard.
-      if (paused.get(thread) !== undefined) {
+      if (await paused.has(thread)) {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         await app.resume(thread, null).catch(() => {});
       }
     },
     resume: async (thread, decision, call = {}) => {
-      const run = paused.get(thread);
-      if (run === undefined) throw new NotPausedError(`Thread "${thread}" has no paused run`);
+      const run = await paused.resumable(thread);
       return settle(
         await resumeAgent(run, decision, deps, {
           signal: call.signal,

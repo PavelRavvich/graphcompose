@@ -3,6 +3,8 @@
  * imports from here only (lint-enforced); the module depends on nothing else in src.
  */
 export { createSqliteTernStore, type NewThreadId } from "./sqlite-store.js";
+/** The Tern database itself (opened and migrated), for stores that share it (paused runs, #201). */
+export { openTernDatabase } from "./schema.js";
 export {
   TERN_STATUSES,
   type NewTern,
