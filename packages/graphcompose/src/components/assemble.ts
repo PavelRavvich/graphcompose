@@ -144,6 +144,19 @@ function configOf(
   };
 }
 
+/** Each tool's dependency tree by tool name (tools without dependencies are left out). */
+const toolDependenciesOf = (
+  bundle: WorkflowMeta,
+  tools: readonly Class[],
+  names: ReadonlyMap<Class, string>,
+): Record<string, string> =>
+  Object.fromEntries(
+    tools.flatMap((cls) => {
+      const tree = dependencyTree(cls, bundle.providers ?? []);
+      return tree === "" ? [] : [[names.get(cls) ?? cls.name, tree] as const];
+    }),
+  );
+
 /**
  * Assembles a `@Workflow` class into the workflow the core runs: its flow checked against every rule
  * (all violations at once), router texts loaded, limits from `settings()`, config, prompts, tools, MCP.
@@ -194,12 +207,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     ...memoryPartsOf(bundle, agents),
     mcpServers: mcp.handles,
     serverTools: mcp.serverTools,
-    toolDependencies: Object.fromEntries(
-      [...tools.local, ...tools.mcp].flatMap((cls) => {
-        const tree = dependencyTree(cls, bundle.providers ?? []);
-        return tree === "" ? [] : [[names.get(cls) ?? cls.name, tree] as const];
-      }),
-    ),
+    toolDependencies: toolDependenciesOf(bundle, [...tools.local, ...tools.mcp], names),
     ...(bundle.compactionPrompt === undefined ? {} : { compactionPrompt: bundle.compactionPrompt }),
   };
 }
