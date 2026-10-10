@@ -29,7 +29,8 @@ const router = [
   "export class MainRouter {}",
 ];
 
-describe("#196 AC1: docs that compile", () => {
+// each test runs tsc (or vitest) over a generated project: slower than 5 s on CI runners
+describe("#196 AC1: docs that compile", { timeout: 60_000 }, () => {
   it("a snippet that does not compile fails the check, naming the doc line and the TS error", () => {
     const stale = router.map((line) => line.replace("ROUTE", 'route(Answer, "Done")'));
     const result = check({ "guide.md": `# Guide\n\n${fence("ts", ...stale)}\n` });

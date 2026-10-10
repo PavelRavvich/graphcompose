@@ -17,7 +17,8 @@ afterAll(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-describe("#196 AC2: the CLAUDE.md worked example", () => {
+// each test runs tsc (or vitest) over a generated project: slower than 5 s on CI runners
+describe("#196 AC2: the CLAUDE.md worked example", { timeout: 60_000 }, () => {
   it("typechecks against the built graphcompose, every block of the doc", () => {
     const result = checkDocs(dir, writeDocs(dir, { "CLAUDE.md": claudeMd }));
 
