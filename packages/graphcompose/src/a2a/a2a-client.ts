@@ -1,119 +1,109 @@
-import type { A2AEvent, A2AExecutionRequest } from "./types.js";
+import { ComponentError, componentOf } from "../components/metadata.js";
+import { validate } from "../dto/schema.js";
+import type { DtoClass } from "../dto/types.js";
+import { readEvents } from "./a2a-sse.js";
+import {
+  A2AResponseSchema,
+  type A2AEvent,
+  type A2AExecutionRequest,
+  type A2AExecutionResponse,
+} from "./types.js";
 
 export interface A2AClientOptions {
-  readonly endpoint: string;
+  /** The remote agent's base URL; default: `@A2AAgent({ url })` of the class. */
+  readonly url?: string;
   readonly headers?: Record<string, string>;
-  /** Pluggable fetch implementation (SOLID: Dependency Inversion) */
+  /** Pluggable fetch implementation (tests, proxies). */
   readonly fetcher?: typeof fetch;
 }
 
-export interface IA2AClient {
-  execute<TOutput>(
-    input: unknown,
-    onEvent?: (event: A2AEvent) => void,
-    signal?: AbortSignal,
-  ): Promise<TOutput>;
+/** Per call: progress events of the remote run, a signal that aborts the call, the thread to continue. */
+export interface A2AClientCall {
+  readonly onEvent?: (event: A2AEvent) => void;
+  readonly signal?: AbortSignal;
+  readonly thread?: string;
+}
+
+/** The remote run did not answer: its status, error and the full response. */
+export class A2ARemoteError extends Error {
+  override name = "A2ARemoteError";
+  constructor(readonly response: A2AExecutionResponse) {
+    super(
+      `A2A remote run ended "${response.status}"${response.error === undefined ? "" : `: ${response.error}`}`,
+    );
+  }
+}
+
+/** The url `@A2AAgent` recorded on the class being constructed. */
+function urlOf(target: object, name: string): string {
+  const meta = componentOf(target);
+  if (meta?.kind !== "a2a-agent") {
+    throw new ComponentError(
+      `[a2a.no-url] ${name} has no @A2AAgent({ url }) and no url option — the remote agent's address is unknown`,
+    );
+  }
+  return meta.meta.url;
 }
 
 /**
- * Outbound client to execute workflows on remote A2A instances.
- * Propagates cancellations via AbortSignal.
+ * Calls a workflow exposed over A2A (`a2aHttpListener`). Subclass it with `@A2AAgent({ name, url,
+ * deps })` and inject it like any provider; `execute(input, OutputDto)` returns the remote output
+ * validated by the DTO.
  */
-export class A2AClient implements IA2AClient {
-  private readonly endpoint: string;
+export class A2AClient {
+  readonly url: string;
 
   private readonly fetcher: typeof fetch;
 
-  constructor(options?: A2AClientOptions) {
-    if (options) {
-      this.endpoint = options.endpoint;
-      this.fetcher = options.fetcher ?? fetch;
-    } else {
-      // Will be injected by assemble.ts via metadata
-      this.endpoint = "";
-      this.fetcher = fetch;
-    }
+  private readonly headers: Record<string, string>;
+
+  constructor(options: A2AClientOptions = {}) {
+    this.url = options.url ?? urlOf(new.target, new.target.name);
+    this.fetcher = options.fetcher ?? fetch;
+    this.headers = options.headers ?? {};
   }
 
-  protected async getHeaders(): Promise<Record<string, string>> {
-    return {};
+  /** Extra headers per call (e.g. a fresh token); override in a subclass. */
+  protected getHeaders(): Promise<Record<string, string>> {
+    return Promise.resolve({});
   }
 
-  public async execute<TOutput>(
+  /** Runs the remote workflow and returns its output checked by `output`; any other status throws. */
+  public async execute<T extends object>(
     input: unknown,
-    onEvent?: (event: A2AEvent) => void,
-    signal?: AbortSignal,
-  ): Promise<TOutput> {
-    const reqBody: A2AExecutionRequest = { input };
+    output: DtoClass<T>,
+    call: A2AClientCall = {},
+  ): Promise<T> {
+    const response = await this.send(input, call);
+    if (response.status !== "answered") throw new A2ARemoteError(response);
+    return validate(output, response.output);
+  }
 
-    // 1. Post to the external endpoint
-    const response = await this.fetcher(`${this.endpoint}/execute`, {
+  /** Runs the remote workflow and returns its response whatever the status. */
+  public async send(input: unknown, call: A2AClientCall = {}): Promise<A2AExecutionResponse> {
+    const body: A2AExecutionRequest = {
+      input,
+      ...(call.thread === undefined ? {} : { thread: call.thread }),
+    };
+    const streaming = call.onEvent !== undefined;
+    const response = await this.fetcher(`${this.url}/execute`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "content-type": "application/json",
+        accept: streaming ? "text/event-stream" : "application/json",
+        ...this.headers,
         ...(await this.getHeaders()),
       },
-      body: JSON.stringify(reqBody),
-      signal,
+      body: JSON.stringify(body),
+      ...(call.signal === undefined ? {} : { signal: call.signal }),
     });
-
     if (!response.ok) {
-      throw new Error(`A2A Request failed with status ${String(response.status)}`);
+      throw new Error(`A2A request to ${this.url} failed with status ${String(response.status)}`);
     }
-
-    // 2. We can either read SSE stream from response, or expect a JSON if synchronous.
-    // Assuming a synchronous JSON response for this basic interface, or SSE stream handling.
-    // For SOLID adherence, the streaming chunk parser should ideally be injected, but
-    // we can parse ndjson or standard events here.
-
-    const contentType = response.headers.get("content-type") ?? "";
-    if (contentType.includes("text/event-stream") && response.body) {
-      return this.consumeStream<TOutput>(
-        response.body,
-        onEvent ??
-          (() => {
-            /* no-op */
-          }),
-      );
+    const isStream = (response.headers.get("content-type") ?? "").includes("text/event-stream");
+    if (isStream && response.body !== null) {
+      return readEvents(response.body, call.onEvent);
     }
-
-    // If not streaming, wait for standard response
-    const json = (await response.json()) as { result: TOutput };
-    return json.result;
-  }
-
-  private async consumeStream<TOutput>(
-    body: ReadableStream<Uint8Array>,
-    onEvent: (event: A2AEvent) => void = () => {
-      /* no-op */
-    },
-  ): Promise<TOutput> {
-    // Stream reading logic (simplified)
-    const reader = body.getReader();
-    const decoder = new TextDecoder();
-    let result: TOutput | undefined;
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        // Assume ndjson or SSE parsing logic would map to A2AEvent here
-        // Simplified event trigger:
-        const event = { type: "progress", payload: { step: "remote", content: chunk } } as A2AEvent;
-
-        onEvent(event);
-
-        // If finish event is parsed, set result = payload.result (implementation omitted for brevity)
-      }
-      if (result === undefined) {
-        throw new Error("Stream closed without finish event");
-      }
-      return result;
-    } finally {
-      reader.releaseLock();
-    }
+    return A2AResponseSchema.parse(await response.json());
   }
 }

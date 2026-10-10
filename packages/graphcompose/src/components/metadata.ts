@@ -93,7 +93,8 @@ export type ComponentMeta =
   | {
       readonly kind: "a2a-agent";
       readonly meta: {
-        readonly config: import("../a2a/a2a-decorator.js").A2AAgentConfig<readonly Token[]>;
+        readonly name: string;
+        readonly url: string;
         readonly deps: readonly Token[];
       };
     };

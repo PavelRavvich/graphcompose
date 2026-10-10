@@ -1,6 +1,7 @@
 import type { App, ExecutionOptions, ExecutionOutput } from "../app/types.js";
 import type { Class } from "../components/injection.js";
-import type { RunStreamEvent } from "../run/types.js";
+import type { WorkflowStartText } from "../dto/standard/framework.js";
+import { eventOf, failureResponseOf, responseOf } from "./a2a-mapping.js";
 import type {
   A2AEvent,
   A2AExecutionRequest,
@@ -8,110 +9,103 @@ import type {
   A2AResumeRequest,
 } from "./types.js";
 
+/** Per call: the caller's signal and the execution context the app passes to tools. */
+export type A2ACallOptions = Pick<ExecutionOptions, "signal" | "executionContext">;
+
 /**
- * Defines the inbound A2A boundary (SOLID: Interface Segregation).
- * Implementing frameworks (Express, Nest) depend on this abstraction, not concrete internals.
+ * The inbound A2A boundary: a transport (`a2aHttpListener`, a framework's route) depends on this,
+ * not on the app.
  */
 export interface IA2AAdapter {
   execute(
     start: Class,
     req: A2AExecutionRequest,
     onEvent?: (event: A2AEvent) => void,
-    options?: Pick<ExecutionOptions, "thread" | "signal" | "executionContext" | "configurable">,
+    options?: A2ACallOptions,
   ): Promise<A2AExecutionResponse>;
 
   resume(
     thread: string,
     req: A2AResumeRequest,
     onEvent?: (event: A2AEvent) => void,
-    options?: Pick<ExecutionOptions, "signal" | "executionContext">,
+    options?: A2ACallOptions,
   ): Promise<A2AExecutionResponse>;
 
+  /** Stops the thread's run in flight through this adapter (→ `cancelled`) and cancels its pause. */
   cancel(thread: string): Promise<void>;
 }
 
 /**
- * Concrete implementation mapping external A2A semantics to internal App concepts.
- * (SOLID: Single Responsibility - mapping boundary).
+ * Exposes an app's workflow over A2A: a request runs the workflow start, the response carries the
+ * reply, the finish output and the final status; failures are statuses, not thrown errors.
  */
 export class A2AAdapter implements IA2AAdapter {
+  private readonly inFlight = new Map<string, AbortController>();
+
   constructor(private readonly app: App) {}
 
-  public async execute(
+  public execute(
     start: Class,
     req: A2AExecutionRequest,
     onEvent?: (event: A2AEvent) => void,
-    options?: Pick<ExecutionOptions, "thread" | "signal" | "executionContext" | "configurable">,
+    options: A2ACallOptions = {},
   ): Promise<A2AExecutionResponse> {
-    const wrappedOptions: ExecutionOptions = {
-      ...options,
-      onStream: onEvent
-        ? (e) => {
-            onEvent(this.mapEvent(e));
-          }
-        : undefined,
-    };
-
-    try {
-      const output = await this.app.execute(start, req.input as never, wrappedOptions);
-      return this.mapOutputToResponse(output);
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        return { thread: options?.thread ?? "unknown", status: "cancelled" };
-      }
-      throw err;
-    }
+    return this.run(req.thread, options, (call) =>
+      this.app.execute(start, req.input as WorkflowStartText, {
+        ...call,
+        ...(req.thread === undefined ? {} : { thread: req.thread }),
+        ...streamTo(onEvent),
+      }),
+    );
   }
 
-  public async resume(
+  public resume(
     thread: string,
     req: A2AResumeRequest,
     onEvent?: (event: A2AEvent) => void,
-    options?: Pick<ExecutionOptions, "signal" | "executionContext">,
+    options: A2ACallOptions = {},
   ): Promise<A2AExecutionResponse> {
-    const wrappedOptions: ExecutionOptions = {
-      ...options,
-      onStream: onEvent
-        ? (e) => {
-            onEvent(this.mapEvent(e));
-          }
-        : undefined,
-    };
-
-    try {
-      const output = await this.app.resume(thread, req.decision, wrappedOptions);
-      return this.mapOutputToResponse(output);
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        return { thread, status: "cancelled" };
-      }
-      throw err;
-    }
+    return this.run(thread, options, (call) =>
+      this.app.resume(thread, req.decision, { ...call, ...streamTo(onEvent) }),
+    );
   }
 
   public async cancel(thread: string): Promise<void> {
+    this.inFlight.get(thread)?.abort(new Error(`thread "${thread}" was cancelled`));
     await this.app.cancel(thread);
   }
 
-  /** Maps internal RunStreamEvent to the standardized A2AEvent protocol. */
-  private mapEvent(internal: RunStreamEvent): A2AEvent {
-    // Basic mapping example (expandable based on full RunStreamEvent definition)
-    if (internal.kind === "toolCall") {
-      return { type: "progress", payload: { step: "tool", content: JSON.stringify(internal) } };
-    } else {
-      return { type: "progress", payload: { step: "agent", content: "message" } };
+  /** Runs one call with its own abort controller (linked to the caller's signal), mapped to a response. */
+  private async run(
+    thread: string | undefined,
+    options: A2ACallOptions,
+    call: (options: A2ACallOptions) => Promise<ExecutionOutput>,
+  ): Promise<A2AExecutionResponse> {
+    const controller = new AbortController();
+    const signal =
+      options.signal === undefined
+        ? controller.signal
+        : AbortSignal.any([options.signal, controller.signal]);
+    if (thread !== undefined) this.inFlight.set(thread, controller);
+    try {
+      return responseOf(await call({ ...options, signal }));
+    } catch (error) {
+      return failureResponseOf(error, signal, thread);
+    } finally {
+      if (thread !== undefined && this.inFlight.get(thread) === controller) {
+        this.inFlight.delete(thread);
+      }
     }
-    return { type: "progress", payload: { step: "unknown" } };
-  }
-
-  private mapOutputToResponse(output: ExecutionOutput): A2AExecutionResponse {
-    let status: A2AExecutionResponse["status"] = "running";
-    if (output.status === "paused") status = "paused";
-    if (output.status === "answered" || output.status === "guarded") status = "finished";
-
-    return {
-      thread: output.thread,
-      status,
-    };
   }
 }
+
+const streamTo = (
+  onEvent: ((event: A2AEvent) => void) | undefined,
+): Pick<ExecutionOptions, "onStream"> =>
+  onEvent === undefined
+    ? {}
+    : {
+        onStream: (event) => {
+          onEvent(eventOf(event));
+        },
+      };

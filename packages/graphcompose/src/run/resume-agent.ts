@@ -14,7 +14,7 @@ import {
 } from "./execute.js";
 import { finishRun } from "./finish.js";
 import { isWaiting, pausedLoopOf } from "./paused.js";
-import type { AgentExecutionOutput, RunDeps } from "./types.js";
+import type { AgentExecutionOutput, RunDeps, RunOptions } from "./types.js";
 import { runVersions } from "./versions.js";
 
 /** `resume` of a run that is not waiting for a decision. */
@@ -54,7 +54,7 @@ export async function resumeAgent<TName extends string>(
   paused: AgentExecutionOutput,
   decision: unknown,
   deps: RunDeps<TName>,
-  options: { readonly signal?: AbortSignal | undefined; readonly executionContext?: unknown } = {},
+  options: Pick<RunOptions, "signal" | "executionContext" | "onStream"> = {},
 ): Promise<AgentExecutionOutput> {
   const { flow, before } = await pausedRun(paused, deps);
   const spent: UsageRecord[] = [];
