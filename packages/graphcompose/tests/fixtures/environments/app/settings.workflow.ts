@@ -44,7 +44,7 @@ export class ApiSettings implements ToolHandler<SettingsQuery, SettingsInfo> {
   model: "test/clerk",
   price: { inputPerMTok: 1, outputPerMTok: 10 },
   tools: [ApiSettings],
-  prompt: "./clerk.prompt.md",
+  promptUrls: ["./clerk.prompt.md"],
 })
 export class Clerk {}
 
