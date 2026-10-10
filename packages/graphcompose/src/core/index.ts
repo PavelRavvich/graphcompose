@@ -18,6 +18,11 @@ export {
 } from "../components/decorators.js";
 export { ENV, environmentToken, ROUTER_FACTORY } from "../components/runtime.js";
 export { ComponentError } from "../components/metadata.js";
+export {
+  PromptError,
+  type PromptProblem,
+  type PromptProblemCode,
+} from "../components/prompt-problems.js";
 export type { OnStart, OnStop } from "../components/lifecycle.js";
 export {
   InjectionToken,

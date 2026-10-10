@@ -24,9 +24,7 @@ describe("config versions", () => {
       routers: [
         {
           ...main,
-          instructions: Object.assign(async () => "Choose well.", {
-            options: { prompt: "Choose well." },
-          }),
+          instructions: Object.assign(async () => "Choose well.", { text: "Choose well." }),
         },
       ],
     });

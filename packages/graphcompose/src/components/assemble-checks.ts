@@ -4,7 +4,7 @@ import { ComponentError, componentOf, requireComponent, type ToolMeta } from "./
 import { tokenName, type Class } from "./injection.js";
 import type { AgentMeta, PolicyFields, WorkflowMeta } from "./meta-types.js";
 import { ragMeta, searchToolName } from "./rag.js";
-import { renderPromptVariables } from "./prompt-render.js";
+import type { PromptLoader, RenderedPrompt } from "./prompt-render.js";
 import { channelComponentClassesOf } from "./channel-parts.js";
 
 /** A workflow's tool classes: local `@Tool`s and `@McpTool`s. */
@@ -109,23 +109,24 @@ export function checkProviderClasses(bundle: WorkflowMeta): void {
   }
 }
 
-/** Each agent's prompt with the workflow's and the agent's own `{{variables}}` filled in. */
-export const promptsOf = (
-  bundle: WorkflowMeta,
+/** Each agent's prompt, read and checked, with the workflow's and the agent's own `{{variables}}`. */
+export const promptsOf = async (
   agents: readonly AgentMeta[],
-): Record<string, ReturnType<typeof renderPromptVariables>> =>
-  Object.fromEntries(
-    agents.map(
-      (agent) =>
-        [
-          agent.name,
-          renderPromptVariables(agent.name, agent, agent.source, {
-            ...(bundle.promptVariables ?? {}),
-            ...(agent.promptVariables ?? {}),
-          }),
-        ] as const,
-    ),
+  loader: PromptLoader,
+): Promise<Record<string, RenderedPrompt>> => {
+  const prompts = await Promise.all(
+    agents.map(async (agent) => {
+      const prompt = await loader.load({
+        label: `@Agent "${agent.name}"`,
+        options: agent,
+        source: agent.source,
+        ...(agent.promptVariables === undefined ? {} : { variables: agent.promptVariables }),
+      });
+      return [agent.name, prompt] as const;
+    }),
   );
+  return Object.fromEntries(prompts);
+};
 
 /** Every tool with a channel must use one of the workflow's `channelClasses`. */
 export function checkToolChannels(bundle: WorkflowMeta, tools: ToolClasses): void {

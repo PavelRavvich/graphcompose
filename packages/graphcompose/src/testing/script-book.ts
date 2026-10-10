@@ -20,6 +20,8 @@ export type ModelRequest =
       readonly kind: "decision";
       readonly input: MessageContent;
       readonly options: readonly string[];
+      /** Each option's route text as the router's model got it. */
+      readonly routes: Readonly<Record<string, string>>;
       readonly instructions: string;
     };
 

@@ -6,8 +6,25 @@ import { versionOf } from "../terns/index.js";
 import { flowLines } from "../graph/flow-text.js";
 import type { RunDeps } from "./types.js";
 
-/** Everything a run's behaviour depends on in config and prompts — what `configHash` hashes. */
 import { stripFunctions } from "./strip-functions.js";
+import { promptTextOf } from "../components/prompt-render.js";
+import type { LoadedRouter } from "../graph/router-texts.js";
+
+/** A prompt as hashed: its rendered text (never the files' paths), or a marker when it has none. */
+const hashedText = (input: unknown): string => promptTextOf(input) ?? "[Function]";
+
+const agentTexts = (prompts: Readonly<Record<string, unknown>>): Record<string, string> =>
+  Object.fromEntries(Object.entries(prompts).map(([name, input]) => [name, hashedText(input)]));
+
+/** Routers with their instructions and route conditions as rendered text. */
+const routerTexts = (routers: readonly LoadedRouter[]) =>
+  routers.map((router) => ({
+    ...router,
+    instructions: hashedText(router.instructions),
+    routes: router.routes.map((route) => ({ ...route, condition: hashedText(route.condition) })),
+  }));
+
+/** Everything a run's behaviour depends on in config and prompts — what `configHash` hashes. */
 
 export const configSnapshot = <TName extends string>(
   deps: Pick<
@@ -19,10 +36,8 @@ export const configSnapshot = <TName extends string>(
   config: stripFunctions(deps.config),
   flow: flowLines(deps.flow),
   limits: deps.limits,
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  routers: stripFunctions(deps.routers),
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  prompts: stripFunctions(deps.prompts),
+  routers: routerTexts(deps.routers),
+  prompts: agentTexts(deps.prompts),
   compactionPrompt: deps.compactionPrompt ?? null,
 });
 
@@ -45,15 +60,12 @@ export function runVersions<TName extends string>(
   );
   return {
     promptVersion: versionOf({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      agents: stripFunctions(deps.prompts),
+      agents: agentTexts(deps.prompts),
       routers: routerPromptTexts,
-      flowRouters: deps.routers.map(({ name, instructions, routes }) => ({
+      flowRouters: routerTexts(deps.routers).map(({ name, instructions, routes }) => ({
         name,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        instructions: stripFunctions(instructions),
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        routes: stripFunctions(routes),
+        instructions,
+        routes,
       })),
       agentLoop: agentLoopPromptTexts,
       rag: ragPromptTexts,

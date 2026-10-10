@@ -5,9 +5,7 @@ import type { FlowNodeRef } from "./flow-nodes.js";
 import { SELF_OPTION, type RouteDeclaration } from "./route.js";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { routerMetaOf, type RouterMeta } from "./router.decorator.js";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { PromptOptions } from "../components/prompt-options.js";
-import { renderPromptVariables } from "../components/prompt-render.js";
+import { PromptLoader } from "../components/prompt-render.js";
 import type { PromptInput } from "../components/prompt-input.js";
 
 /** One route as the router's model sees it: the option name and what choosing it means. */
@@ -58,27 +56,59 @@ function optionOf(
 const byOption = (left: LoadedRoute, right: LoadedRoute): number =>
   left.option < right.option ? -1 : left.option > right.option ? 1 : 0;
 
-function loadRouter(model: FlowModel, ref: FlowNodeRef): LoadedRouter {
+async function loadRouter(
+  model: FlowModel,
+  ref: FlowNodeRef,
+  loader: PromptLoader,
+): Promise<LoadedRouter> {
   const meta = routerMetaOf(ref.use);
   if (meta === undefined) throw new ComponentError(`${ref.label} is not a @Router component`);
-  const routes = meta.routes.map((declaration) => ({
-    ...optionOf(model, declaration),
-    condition: renderPromptVariables(ref.name, declaration, meta.source, undefined),
-  }));
+  const label = `@Router "${ref.name}"`;
+  const routes = await Promise.all(
+    meta.routes.map(async (declaration) => {
+      const option = optionOf(model, declaration);
+      const owner = { label: `${label} route "${option.option}"`, source: meta.source };
+      return { ...option, condition: await loader.load({ ...owner, options: declaration }) };
+    }),
+  );
   return {
     name: ref.name,
     description: meta.description,
     model: meta.model,
     ...(meta.maxVisits === undefined ? {} : { maxVisits: meta.maxVisits }),
-    instructions: renderPromptVariables(ref.name, meta, meta.source, undefined),
+    instructions: await loader.load({ label, options: meta, source: meta.source }),
     routes: [...routes].sort(byOption),
   };
 }
 
-/** Every router of the flow with its texts loaded, by node key. */
-
-export async function loadRouters(model: FlowModel): Promise<ReadonlyMap<string, LoadedRouter>> {
+/**
+ * Every router of the flow with its texts read and rendered against the workflow's variables, by
+ * node key; problems in the texts are kept in `loader` (reported at once by `throwIfAny`).
+ */
+export async function loadRouters(
+  model: FlowModel,
+  loader: PromptLoader,
+): Promise<ReadonlyMap<string, LoadedRouter>> {
   const routers = [...model.nodes.values()].filter((ref) => ref.kind === "router");
-  const loaded = routers.map((ref) => loadRouter(model, ref));
+  const loaded = await Promise.all(routers.map((ref) => loadRouter(model, ref, loader)));
   return new Map(loaded.map((router) => [router.name, router]));
+}
+
+/**
+ * The flow's routers: those assembly loaded (texts rendered with the workflow's variables), and any
+ * other router of the flow loaded from its declaration.
+ */
+export async function routersOf(
+  model: FlowModel,
+  assembled: readonly LoadedRouter[] = [],
+): Promise<ReadonlyMap<string, LoadedRouter>> {
+  const routers = new Map(assembled.map((router) => [router.name, router]));
+  const missing = [...model.nodes.values()].filter(
+    (ref) => ref.kind === "router" && !routers.has(ref.name),
+  );
+  const loader = new PromptLoader();
+  const loaded = await Promise.all(missing.map((ref) => loadRouter(model, ref, loader)));
+  loader.throwIfAny();
+  loaded.forEach((router) => routers.set(router.name, router));
+  return routers;
 }

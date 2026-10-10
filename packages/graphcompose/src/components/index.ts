@@ -13,6 +13,7 @@ export {
 } from "./decorators.js";
 export { InjectionToken, type Class, type Provider, type Token } from "./injection.js";
 export { ComponentError, componentOf } from "./metadata.js";
+export { PromptError, type PromptProblem, type PromptProblemCode } from "./prompt-problems.js";
 export type { OnStart, OnStop } from "./lifecycle.js";
 export type { AgentMeta, WorkflowMeta, RagBinding } from "./meta-types.js";
 export {

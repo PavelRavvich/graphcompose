@@ -100,6 +100,7 @@ export function createScriptedGateway(book: ScriptBook): ModelGateway {
         kind: "decision",
         input: spec.request.input,
         options: spec.request.options.map((option) => option.name),
+        routes: Object.fromEntries(spec.request.options.map((o) => [o.name, o.description])),
         instructions: spec.request.instructions ?? "",
       };
       script.requests.push(req);
