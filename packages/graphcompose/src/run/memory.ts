@@ -5,7 +5,7 @@ import { SlidingWindowStrategy } from "../memory/sliding-window.js";
 import type { BaseMemoryStrategy, MemoryTurn, MemoryUpdate } from "../memory/types.js";
 import type { TernOutcome } from "../terns/index.js";
 import { compactIfDue, type Compacted } from "./compaction.js";
-import type { RunContext } from "./execute.js";
+import type { FinishContext } from "./execute.js";
 import type { RunDeps } from "./types.js";
 
 /** What updating memory after a turn did: its spend (already recorded) and the compaction, if any. */
@@ -46,7 +46,7 @@ const agentStrategiesOf = <TName extends string>(deps: RunDeps<TName>): BaseMemo
  * agent's own strategy update the memory; their spend is recorded to the run's account.
  */
 export async function updateMemoryAfter<TName extends string>(
-  ctx: RunContext<TName>,
+  ctx: FinishContext<TName>,
   state: AgentStateType,
   outcome: TernOutcome,
 ): Promise<MemoryAfterTurn> {

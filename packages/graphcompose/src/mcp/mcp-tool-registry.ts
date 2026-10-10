@@ -9,6 +9,7 @@ import { validate } from "../dto/schema.js";
 import { nodeInfoOf } from "../graph/node-kind.js";
 import { workflowStartMetaOf } from "../graph/workflow-start.decorator.js";
 import { renderToolResult, type ToolContext, type ToolOutput } from "../tools/index.js";
+import { newRunContext } from "../core/run-context.js";
 import {
   RESUME_TOOL,
   guarded,
@@ -76,18 +77,22 @@ function addTool(registry: ToolRegistry, exported: ExportedTool): void {
 }
 
 /** What the tool may know about this call: there is no agent run, so it cannot pause. */
-const toolContext = ({ app, meta, context }: ExportedTool, call: McpCall): ToolContext => ({
-  executionContext: context,
-  runId: `mcp_${randomUUID()}`,
-  workflow: app.name,
-  agent: "mcp",
-  callId: call.callId ?? `mcp_${meta.name}_${randomUUID()}`,
-  signal: call.signal,
-  reportCost: () => undefined,
-  pause: () => {
-    throw new Error(`${meta.name} cannot pause when called over MCP`);
-  },
-});
+const toolContext = ({ app, meta, context }: ExportedTool, call: McpCall): ToolContext => {
+  const runId = `mcp_${randomUUID()}`;
+  return {
+    executionContext: context,
+    run: newRunContext({ runId, signal: call.signal }),
+    runId,
+    workflow: app.name,
+    agent: "mcp",
+    callId: call.callId ?? `mcp_${meta.name}_${randomUUID()}`,
+    signal: call.signal,
+    reportCost: () => undefined,
+    pause: () => {
+      throw new Error(`${meta.name} cannot pause when called over MCP`);
+    },
+  };
+};
 
 const toolResult = (output: ToolOutput<unknown>): CallToolResult =>
   output.kind === "ok" && isRecord(output.value)

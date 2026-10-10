@@ -63,11 +63,14 @@ export class Editor {}
 
 /** What the `Tally` action saw, per run of the test. */
 export const tallied: unknown[] = [];
+/** The idempotency keys the `Tally` action got, per run of the test. */
+export const tallyKeys: string[] = [];
 
 @WorkflowAction({ name: "tally", description: "Records its item" })
 export class Tally {
   execute(_state: AgentState, context: ActionRuntime): Partial<AgentStateUpdate> {
     tallied.push(context.item);
+    tallyKeys.push(context.idempotencyKey);
     return { contributions: [{ agent: "tally", content: `seen ${String(context.item)}` }] };
   }
 }

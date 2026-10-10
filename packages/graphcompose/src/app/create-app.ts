@@ -17,6 +17,7 @@ import {
   type PausedRunRepository,
 } from "./paused-runs.js";
 import { UnknownToolError } from "./parts.js";
+import { cancelledOutcome, LiveRuns, runOptionsOf } from "./live-runs.js";
 import {
   flowNodesByKey,
   nestedFlowNodesByKey,
@@ -93,6 +94,7 @@ export async function buildApp(
     await paused.settle(run);
     return runResultOf(run, pathNodes);
   };
+  const live = new LiveRuns();
   let closed = false;
   const app: App = {
     name: deps.config.name,
@@ -103,21 +105,18 @@ export async function buildApp(
     execute: async (start, input, call = {}) => {
       const meta = startMetaOf(start, nodes, deps.config.name);
       const { text } = validate(meta.input, input);
-      const thread = call.thread === undefined ? {} : { threadId: call.thread };
-      const task = { task: text, start: meta.name, ...thread };
+      // the thread is known before the run starts, so `cancel(thread)` reaches a new one too
+      const thread = call.thread ?? (await deps.terns.createThread(deps.config.name));
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/restrict-template-expressions
       const runId = deps.newRunId?.() || `run-${Date.now()}`;
-      const state = { runId, threadId: call.thread };
-
+      const state = { runId, threadId: thread };
       try {
         await deps.observer.onWorkflowStart(state);
-        const result = await settle(
-          await runAgent(task, deps, {
-            signal: call.signal,
-            executionContext: call.executionContext,
-            ...(call.onStream === undefined ? {} : { onStream: call.onStream }),
-          }),
+        const task = { task: text, start: meta.name, threadId: thread };
+        const run = await live.track(thread, call.signal, (signal) =>
+          runAgent(task, deps, runOptionsOf(call, signal)),
         );
+        const result = await settle(run);
         await deps.observer.onWorkflowEnd(result, state);
         return result;
       } catch (e) {
@@ -126,21 +125,20 @@ export async function buildApp(
       }
     },
     cancel: async (thread) => {
-      // If the app is currently paused, resuming it with a dummy value will cause it to wake up
-      // and immediately throw WorkflowCancelledError because of the pre-execution guard.
-      if (await paused.has(thread)) {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        await app.resume(thread, null).catch(() => {});
+      const running = live.abort(thread);
+      const waiting = await paused.drop(thread);
+      // a running resume completes its own Tern when the abort stops it
+      if (waiting !== undefined && !running) {
+        await deps.terns.complete(waiting.ternId, cancelledOutcome(waiting));
       }
+      return { cancelled: running || waiting !== undefined };
     },
     resume: async (thread, decision, call = {}) => {
       const run = await paused.resumable(thread);
       return settle(
-        await resumeAgent(run, decision, deps, {
-          signal: call.signal,
-          executionContext: call.executionContext,
-          ...(call.onStream === undefined ? {} : { onStream: call.onStream }),
-        }),
+        await live.track(thread, call.signal, (signal) =>
+          resumeAgent(run, decision, deps, runOptionsOf(call, signal)),
+        ),
       );
     },
     close: async () => {

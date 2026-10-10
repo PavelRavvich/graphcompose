@@ -3,13 +3,21 @@ import { z } from "zod";
 import type { CompiledFlowGraph } from "../graph/build.js";
 import type { AgentStateType } from "../graph/state.js";
 import type { PendingPause } from "../pause/index.js";
+import type { RunServices } from "../core/run-context.js";
 
-/** LangGraph checkpoint thread = the run id (not the conversation thread). */
+/** The `configurable` of a run: the caller's own keys, then the checkpoint thread and run services. */
+export type RunConfigurable = Record<string, unknown> & { readonly thread_id: string };
+
+/**
+ * LangGraph checkpoint thread = the run id (not the conversation thread); with services, the run's
+ * `RunContext` (`configurable.run`) and the services its nodes read — over the caller's `configurable`.
+ */
 export const runConfig = (
   runId: string,
-  executionContext?: unknown,
-): { configurable: { thread_id: string; executionContext?: unknown } } => ({
-  configurable: { thread_id: runId, executionContext },
+  services?: RunServices,
+  configurable: Readonly<Record<string, unknown>> = {},
+): { configurable: RunConfigurable } => ({
+  configurable: { ...configurable, ...services, thread_id: runId },
 });
 
 /** A run with nodes left in its checkpoint is waiting for an approval. */

@@ -41,7 +41,8 @@ export function createMemoryPausedRunRepository(): PausedRunRepository {
 export interface PausedRunBook {
   /** Remembers a paused run with the app's versions, forgets a thread whose run ended. */
   readonly settle: (run: AgentExecutionOutput) => Promise<void>;
-  readonly has: (thread: string) => Promise<boolean>;
+  /** Forgets the thread's paused run (a cancel) and returns it; `undefined` when none waits. */
+  readonly drop: (thread: string) => Promise<AgentExecutionOutput | undefined>;
   /** The run paused on `thread`; `NotPausedError` / `IncompatibleResumeError` when it cannot resume. */
   readonly resumable: (thread: string) => Promise<AgentExecutionOutput>;
 }
@@ -56,7 +57,11 @@ export function pausedRunBook(
       run.status === "paused"
         ? repository.set({ run, ...current })
         : repository.delete(run.threadId),
-    has: async (thread) => (await repository.get(thread)) !== undefined,
+    drop: async (thread) => {
+      const stored = await repository.get(thread);
+      if (stored !== undefined) await repository.delete(thread);
+      return stored?.run;
+    },
     resumable: async (thread) => {
       const stored = await repository.get(thread);
       if (stored === undefined) throw new NotPausedError(`Thread "${thread}" has no paused run`);

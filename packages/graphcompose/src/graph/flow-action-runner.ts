@@ -12,14 +12,15 @@ import type { FlowStateType } from "./flow-state.js";
 import { childInputOf } from "./nested-workflow.js";
 import type { WorkflowMeta } from "../components/meta-types.js";
 import type { FlowNodeRunner } from "./visit.js";
+import { extractRunContext, throwIfCancelled, type RunContext } from "../core/run-context.js";
 
 export class UnknownActionError extends Error {
   override name = "UnknownActionError";
 }
 
-/** The run id from LangGraph's config (`configurable` is typed as a record of `any`). */
-const configuredRunId = (config?: RunnableConfig): string =>
-  (config?.configurable?.runId ?? "") as string;
+/** `${runId}:${node}`, plus the item's index inside `batchParallel`. */
+const idempotencyKeyOf = (runId: string, node: string, batchIndex?: number): string =>
+  batchIndex === undefined ? `${runId}:${node}` : `${runId}:${node}:${String(batchIndex)}`;
 
 type RunCompensation = (
   compClass: Class,
@@ -56,7 +57,7 @@ function compensationRunner<TName extends string>(
   deps: GraphDeps<TName>,
   run: RunLimits,
   loops: ReadonlyMap<string, AgentLoopGraph>,
-  runId: string,
+  runContext: RunContext,
   config: RunnableConfig | undefined,
 ): RunCompensation {
   const getComponentClass = (nodeName: string): Class | undefined =>
@@ -70,11 +71,12 @@ function compensationRunner<TName extends string>(
       if (!deps.actions) throw new Error("Actions not wired");
       const act = deps.actions(comp.meta.name);
       const ctx: ActionRuntime = {
-        runId,
-        signal: config?.signal,
+        run: runContext,
+        runId: runContext.runId,
+        signal: runContext.signal,
         getComponentClass,
         runCompensation,
-        idempotencyKey: nodeName ? `run_${runId}_node_${nodeName}` : undefined,
+        idempotencyKey: idempotencyKeyOf(runContext.runId, nodeName ?? comp.meta.name),
       };
       return await act.execute(childState, ctx);
     }
@@ -108,16 +110,17 @@ export function actionRunner<TName extends string>(
     if (state.cancelRequested) {
       throw new WorkflowCancelledError();
     }
-    const runId = configuredRunId(config);
-    const runCompensation = compensationRunner(deps, run, loops, runId, config);
-    const executionContext: unknown = config?.configurable?.executionContext;
+    const scope = extractRunContext(config, state.runId);
+    throwIfCancelled(scope.run);
+    const runId = scope.runId;
     const context: ActionRuntime = {
+      run: scope.run,
       runId,
-      idempotencyKey: `run_${runId}_node_${node.name}`,
-      signal: config?.signal,
+      idempotencyKey: idempotencyKeyOf(runId, node.name, state.batchIndex),
+      signal: scope.run.signal,
       getComponentClass: (nodeName: string) => collectFlow(deps.flow).nodes.get(nodeName)?.use,
-      runCompensation,
-      executionContext,
+      runCompensation: compensationRunner(deps, run, loops, scope.run, config),
+      executionContext: scope.executionContext,
       item: state.batchItem,
     };
 

@@ -1,0 +1,61 @@
+import { WorkflowCancelledError } from "../core/errors.js";
+import type { RunOptions, AgentExecutionOutput } from "../run/types.js";
+import type { TernOutcome } from "../terns/index.js";
+import type { ExecutionOptions } from "./types.js";
+
+/** The runs in flight by thread: what `app.cancel(thread)` aborts. */
+export class LiveRuns {
+  readonly #runs = new Map<string, Set<AbortController>>();
+
+  /** Runs `work` with a signal that `abort(thread)` or the caller's own signal aborts. */
+  async track<T>(
+    thread: string,
+    caller: AbortSignal | undefined,
+    work: (signal: AbortSignal) => Promise<T>,
+  ): Promise<T> {
+    const controller = new AbortController();
+    const runs = this.#runs.get(thread) ?? new Set<AbortController>();
+    runs.add(controller);
+    this.#runs.set(thread, runs);
+    try {
+      return await work(
+        caller === undefined ? controller.signal : AbortSignal.any([caller, controller.signal]),
+      );
+    } finally {
+      runs.delete(controller);
+      if (runs.size === 0 && this.#runs.get(thread) === runs) this.#runs.delete(thread);
+    }
+  }
+
+  /** Aborts the thread's runs in flight; `false` when none is running. */
+  abort(thread: string): boolean {
+    const runs = this.#runs.get(thread);
+    if (runs === undefined || runs.size === 0) return false;
+    for (const controller of runs) {
+      controller.abort(new WorkflowCancelledError(`thread "${thread}" was cancelled`));
+    }
+    return true;
+  }
+}
+
+/** What `execute` / `resume` hand the run: the call's options with the tracked signal. */
+export const runOptionsOf = (
+  call: Omit<ExecutionOptions, "thread">,
+  signal: AbortSignal,
+): RunOptions => ({
+  signal,
+  executionContext: call.executionContext,
+  metadata: call.metadata,
+  configurable: call.configurable,
+  ...(call.onStream === undefined ? {} : { onStream: call.onStream }),
+});
+
+/** The Tern outcome of a paused run that was cancelled instead of resumed. */
+export const cancelledOutcome = (run: AgentExecutionOutput): TernOutcome => ({
+  replyWith: "",
+  status: "failed",
+  stopReason: "the run was cancelled",
+  route: run.route,
+  steps: [],
+  costUsd: run.cost.totalUsd,
+});

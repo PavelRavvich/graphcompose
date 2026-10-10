@@ -71,11 +71,13 @@ export function addBatchNodes(
 function loopNode(next: BatchNext, strategies: Strategies) {
   const targetKey = next.target;
   return async (state: FlowStateType): Promise<FlowStateUpdate> => {
-    const queue =
-      state._batchCursor[targetKey]?.queue ?? (await extractItems(next, strategies, state));
+    const previous = state._batchCursor[targetKey];
+    const queue = previous?.queue ?? (await extractItems(next, strategies, state));
     const { activeBatch, newQueue } = takeBatches(queue, next.options);
+    // the index of this round's first batch: every batch of the earlier rounds came before it
+    const offset = (previous?.offset ?? 0) + (previous?.activeBatch?.length ?? 0);
     // Done: the cursor is cleared, so the next run through this step extracts again.
-    const cursor = activeBatch.length === 0 ? undefined : { queue: newQueue, activeBatch };
+    const cursor = activeBatch.length === 0 ? undefined : { queue: newQueue, activeBatch, offset };
     return { _batchCursor: { [targetKey]: cursor } };
   };
 }
@@ -92,10 +94,17 @@ function wireBatchLoop(
   const workerId = batchWorkerId(target);
   builder.addNode(loopId, loopNode(next, strategies));
   builder.addConditionalEdges(loopId, (state: FlowStateType) => {
-    const activeBatch = state._batchCursor[next.target]?.activeBatch ?? [];
+    const cursor = state._batchCursor[next.target];
+    const activeBatch = cursor?.activeBatch ?? [];
     if (activeBatch.length === 0) return batchFinishId(target);
+    const offset = cursor?.offset ?? 0;
     return activeBatch.map(
-      (batch) => new Send(workerId, { ...state, batchItem: workerItem(batch, next.options) }),
+      (batch, index) =>
+        new Send(workerId, {
+          ...state,
+          batchItem: workerItem(batch, next.options),
+          batchIndex: offset + index,
+        }),
     );
   });
   builder.addEdge(workerId, loopId);

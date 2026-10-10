@@ -56,6 +56,8 @@ export const AgentState = Annotation.Root({
   payload: Annotation<Record<string, unknown>>({ reducer: mergeRecords, default: () => ({}) }),
   /** System cursor for batchParallel loop elements. */
   batchItem: Annotation<unknown>({ reducer: (p, n) => n }),
+  /** The index of `batchItem` among the step's items (its batch's index for `batchSize` > 1). */
+  batchIndex: Annotation<number | undefined>({ reducer: (p, n) => n }),
   /** Per batch target: the items still queued and the batches of the current round. */
   _batchCursor: Annotation<
     Record<string, { queue: unknown[]; activeBatch?: unknown[][]; offset?: number } | undefined>

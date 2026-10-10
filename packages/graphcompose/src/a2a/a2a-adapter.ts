@@ -31,7 +31,7 @@ export interface IA2AAdapter {
     options?: A2ACallOptions,
   ): Promise<A2AExecutionResponse>;
 
-  /** Stops the thread's run in flight through this adapter (→ `cancelled`) and cancels its pause. */
+  /** `app.cancel(thread)`: stops the thread's run in flight (→ `cancelled`) or drops its pause. */
   cancel(thread: string): Promise<void>;
 }
 
@@ -40,8 +40,6 @@ export interface IA2AAdapter {
  * reply, the finish output and the final status; failures are statuses, not thrown errors.
  */
 export class A2AAdapter implements IA2AAdapter {
-  private readonly inFlight = new Map<string, AbortController>();
-
   constructor(private readonly app: App) {}
 
   public execute(
@@ -71,30 +69,19 @@ export class A2AAdapter implements IA2AAdapter {
   }
 
   public async cancel(thread: string): Promise<void> {
-    this.inFlight.get(thread)?.abort(new Error(`thread "${thread}" was cancelled`));
     await this.app.cancel(thread);
   }
 
-  /** Runs one call with its own abort controller (linked to the caller's signal), mapped to a response. */
+  /** Runs one call, mapped to a response: a failure is a status (cancelled, limited, failed). */
   private async run(
     thread: string | undefined,
     options: A2ACallOptions,
     call: (options: A2ACallOptions) => Promise<ExecutionOutput>,
   ): Promise<A2AExecutionResponse> {
-    const controller = new AbortController();
-    const signal =
-      options.signal === undefined
-        ? controller.signal
-        : AbortSignal.any([options.signal, controller.signal]);
-    if (thread !== undefined) this.inFlight.set(thread, controller);
     try {
-      return responseOf(await call({ ...options, signal }));
+      return responseOf(await call(options));
     } catch (error) {
-      return failureResponseOf(error, signal, thread);
-    } finally {
-      if (thread !== undefined && this.inFlight.get(thread) === controller) {
-        this.inFlight.delete(thread);
-      }
+      return failureResponseOf(error, options.signal, thread);
     }
   }
 }

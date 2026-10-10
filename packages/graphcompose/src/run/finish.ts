@@ -4,14 +4,14 @@ import type { FlowStateType } from "../graph/flow-state.js";
 import type { AgentStateType } from "../graph/state.js";
 import type { TernOutcome } from "../terns/index.js";
 import { updateMemoryAfter } from "./memory.js";
-import type { RunContext } from "./execute.js";
+import type { FinishContext } from "./execute.js";
 import type { PendingPause } from "../pause/index.js";
 import { isWaiting, pausedLoopOf } from "./paused.js";
 import type { AgentExecutionOutput, RunDeps, RunStatus } from "./types.js";
 
 /** Where the run ended: the workflow finish it reached, if it reached one (not when guarded or paused). */
 function finishOf<TName extends string>(
-  ctx: RunContext<TName>,
+  ctx: FinishContext<TName>,
   state: FlowStateType,
 ): { finish?: string; finishes?: Record<string, FinishOutput> } {
   const last = state.path.at(-1);
@@ -56,7 +56,7 @@ const traceUrlOf = <TName extends string>(
  * and the pending call are there — that spend goes to the ledger now, not on resume.
  */
 async function stoppedState<TName extends string>(
-  ctx: RunContext<TName>,
+  ctx: FinishContext<TName>,
   state: FlowStateType,
 ): Promise<{
   readonly current: AgentStateType;
@@ -75,7 +75,7 @@ async function stoppedState<TName extends string>(
 
 /** Writes (or completes) the Tern and shapes the result: answered, guarded or paused. */
 export async function finishRun<TName extends string>(
-  ctx: RunContext<TName>,
+  ctx: FinishContext<TName>,
   state: FlowStateType,
   existingTernId?: string,
 ): Promise<AgentExecutionOutput> {

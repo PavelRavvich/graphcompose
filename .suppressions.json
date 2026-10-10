@@ -1,6 +1,6 @@
 {
   "src @ts-ignore": 2,
-  "src as any": 20,
+  "src as any": 19,
   "src as unknown as": 8,
   "src eslint:@typescript-eslint/ban-ts-comment": 2,
   "src eslint:@typescript-eslint/explicit-module-boundary-types": 8,
@@ -17,7 +17,7 @@
   "src eslint:@typescript-eslint/no-unsafe-argument": 11,
   "src eslint:@typescript-eslint/no-unsafe-assignment": 23,
   "src eslint:@typescript-eslint/no-unsafe-call": 6,
-  "src eslint:@typescript-eslint/no-unsafe-member-access": 31,
+  "src eslint:@typescript-eslint/no-unsafe-member-access": 30,
   "src eslint:@typescript-eslint/no-unsafe-return": 5,
   "src eslint:@typescript-eslint/no-unused-vars": 13,
   "src eslint:@typescript-eslint/prefer-nullish-coalescing": 12,

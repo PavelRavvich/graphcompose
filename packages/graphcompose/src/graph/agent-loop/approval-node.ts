@@ -4,7 +4,7 @@ import { toolNamed } from "./deps.js";
 import type { AgentLoopDeps } from "./deps.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
 import { JudgePoint, visitToolThenAgent, mergePolicies } from "./judge-points.js";
-import { extractRunContext } from "../run-context.js";
+import { extractRunContext } from "../../core/run-context.js";
 
 /** One sentence on what the call will do (the ask's `summary`). */
 const summaryOf = (tool: string, args: Record<string, unknown>): string =>

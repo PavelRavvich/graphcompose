@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { defineTool, InvalidToolNameError, type ToolContext } from "../../src/tools/index.js";
+import { testRunContext } from "../../src/testing/index.js";
 
 const ctx = (signal: AbortSignal = new AbortController().signal): ToolContext => ({
+  run: testRunContext({ signal }),
   runId: "run-1",
   workflow: "test-bundle",
   agent: "alpha",

@@ -20,7 +20,6 @@ describe("AC1: graphcompose/graph and graphcompose/units", () => {
       "background",
       "bg",
       "chain",
-      "extractRunContext",
       "from",
       "node",
       "optional",

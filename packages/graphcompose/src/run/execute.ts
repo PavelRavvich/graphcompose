@@ -9,10 +9,8 @@ import type { RunLimits } from "../graph/flow-runtime.js";
 import type { WorkflowLimits } from "../graph/settings.js";
 import type { NewTern, TernOutcome } from "../terns/index.js";
 import { usd } from "../units/index.js";
-import { runConfig } from "./paused.js";
+import type { BaseCallbackHandler } from "@langchain/core/callbacks/base";
 import type { RunDeps, SpendAccount } from "./types.js";
-
-export { runConfig } from "./paused.js";
 
 export type TernBase = Pick<
   NewTern,
@@ -26,7 +24,8 @@ export type TernBase = Pick<
   | "configHash"
 >;
 
-export interface RunContext<TName extends string> {
+/** What finishing a run needs: its deps, graph, Tern base, id, budget and spend so far. */
+export interface FinishContext<TName extends string> {
   readonly deps: RunDeps<TName>;
   readonly flow: FlowGraph;
   readonly base: TernBase;
@@ -37,52 +36,6 @@ export interface RunContext<TName extends string> {
   /** How many of the run's usage records are already in the ledger. */
   readonly recorded: number;
   readonly callbacks: BaseCallbackHandler[];
-}
-
-/**
- * Stream config: checkpoint thread = run id, every step checkpointed before the next one starts
- * (`durability: "sync"` — what a resume after a crash continues from); tracing callbacks when on.
- */
-import type { Serialized } from "@langchain/core/load/serializable";
-import { BaseCallbackHandler } from "@langchain/core/callbacks/base";
-import type { RunOptions, RunStreamEvent } from "./types.js";
-
-class StreamingCallbackHandler extends BaseCallbackHandler {
-  name = "StreamingCallbackHandler";
-  constructor(private readonly onStream: (event: RunStreamEvent) => void) {
-    super();
-  }
-  override handleLLMNewToken(token: string) {
-    this.onStream({ kind: "textDelta", delta: token });
-  }
-  override handleToolStart(tool: Serialized, input: string) {
-    this.onStream({ kind: "toolCall", tool: tool.id.at(-1) ?? "unknown", args: input });
-  }
-}
-
-export function streamConfig<TName extends string>(
-  deps: RunDeps<TName>,
-  context: { readonly threadId: string; readonly runId: string },
-  options?: RunOptions,
-): ReturnType<typeof runConfig> & {
-  streamMode: "values";
-  durability: "sync";
-  runName: string;
-  callbacks: BaseCallbackHandler[];
-  signal?: AbortSignal;
-} {
-  const callbacks = deps.tracing?.callbacks({ bundle: deps.config.name, ...context }) ?? [];
-  if (options?.onStream !== undefined) {
-    callbacks.push(new StreamingCallbackHandler(options.onStream));
-  }
-  return {
-    ...runConfig(context.runId, options?.executionContext),
-    streamMode: "values",
-    durability: "sync",
-    runName: deps.config.name,
-    callbacks,
-    ...(options?.signal === undefined ? {} : { signal: options.signal }),
-  };
 }
 
 const errorMessage = (error: unknown): string =>

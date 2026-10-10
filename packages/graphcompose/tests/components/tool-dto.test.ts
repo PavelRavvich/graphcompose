@@ -9,8 +9,10 @@ import { DtoError, Integer, ListOf, Nested, Text, Url } from "../../src/dto/inde
 import { toolDefinitionOf, type ToolContext } from "../../src/tools/index.js";
 import { testConfig } from "../helpers.js";
 import { starOf, TestSettings } from "../fixtures/test-flow/star.js";
+import { testRunContext } from "../../src/testing/index.js";
 
 const ctx: ToolContext = {
+  run: testRunContext(),
   runId: "r",
   workflow: "w",
   agent: "a",

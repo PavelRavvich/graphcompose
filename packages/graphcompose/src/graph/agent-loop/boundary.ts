@@ -3,7 +3,7 @@ import { unknownToolMessage } from "../../prompts/agents.js";
 import type { AsyncNode } from "../types.js";
 import { callsOf, toolNamed, type AgentLoopDeps, type ToolCallRequest } from "./deps.js";
 import { JudgePoint, visitToolThenAgent, mergePolicies } from "./judge-points.js";
-import { extractRunContext } from "../run-context.js";
+import { extractRunContext } from "../../core/run-context.js";
 import {
   LOOP_NODE,
   type AgentLoopStateType,

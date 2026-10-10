@@ -10,8 +10,10 @@ import {
   schemaDifferences,
 } from "../../../src/tools/index.js";
 import { fakeMcpServer, type FakeTool } from "./fake-server.js";
+import { testRunContext } from "../../../src/testing/index.js";
 
 const ctx = {
+  run: testRunContext(),
   runId: "r",
   workflow: "b",
   agent: "a",

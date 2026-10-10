@@ -1,4 +1,3 @@
-import { QuorumManager } from "../concurrency/quorum-manager.js";
 import { randomUUID } from "node:crypto";
 import type { UsageRecord } from "../finops/usage.js";
 import type { FlowModel } from "../graph/check-flow.js";
@@ -12,11 +11,12 @@ import {
   failedOutcome,
   outcomeError,
   recorder,
-  streamConfig,
   workflowAccount,
   type TernBase,
 } from "./execute.js";
 import { inRunScope } from "../components/run-scope.js";
+import { quorumOf, settleQuorum, withMetadata } from "./run-services.js";
+import { streamConfig } from "./stream-config.js";
 import { finishRun } from "./finish.js";
 import { openThread } from "./thread.js";
 import type { AgentExecutionOutput, RunDeps, RunOptions } from "./types.js";
@@ -64,9 +64,8 @@ async function runOnce<TName extends string>(
     const { budgetUsd, run } = await allowedBudget(deps, account);
     const runId = deps.newRunId?.() ?? randomUUID();
     const flow = await flowGraphOf(deps, run);
-    const config = streamConfig(deps, { threadId, runId }, options);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    (config.configurable as any).quorumManager = new QuorumManager();
+    const quorumManager = quorumOf(deps, runId);
+    const config = streamConfig(deps, { threadId, runId, quorumManager }, options);
     const record = recorder(deps, account, spent);
     const initial = {
       task,
@@ -79,7 +78,9 @@ async function runOnce<TName extends string>(
     const state = await drainRun(await flow.graph.stream(initial, config), record);
     const recorded = state.usage.length;
     const context = { deps, flow, base, runId, budgetUsd, record, recorded };
-    return await finishRun({ ...context, callbacks: config.callbacks }, state);
+    const output = await finishRun({ ...context, callbacks: config.callbacks }, state);
+    settleQuorum(deps, runId, quorumManager, output.status === "paused");
+    return withMetadata(output, options.metadata);
   } catch (error) {
     const cause = outcomeError(error, options.signal);
     await deps.terns.append({ ...base, ...failedOutcome(cause, spent) });
