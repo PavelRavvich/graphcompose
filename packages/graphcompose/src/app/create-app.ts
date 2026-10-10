@@ -1,5 +1,6 @@
 import type { Class } from "../components/injection.js";
 import { workflowOf } from "../components/assemble.js";
+import { environmentFor, workflowFileOf } from "../environments/load.js";
 import { WorkflowStartText } from "../dto/standard/framework.js";
 import { validate } from "../dto/schema.js";
 import { workflowStartMetaOf } from "../graph/workflow-start.decorator.js";
@@ -20,6 +21,11 @@ export class NotAWorkflowStartError extends Error {
 
 /** `createApp` options: a profile on top of the workflow, and any part instead of its default. */
 export interface AppOptions extends AppDepsOptions {
+  /**
+   * The environment: `environments/<env>.environment.ts` next to the workflow file (default `dev`);
+   * `environment` (values) wins over it.
+   */
+  readonly env?: string | undefined;
   /** `profiles/<workflow>/<profile>.yaml` under `profileRoot` (default: the working directory). */
   readonly profile?: string | undefined;
   readonly profileRoot?: string;
@@ -152,5 +158,10 @@ export async function createApp(workflow: Class, options: AppOptions = {}): Prom
     options.profile,
     options.profileRoot,
   );
-  return (await buildApp(bundle, options)).app;
+  const environment = await environmentFor(
+    workflowFileOf(workflow),
+    options,
+    options.processEnv ?? process.env,
+  );
+  return (await buildApp(bundle, { ...options, environment })).app;
 }

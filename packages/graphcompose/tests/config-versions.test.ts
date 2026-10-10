@@ -77,14 +77,14 @@ describe("config versions", () => {
     };
     const base = await workflowOf(TestWorkflow);
     const providerFetch = providerStub([], [{ id: "test/researcher" }, { id: "test/coder" }]).fetch;
-    const first = await createAppDeps(base, { env, providerFetch });
+    const first = await createAppDeps(base, { processEnv: env, providerFetch });
     await first.close();
     const changed = {
       ...base,
       prompts: { ...base.prompts, coder: async () => "A different coder prompt." },
     };
 
-    const second = await createAppDeps(changed, { env, providerFetch });
+    const second = await createAppDeps(changed, { processEnv: env, providerFetch });
     await second.close();
 
     expect(first.warnings).toEqual([]);

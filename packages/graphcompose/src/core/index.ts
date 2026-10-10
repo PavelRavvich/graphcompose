@@ -16,7 +16,7 @@ export {
   type ChannelRequest,
   type ChannelDecision,
 } from "../components/decorators.js";
-export { ENV, environmentToken, ROUTER_FACTORY } from "../components/runtime.js";
+export { ENV, ROUTER_FACTORY } from "../components/runtime.js";
 export { ComponentError } from "../components/metadata.js";
 export {
   PromptError,

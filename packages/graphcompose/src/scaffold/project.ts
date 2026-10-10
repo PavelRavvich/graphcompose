@@ -77,8 +77,12 @@ export function planProject(spec: WorkflowSpec): FileToWrite[] {
     { path: "README.md", content: render("project/README.md.tmpl", variables) },
     { path: "src/environments/environment.ts", content: render("project/environment.ts.tmpl", {}) },
     {
-      path: "src/environments/environment.staging.ts",
-      content: render("project/environment.staging.ts.tmpl", {}),
+      path: "src/environments/dev.environment.ts",
+      content: render("project/dev.environment.ts.tmpl", {}),
+    },
+    {
+      path: "src/environments/staging.environment.ts",
+      content: render("project/staging.environment.ts.tmpl", {}),
     },
     ...planWorkflow(spec),
     workflowTest(spec),

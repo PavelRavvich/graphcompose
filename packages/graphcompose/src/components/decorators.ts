@@ -5,6 +5,7 @@ import type { ToolContext } from "../tools/index.js";
 import type { ChannelMeta } from "./meta-types.js";
 import type { Class, ResolvedAll, Token } from "./injection.js";
 import { callerFile } from "./call-site.js";
+import { rememberWorkflowFile } from "../environments/load.js";
 import type { McpServerClient, ServerTools } from "./mcp-client.js";
 import { recordComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta, WorkflowActionMeta } from "./meta-types.js";
@@ -140,8 +141,10 @@ export function Agent(options: Omit<AgentMeta, "source">) {
  * `implements WorkflowDefinition` (`settings()`). Assemble with `workflowOf`.
  */
 export function Workflow(options: WorkflowMeta) {
+  const source = callerFile();
   return <C extends new () => WorkflowDefinition>(value: C): C => {
     recordComponent(value, { kind: "workflow", meta: options });
+    rememberWorkflowFile(value, source);
     return value;
   };
 }

@@ -15,7 +15,8 @@ import {
 } from "./cli/context.js";
 import { costSummary, costTotal, costTrace } from "./cli/finops.js";
 import { onInterruptKey } from "./cli/keys.js";
-import { loadEnvironment, loadWorkflowClass } from "./cli/load-workflow.js";
+import { envOption } from "./cli/environment.js";
+import { loadWorkflowClass } from "./cli/load-workflow.js";
 import { askMessage } from "./cli/multiline.js";
 import { withSpinner, type SpinnerOutput } from "./cli/spinner.js";
 import { textStartOrFail } from "./cli/text-start.js";
@@ -100,11 +101,11 @@ async function converse(session: Session): Promise<void> {
 }
 
 async function appOf(context: CommandContext, file: string): Promise<App> {
-  const env: unknown = await loadEnvironment(file, textOption(context.values, "env"));
   return createApp(await loadWorkflowClass(file, loadOptions(context)), {
     profile: textOption(context.values, "profile"),
     profileRoot: context.io.cwd,
-    env: env as NodeJS.ProcessEnv,
+    env: envOption(context),
+    processEnv: context.io.env,
   });
 }
 

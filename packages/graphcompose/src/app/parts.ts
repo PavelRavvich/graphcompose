@@ -12,6 +12,7 @@ import { createRouter } from "../routers/index.js";
 import type { AnyTool } from "../tools/index.js";
 import type { PauseSeam } from "../pause/index.js";
 import type { ContainerOptions } from "../components/container.js";
+import type { Environment } from "../environments/define.js";
 
 export class UnknownToolError extends Error {
   override name = "UnknownToolError";
@@ -70,12 +71,12 @@ export const evaluationFor = (
 export const servicesFor = (
   bundle: AssembledWorkflow,
   gateway: ModelGateway,
-  env: NodeJS.ProcessEnv,
+  environment: Environment | undefined,
   container: ContainerOptions,
 ): WorkflowServices => ({
   router: (name) =>
     createRouter(name, bundle.config.defaults.router, bundle.config.defaults.models, gateway),
-  env,
+  ...(environment === undefined ? {} : { environment }),
   container,
 });
 

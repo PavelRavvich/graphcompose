@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { resolveTools, type AssembledWorkflow } from "../workflow.js";
 import { validateAgentsConfig, type AgentsConfigOf } from "../config/types.js";
 import type { ContainerOptions } from "../components/container.js";
+import type { Environment } from "../environments/define.js";
 import type { ObserverManager } from "../core/observer-manager.js";
 import { initAll, assembleAll, startAll } from "../components/lifecycle.js";
 import { createFileLedger, type Clock, type SpendLedger } from "../finops/ledger.js";
@@ -74,11 +75,13 @@ export type McpConnect = (
 
 /** Everything an app may be given instead of its production default. */
 export interface AppDepsOptions {
-  /** Default: process.env. */
-  readonly env?: NodeJS.ProcessEnv;
+  /** The process environment: model provider keys, MCP servers, stores. Default: process.env. */
+  readonly processEnv?: NodeJS.ProcessEnv;
+  /** The app's environment (`ENV`), resolved; absent = none (a service injecting `ENV` fails). */
+  readonly environment?: Environment;
   /**
    * Every model call goes through it. Default: the workflow's model providers, credentials from
-   * `env`, each model's settings checked against what its provider says it supports.
+   * `processEnv`, each model's settings checked against what its provider says it supports.
    */
   readonly gateway?: ModelGateway;
   /** The raw HTTP client under every model provider (default: global fetch; tests: a local stub). */
@@ -160,11 +163,11 @@ export async function createAppDeps(
   bundle: AssembledWorkflow,
   options: AppDepsOptions = {},
 ): Promise<AppDeps> {
-  const env = options.env ?? process.env;
+  const env = options.processEnv ?? process.env;
   const models = await modelsFor(bundle, options.gateway, providerClientsOf(options, env));
   const gateway = models.gateway;
   const lifecycle = lifecycleOf(options.container);
-  const services = servicesFor(bundle, gateway, env, lifecycle.options);
+  const services = servicesFor(bundle, gateway, options.environment, lifecycle.options);
   const tools: readonly AnyTool[] = resolveTools(bundle, services);
   const toolNames = tools.map((tool) => tool.name);
   const config = models.priced(validateAgentsConfig(bundle.config, toolNames));

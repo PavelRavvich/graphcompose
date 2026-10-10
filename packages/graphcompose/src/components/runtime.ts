@@ -3,7 +3,8 @@ import type { RagConnector } from "../rag/types.js";
 import type { Router } from "../routers/index.js";
 import { schemaOf } from "../dto/schema.js";
 import { defineTool, type AnyTool, type Tool, type ToolContext } from "../tools/index.js";
-import { createContainer, type Container } from "./container.js";
+import type { Environment } from "../environments/define.js";
+import { createContainer, UnavailableValue, type Container } from "./container.js";
 import type { ToolHandler } from "./decorators.js";
 import { InjectionToken, type Class, type Token } from "./injection.js";
 import { componentOf, requireComponent, type ToolMeta } from "./metadata.js";
@@ -14,12 +15,16 @@ import { contextSources, ragMeta, searchTool } from "./rag.js";
 
 /** Core services a component can depend on. */
 export const ROUTER_FACTORY = new InjectionToken<(name: string) => Router>("ROUTER_FACTORY");
-export const ENV = new InjectionToken<unknown>("ENV");
+/**
+ * The app's environment (#182): the values of `environments/<name>.environment.ts`, typed by the
+ * `Environment` contract — `@Injectable({ deps: [ENV] })`, `constructor(env: Environment)`.
+ */
+export const ENV = new InjectionToken<Environment>("ENV");
 
-/** Use this to strictly type the environment token injected by GraphCompose. */
-export function environmentToken<T = NodeJS.ProcessEnv>(): InjectionToken<T> {
-  return ENV as InjectionToken<T>;
-}
+const missingEnvironment = new UnavailableValue(
+  (dependant) =>
+    `[di.missing-environment] ${dependant} injects ENV, but the app has no environment: add environments/dev.environment.ts next to the workflow file (export default defineEnvironment({ … })), or pass one to testWith(…, { environment })`,
+);
 export const CORE_TOKENS = [ROUTER_FACTORY, ENV];
 
 /**
@@ -77,7 +82,7 @@ export const containerFor = (bundle: WorkflowMeta, services: WorkflowServices): 
   if (existing !== undefined) return existing;
   const core = new Map<Token, unknown>([
     [ROUTER_FACTORY, services.router],
-    [ENV, services.env ?? process.env],
+    [ENV, services.environment ?? missingEnvironment],
   ]);
   for (const [token, instance] of serverInstances.get(bundle) ?? []) core.set(token, instance);
   const container = createContainer(bundle.providers ?? [], core, services.container);

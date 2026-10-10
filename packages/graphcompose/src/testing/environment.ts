@@ -4,6 +4,8 @@ import { buildApp, type AppOptions, type BuiltApp } from "../app/create-app.js";
 import { createMemoryPausedRunRepository } from "../app/paused-runs.js";
 import { flowNodesByKey } from "../app/result.js";
 import { workflowOf } from "../components/assemble.js";
+import type { Environment } from "../environments/define.js";
+import { environmentFor, workflowFileOf, type EnvironmentSelection } from "../environments/load.js";
 import type { Class } from "../components/injection.js";
 import type { McpServerClient, ServerTools } from "../components/mcp-client.js";
 import { createMemoryLedger } from "../finops/ledger.js";
@@ -22,7 +24,7 @@ import { mcpServersOf, usedComponentsOf } from "./workflow-parts.js";
 import { createVcrGateway } from "./vcr.js";
 
 /** What `testWith` takes besides the workflow. */
-export interface TestWithOptions {
+export interface TestWithOptions extends EnvironmentSelection {
   /** Components kept real: MCP server classes connect through their configured transports. */
   readonly real?: readonly Class[];
   /** Hosts a test may reach (`localhost` covers every loopback address); everything else is blocked. */
@@ -85,6 +87,7 @@ export class TestEnvironment {
     nodes: readonly FlowNode[],
     options: TestWithOptions,
     assembled: import("../workflow.js").AssembledWorkflow,
+    environment: Environment | undefined,
   ) {
     this.#nodes = new Set(nodes);
     for (const node of nodes) {
@@ -95,7 +98,8 @@ export class TestEnvironment {
     const real = realServers(servers, options.real ?? []);
     const labels = new Map([...servers].map(([cls, name]) => [name, cls.name] as const));
     this.#options = {
-      env: testEnv(),
+      processEnv: testEnv(),
+      ...(environment === undefined ? {} : { environment }),
       gateway: options.vcr
         ? createVcrGateway(assembled, options.vcr, testEnv())
         : createScriptedGateway(this.book),
@@ -115,14 +119,19 @@ export class TestEnvironment {
     };
   }
 
-  /** Assembles the workflow once up front: every assembly error fails the test before it runs. */
+  /**
+   * Assembles the workflow and resolves its environment once up front: every assembly error, a
+   * missing environment or variable fails the test before it runs.
+   */
   static async of(workflow: Class, options: TestWithOptions = {}): Promise<TestEnvironment> {
     const assembled = await workflowOf(workflow);
+    const environment = await environmentFor(workflowFileOf(workflow), options, testEnv());
     return new TestEnvironment(
       workflow,
       [...flowNodesByKey(assembled.flow).values()],
       options,
       assembled,
+      environment,
     );
   }
 

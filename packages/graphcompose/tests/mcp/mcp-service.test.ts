@@ -29,7 +29,7 @@ import {
 
 function offline(book: ScriptBook, stubs = new McpStubs(book)): AppOptions {
   return {
-    env: {},
+    processEnv: {},
     gateway: createScriptedGateway(book),
     stores: { terns: createSqliteTernStore(":memory:"), ledger: createMemoryLedger() },
     connectMcp: stubbedMcpConnect(stubs, new Map(), new Set()),

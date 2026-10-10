@@ -5,7 +5,9 @@ import {
   workflowPath,
   type CommandHandler,
 } from "./cli/context.js";
+import { environmentProblems } from "./cli/check-environment.js";
 import { modelProblemsOf } from "./cli/check-models.js";
+import { envOption } from "./cli/environment.js";
 import { assemble, modelProblem, problemText, type CheckProblem } from "./cli/check-problems.js";
 import { CliError } from "./cli/errors.js";
 import type { AssembledWorkflow } from "./workflow.js";
@@ -15,6 +17,8 @@ export interface CheckTarget {
   readonly file: string;
   readonly bundle: AssembledWorkflow;
   readonly env: NodeJS.ProcessEnv;
+  /** `--env <name>`; undefined = the default. */
+  readonly envName: string | undefined;
 }
 
 /** A named check of `gc check`; none needs an API key. */
@@ -30,6 +34,7 @@ export interface WorkflowCheck {
  * Adding a check is one line here.
  */
 export const CHECKS: readonly WorkflowCheck[] = [
+  { name: "environment", run: environmentProblems },
   {
     // assembly reads and checks every prompt (#199): its problems are reported as prompt.* by
     // assemble(); a workflow that assembled has none left
@@ -44,7 +49,7 @@ export const CHECKS: readonly WorkflowCheck[] = [
   },
 ];
 
-/** `gc check --workflow <path> [--models] [--profile <p>] [--json]` — no API key needed. */
+/** `gc check --workflow <path> [--models] [--profile <p>] [--env <name>] [--json]` — no API key needed. */
 export const handle: CommandHandler = async (context) => {
   const file = workflowPath(context);
   const selected = CHECKS.filter(
@@ -58,7 +63,14 @@ export const handle: CommandHandler = async (context) => {
   if (assembly.kind === "failed") problems.push(...assembly.problems);
   else
     for (const check of selected)
-      problems.push(...(await check.run({ file, bundle: assembly.bundle, env: context.io.env })));
+      problems.push(
+        ...(await check.run({
+          file,
+          bundle: assembly.bundle,
+          env: context.io.env,
+          envName: envOption(context),
+        })),
+      );
   const checks = ["assembly", ...selected.map((check) => check.name)];
   problems.forEach((problem) => {
     context.say(problemText(problem));

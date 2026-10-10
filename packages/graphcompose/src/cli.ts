@@ -12,7 +12,8 @@ import {
   type CommandHandler,
 } from "./cli/context.js";
 import { costSummary, costTotal, costTrace } from "./cli/finops.js";
-import { loadEnvironment, loadWorkflowClass } from "./cli/load-workflow.js";
+import { envOption } from "./cli/environment.js";
+import { loadWorkflowClass } from "./cli/load-workflow.js";
 import { runTargetOf } from "./cli/run-target.js";
 import { textStartOrFail } from "./cli/text-start.js";
 import type { RunStreamEvent } from "./run/types.js";
@@ -61,11 +62,11 @@ function report(context: CommandContext, app: App, result: ExecutionOutput): voi
 /** `gc run --workflow <path> [--thread <id>] [--profile <p>] [--env <id>] "<task>"`. */
 export const handle: CommandHandler = async (context) => {
   const { file, task } = runTargetOf(context);
-  const env: unknown = await loadEnvironment(file, textOption(context.values, "env"));
   const app = await createApp(await loadWorkflowClass(file, loadOptions(context)), {
     profile: textOption(context.values, "profile"),
     profileRoot: context.io.cwd,
-    env: env as NodeJS.ProcessEnv,
+    env: envOption(context),
+    processEnv: context.io.env,
   });
   app.warnings.forEach((warning) => {
     context.warn(`warning: ${warning}`);

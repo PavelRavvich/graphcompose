@@ -1,7 +1,9 @@
-export interface AppEnvironment {
-  readonly apiUrl: string;
+// The app's environment contract: the fields every `<name>.environment.ts` here must define.
+// Inject it with `@Injectable({ deps: [ENV] })` and `constructor(env: Environment)` (from "graphcompose").
+declare module "graphcompose" {
+  interface Environment {
+    readonly apiUrl: string;
+  }
 }
 
-export const environment: AppEnvironment = {
-  apiUrl: "https://api.example.com",
-};
+export {};

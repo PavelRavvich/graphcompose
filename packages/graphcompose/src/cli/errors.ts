@@ -1,6 +1,7 @@
 import { ComponentError } from "../components/metadata.js";
 import { ProfileError } from "../config/profiles.js";
 import { GraphRuleError } from "../graph/rule-error.js";
+import { EnvironmentError } from "../environments/resolve.js";
 import { ConfigurationError } from "../models/problems.js";
 import { ScaffoldConflictError, ScaffoldError, ScaffoldUsageError } from "../scaffold/errors.js";
 import { WorkflowLoadError } from "./load-errors.js";
@@ -56,6 +57,7 @@ function scaffoldError(error: ScaffoldError): CliError {
 export function cliErrorOf(error: unknown): CliError {
   if (error instanceof CliError) return error;
   if (error instanceof ScaffoldError) return scaffoldError(error);
+  if (error instanceof EnvironmentError) return new CliError("project", error.code, error.message);
   const message = error instanceof Error ? error.message : String(error);
   const known = PROJECT_ERRORS.find(([type]) => error instanceof type);
   if (known !== undefined) return new CliError("project", known[1], message);

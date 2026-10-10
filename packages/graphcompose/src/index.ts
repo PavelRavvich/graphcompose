@@ -53,4 +53,16 @@ export {
   type ChannelDecision,
 } from "./components/decorators.js";
 export { TerminalUserChannel } from "./channels/terminal-channel.js";
+export { ENV } from "./components/runtime.js";
+export { Injectable } from "./components/decorators.js";
+export {
+  defineEnvironment,
+  fromEnv,
+  EnvironmentError,
+  type Environment,
+  type EnvironmentDefinition,
+  type EnvironmentValues,
+  type FromEnv,
+  type FromEnvOptions,
+} from "./environments/index.js";
 export * from "./errors.js";

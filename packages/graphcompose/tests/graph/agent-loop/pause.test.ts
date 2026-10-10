@@ -67,7 +67,7 @@ class PauseFlow implements WorkflowDefinition {
 
 function offline(book: ScriptBook): AppOptions {
   return {
-    env: {},
+    processEnv: {},
     gateway: createScriptedGateway(book),
     stores: { terns: createSqliteTernStore(":memory:"), ledger: createMemoryLedger() },
     pausedRuns: createMemoryPausedRunRepository(),
