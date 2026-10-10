@@ -23,7 +23,9 @@ import { WorkflowStartText, WorkflowFinishText } from "../../../src/dto/index.js
 import { createMemoryPausedRunRepository } from "../../../src/app/paused-runs.js";
 
 @WorkflowStart({ name: "start", description: "Start", input: WorkflowStartText })
-class Start {}
+class Start {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "finish", description: "Finish", output: WorkflowFinishText })
 class Finish {}
@@ -75,7 +77,7 @@ class TestRouter {}
   },
   flow: [
     from(Start).next(TestRouter),
-    from(TestRouter).routes(parallel(AgentA, optional(AgentB))),
+    from(TestRouter).routes(),
     from(AgentA, AgentB).join(Finish),
   ],
 })

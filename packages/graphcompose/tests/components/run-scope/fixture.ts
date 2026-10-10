@@ -13,6 +13,7 @@ import {
   WorkflowFinish,
   WorkflowStart,
   WorkflowSettings,
+  type FlowNodeClass,
   type WorkflowDefinition,
 } from "../../../src/graph/index.js";
 import { usd } from "../../../src/units/index.js";
@@ -104,7 +105,9 @@ export class LeakyJobs {
 }
 
 @WorkflowStart({ name: "start", description: "Start", input: WorkflowStartText })
-export class Start {}
+export class Start {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "finish", description: "Finish", output: WorkflowFinishText })
 export class Finish {}
@@ -123,7 +126,7 @@ class Limits implements WorkflowDefinition {
 /** `start → <agent with tool> → finish`, the tool's dependencies registered. */
 export function searchWorkflow(tool: typeof GreenhouseJobs | typeof LeakyJobs): {
   workflow: Class;
-  agent: Class;
+  agent: FlowNodeClass;
 } {
   @Agent({ name: "scout", model: "stub", description: "scout", tools: [tool] })
   class Scout {}

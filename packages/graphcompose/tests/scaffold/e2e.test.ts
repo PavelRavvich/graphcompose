@@ -81,7 +81,7 @@ describe("gc create / gc generate end to end", () => {
     // #141 AC6: the start and the finish of a new workflow are TextWorkflowStart / TextWorkflowFinish
     const desk = (file: string): string => readFileSync(join(project, "src/desk", file), "utf8");
     expect(desk("workflow-starts/text.workflow-start.ts")).toContain(
-      "export class TextWorkflowStart {}",
+      "export class TextWorkflowStart {\n  declare readonly input: WorkflowStartText;\n}",
     );
     expect(desk("workflow-finishes/text.workflow-finish.ts")).toContain(
       "export class TextWorkflowFinish {}",
@@ -133,7 +133,7 @@ describe("gc create / gc generate end to end", () => {
 
     expect(out).toMatch(/billing .*\n\s+Handles invoices/);
     // #116: a new agent joins the star — a route in the main router and both transitions
-    expect(out).toContain("main → triage | answerer | billing | text (workflow finish)");
+    expect(out).toContain("main → triage | answerer | text (workflow finish) | billing");
     expect(out).toContain("triage, answerer, billing → main");
     expect(readFileSync(join(project, "src/desk/routers/main.router.ts"), "utf8")).toContain(
       '{ prompt: "Handles invoices", target: BillingAgent }',

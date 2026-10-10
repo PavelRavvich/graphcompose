@@ -62,7 +62,9 @@ class MyQuorumRouter implements QuorumStrategy {
 
 import { WorkflowStartText } from "../../../src/dto/standard/framework.js";
 @WorkflowStart({ name: "Start", description: "Start", input: WorkflowStartText })
-class Start {}
+class Start {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "Finish", description: "Finish", output: WorkflowStartText })
 class Finish {}

@@ -1,7 +1,12 @@
 import "../polyfills/symbol-metadata.js";
 
 export { Router, type RouterOptions } from "../graph/router.decorator.js";
-export { WorkflowStart, type WorkflowStartOptions } from "../graph/workflow-start.decorator.js";
+export {
+  WorkflowStart,
+  type StartInputOf,
+  type WorkflowStartClass,
+  type WorkflowStartOptions,
+} from "../graph/workflow-start.decorator.js";
 export { WorkflowFinish, type WorkflowFinishOptions } from "../graph/workflow-finish.decorator.js";
 export {
   from,
@@ -15,6 +20,8 @@ export {
   type ChooseStep,
   type Flow,
   type FlowNode,
+  type FlowNodeClass,
+  type FlowNodeInstance,
   type FlowSource,
   type FlowStep,
   type NamedNode,

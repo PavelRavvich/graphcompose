@@ -31,7 +31,9 @@ class Ticket extends WorkflowStartText {
 }
 
 @WorkflowStart({ name: "ticket", description: "A ticket", input: Ticket })
-class TicketStart {}
+class TicketStart {
+  declare readonly input: Ticket;
+}
 
 @Workflow({
   name: "tickets",

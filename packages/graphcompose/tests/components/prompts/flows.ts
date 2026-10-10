@@ -1,5 +1,6 @@
 import { Agent, Workflow } from "../../../src/core/index.js";
 import { from, Router, type Flow } from "../../../src/graph/index.js";
+import type { FlowNodeClass } from "../../../src/graph/flow.js";
 import type { Class } from "../../../src/components/injection.js";
 import { testConfig } from "../../helpers.js";
 import { TestAnswer, TestChat } from "../../fixtures/test-flow/test.flow.js";
@@ -17,8 +18,8 @@ const price = testConfig.agents.alpha.price;
 /** chat → router "main" ⇄ agent "scout"; "main" → the answer. Variables: boards, boardCount. */
 export function workflowWith(prompts: FlowPrompts): {
   workflow: Class;
-  router: Class;
-  scout: Class;
+  router: FlowNodeClass;
+  scout: FlowNodeClass;
 } {
   @Agent({
     name: "scout",
@@ -43,11 +44,7 @@ export function workflowWith(prompts: FlowPrompts): {
   })
   class Main {}
 
-  const flow: Flow = [
-    from(TestChat).next(Main),
-    from(Main).routes(Scout, TestAnswer),
-    from(Scout).next(Main),
-  ];
+  const flow: Flow = [from(TestChat).next(Main), from(Main).routes(), from(Scout).next(Main)];
 
   @Workflow({
     name: "prompts",

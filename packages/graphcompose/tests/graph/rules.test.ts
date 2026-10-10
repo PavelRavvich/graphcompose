@@ -15,6 +15,8 @@ import {
   OtherA,
   OtherDone,
   Pick,
+  Ping,
+  Pong,
   Second,
   SomeTool,
   Start,
@@ -40,9 +42,9 @@ describe("AC1: assembly rules", () => {
   it("a router with one route and a workflow finish reached from two routers assemble", () => {
     const flow: Flow = [
       from(Start).next(Second),
-      from(Second).routes(A, Done),
+      from(Second).routes(),
       from(A).next(Only),
-      from(Only).routes(Done),
+      from(Only).routes(),
     ];
 
     expect(checkFlow(flow).next.get("only")).toEqual({
@@ -59,7 +61,7 @@ describe("AC1: assembly rules", () => {
   it.each<[RuleCode, Flow]>([
     ["graph.not-a-node", [from(Start).next(SomeTool)]],
     ["graph.two-next-steps", [from(Start).next(A), from(A).next(Done), from(A).next(OtherDone)]],
-    ["graph.choose-from-non-router", [from(Start).next(A), from(A).routes(Done)]],
+    ["graph.choose-from-non-router", [from(Start).next(A), from(A).routes()]],
     [
       "graph.router-not-last-in-chain",
       [chain(Start, Pick, A), from(A).next(Done), from(B).next(Done)],
@@ -74,10 +76,11 @@ describe("AC1: assembly rules", () => {
     ["graph.dead-end", [from(Start).next(A)]],
     ["graph.next-after-workflow-finish", [from(Start).next(Done), from(Done).next(OtherDone)]],
     [
+      // two routers sharing one routes(): their @Router routes must be equal
       "router.routes-mismatch",
-      [from(Start).next(Pick), from(Pick).routes(A, Done), from(A).next(Done)],
+      [from(Start).next(Ping), from(A).next(Pong), from(Ping, Pong).routes(), from(B).next(Done)],
     ],
-    ["router.self-without-agent-before", [from(Start).next(Gate), from(Gate).routes(Self, Done)]],
+    ["router.self-without-agent-before", [from(Start).next(Gate), from(Gate).routes()]],
   ])("%s", (code, flow) => {
     expect(codesOf(flow)).toContain(code);
   });
@@ -92,7 +95,7 @@ describe("AC1: assembly rules", () => {
   });
 
   it("router texts: a router needs a prompt and every route a text", () => {
-    const flow: Flow = [from(Start).next(Mute), from(Mute).routes(A, Done), from(A).next(Done)];
+    const flow: Flow = [from(Start).next(Mute), from(Mute).routes(), from(A).next(Done)];
 
     expect(codesOf(flow)).toEqual([
       "router.no-prompt",
@@ -104,27 +107,31 @@ describe("AC1: assembly rules", () => {
   it("reports several violations together, naming the classes involved", () => {
     const error = violationsOf([
       from(Start).next(Pick),
-      from(Pick).routes(A),
-      from(A).next(B),
-      from(B).next(A),
+      from(A).next(Second),
+      from(Pick, Second).routes(),
+      from(B).next(OtherA),
+      from(OtherA).next(B),
     ]);
 
     expect(error.violations.map((item) => item.code)).toEqual([
       "graph.cycle-without-router",
       "router.routes-mismatch",
+      "router.routes-mismatch",
+      "router.unbounded-cycle",
     ]);
-    expect(error.violations[0]?.nodes).toEqual(["A", "B"]);
-    expect(error.violations[1]?.nodes).toEqual(["Pick", "B"]);
-    expect(error.message).toContain("breaks 2 rule(s)");
+    expect(error.violations[0]?.nodes).toEqual(["B", "OtherA"]);
+    expect(error.violations[1]?.nodes).toEqual(["Pick", "Done"]);
+    expect(error.violations[2]?.nodes).toEqual(["Second", "B"]);
+    expect(error.message).toContain("breaks 4 rule(s)");
     expect(error.message).toContain("[router.routes-mismatch] router Pick");
   });
 
   it("Self after two different agents is allowed", () => {
     const flow: Flow = [
       from(Start).next(Pick),
-      from(Pick).routes(A, B),
+      from(Pick).routes(),
       from(A, B).next(Gate),
-      from(Gate).routes(Self, Done),
+      from(Gate).routes(),
     ];
 
     expect(checkFlow(flow).next.get("gate")).toEqual({
@@ -138,10 +145,12 @@ describe("AC1: assembly rules", () => {
     });
   });
 
-  it("a route to a class outside the flow is a mismatch", () => {
-    const flow: Flow = [from(Start).next(Second), from(Second).routes(Done)];
+  it("#200: routes() puts every @Router route target into the flow — one without a next step is a dead end", () => {
+    const flow: Flow = [from(Start).next(Second), from(Second).routes()];
 
-    expect(violationsOf(flow).violations[0]?.message).toContain("routes not in its choose(...): A");
+    expect(violationsOf(flow).violations.map((item) => item.message)).toEqual([
+      "A has no next step and is not a workflow finish",
+    ]);
   });
 });
 

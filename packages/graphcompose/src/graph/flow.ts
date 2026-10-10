@@ -1,4 +1,8 @@
 import type { Class } from "../components/injection.js";
+import type { FlowNodeClass } from "./flow-node.js";
+import { routerChoice } from "./router-targets.js";
+
+export type { FlowNodeClass, FlowNodeInstance } from "./flow-node.js";
 
 /**
  * A second place in the flow for a class that is already a node: declared **once** as a constant,
@@ -6,7 +10,7 @@ import type { Class } from "../components/injection.js";
  */
 export interface NamedNode {
   readonly kind: "named-node";
-  readonly use: Class;
+  readonly use: FlowNodeClass;
   readonly name: string;
 }
 
@@ -18,7 +22,7 @@ export interface SelfTarget {
 export const Self: SelfTarget = Object.freeze({ kind: "self" });
 
 /** A node of the flow: a decorated class (`@WorkflowStart`, `@Router`, `@Agent`, `@WorkflowFinish`) or a named node. */
-export type FlowNode = Class | NamedNode;
+export type FlowNode = FlowNodeClass | NamedNode;
 
 export interface BackgroundTarget {
   readonly kind: "background";
@@ -88,7 +92,7 @@ export interface ToStep {
   readonly targets: readonly ParallelTarget[];
 }
 
-/** `from(Router).routeOne(X, Y)` — the router picks one target. */
+/** `catchError(A).next(B)` — where a failed node goes. */
 export interface CatchStep {
   readonly kind: "catch";
   readonly target: FlowNode;
@@ -96,6 +100,7 @@ export interface CatchStep {
   readonly nextNode: FlowNode;
 }
 
+/** `from(Router).routes()` — the router picks one of its `@Router({ routes })` targets. */
 export interface ChooseStep {
   readonly kind: "choose";
   readonly from: readonly FlowNode[];
@@ -162,7 +167,8 @@ export interface FlowSource {
     strategy: Class,
     options: { concurrencyLimit: number; batchSize: number },
   ) => BatchParallelStep; // Simplified for runtime AST
-  readonly routes: (...targets: readonly [ChoiceTarget, ...ChoiceTarget[]]) => ChooseStep;
+  /** The router picks one of the targets of its `@Router({ routes })` — the one list of them. */
+  readonly routes: () => ChooseStep;
   readonly joinQuorum: (
     router: Class,
     options: { min: number; max?: number; timeoutSeconds?: number },
@@ -187,7 +193,7 @@ export function from(...sources: readonly [FlowNode, ...FlowNode[]]): FlowSource
       strategy,
       options,
     }),
-    routes: (...targets) => ({ kind: "choose", from: sources, targets }),
+    routes: () => routerChoice(sources),
     joinQuorum: (router, options) => ({
       routes: (...targets) => ({
         kind: "choose",
@@ -208,7 +214,7 @@ export function chain(...nodes: readonly [FlowNode, FlowNode, ...FlowNode[]]): C
 }
 
 /** A second place for the same class under its own name. Declare it once, as a constant. */
-export function node(use: Class, name: string): NamedNode {
+export function node(use: FlowNodeClass, name: string): NamedNode {
   return Object.freeze({ kind: "named-node", use, name });
 }
 

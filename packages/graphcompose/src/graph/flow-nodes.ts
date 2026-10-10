@@ -77,7 +77,7 @@ export interface CollectedFlow {
   readonly keyOf: (target: FlowNode) => string | undefined;
 }
 
-type Identity = Class | FlowNode;
+type Identity = FlowNode;
 
 function duplicateViolation(taken: Identity, target: FlowNode, name: string): RuleViolation {
   const both = [labelOf(taken), labelOf(target)];
@@ -122,8 +122,7 @@ function createResolver() {
       "compensate" in compMeta.meta &&
       compMeta.meta.compensate
     ) {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-      resolve(compMeta.meta.compensate as Class);
+      resolve(compMeta.meta.compensate);
     }
 
     return key;

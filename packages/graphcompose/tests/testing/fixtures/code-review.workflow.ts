@@ -32,7 +32,9 @@ export class Coder {}
 export class Reviewer {}
 
 @WorkflowStart({ name: "task", description: "A coding task", input: WorkflowStartText })
-export class TaskStart {}
+export class TaskStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "pull-request", description: "The change", output: WorkflowFinishText })
 export class PullRequest {}
@@ -61,7 +63,7 @@ export class Unused {}
   flow: [
     from(TaskStart).next(Coder),
     chain(Coder, Reviewer, ReviewGate),
-    from(ReviewGate).routes(Coder, PullRequest),
+    from(ReviewGate).routes(),
   ],
   defaults: {
     models: { temperature: 0, maxTokens: MODEL_MAX, thinking: "default", cache: true },

@@ -59,7 +59,9 @@ export class EchoTool {
 export class Worker {}
 
 @WorkflowStart({ name: "start", description: "Start", input: WorkflowStartText })
-export class Start {}
+export class Start {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "finish", description: "Finish", output: WorkflowFinishText })
 export class Finish {}

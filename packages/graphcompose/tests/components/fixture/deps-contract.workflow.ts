@@ -1,5 +1,6 @@
 import { Agent, provide, Workflow } from "../../../src/core/index.js";
 import type { Class } from "../../../src/components/injection.js";
+import type { FlowNodeClass } from "../../../src/graph/flow.js";
 import type { WorkflowMeta } from "../../../src/components/meta-types.js";
 import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import { from, WorkflowFinish, WorkflowSettings, WorkflowStart } from "../../../src/graph/index.js";
@@ -30,7 +31,9 @@ export const offline = (book = new ScriptBook()): AppOptions => ({
 });
 
 @WorkflowStart({ name: "chat", description: "A message", input: WorkflowStartText })
-export class Chat {}
+export class Chat {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "reply", description: "The reply", output: WorkflowFinishText })
 export class Done {}
@@ -72,7 +75,7 @@ const base = {
 export function workflowWith(
   name: string,
   extra: Partial<WorkflowMeta>,
-  agent: Class = Plain,
+  agent: FlowNodeClass = Plain,
 ): Class {
   @Workflow({ name, flow: [from(Chat).next(agent), from(agent).next(Done)], ...base, ...extra })
   class Built extends NoLimits {}

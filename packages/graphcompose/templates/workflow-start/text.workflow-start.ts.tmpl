@@ -7,4 +7,6 @@ import { WorkflowStart } from "graphcompose/graph";
   description: "The text the run starts with",
   input: WorkflowStartText,
 })
-export class TextWorkflowStart {}
+export class TextWorkflowStart {
+  declare readonly input: WorkflowStartText;
+}

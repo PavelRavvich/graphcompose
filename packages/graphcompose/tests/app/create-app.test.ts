@@ -55,7 +55,9 @@ class Ticket extends WorkflowStartText {
 }
 
 @WorkflowStart({ name: "ticket", description: "A helpdesk ticket", input: Ticket })
-class TicketStart {}
+class TicketStart {
+  declare readonly input: Ticket;
+}
 
 class NoLimits implements WorkflowDefinition {
   settings(): WorkflowSettings {
@@ -179,6 +181,7 @@ describe("AC12: createApp — the real app", () => {
     await expect(app.execute(ChatStart, { text: "hi" })).rejects.toBeInstanceOf(
       NotAWorkflowStartError,
     );
+    // @ts-expect-error -- Reply is not a @WorkflowStart, so tsc rejects it; this pins the runtime guard
     await expect(app.execute(Reply, { text: "hi" })).rejects.toThrow(
       'Reply is not a workflow start of "code-review"',
     );
@@ -193,7 +196,7 @@ describe("AC12: createApp — the real app", () => {
     book.scriptOf("agent:writer").thenReturn(replyWith("chat"));
     const app = await createApp(TwoStarts, offline(book));
 
-    const ticket = await app.execute(TicketStart, { text: "printer broken", id: "T-1" } as Ticket);
+    const ticket = await app.execute(TicketStart, { text: "printer broken", id: "T-1" });
     const chat = await app.execute(ChatStart, { text: "hi" });
     await app.close();
 

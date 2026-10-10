@@ -18,6 +18,8 @@ export {
   type ChooseStep,
   type Flow,
   type FlowNode,
+  type FlowNodeClass,
+  type FlowNodeInstance,
   type FlowSource,
   type FlowStep,
   type NamedNode,
@@ -29,7 +31,12 @@ export {
   optional,
 } from "./flow.js";
 export { SELF_OPTION, type RouteDeclaration } from "./route.js";
-export { WorkflowStart, type WorkflowStartOptions } from "./workflow-start.decorator.js";
+export {
+  WorkflowStart,
+  type StartInputOf,
+  type WorkflowStartClass,
+  type WorkflowStartOptions,
+} from "./workflow-start.decorator.js";
 export { WorkflowFinish, type WorkflowFinishOptions } from "./workflow-finish.decorator.js";
 export { Router, type RouterOptions } from "./router.decorator.js";
 export {

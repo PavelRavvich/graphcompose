@@ -13,11 +13,7 @@ class MockTimeoutError extends Error {
 }
 
 @Agent({ name: "cancel_flight", model: "gpt-4", description: "c", prompt: "p" })
-class CancelFlightAgent {
-  async run() {
-    return { payload: { canceled: true } };
-  }
-}
+class CancelFlightAgent {}
 
 @Agent({
   name: "book_flight",
@@ -26,23 +22,17 @@ class CancelFlightAgent {
   prompt: "p",
   compensate: CancelFlightAgent,
 })
-class BookFlightAgent {
-  async run() {
-    throw new MockTimeoutError("Flight API down");
-  }
-}
+class BookFlightAgent {}
 
 @Agent({ name: "fallback_agent", model: "gpt-4", description: "f", prompt: "p" })
-class FallbackAgent {
-  async run() {
-    return { payload: { recovered: true } };
-  }
-}
+class FallbackAgent {}
 
 import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
 import { WorkflowStartText } from "../../src/dto/standard/framework.js";
 @WorkflowStart({ name: "Start", description: "Start", input: WorkflowStartText })
-class Start {}
+class Start {
+  declare readonly input: WorkflowStartText;
+}
 @WorkflowFinish({ name: "Finish", description: "Finish", output: WorkflowStartText })
 class Finish {}
 

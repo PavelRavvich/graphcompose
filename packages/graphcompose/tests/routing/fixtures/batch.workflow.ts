@@ -40,7 +40,9 @@ export class PlainStrategy {
 }
 
 @WorkflowStart({ name: "cities", description: "Comma-separated items", input: WorkflowStartText })
-export class ItemsStart {}
+export class ItemsStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "done", description: "The result", output: WorkflowFinishText })
 export class Done {}

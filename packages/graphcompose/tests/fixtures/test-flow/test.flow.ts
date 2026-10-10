@@ -16,7 +16,9 @@ const agentNode =
   };
 
 @WorkflowStart({ name: "chat", description: "A message from the user", input: WorkflowStartText })
-export class TestChat {}
+export class TestChat {
+  declare readonly input: WorkflowStartText;
+}
 
 @agentNode("alpha")
 export class Alpha {}
@@ -55,7 +57,7 @@ export class TestMain {}
 /** The star: workflow start → main router → alpha / beta → main again → … → replyWith. */
 export const testFlow: Flow = [
   from(TestChat).next(TestMain),
-  from(TestMain).routes(Alpha, Beta, TestAnswer),
+  from(TestMain).routes(),
   from(Alpha, Beta).next(TestMain),
 ];
 

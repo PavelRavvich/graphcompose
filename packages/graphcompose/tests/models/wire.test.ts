@@ -35,7 +35,9 @@ import { TestOpenRouterProvider } from "./providers.fixture.js";
 import { completion, providerStub } from "./stub.js";
 
 @WorkflowStart({ name: "task", description: "A task", input: WorkflowStartText })
-class Start {}
+class Start {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "replyWith", description: "The replyWith", output: WorkflowFinishText })
 class Finish {}

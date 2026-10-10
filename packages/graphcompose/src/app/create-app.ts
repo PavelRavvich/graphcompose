@@ -3,7 +3,7 @@ import { workflowOf } from "../components/assemble.js";
 import { environmentFor, workflowFileOf } from "../environments/load.js";
 import { WorkflowStartText } from "../dto/standard/framework.js";
 import { validate } from "../dto/schema.js";
-import { workflowStartMetaOf } from "../graph/workflow-start.decorator.js";
+import { workflowStartMetaOf, type WorkflowStartClass } from "../graph/workflow-start.decorator.js";
 import { withProfile } from "../profile-workflow.js";
 import { resumeAgent } from "../run/resume-agent.js";
 import { checkThreadOwner } from "../run/thread.js";
@@ -57,20 +57,21 @@ export interface BuiltApp {
   readonly nodes: FlowNodesByKey;
 }
 
-const startsOf = (nodes: FlowNodesByKey): Class[] =>
+const startsOf = (nodes: FlowNodesByKey): WorkflowStartClass[] =>
   [...nodes.values()].filter(
-    (node): node is Class => typeof node === "function" && workflowStartMetaOf(node) !== undefined,
+    (node): node is WorkflowStartClass =>
+      typeof node === "function" && workflowStartMetaOf(node) !== undefined,
   );
 
 /** The start a plain text goes to: the one taking `WorkflowStartText`, else the first one. */
-const textStartOf = (nodes: FlowNodesByKey): Class | undefined => {
+const textStartOf = (nodes: FlowNodesByKey): WorkflowStartClass | undefined => {
   const starts = startsOf(nodes);
   return (
     starts.find((start) => workflowStartMetaOf(start)?.input === WorkflowStartText) ?? starts[0]
   );
 };
 
-function startMetaOf(start: Class, nodes: FlowNodesByKey, workflow: string) {
+function startMetaOf(start: WorkflowStartClass, nodes: FlowNodesByKey, workflow: string) {
   const meta = workflowStartMetaOf(start);
   if (meta === undefined || !startsOf(nodes).includes(start)) {
     throw new NotAWorkflowStartError(`${start.name} is not a workflow start of "${workflow}"`);

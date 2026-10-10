@@ -1,13 +1,8 @@
 import type { ChatModelUser, DecisionSpec, ModelGateway } from "../llm/gateway.js";
-import {
-  isEnd,
-  isNamedNode,
-  isReturn,
-  isSelf,
-  type ChoiceTarget,
-  type FlowNode,
-} from "../graph/flow.js";
+import { isEnd, isReturn, isSelf, type ChoiceTarget, type FlowNode } from "../graph/flow.js";
 import { componentOf } from "../components/metadata.js";
+import type { Class } from "../components/injection.js";
+import type { JudgeHandler } from "../components/judge-decorators.js";
 import { SELF_OPTION } from "../graph/route.js";
 import { routerCaller, type RouteOutcome } from "../routers/index.js";
 import type { UsageRecord } from "../finops/usage.js";
@@ -34,11 +29,14 @@ export function chatKeyOf(user: ChatModelUser): string {
 export const judgeKeyOf = (judge: string): string => `judge:${judge}`;
 
 /** The script key of a `@Judge` class among the workflow's judges (by name); else none. */
+/** What `mockLlm` scripts: an agent or a router (flow nodes), or a `@Judge`. */
+export type ModelTarget = FlowNode | Class<JudgeHandler>;
+
 export function judgeScriptKeyOf(
-  target: FlowNode,
+  target: ModelTarget,
   judges: ReadonlySet<string>,
 ): string | undefined {
-  if (isNamedNode(target)) return undefined;
+  if (typeof target !== "function") return undefined;
   const component = componentOf(target);
   if (component?.kind !== "judge" || !judges.has(component.meta.name)) return undefined;
   return judgeKeyOf(component.meta.name);

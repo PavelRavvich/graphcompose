@@ -176,7 +176,9 @@ class FormatAction {
 }
 
 @WorkflowStart({ name: "Start", input: WorkflowStartText, description: "" })
-class StartNode {}
+class StartNode {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "Finish", output: WorkflowFinishText, description: "" })
 class FinishNode {}

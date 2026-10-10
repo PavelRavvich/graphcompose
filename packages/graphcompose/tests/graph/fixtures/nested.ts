@@ -71,7 +71,9 @@ export class Drafter {}
 export class Greeter {}
 
 @WorkflowStart({ name: "child-start", description: "Child start", input: WorkflowStartText })
-export class ChildStart {}
+export class ChildStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "child-done", description: "Child done", output: WorkflowFinishText })
 export class ChildDone {}
@@ -86,7 +88,9 @@ export class ChildDone {}
 export class GreetingWorkflow extends Settings {}
 
 @WorkflowStart({ name: "start", description: "Start", input: WorkflowStartText })
-export class Start {}
+export class Start {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "done", description: "Done", output: WorkflowFinishText })
 export class Done {}
@@ -148,7 +152,9 @@ export class UndoBooking {
 }
 
 @WorkflowStart({ name: "undo-start", description: "Undo start", input: WorkflowStartText })
-export class UndoStart {}
+export class UndoStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "undo-done", description: "Undo done", output: WorkflowFinishText })
 export class UndoDone {}

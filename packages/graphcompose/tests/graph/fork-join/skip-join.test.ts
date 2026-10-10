@@ -16,7 +16,9 @@ import { Return } from "../../../src/graph/flow.js";
 import type { Router as RoutingStrategy } from "../../../src/routers/index.js";
 
 @WorkflowStart({ name: "skipStart", description: "Start", input: WorkflowStartText })
-export class SkipStart {}
+export class SkipStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "skipFinish", description: "Finish", output: WorkflowFinishText })
 export class SkipFinish {}
@@ -54,7 +56,7 @@ export class SkipPicker {}
   },
   flow: [
     from(SkipStart).next(SkipPicker),
-    from(SkipPicker).routes(SkipA, SkipB, Return),
+    from(SkipPicker).routes(),
     from(SkipA, SkipB).join(SkipAggregator),
     from(SkipAggregator).next(SkipFinish),
   ],

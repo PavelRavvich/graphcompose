@@ -178,7 +178,9 @@ export class Support {}
 export class Writer {}
 
 @WorkflowStart({ name: "chat", description: "A message", input: WorkflowStartText })
-export class ChatStart {}
+export class ChatStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "reply", description: "The reply", output: WorkflowFinishText })
 export class Reply {}
@@ -206,7 +208,7 @@ export class MainRouter {}
   version: "1.0.0",
   flow: [
     from(ChatStart).next(MainRouter),
-    from(MainRouter).routes(Support, Writer, Reply),
+    from(MainRouter).routes(),
     from(Support, Writer).next(MainRouter),
   ],
   defaults: {

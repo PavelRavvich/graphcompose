@@ -27,11 +27,11 @@ class Loop {}
 
 const selfFlow: Flow = [
   from(Start).next(Pick),
-  from(Pick).routes(A, B),
+  from(Pick).routes(),
   from(A, B).next(Gate),
-  from(Gate).routes(Self, Done),
+  from(Gate).routes(),
 ];
-const loopFlow: Flow = [from(Start).next(A), from(A).next(Loop), from(Loop).routes(Self, Done)];
+const loopFlow: Flow = [from(Start).next(A), from(A).next(Loop), from(Loop).routes()];
 const forever = (name: string) => scriptedRouter(name, Array<string>(100).fill("self"));
 
 async function failureOf(
@@ -66,7 +66,7 @@ describe("AC1: limits fail the run with their key, path and spend", () => {
       flow,
       testRuntime({}, { limits: { perRun: { steps: 1 } } }),
     );
-    const over = [from(Start).next(Pick), from(Pick).routes(A, B), from(A, B).next(Done)];
+    const over = [from(Start).next(Pick), from(Pick).routes(), from(A, B).next(Done)];
 
     await expect(exact.graph.invoke({ task: "go" })).resolves.toMatchObject({ steps: 1 });
     await expect(

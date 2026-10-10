@@ -42,11 +42,7 @@ class Spin {}
 class Star {}
 
 /** The job-scout shape: workflow start → router star → agent → router again → … → workflow finish. */
-const starFlow: Flow = [
-  from(Start).next(Star),
-  from(Star).routes(A, B, Done),
-  from(A, B).next(Star),
-];
+const starFlow: Flow = [from(Start).next(Star), from(Star).routes(), from(A, B).next(Star)];
 
 const twoStarts: Flow = [from(Start, WebhookWorkflowStart).next(A), from(A).next(Done)];
 
@@ -132,7 +128,7 @@ describe("AC1: the flow runs as a LangGraph graph", () => {
   });
 
   it("runs past LangGraph's default recursion limit when the steps limit allows it", async () => {
-    const flow: Flow = [from(Start).next(A), from(A).next(Spin), from(Spin).routes(Self, Done)];
+    const flow: Flow = [from(Start).next(A), from(A).next(Spin), from(Spin).routes()];
     const spin = scriptedRouter("spin", [...Array<string>(20).fill("self"), "done"]);
     const built = await assembleFlowGraph(
       flow,

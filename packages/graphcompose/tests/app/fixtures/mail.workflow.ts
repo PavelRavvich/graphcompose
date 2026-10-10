@@ -52,7 +52,9 @@ export class SendEmail implements ToolHandler<Email, Sent> {
 export class Mailer {}
 
 @WorkflowStart({ name: "start", description: "A request", input: WorkflowStartText })
-export class Start {}
+export class Start {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "finish", description: "The reply", output: WorkflowFinishText })
 export class Finish {}

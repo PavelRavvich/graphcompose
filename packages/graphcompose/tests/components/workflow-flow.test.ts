@@ -44,13 +44,13 @@ const base = {
 };
 
 describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
-  it("M2: a cycle without a router and a choice without its route — both reported, with classes", async () => {
+  it("M2: a cycle without a router — reported with its classes", async () => {
     @Workflow({
       ...base,
       name: "broken",
       flow: [
         from(TestChat).next(Main),
-        from(Main).routes(Profiler, Scout, TestAnswer),
+        from(Main).routes(),
         from(Profiler).next(Scout),
         from(Scout).next(Profiler),
       ],
@@ -61,7 +61,7 @@ describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
 
     expect(error).toBeInstanceOf(GraphRuleError);
     const codes = error instanceof GraphRuleError ? error.violations.map((v) => v.code) : [];
-    expect(codes.sort()).toEqual(["graph.cycle-without-router", "router.routes-mismatch"]);
+    expect(codes).toEqual(["graph.cycle-without-router"]);
     expect(String(error)).toContain("Profiler");
     expect(String(error)).toContain("Scout");
   });
@@ -79,7 +79,7 @@ describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
       name: "two-places",
       flow: [
         from(TestChat).next(Main),
-        from(Main).routes(Profiler, TestAnswer),
+        from(Main).routes(),
         from(Profiler).next(SecondLook),
         from(SecondLook).next(Main),
       ],

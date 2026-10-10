@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { chain, from, isNamedNode, labelOf, node, Self } from "../../src/graph/flow.js";
 import { collectFlow } from "../../src/graph/flow-nodes.js";
+import { Router } from "../../src/graph/router.decorator.js";
 import { testNode } from "./fixtures/nodes.js";
 import { AnswerWorkflowFinish, codeReviewFlow, CoderAgent } from "./fixtures/code-review.js";
 
@@ -10,7 +11,17 @@ class A {}
 @testNode("agent", "b")
 class B {}
 
-@testNode("router", "r")
+@Router({
+  name: "r",
+  description: "Picks A, B or the agent before it",
+  prompt: "Pick.",
+  model: "typesafe/jev-1.13",
+  routes: [
+    { prompt: "A", target: A },
+    { prompt: "B", target: B },
+    { prompt: "Again", target: Self },
+  ],
+})
 class R {}
 
 const transitionsOf = (flow: Parameters<typeof collectFlow>[0]) =>
@@ -37,8 +48,8 @@ describe("AC1: flow DSL builds the expected transitions", () => {
     ]);
   });
 
-  it("from(Router).routes(...) is one choice with every target; Self is kept as a flag", () => {
-    expect(transitionsOf([from(R).routes(A, B, Self)])).toEqual([
+  it("from(Router).routes() is one choice with every target; Self is kept as a flag", () => {
+    expect(transitionsOf([from(R).routes()])).toEqual([
       {
         from: "r",
         next: {

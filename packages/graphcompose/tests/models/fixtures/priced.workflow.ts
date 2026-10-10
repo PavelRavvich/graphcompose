@@ -34,7 +34,9 @@ export class Summariser {}
 export class Writer {}
 
 @WorkflowStart({ name: "task", description: "A task", input: WorkflowStartText })
-export class TaskStart {}
+export class TaskStart {
+  declare readonly input: WorkflowStartText;
+}
 
 @WorkflowFinish({ name: "replyWith", description: "The replyWith", output: WorkflowFinishText })
 export class Answer {}
