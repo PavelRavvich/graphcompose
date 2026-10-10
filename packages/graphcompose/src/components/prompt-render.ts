@@ -5,6 +5,15 @@ import { ComponentError } from "./metadata.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 
+/**
+ * The variables of one agent turn: the static ones plus `item`, the agent's item in a
+ * `batchParallel` step (objects render as JSON, strings as they are; "" outside a batch).
+ */
+const withItem = (
+  variables: Readonly<Record<string, unknown>>,
+  item: unknown,
+): Readonly<Record<string, unknown>> => ({ ...variables, item: item ?? "" });
+
 export function renderPromptVariables(
   agentName: string,
   options: PromptOptions | undefined,
@@ -16,10 +25,10 @@ export function renderPromptVariables(
 
   if (options?.prompt && variables) {
     // Eagerly throw on unknown static template vars
-    renderTemplate(options.prompt, variables, unknown);
+    renderTemplate(options.prompt, withItem(variables, undefined), unknown);
   }
 
-  const fn = async () => {
+  const fn = async (state?: Pick<FlowStateType, "batchItem">) => {
     if (!options) return "";
     let text = options.prompt ?? "";
     if (options.promptUrls && options.promptUrls.length > 0) {
@@ -35,7 +44,7 @@ export function renderPromptVariables(
       }
     }
     if (!variables) return text;
-    return renderTemplate(text, variables, unknown);
+    return renderTemplate(text, withItem(variables, state?.batchItem), unknown);
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
   (fn as any).options = options;

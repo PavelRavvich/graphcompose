@@ -133,6 +133,12 @@ export type ContainerParts = Pick<
   | "batchStrategies"
 >;
 
+/** The workflow's providers plus the strategies its `batchParallel` steps name (no need to list them twice). */
+const batchStrategyProviders = (bundle: WorkflowMeta): readonly Provider[] => [
+  ...(bundle.providers ?? []),
+  ...bundle.flow.flatMap((step) => (step.kind === "batchParallel" ? [step.strategy] : [])),
+];
+
 /** Observers, policies and strategies of a workflow, created by its container. */
 export function containerPartsOf(bundle: WorkflowMeta, policies: PolicyMaps): ContainerParts {
   const get = (services: WorkflowServices, cls: Class): unknown =>
@@ -156,7 +162,7 @@ export function containerPartsOf(bundle: WorkflowMeta, policies: PolicyMaps): Co
       strategiesOf(providers, quorumRouterMetaOf, (cls) => get(services, cls) as QuorumStrategy),
     batchStrategies: (services) =>
       strategiesOf(
-        providers,
+        batchStrategyProviders(bundle),
         batchParallelStrategyMetaOf,
         (cls) => get(services, cls) as BatchParallelStrategy<unknown, unknown>,
       ),

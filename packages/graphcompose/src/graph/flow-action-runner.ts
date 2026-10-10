@@ -96,6 +96,7 @@ export function actionRunner<TName extends string>(
       getComponentClass: (nodeName: string) => collectFlow(deps.flow).nodes.get(nodeName)?.use,
       runCompensation,
       executionContext,
+      item: state.batchItem,
     };
 
     const appState = { runId, activeNode: node.name };

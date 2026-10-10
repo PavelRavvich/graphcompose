@@ -1,16 +1,37 @@
-import { END, Send } from "@langchain/langgraph";
+import { Send } from "@langchain/langgraph";
 import type { FlowModel } from "./check-flow.js";
-import type { NextDeclaration } from "./flow-nodes.js";
-import type { FlowStateType } from "./flow-state.js";
+import type { FlowNodeRef, NextDeclaration } from "./flow-nodes.js";
+import type { FlowStateType, FlowStateUpdate } from "./flow-state.js";
 import type { GraphDeps } from "./deps.js";
-import { graphNodeId, nodeKeyed, type Builder } from "./build-shared.js";
+import type { FlowNodeRunner } from "./visit.js";
+import {
+  batchFinishId,
+  batchLoopId,
+  batchWorkerId,
+  isBatchTarget,
+  nodeKeyed,
+  type Builder,
+} from "./build-shared.js";
 
 type BatchNext = Extract<NextDeclaration, { kind: "batchParallel" }>;
-type Container = GraphDeps<string>["container"];
+type Strategies = GraphDeps<string>["batchStrategies"];
 
-/** What the engine calls on a `@BatchParallelStrategy` (sync or async extraction). */
-interface BatchExtractor {
-  extract(state: FlowStateType): unknown[] | Promise<unknown[]>;
+/** The items of a batch step, from its `@BatchParallelStrategy` (a provider of the workflow). */
+async function extractItems(next: BatchNext, strategies: Strategies, state: FlowStateType) {
+  // The lookup misses for a strategy that is not among the workflow's providers.
+  const strategy: { extract(state: FlowStateType): unknown } | undefined = strategies?.(
+    next.strategy,
+  );
+  if (strategy === undefined) {
+    throw new Error(
+      `batchParallel strategy ${next.strategy.name} is not a provider of the workflow — add it to @Workflow providers`,
+    );
+  }
+  const items = await strategy.extract(state);
+  if (!Array.isArray(items)) {
+    throw new TypeError(`batchParallel strategy ${next.strategy.name} must return an array`);
+  }
+  return items as unknown[];
 }
 
 /** Up to `concurrencyLimit` batches of `batchSize` items from the head of the queue. */
@@ -27,59 +48,65 @@ function takeBatches(
   return { activeBatch, newQueue };
 }
 
-/** Where the flow goes once the batch target has no batch left. */
-function afterBatches(model: FlowModel, targetNodeKey: string): string {
-  const outgoing = model.collected.transitions.find((tr) => tr.from === targetNodeKey);
-  if (!outgoing) return END;
-  if (outgoing.next.kind === "to") {
-    const [first] = outgoing.next.targets;
-    if (first === undefined) throw new Error(`Flow node "${targetNodeKey}" has an empty next step`);
-    return graphNodeId(nodeKeyed(model, first));
-  }
-  if (outgoing.next.kind === "join") return graphNodeId(nodeKeyed(model, outgoing.next.target));
-  return END;
+/** What one worker gets as its item: the element itself for `batchSize: 1`, else its batch. */
+const workerItem = (batch: unknown[], options: BatchNext["options"]): unknown =>
+  options.batchSize === 1 ? batch[0] : batch;
+
+/**
+ * The target's graph nodes besides its own: the worker copy each batch runs in, and the finish
+ * node the loop leaves by (its edges are the target's own next step, see `nodeEdges`).
+ */
+export function addBatchNodes(
+  builder: Builder,
+  model: FlowModel,
+  node: FlowNodeRef,
+  worker: FlowNodeRunner,
+): void {
+  if (!isBatchTarget(model, node.key)) return;
+  builder.addNode(batchWorkerId(node), worker);
+  builder.addNode(batchFinishId(node), (): FlowStateUpdate => ({}));
+}
+
+/** The loop node: the queue (extracted on entry), then the next round of batches; none = done. */
+function loopNode(next: BatchNext, strategies: Strategies) {
+  const targetKey = next.target;
+  return async (state: FlowStateType): Promise<FlowStateUpdate> => {
+    const queue =
+      state._batchCursor[targetKey]?.queue ?? (await extractItems(next, strategies, state));
+    const { activeBatch, newQueue } = takeBatches(queue, next.options);
+    // Done: the cursor is cleared, so the next run through this step extracts again.
+    const cursor = activeBatch.length === 0 ? undefined : { queue: newQueue, activeBatch };
+    return { _batchCursor: { [targetKey]: cursor } };
+  };
 }
 
 function wireBatchLoop(
   builder: Builder,
   model: FlowModel,
-  sourceNodeKey: string,
+  sourceKey: string,
   next: BatchNext,
-  container: Container,
+  strategies: Strategies,
 ): void {
-  const targetNodeKey = next.target;
-  const targetNode = nodeKeyed(model, targetNodeKey);
-  const loopNodeId = `__mapeach_${sourceNodeKey}_to_${targetNodeKey}`;
-  const targetCloneId = `${graphNodeId(targetNode)}_batch_clone`;
-
-  builder.addNode(loopNodeId, async (state: FlowStateType) => {
-    let queue = state._batchCursor[targetNodeKey]?.queue;
-    if (queue === undefined) {
-      if (container === undefined) throw new Error("batchParallel needs the DI container");
-      const strategy = container.get<BatchExtractor>(next.strategy);
-      queue = await strategy.extract(state);
-    }
-    const { activeBatch, newQueue } = takeBatches(queue, next.options);
-    return { _batchCursor: { [targetNodeKey]: { queue: newQueue, activeBatch } } };
+  const target = nodeKeyed(model, next.target);
+  const loopId = batchLoopId(sourceKey, next.target);
+  const workerId = batchWorkerId(target);
+  builder.addNode(loopId, loopNode(next, strategies));
+  builder.addConditionalEdges(loopId, (state: FlowStateType) => {
+    const activeBatch = state._batchCursor[next.target]?.activeBatch ?? [];
+    if (activeBatch.length === 0) return batchFinishId(target);
+    return activeBatch.map(
+      (batch) => new Send(workerId, { ...state, batchItem: workerItem(batch, next.options) }),
+    );
   });
-
-  builder.addConditionalEdges(loopNodeId, (state: FlowStateType) => {
-    const cursor = state._batchCursor[targetNodeKey];
-    if (cursor === undefined) throw new Error(`No batch cursor for "${targetNodeKey}"`);
-    const { activeBatch } = cursor;
-    if (!activeBatch || activeBatch.length === 0) return afterBatches(model, targetNodeKey);
-    return activeBatch.map((item) => new Send(targetCloneId, { batchItem: item }));
-  });
-
-  builder.addEdge(targetCloneId, loopNodeId);
+  builder.addEdge(workerId, loopId);
 }
 
 export function compileBatchParallelLoops(
   builder: Builder,
   model: FlowModel,
-  container: Container,
+  strategies: Strategies,
 ): void {
   for (const t of model.collected.transitions) {
-    if (t.next.kind === "batchParallel") wireBatchLoop(builder, model, t.from, t.next, container);
+    if (t.next.kind === "batchParallel") wireBatchLoop(builder, model, t.from, t.next, strategies);
   }
 }

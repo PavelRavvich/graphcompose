@@ -43,7 +43,8 @@ export function loopInputOf(state: FlowStateType, agent: string): AgentLoopState
     toolCalls: 0,
     reply: null,
     retries: 0,
-    batchItem: undefined,
+    // The item of this worker in a `batchParallel` step (the `{{item}}` prompt variable).
+    batchItem: state.batchItem,
     _batchCursor: {},
     lastError: null,
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
