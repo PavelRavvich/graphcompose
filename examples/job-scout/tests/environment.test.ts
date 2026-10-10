@@ -32,14 +32,16 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const asChat = testWith(JobScout);
+// `npm run chat` (the app) defaults to dev; testWith defaults to test.environment.ts when it exists.
+const asChat = testWith(JobScout, { env: "dev" });
+const bare = testWith(JobScout);
 const asTest = testWith(JobScout, { env: "test" });
 const stub: Environment = { greenhouseApiUrl: "http://greenhouse.stub" };
 const ownValues = testWith(JobScout, { environment: stub });
 
 describe("#182: the app's environment reaches GreenhouseBoards", () => {
   asChat(
-    "AC1: no --env (npm run chat) → dev.environment.ts: the real board API",
+    "AC1: the app's default (npm run chat, no --env) is dev.environment.ts: the real board API",
     async ({ app }) => {
       const urls = recordBoardRequests();
 
@@ -48,6 +50,17 @@ describe("#182: the app's environment reaches GreenhouseBoards", () => {
       expect(urls).toEqual([
         "https://boards-api.greenhouse.io/v1/boards/fireblocks/jobs?content=true",
       ]);
+    },
+  );
+
+  bare(
+    "testWith without env → test.environment.ts (tests never hit the real API by default)",
+    async ({ app }) => {
+      const urls = recordBoardRequests();
+
+      await app.tool(GreenhouseJobs).invoke(query);
+
+      expect(urls).toEqual(["https://greenhouse.test/v1/boards/fireblocks/jobs?content=true"]);
     },
   );
 
