@@ -84,7 +84,7 @@ export class Refund implements ToolHandler<RefundRequest, RefundDone> {
 
 @Agent({
   name: "clerk",
-  prompt: "./clerk.prompt.md",
+  promptUrls: ["./clerk.prompt.md"],
   description: "Refunds orders",
   model: "test/clerk",
   price: { inputPerMTok: 1, outputPerMTok: 10 },
