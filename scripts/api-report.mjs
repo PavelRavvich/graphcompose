@@ -9,6 +9,7 @@ import { Extractor, ExtractorConfig } from "@microsoft/api-extractor";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 
 const PKG = new URL("../packages/graphcompose/", import.meta.url).pathname;
 const write = process.argv.includes("--write");
@@ -56,6 +57,14 @@ function report(subpath, types) {
     packageJsonFullPath: join(PKG, "package.json"),
   });
   const result = Extractor.invoke(config, { localBuild: write, showVerboseMessages: false });
+  if (!write && result.apiReportChanged) {
+    // show what differs, so a CI failure is readable without the temp file
+    const name = `${reportName(subpath)}.api.md`;
+    const diff = spawnSync("diff", ["-u", join(REPORTS, name), join(temp, name)], {
+      encoding: "utf8",
+    });
+    console.error(diff.stdout.split("\n").slice(0, 60).join("\n"));
+  }
   return { subpath, ok: result.succeeded, changed: result.apiReportChanged };
 }
 
