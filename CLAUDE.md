@@ -88,7 +88,9 @@ flow: [
   agents and routers (default (agents + routers) × 3). Hitting any limit **fails the run** with
   `LimitExceededError` naming the boundary key (`limits.perRun.steps`, `limits.perRun.cost`,
   `limits.perDay.cost`, `routers.<name>.maxVisits`; a money limit is its subclass
-  `BudgetExceededError`). LangGraph `recursionLimit` is only a safety net far above the steps.
+  `BudgetExceededError`). `perDay.cost` requires `perRun.cost` (each run reserves its run cap of
+  the day before its first call); without it the app fails at start with
+  `[limits.per-run-required]`. LangGraph `recursionLimit` is only a safety net far above the steps.
 - **Run errors** (`graphcompose` root): every one a `GraphComposeError` with a stable `code`
   (`limit` ⊃ `limit.budget`, `step` ⊃ `step.agent` / `step.guard` / `step.router`,
   `workflow.cancelled`, …). `catchError(Node, ErrorClass).next(Handler)` matches by code — the

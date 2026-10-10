@@ -225,7 +225,7 @@ export class MainRouter {}
 export class Desk implements WorkflowDefinition {
   settings(): WorkflowSettings {
     return WorkflowSettings.builder()
-      .limits({ perRun: { steps: 12 }, perDay: { cost: usd(0.05) } })
+      .limits({ perRun: { steps: 12, cost: usd(0.05) }, perDay: { cost: usd(0.05) } })
       .build();
   }
 }

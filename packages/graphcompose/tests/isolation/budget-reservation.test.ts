@@ -1,6 +1,7 @@
 /** #202 AC2: concurrent runs reserve their budget, so together they never pass the daily cap. */
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../src/app/create-app.js";
+import { PerRunLimitRequiredError } from "../../src/index.js";
 import { createMemoryLedger } from "../../src/finops/ledger.js";
 import { reserveSpend } from "../../src/finops/reservations.js";
 import { createSqliteTernStore } from "../../src/terns/index.js";
@@ -9,7 +10,7 @@ import { ScriptBook } from "../../src/testing/script-book.js";
 import { createScriptedGateway } from "../../src/testing/scripted-gateway.js";
 import { usd } from "../../src/units/index.js";
 import { ChatStart } from "../channels/approval.workflow.js";
-import { Capped } from "./isolation.workflow.js";
+import { Capped, DayCapOnly } from "./isolation.workflow.js";
 
 const step = replyWith("done", { cost: usd(0.2) });
 
@@ -69,5 +70,22 @@ describe("#202 AC2: budget is reserved before the first model call", () => {
     first.release();
     expect((await reserveSpend(ledger, account, 1)).grantedUsd).toBeCloseTo(0.5, 9);
     expect((await reserveSpend(ledger, { key: "free", dailyCap: Infinity }, 3)).grantedUsd).toBe(3);
+  });
+
+  it("AC2: a daily cap without a run cap fails at start with [limits.per-run-required]", async () => {
+    const book = new ScriptBook();
+    const drafter = book.scriptOf("agent:drafter").thenReturnAlways(step);
+    const start = createApp(DayCapOnly, {
+      processEnv: {},
+      gateway: createScriptedGateway(book),
+      stores: { terns: createSqliteTernStore(":memory:"), ledger: createMemoryLedger() },
+    });
+
+    await expect(start).rejects.toBeInstanceOf(PerRunLimitRequiredError);
+    await expect(start).rejects.toMatchObject({ code: "limits.per-run-required" });
+    await expect(start).rejects.toThrow(
+      /\[limits\.per-run-required\] workflow "day-cap-only" .*add perRun: \{ cost \}/,
+    );
+    expect(drafter.requests).toEqual([]);
   });
 });

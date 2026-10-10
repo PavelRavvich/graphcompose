@@ -217,6 +217,10 @@ with another owner (or none) throw `ThreadOwnerError` (`run.thread-owner`) befor
 is read. Tool arguments a channel shows (and `ExecutionOutput.pause.args`) have the input DTO's
 `sensitive` fields masked as `***`; the tool itself still gets them whole.
 
+Each run reserves its `limits.perRun.cost` of the day before its first model call, so concurrent
+runs never jointly pass `limits.perDay.cost`; a workflow that sets `perDay.cost` without
+`perRun.cost` fails at start with `[limits.per-run-required]`.
+
 `execute` and `resume` forward `signal`, `metadata`, `onStream` (token and tool-call events) and
 `configurable` (extra LangGraph keys; the framework's own win). `app.cancel(thread)` aborts a running
 run — it stops before its next model or tool call and `execute` rejects with

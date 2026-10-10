@@ -7,6 +7,7 @@ import { workflowStartMetaOf } from "../graph/workflow-start.decorator.js";
 import { withProfile } from "../profile-workflow.js";
 import { resumeAgent } from "../run/resume-agent.js";
 import { checkThreadOwner } from "../run/thread.js";
+import { checkRunLimits } from "./limit-check.js";
 import { runAgent } from "../run/run-agent.js";
 import { runVersions } from "../run/versions.js";
 import type { AgentExecutionOutput } from "../run/types.js";
@@ -83,6 +84,7 @@ export async function buildApp(
   bundle: AssembledWorkflow,
   options: AppOptions = {},
 ): Promise<BuiltApp> {
+  checkRunLimits(bundle.config.name, bundle.limits);
   const nodes = flowNodesByKey(bundle.flow);
   const pathNodes = nestedFlowNodesByKey(bundle.flow);
   const deps = await createAppDeps(bundle, options);

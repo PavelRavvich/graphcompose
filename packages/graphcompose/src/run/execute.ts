@@ -10,6 +10,7 @@ import type { WorkflowLimits } from "../graph/settings.js";
 import type { NewTern, TernOutcome } from "../terns/index.js";
 import { usd } from "../units/index.js";
 import { reserveSpend, type SpendHold } from "../finops/reservations.js";
+import { checkRunLimits } from "../app/limit-check.js";
 import type { BaseCallbackHandler } from "@langchain/core/callbacks/base";
 import type { RunDeps, SpendAccount } from "./types.js";
 
@@ -95,6 +96,7 @@ export async function allowedBudget<TName extends string>(
   deps: RunDeps<TName>,
   account: SpendAccount,
 ): Promise<RunBudget> {
+  if (Number.isFinite(account.dailyCap)) checkRunLimits(deps.config.name, deps.limits);
   const want = deps.limits.perRun?.cost ?? Number.POSITIVE_INFINITY;
   const hold = await reserveSpend(deps.ledger, account, want);
   if (hold.grantedUsd <= 0) {

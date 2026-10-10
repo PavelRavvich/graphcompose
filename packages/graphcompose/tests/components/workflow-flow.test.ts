@@ -70,7 +70,7 @@ describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
     class Limited implements WorkflowDefinition {
       settings(): WorkflowSettings {
         return WorkflowSettings.builder()
-          .limits({ perDay: { cost: usd(3) } })
+          .limits({ perRun: { cost: usd(1) }, perDay: { cost: usd(3) } })
           .build();
       }
     }
@@ -89,7 +89,7 @@ describe("AC1: a workflow's graph is its flow, checked at assembly", () => {
     const workflow = await workflowOf(TwoPlaces);
 
     expect(Object.keys(workflow.config.agents)).toEqual(["profiler", "second-look"]);
-    expect(workflow.limits).toEqual({ perDay: { cost: 3 } });
+    expect(workflow.limits).toEqual({ perRun: { cost: 1 }, perDay: { cost: 3 } });
     const routerTexts = await Promise.all(
       workflow.routers.map(async (r) => [r.name, await r.instructions({} as any)]),
     );

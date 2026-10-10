@@ -136,9 +136,9 @@ chain / node / Self` (Wiki → Workflow); nodes are `@WorkflowStart`, `@Router`,
   - Each run **reserves** its budget (`perRun.cost` ∩ what is left of the day) before its first
     call; spend shrinks the hold, the end (or a pause) releases the rest. Concurrent runs sharing a
     ledger in one process see each other's holds, so together they never pass `perDay.cost` — a run
-    that finds nothing left fails with `limits.perDay.cost` before any call. Without `perRun.cost`
-    a run holds the whole remainder, so set it when runs go in parallel. Holds are per process:
-    several processes on one file ledger are not coordinated.
+    that finds nothing left fails with `limits.perDay.cost` before any call. `perDay.cost` therefore
+    **requires** `perRun.cost`: without it the app fails at start with `[limits.per-run-required]`.
+    Holds are per process: several processes on one file ledger are not coordinated.
   - Cost limits are soft by one call (a call in flight cannot be stopped). With `MODEL_MAX` one
     call is bounded only by the model.
   - A provider's fallback (`circuitBreakerPolicy.fallback`) maps each used model to its own

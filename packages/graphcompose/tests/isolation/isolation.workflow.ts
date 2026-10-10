@@ -110,3 +110,18 @@ export class Capped implements WorkflowDefinition {
       .build();
   }
 }
+
+/** A daily cap with no run cap: refused at start (#202). */
+@Workflow({
+  name: "day-cap-only",
+  version: "1.0.0",
+  flow: [chain(ChatStart, Drafter, Editor, Reply)],
+  defaults,
+})
+export class DayCapOnly implements WorkflowDefinition {
+  settings(): WorkflowSettings {
+    return WorkflowSettings.builder()
+      .limits({ perDay: { cost: usd(1) } })
+      .build();
+  }
+}

@@ -59,7 +59,7 @@ class ObsWf {
     return WorkflowSettings.builder()
       .limits({
         perDay: { cost: usd(100) },
-        perRun: { steps: 10 },
+        perRun: { steps: 10, cost: usd(1) },
       })
       .build();
   }
