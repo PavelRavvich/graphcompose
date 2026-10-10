@@ -115,6 +115,7 @@ export async function buildApp(
           await runAgent(task, deps, {
             signal: call.signal,
             executionContext: call.executionContext,
+            ...(call.onStream === undefined ? {} : { onStream: call.onStream }),
           }),
         );
         await deps.observer.onWorkflowEnd(result, state);
@@ -138,6 +139,7 @@ export async function buildApp(
         await resumeAgent(run, decision, deps, {
           signal: call.signal,
           executionContext: call.executionContext,
+          ...(call.onStream === undefined ? {} : { onStream: call.onStream }),
         }),
       );
     },

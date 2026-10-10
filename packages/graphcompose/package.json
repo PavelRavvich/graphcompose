@@ -38,6 +38,10 @@
       "types": "./dist/tool/index.d.ts",
       "import": "./dist/tool/index.js"
     },
+    "./a2a": {
+      "types": "./dist/a2a/index.d.ts",
+      "import": "./dist/a2a/index.js"
+    },
     "./mcp": {
       "types": "./dist/mcp/index.d.ts",
       "import": "./dist/mcp/index.js"

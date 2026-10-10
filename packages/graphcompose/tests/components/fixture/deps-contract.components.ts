@@ -120,9 +120,9 @@ export class VaultDocs {
   }
 }
 
-@A2AAgent({ name: "remote", endpoint: "http://remote.invalid", deps: [Vault] })
+@A2AAgent({ name: "remote", url: "http://remote.invalid", deps: [Vault] })
 export class RemoteAgent extends A2AClient {
   constructor(readonly vault: Vault) {
-    super({ endpoint: "http://remote.invalid" });
+    super();
   }
 }

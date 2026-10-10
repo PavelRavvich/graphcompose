@@ -102,7 +102,7 @@ export interface App {
   resume(
     thread: string,
     decision: unknown,
-    options?: Pick<ExecutionOptions, "signal" | "executionContext">,
+    options?: Pick<ExecutionOptions, "signal" | "executionContext" | "onStream">,
   ): Promise<ExecutionOutput>;
   cancel(thread: string): Promise<void>;
   close(): Promise<void>;

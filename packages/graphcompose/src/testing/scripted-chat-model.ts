@@ -1,3 +1,4 @@
+import type { CallbackManagerForLLMRun } from "@langchain/core/callbacks/manager";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AIMessage, type BaseMessage } from "@langchain/core/messages";
 import type { ChatResult } from "@langchain/core/outputs";
@@ -98,16 +99,23 @@ export class ScriptedChatModel extends BaseChatModel {
     return this;
   }
 
-  _generate(messages: BaseMessage[]): Promise<ChatResult> {
+  /** Answers by the script; a text reply streams as one token, as a streaming provider would. */
+  async _generate(
+    messages: BaseMessage[],
+    _options: this["ParsedCallOptions"],
+    runManager?: CallbackManagerForLLMRun,
+  ): Promise<ChatResult> {
     const script = this.book.scriptOf(this.key);
     const req = chatRequestOf(messages);
     script.requests.push(req);
+    let message: AIMessage;
     try {
-      const message = replyOf(script.next(req), script, this.book, this.settings);
-      return Promise.resolve({ generations: [{ text: message.text, message }] });
+      message = replyOf(script.next(req), script, this.book, this.settings);
     } catch (error) {
       if (error instanceof TestFailure) this.book.report(error);
-      return Promise.reject(asError(error));
+      throw asError(error);
     }
+    if (message.text !== "") await runManager?.handleLLMNewToken(message.text);
+    return { generations: [{ text: message.text, message }] };
   }
 }
