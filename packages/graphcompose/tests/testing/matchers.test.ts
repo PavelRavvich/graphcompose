@@ -17,6 +17,7 @@ import {
 
 const run = (parts: Partial<ExecutionOutput>): ExecutionOutput => ({
   thread: "thread-1",
+  runId: "run-1",
   status: "answered",
   replyWith: "Hi.",
   route: ["writer"],

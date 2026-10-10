@@ -259,6 +259,7 @@ export function testRunContext(context?: {
     readonly threadId?: string;
     readonly signal?: AbortSignal;
     readonly metadata?: Readonly<Record<string, string>>;
+    readonly input?: Readonly<Record<string, unknown>>;
 }): RunContext;
 
 // @public

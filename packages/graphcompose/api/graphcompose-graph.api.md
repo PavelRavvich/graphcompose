@@ -256,6 +256,7 @@ export interface RuleViolation {
 
 // @public
 export interface RunContext {
+    readonly input: Readonly<Record<string, unknown>>;
     readonly metadata: Readonly<Record<string, string>>;
     readonly owner?: string;
     readonly runId: RunId;

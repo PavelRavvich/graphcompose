@@ -91,6 +91,7 @@ export function harness(
 
 const flowStateOf = (task: string): FlowStateType => ({
   task,
+  startInput: { text: task },
   finishes: {},
   optionalBranches: [],
   history: [],

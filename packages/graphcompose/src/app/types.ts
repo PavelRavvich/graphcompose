@@ -90,6 +90,11 @@ export interface ExecutionOutput extends Pick<
   "status" | "replyWith" | "route" | "stopReason" | "compacted" | "traceUrl"
 > {
   readonly thread: string;
+  /**
+   * The run's id: the same in its observer events, `ctx.run.runId`, its Tern and its trace, and
+   * kept by its resumes.
+   */
+  readonly runId: string;
   /** The name of the workflow finish the run reached. */
   readonly finish?: string;
   readonly output?: WorkflowFinishText;

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { createSqliteTernStore, type NewTern } from "../../src/terns/index.js";
 
 const tern = (overrides: Partial<NewTern> = {}): NewTern => ({
+  runId: "run-1",
   threadId: "t",
   bundle: "b",
   task: "task",
@@ -99,7 +100,9 @@ describe("SQLite Tern store", () => {
     const thread = await first.createThread("b");
     first.close();
     const old = new DatabaseSync(path);
-    old.exec(`ALTER TABLE terns ADD COLUMN attempts TEXT NOT NULL DEFAULT '[]';
+    // a database of version 4: before migration 8 added `run_id`
+    old.exec(`ALTER TABLE terns DROP COLUMN run_id;
+      ALTER TABLE terns ADD COLUMN attempts TEXT NOT NULL DEFAULT '[]';
       INSERT INTO terns (id, thread_id, bundle, created_at, task, replyWith, status, stop_reason, route,
         steps, cost_usd, prompt_version, model_version, replay_of, attempts)
       VALUES ('old', '${thread}', 'b', '2026-01-01', 'q', 'a', 'answered', 'done', '[]', '[]', 0, 'p',
@@ -133,9 +136,13 @@ describe("SQLite Tern store", () => {
     const store = createSqliteTernStore(path);
     const fresh = await store.append(tern({ threadId: "t" }));
 
-    expect((await store.byIds(["old"]))[0]).toMatchObject({ task: "q", configVersion: null });
+    expect((await store.byIds(["old"]))[0]).toMatchObject({
+      task: "q",
+      configVersion: null,
+      runId: null,
+    });
     expect(await store.summaryCount("t")).toBe(0);
-    expect((await store.byIds([fresh.id]))[0]?.task).toBe("task");
+    expect((await store.byIds([fresh.id]))[0]).toMatchObject({ task: "task", runId: "run-1" });
     store.close();
   });
 });

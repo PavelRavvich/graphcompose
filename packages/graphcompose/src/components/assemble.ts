@@ -31,6 +31,7 @@ import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 import { flowOf, settingsOf } from "./flow-parts.js";
 import { channelPartsOf } from "./channel-parts.js";
 import { PromptLoader } from "./prompt-render.js";
+import { startInputFieldsOf } from "./prompt-input-fields.js";
 import { checkMemoryStrategies, memoryPartsOf } from "./memory-parts.js";
 import { moduleOf, workflowTreeOf } from "./nested-modules.js";
 import { checkObservers } from "./observer-checks.js";
@@ -142,7 +143,7 @@ const toolDependenciesOf = (
  */
 export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow> {
   const bundle = moduleOf(bundleClass);
-  const loader = new PromptLoader(bundle.promptVariables ?? {});
+  const loader = new PromptLoader(bundle.promptVariables ?? {}, startInputFieldsOf(bundle.flow));
   const graph = await flowOf(workflowTreeOf(bundleClass), loader);
   const agents = graph.agents;
   const tools = toolsOf(bundle, agents);

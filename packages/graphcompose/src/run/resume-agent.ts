@@ -57,7 +57,7 @@ export function resumeAgent<TName extends string>(
   return inRunScope(() => resumeOnce(paused, decision, deps, options));
 }
 
-type ResumeOptions = Omit<RunOptions, "replayOf" | "account">;
+type ResumeOptions = Omit<RunOptions, "replayOf" | "account" | "runId">;
 
 async function resumeOnce<TName extends string>(
   paused: AgentExecutionOutput,
@@ -74,6 +74,7 @@ async function resumeOnce<TName extends string>(
   const hold = await reserveSpend(deps.ledger, workflowAccount(deps), Math.max(0, left));
   const record = recorder(hold, spent);
   const base = {
+    runId: paused.runId,
     threadId: paused.threadId,
     bundle: deps.config.name,
     task: before.task,
@@ -83,7 +84,7 @@ async function resumeOnce<TName extends string>(
   try {
     const streaming = streamConfig(
       deps,
-      { threadId: paused.threadId, runId: paused.runId, quorumManager },
+      { threadId: paused.threadId, runId: paused.runId, quorumManager, input: before.startInput },
       { ...options, metadata },
     );
     const states = await flow.graph.stream(new Command({ resume: decision }), streaming);

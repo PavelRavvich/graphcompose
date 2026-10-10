@@ -8,6 +8,7 @@ import type { AgentLoopStateType } from "./state.js";
 export function loopInputOf(state: FlowStateType, agent: string): AgentLoopStateType {
   return {
     task: state.task,
+    startInput: state.startInput,
     history: state.history,
     runId: state.runId,
     optionalBranches: [],

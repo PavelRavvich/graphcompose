@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Class } from "../components/injection.js";
 import { workflowOf } from "../components/assemble.js";
 import { environmentFor, workflowFileOf } from "../environments/load.js";
@@ -110,18 +111,23 @@ export async function buildApp(
     textStart: textStartOf(nodes),
     execute: async (start, input, call = {}) => {
       const meta = startMetaOf(start, nodes, deps.config.name);
-      const { text } = validate(meta.input, input);
+      const startInput = validate(meta.input, input);
       // the thread is known before the run starts, so `cancel(thread)` reaches a new one too
       if (call.thread !== undefined) await owned(call.thread, call.owner);
       const thread = call.thread ?? (await deps.terns.createThread(deps.config.name, call.owner));
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/restrict-template-expressions
-      const runId = deps.newRunId?.() || `run-${Date.now()}`;
+      // one id for the whole run: its observer events, `ctx.run.runId`, its Tern and its result
+      const runId = deps.newRunId?.() ?? randomUUID();
       const state = { runId, threadId: thread };
       try {
         await deps.observer.onWorkflowStart(state);
-        const task = { task: text, start: meta.name, threadId: thread };
+        const task = {
+          task: startInput.text,
+          input: startInput,
+          start: meta.name,
+          threadId: thread,
+        };
         const run = await live.track(thread, call.signal, (signal) =>
-          runAgent(task, deps, runOptionsOf(call, signal)),
+          runAgent(task, deps, { ...runOptionsOf(call, signal), runId }),
         );
         const result = await settle(run);
         await deps.observer.onWorkflowEnd(result, state);

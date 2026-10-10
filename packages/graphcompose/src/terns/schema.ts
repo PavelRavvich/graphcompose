@@ -37,10 +37,13 @@ const MIGRATIONS: readonly string[] = [
   // 7 — a thread belongs to the owner it was created for (#202); older threads have none
   `CREATE TABLE IF NOT EXISTS thread_owners (thread_id TEXT PRIMARY KEY REFERENCES threads(id),
      owner TEXT NOT NULL);`,
+  // 8 — a Tern names the run that wrote it (#238); older Terns have none
+  `ALTER TABLE terns ADD COLUMN run_id TEXT;`,
 ];
 
 const TernRow = z.object({
   id: z.string(),
+  run_id: z.string().nullable(),
   thread_id: z.string(),
   bundle: z.string(),
   created_at: z.string(),
@@ -74,6 +77,7 @@ export function toTern(row: unknown): Tern {
   const r = TernRow.parse(row);
   return {
     id: r.id,
+    runId: r.run_id,
     threadId: r.thread_id,
     bundle: r.bundle,
     createdAt: r.created_at,

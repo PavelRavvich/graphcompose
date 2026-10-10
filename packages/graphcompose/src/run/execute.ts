@@ -16,6 +16,7 @@ import type { RunDeps, SpendAccount } from "./types.js";
 
 export type TernBase = Pick<
   NewTern,
+  | "runId"
   | "threadId"
   | "bundle"
   | "task"

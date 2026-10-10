@@ -19,6 +19,14 @@ export const AgentState = Annotation.Root({
   task: Annotation<string>(),
   /** Previous Terns of the thread, oldest first (loaded once per run). */
   history: Annotation<HistoryTurn[]>({ reducer: (_previous, next) => next, default: () => [] }),
+  /**
+   * The validated input of the workflow start the run began at (`ctx.run.input`, `{{input.<field>}}`);
+   * checkpointed, so a resume reads it back.
+   */
+  startInput: Annotation<Record<string, unknown>>({
+    reducer: (_previous, next) => next,
+    default: () => ({}),
+  }),
   /** Id of this run (tools and logs). */
   runId: Annotation<string>({ reducer: (_previous, next) => next, default: () => "" }),
   /** The node the last router chose (an agent's name while it runs). */

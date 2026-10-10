@@ -259,7 +259,12 @@ one choice question over the routes, options sorted so declaration order never c
 ## Run Context & Observers
 
 Every tool and action gets the run it is part of as `ctx.run` (`RunContext`): built once per
-`execute` / `resume`, the same for every node of the run.
+`execute` / `resume`, the same for every node of the run. One run has one id: its observer events,
+`ctx.run.runId`, its Tern (`Tern.runId`), its trace and its result (`ExecutionOutput.runId`) carry
+the same one, also after a resume. Prompts read the start's input as `{{input.<field>}}`
+(`"Return at most {{input.limit}} jobs."`): a field none of the workflow's starts has fails assembly
+(`[prompt.unknown-variable]`); where the starts are not known (an open input DTO) a field the run's
+input lacks renders empty, with a `prompt.missing-input-field` warning.
 
 <!-- snippet-context
 import { WorkflowAction, type ActionContext } from "graphcompose";
@@ -271,11 +276,12 @@ export class Pay {
 
 ```ts
 execute(_state: unknown, ctx: ActionContext) {
-  ctx.run.runId; // RunId, unique per run, the same after a resume
+  ctx.run.runId; // RunId, unique per run, the same after a resume (= ExecutionOutput.runId)
   ctx.run.threadId; // the conversation (ExecutionOutput.thread)
   ctx.run.signal; // aborted by app.cancel(thread) or the caller's signal
   ctx.run.metadata; // from execute(…, { metadata }), kept by the run's resumes
   ctx.run.owner; // from execute(…, { owner }): who the thread belongs to
+  ctx.run.input; // the start's whole validated input ({ text, limit, … }), kept by the run's resumes
   ctx.idempotencyKey; // `${runId}:${node}` (+ `:${index}` inside batchParallel)
   return {};
 }

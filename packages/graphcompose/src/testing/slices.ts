@@ -95,6 +95,7 @@ export function routerSlice(built: BuiltApp, target: FlowNode): RouterSlice {
 /** A run's state before anything ran: one task, nothing contributed or spent yet. */
 const freshState = (task: string, runId: string): FlowStateType => ({
   task,
+  startInput: { text: task },
   optionalBranches: [],
   history: [],
   runId,

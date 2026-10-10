@@ -101,7 +101,7 @@ export class OrderStatus implements ToolHandler<OrderQuery, OrderInfo> {
   constructor(private readonly book: OrderBook) {}
 
   async run({ orderId }: OrderQuery, ctx: ToolContext): Promise<OrderInfo> {
-    ctx.run.signal.throwIfAborted(); // the run: runId, threadId, signal, metadata, owner
+    ctx.run.signal.throwIfAborted(); // the run: runId, threadId, signal, metadata, owner, input
     return { status: await this.book.statusOf(orderId) };
   }
 }
@@ -325,7 +325,8 @@ export const flows: Flow[] = [
   own (`ToolHandler<In, Out>`, `JudgeHandler`, `RagConnector`), `extends` + `override` for a standard
   implementation (`McpServerClient`, `SqliteFtsConnector`). Prompts are `prompt` (inline) or
   `promptUrls` (files next to the component) plus `promptVariables`; `{{variables}}` are checked at
-  assembly (`[prompt.unknown-variable]`).
+  assembly (`[prompt.unknown-variable]`), and so is `{{input.<field>}}` (the start's input, filled
+  per run) against the workflow's starts' input DTOs.
 - **`deps`, one contract for every kind** (`@Injectable`, `@Tool`, `@McpTool`, `@Rag`, `@Judge`,
   `@WorkflowAction`, `@Guardrail`, `@PiiPolicy`, `@Channel`, inbound adapters): `deps` are checked
   against the constructor by the compiler and injected by the container. A token is a class or an
@@ -395,12 +396,14 @@ Routers and guards use decision models too. README → Quality gates has a full 
 ### Runs: context, limits, errors
 
 - `app.execute(Start, input, { thread, owner, signal, metadata, onStream })` → `ExecutionOutput`
-  (`output` is the finish DTO, `path`, `spend`, `thread`); `app.resume(thread, decision)` continues a
+  (`output` is the finish DTO, `path`, `spend`, `thread`, `runId`); `app.resume(thread, decision)` continues a
   paused run; `app.cancel(thread)` aborts a running one (`WorkflowCancelledError`) or drops a paused
   one (`resume` → `NotPausedError`). A thread with an `owner` rejects another owner
   (`ThreadOwnerError`).
 - Tools and actions read their run as `ctx.run` (`RunContext`: `runId`, `threadId`, `signal`,
-  `metadata`, `owner`); actions get `ctx.idempotencyKey` = `${runId}:${node}` (`:${index}` in a
+  `metadata`, `owner`, `input` = the start's whole validated input, checkpointed). One run id per
+  run, made once by the app: observer events, `ctx.run.runId`, the Tern and the result share it,
+  also on resume. Actions get `ctx.idempotencyKey` = `${runId}:${node}` (`:${index}` in a
   batch), tools `ctx.callId`. Framework code reads it with the internal `extractRunContext` — never
   by parsing `configurable`.
 - **Limits** in `settings()`: `.limits({ perRun: { steps, cost }, perDay: { cost } })` (values with

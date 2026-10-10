@@ -6,6 +6,11 @@ import type { FlowStateType } from "../graph/flow-state.js";
 import { renderTemplate } from "./render-template.js";
 import { ComponentError } from "./metadata.js";
 import {
+  fillInputFields,
+  unknownInputFields,
+  type KnownInputFields,
+} from "./prompt-input-fields.js";
+import {
   displayPath,
   pathAsText,
   PromptError,
@@ -56,9 +61,12 @@ const isMissing = (error: unknown): boolean =>
 export class PromptLoader {
   readonly #problems: PromptProblem[] = [];
   readonly #variables: Readonly<Record<string, unknown>>;
+  readonly #inputFields: KnownInputFields;
 
-  constructor(variables: Readonly<Record<string, unknown>> = {}) {
+  /** `inputFields`: what `{{input.<field>}}` may name (the workflow's starts); `undefined` = unchecked. */
+  constructor(variables: Readonly<Record<string, unknown>> = {}, inputFields?: KnownInputFields) {
     this.#variables = variables;
+    this.#inputFields = inputFields;
   }
 
   /** The owner's prompt, checked; problems are kept for `throwIfAny`. */
@@ -68,6 +76,7 @@ export class PromptLoader {
     const segments = await this.#segments(owner);
     segments.forEach((segment) => {
       this.#problems.push(...unknownVariables(segment.where, segment.text, known));
+      this.#problems.push(...unknownInputFields(segment.where, segment.text, this.#inputFields));
     });
     const template = segments.map((segment) => segment.text).join("\n\n");
     const unknown = (key: string) =>
@@ -77,8 +86,17 @@ export class PromptLoader {
       this.#problems.length > 0
         ? template
         : renderTemplate(template, { ...variables, ...runtimeAsIs }, unknown);
-    const render = (state?: Pick<FlowStateType, "batchItem">): Promise<string> =>
-      Promise.resolve(renderTemplate(template, withItem(variables, state?.batchItem), unknown));
+    // `{{input.<field>}}` after the template: a start input value is never read as a template
+    const render = (
+      state?: Partial<Pick<FlowStateType, "batchItem" | "startInput">>,
+    ): Promise<string> =>
+      Promise.resolve(
+        fillInputFields(
+          renderTemplate(template, withItem(variables, state?.batchItem), unknown),
+          state?.startInput,
+          owner.label,
+        ),
+      );
     return Object.assign(render, { text });
   }
 
