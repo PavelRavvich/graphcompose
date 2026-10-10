@@ -28,31 +28,61 @@ npm i graphcompose
 npm i -D graphcompose-cli   # the gc command
 ```
 
+<!-- snippet-context
+import type { ToolHandler } from "graphcompose";
+declare class GreenhouseJobs implements ToolHandler<never, unknown> {
+  run(input: never): Promise<unknown>;
+}
+declare class ChatWorkflowStart {}
+declare class MainRouter {}
+declare class Profiler {}
+declare class JobFitJudge {}
+-->
+
 ```ts
-// src/agents/scout.agent.ts — instructions are explicitly loaded via file()
+// src/agents/scout.agent.ts — the prompt is a file next to the agent
+import { Agent } from "graphcompose";
+
 @Agent({
   name: "scout",
   description: "Finds jobs",
-  instructions: file("./scout.prompt.md"),
+  promptUrls: ["./scout.prompt.md"],
   model: "moonshotai/kimi-k2.6",
-  price,
   tools: [GreenhouseJobs],
-  promptVars: { company_name: "OpenAI" },
 })
 export class Scout {}
 
-// src/job-scout.workflow.ts
+// src/job-scout.workflow.ts — the graph, defaults and providers; limits in settings()
+import { Workflow, WorkflowSettings, from, type WorkflowDefinition } from "graphcompose";
+import { usd } from "graphcompose/units";
+
 @Workflow({
   name: "job-scout",
   version: "1.0.0",
-  defaults,
-  budget,
-  routers,
-  agents: [Profiler, Scout],
+  flow: [
+    from(ChatWorkflowStart).next(MainRouter),
+    from(MainRouter).routes(), // the router's @Router({ routes }) targets
+    from(Profiler, Scout).next(MainRouter),
+  ],
+  defaults: {
+    models: { temperature: 0 },
+    router: { kind: "jev", model: "typesafe/jev-1.13" },
+    tools: { maxToolCalls: 8 },
+    history: { limit: 5 },
+  },
   providers: [JobFitJudge],
 })
-export class JobScout {}
+export class JobScout implements WorkflowDefinition {
+  settings(): WorkflowSettings {
+    return WorkflowSettings.builder()
+      .limits({ perRun: { steps: 12, cost: usd(0.1) }, perDay: { cost: usd(1) } })
+      .build();
+  }
+}
 ```
+
+The whole shape — DTOs, a service, a tool, an agent, a router, the workflow and its test — is the
+worked example in [`CLAUDE.md`](CLAUDE.md) → Architecture (compiled and run by `make check`).
 
 ```bash
 npx graphcompose chat --workflow src/job-scout.workflow.ts
@@ -105,7 +135,7 @@ packages/graphcompose/   the framework (published as `graphcompose`)
 examples/job-scout/     the example (uses only the public API)
 ```
 
-`make check` — build, format, lint, types, tests with coverage for both packages. `npm run dev` —
+`make check` — build, API reports, compiled docs, format, lint, types, tests with coverage for both packages. `npm run dev` —
 rebuild the framework on change. The framework never imports the examples, and the examples use
 only `graphcompose` — both enforced by ESLint.
 
@@ -183,6 +213,14 @@ most 200 questions per call; an answer that does not fit its question fails with
 `model.decision.invalid-response`. `decide` on a chat model or `invoke` on a decision model throws
 `ModelKindError` (`model.wrong-kind`).
 
+<!-- snippet-context
+import { InjectionToken } from "graphcompose";
+interface JobSearch {
+  lastResults(): readonly string[];
+}
+const JOB_SEARCH = new InjectionToken<JobSearch>("JOB_SEARCH");
+-->
+
 ```ts
 import { Decision, Judge, type JudgeContext, type JudgeHandler } from "graphcompose";
 
@@ -221,17 +259,41 @@ one choice question over the routes, options sorted so declaration order never c
 Every tool and action gets the run it is part of as `ctx.run` (`RunContext`): built once per
 `execute` / `resume`, the same for every node of the run.
 
-```ts
-async execute(state: AgentState, ctx: ActionContext) {
-  ctx.run.runId;      // RunId, unique per run, the same after a resume
-  ctx.run.threadId;   // the conversation (ExecutionOutput.thread)
-  ctx.run.signal;     // aborted by app.cancel(thread) or the caller's signal
-  ctx.run.metadata;   // from execute(…, { metadata }), kept by the run's resumes
-  ctx.run.owner;      // from execute(…, { owner }): who the thread belongs to
-  ctx.idempotencyKey; // `${runId}:${node}` (+ `:${index}` inside batchParallel)
+<!-- snippet-context
+import { WorkflowAction, type ActionContext } from "graphcompose";
+@WorkflowAction({ name: "pay", description: "Pays the order" })
+export class Pay {
+// @snippet
 }
+-->
 
-await app.execute(Start, input, { thread, owner: userId, signal, metadata: { tenant: "acme" }, onStream });
+```ts
+execute(_state: unknown, ctx: ActionContext) {
+  ctx.run.runId; // RunId, unique per run, the same after a resume
+  ctx.run.threadId; // the conversation (ExecutionOutput.thread)
+  ctx.run.signal; // aborted by app.cancel(thread) or the caller's signal
+  ctx.run.metadata; // from execute(…, { metadata }), kept by the run's resumes
+  ctx.run.owner; // from execute(…, { owner }): who the thread belongs to
+  ctx.idempotencyKey; // `${runId}:${node}` (+ `:${index}` inside batchParallel)
+  return {};
+}
+```
+
+<!-- snippet-context
+import type { App, WorkflowStartClass } from "graphcompose";
+declare const app: App;
+declare const Start: WorkflowStartClass;
+declare const thread: string;
+declare const userId: string;
+declare const signal: AbortSignal;
+-->
+
+```ts
+await app.execute(
+  Start,
+  { text: "Pay order 7" },
+  { thread, owner: userId, signal, metadata: { tenant: "acme" } },
+);
 const { cancelled } = await app.cancel(thread, { owner: userId });
 ```
 
@@ -257,10 +319,18 @@ container creates them at app start, with their `deps`. Each hook has its own in
 type; assembly rejects an observer with no hook or with a misspelled one (`did you mean onToolEnd?`).
 An observer that throws is reported as a process warning and never fails the run.
 
+<!-- snippet-context
+import type { AgentsConfig, Flow } from "graphcompose";
+declare const flow: Flow;
+declare const defaults: AgentsConfig["defaults"];
+-->
+
 ```ts
 import {
   Injectable,
   Workflow,
+  WorkflowSettings,
+  type WorkflowDefinition,
   type AppState,
   type AgentStartEvent,
   type OnAgentStart,
@@ -277,8 +347,12 @@ export class MetricsObserver implements OnWorkflowStart, OnAgentStart {
   }
 }
 
-@Workflow({ name: "support", version: "1", flow: [...], observers: [MetricsObserver] })
-export class SupportWorkflow {}
+@Workflow({ name: "support", version: "1.0.0", flow, defaults, observers: [MetricsObserver] })
+export class SupportWorkflow implements WorkflowDefinition {
+  settings(): WorkflowSettings {
+    return WorkflowSettings.builder().build();
+  }
+}
 ```
 
 ## Tracing (local, optional)
@@ -299,9 +373,6 @@ Tickets move across the GitHub Project board of the repo:
 | Backlog            | `spec-session` | spec, implementation plan, automated + manual acceptance criteria — in the issue                      |
 | In progress → Test | `implement`    | independent issues in parallel; branch + PR per issue, merged to `dev`; manual-test handoff           |
 | Done               | a human        | after manual acceptance                                                                               |
-
-Rules: [`WORKFLOW.md`](WORKFLOW.md) (conveyor, board, branches, PRs) ·
-[`QUALITY.md`](QUALITY.md) (code, tests) · [`CLAUDE.md`](CLAUDE.md) (agent instructions).
 
 Rules and the delivery pipeline: [`WORKFLOW.md`](WORKFLOW.md) · [`QUALITY.md`](QUALITY.md) ·
 [`CLAUDE.md`](CLAUDE.md). Specs and plans live in GitHub Issues, docs in the GitHub Wiki.

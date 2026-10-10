@@ -66,8 +66,9 @@ holds from its type**, not guess it from the name.
 
 ## Agents (LangGraph)
 
-- **The workflow file is the graph.** `@Workflow({ flow: [...] })` with `from / to / choose /
-chain / node / Self` (Wiki → Workflow); nodes are `@WorkflowStart`, `@Router`, `@Agent`,
+- **The workflow file is the graph.** `@Workflow({ flow: [...] })` with `from().next()`,
+  `from(Router).routes()`, `chain`, `nextParallel` / `join`, `batchParallel`, `catchError` and `node`
+  (CLAUDE.md → The flow DSL); nodes are `@WorkflowStart`, `@Router`, `@Agent`, `@WorkflowAction`,
   `@WorkflowFinish`.
   Assembly rules run at assembly, before any model call, and report **all** violations at once
   (`GraphRuleError` with stable codes). A new rule gets a code and a test.
@@ -91,9 +92,10 @@ chain / node / Self` (Wiki → Workflow); nodes are `@WorkflowStart`, `@Router`,
 - **Routers are isolated** (`src/routers`): input is plain text + options, output is a
   `RouteOutcome` union (`decided` | `failed`); they import only `config`, `finops`, `llm`, and the
   rest of the code imports them only via `src/routers/index.ts` — ESLint-enforced. Routers are
-  tested on their own (`npm run test:routers`), the graph adapter separately.
+  tested on their own (`packages/graphcompose/tests/routers/`), the graph adapter separately.
 - **`@Router` = how + what.** `prompt` / `promptUrls` say how to choose; `routes` say what each
-  choice means (`route(Target, text)`, text required, the targets equal the router's `choose`). A route
+  choice means (`{ prompt, target }`, the text required); `from(Router).routes()` in the flow takes
+  exactly those targets. A route
   **to a workflow finish** is worded as a stop instruction ("Stop and send the answer: …") — worded as
   "the answer is ready", Jev kept sending the turn back to the last agent (#116).
 - **A router failure fails the run** (`RouterDecisionError`: `router.failed`,
