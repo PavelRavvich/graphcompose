@@ -35,6 +35,9 @@ const SHAPE_PINS = [
   "every kind of component",
   "the flow assembles as a star",
   "the main router is Jev",
+  // the recorded run replays the main router's request by hash: a new agent changes the router's
+  // routes, so the request no longer matches the cassette — by design (#204), re-recorded per change
+  "the recorded brief run replays",
 ];
 
 beforeAll(() => {
