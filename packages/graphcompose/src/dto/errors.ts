@@ -1,3 +1,4 @@
+import { GraphComposeError } from "../core/errors.js";
 /** What went wrong with a DTO class itself (found at registration, before any data). */
 export type DtoErrorCode = "dto.undecorated-field" | "dto.not-plain-data" | "dto.no-metadata";
 
@@ -19,7 +20,8 @@ export interface DtoIssue {
 }
 
 /** Data that does not fit a DTO: every issue with its field path and reason. */
-export class DtoValidationError extends Error {
+export class DtoValidationError extends GraphComposeError {
+  static override readonly code: string = "dto.invalid";
   override name = "DtoValidationError";
   constructor(
     readonly dto: string,

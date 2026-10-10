@@ -24,9 +24,8 @@ export { loadWorkflow, loadWorkflowClass, WorkflowLoadError } from "./cli/load-w
 export { withProfile } from "./profile-workflow.js";
 export { describeWorkflow } from "./cli/describe.js";
 export type { GraphDeps } from "./graph/deps.js";
-export { resumeAgent, NotPausedError } from "./run/resume-agent.js";
+export { resumeAgent } from "./run/resume-agent.js";
 export { runAgent } from "./run/run-agent.js";
-export { UnknownThreadError } from "./run/thread.js";
 export type { McpServerOptions } from "./mcp/mcp-server.decorator.js";
 export { McpServer } from "./mcp/mcp-server.decorator.js";
 export type { McpSession } from "./mcp/mcp-service.js";

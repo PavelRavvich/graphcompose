@@ -1,3 +1,4 @@
+import { GraphComposeError } from "../core/errors.js";
 import type { Milliseconds } from "../units/index.js";
 
 /** A class decorated with `@ModelProvider` (the fallback of a breaker). */
@@ -17,10 +18,12 @@ export interface CircuitBreakerPolicy {
 /** Codes of a failed model call the framework raises itself. */
 export type ModelCallErrorCode = "model.circuit-open";
 
-export class ModelCallError extends Error {
+/** A model call the framework failed itself; `code` on the instance says why (`model.circuit-open`). */
+export class ModelCallError extends GraphComposeError {
+  static override readonly code: string = "model";
   override name = "ModelCallError";
   constructor(
-    readonly code: ModelCallErrorCode,
+    override readonly code: ModelCallErrorCode,
     readonly provider: string,
     message: string,
   ) {

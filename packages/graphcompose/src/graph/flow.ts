@@ -238,6 +238,13 @@ export function labelOf(target: ChoiceTarget): string {
   return target.name || "(anonymous class)";
 }
 
+/**
+ * When `target` fails with `errorType` (or a subclass, or an error caused by one), go to the next
+ * node instead of failing the run. Matching is by the class's stable `code` (`BudgetExceededError.code`,
+ * …; a user class without a `static code` matches by its name), so it still works on a run resumed
+ * from a checkpoint. `Error` (the default) catches everything. `compensateWith` is `next` under
+ * another name, for a compensating target (`LocalSagaStrategy`).
+ */
 export function catchError(
   target: FlowNode,
   errorType: Class = Error,

@@ -3,7 +3,10 @@ import type { MessageContent } from "@langchain/core/messages";
 import type { FlowNodeRef } from "./flow-nodes.js";
 import type { FlowStateType, FlowStateUpdate } from "./flow-state.js";
 import type { JoinOutput, ForkOutput } from "./fork-join.js";
-import { checkVisit, type ResolvedLimits } from "./limits.js";
+import { checkVisit, LimitExceededError, type ResolvedLimits } from "./limits.js";
+import { PaidStepError } from "./errors.js";
+import { errorRecordOf, recordMatches } from "../core/error-record.js";
+import type { UsageRecord } from "../finops/usage.js";
 import { isWorkingKind } from "./node-kind.js";
 import type { AsyncNode } from "./types.js";
 import type { Contribution } from "./contributions.js";
@@ -25,8 +28,29 @@ export interface VisitDeps {
   readonly spentToday: SpentToday;
   /** A router's `maxVisits`. */
   readonly maxVisits?: number;
-  readonly catchesErrors?: boolean;
+  /** The codes the node's `catchError`s catch (`undefined` = any error); none → errors propagate. */
+  readonly catchCodes?: readonly (string | undefined)[];
 }
+
+/** Spend a failure carries that the flow's state does not hold yet. */
+const unrecordedSpendOf = (error: unknown): readonly UsageRecord[] =>
+  error instanceof PaidStepError || error instanceof LimitExceededError ? error.usage : [];
+
+/**
+ * A node's failure that one of its `catchError`s matches: kept as a record in state (with the spend
+ * it carried) for the catch route; anything else is rethrown as it is, typed.
+ */
+function caughtUpdate(error: unknown, deps: VisitDeps): FlowStateUpdate {
+  if (error instanceof QuorumCancelledError) return {};
+  const record = errorRecordOf(error);
+  const codes = deps.catchCodes ?? [];
+  if (!codes.some((code) => recordMatches(record, code))) throw error;
+  return { lastError: record, usage: [...unrecordedSpendOf(error)] };
+}
+
+/** A node that runs after a caught error clears it (never in the same step, so a parallel catch keeps it). */
+const clearedError = (state: FlowStateType): FlowStateUpdate =>
+  state.lastError === null ? {} : { lastError: null };
 
 async function daySpentBeforeRun(state: FlowStateType, deps: VisitDeps): Promise<number> {
   if (state.daySpentBeforeRunUsd !== null) return state.daySpentBeforeRunUsd;
@@ -115,6 +139,7 @@ export function visitNode(
       const joinUpdate = await joinUpdateOf(node, state);
       const res = await runner(mergeJoinState(state, joinUpdate), config);
       return {
+        ...clearedError(state),
         ...res,
         ...visited,
         ...mergeJoinUpdate(res, joinUpdate),
@@ -123,7 +148,7 @@ export function visitNode(
     };
   }
 
-  // eslint-disable-next-line max-lines-per-function, complexity
+  // eslint-disable-next-line complexity
   return async (state, config) => {
     let branchCancelToken: BranchCancelToken | undefined;
     let manager: QuorumManager | undefined;
@@ -148,15 +173,15 @@ export function visitNode(
       };
     }
 
-    const daySpent = await daySpentBeforeRun(state, deps);
-    checkVisit(state, {
-      node,
-      limits: deps.limits,
-      daySpentBeforeRunUsd: daySpent,
-      ...(deps.maxVisits === undefined ? {} : { maxVisits: deps.maxVisits }),
-    });
-
     try {
+      // a limit hit before the node runs is the node's failure: its catchError may take it
+      const daySpent = await daySpentBeforeRun(state, deps);
+      checkVisit(state, {
+        node,
+        limits: deps.limits,
+        daySpentBeforeRunUsd: daySpent,
+        ...(deps.maxVisits === undefined ? {} : { maxVisits: deps.maxVisits }),
+      });
       const joinUpdate = await joinUpdateOf(node, state);
       const update = await runner(mergeJoinState(state, joinUpdate), branchConfig);
 
@@ -169,6 +194,7 @@ export function visitNode(
       }
 
       return {
+        ...clearedError(state),
         ...update,
         // a nested workflow's runner reports its own node, path, visits and steps (`childDelta`)
         ...(node.kind === "workflow" ? {} : { ...visited, steps: 1 }),
@@ -177,13 +203,7 @@ export function visitNode(
         ...(node.kind === "agent" ? { previousAgent: node.key } : {}),
       };
     } catch (err) {
-      if (err instanceof QuorumCancelledError) {
-        return {};
-      }
-      if (deps.catchesErrors) {
-        return { lastError: err as Error };
-      }
-      throw err;
+      return caughtUpdate(err, deps);
     }
   };
 }

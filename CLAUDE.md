@@ -83,8 +83,14 @@ flow: [
   e.g. `perRun: { steps: 12, cost: usd(0.1) }`, `perDay: { cost: usd(1) }`. Steps = visits of
   agents and routers (default (agents + routers) × 3). Hitting any limit **fails the run** with
   `LimitExceededError` naming the boundary key (`limits.perRun.steps`, `limits.perRun.cost`,
-  `limits.perDay.cost`, `routers.<name>.maxVisits`). LangGraph `recursionLimit` is only a safety
-  net far above the steps.
+  `limits.perDay.cost`, `routers.<name>.maxVisits`; a money limit is its subclass
+  `BudgetExceededError`). LangGraph `recursionLimit` is only a safety net far above the steps.
+- **Run errors** (`graphcompose` root): every one a `GraphComposeError` with a stable `code`
+  (`limit` ⊃ `limit.budget`, `step` ⊃ `step.agent` / `step.guard` / `step.router`,
+  `workflow.cancelled`, …). `catchError(Node, ErrorClass).next(Handler)` matches by code — the
+  class's, its subclasses', and anything it caused — on a plain `{ name, code, message, details }`
+  record in state, so it holds after a resume from a checkpoint; a limit hit before the node runs
+  is that node's failure. A cancelled run rejects with `WorkflowCancelledError`.
 - Every turn: spend to the daily ledger, a Tern to SQLite, financials in the result, optional
   tracing (Langfuse) and conversation compaction (summaries queue).
 - **Memory** (`graphcompose/memory`): by default an agent sees the thread's last

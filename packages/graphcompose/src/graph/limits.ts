@@ -1,3 +1,4 @@
+import { GraphComposeError } from "../core/errors.js";
 import { totalCost, type UsageRecord } from "../finops/usage.js";
 import type { FlowModel } from "./check-flow.js";
 import { componentOf } from "../components/metadata.js";
@@ -26,7 +27,8 @@ export interface LimitBreach {
  * A limit was hit — the run **fails** (never a quiet stop), with its path and its spend. `usage` is
  * spend the run's state does not hold yet (an agent's loop stopped midway), so the ledger still sees it.
  */
-export class LimitExceededError extends Error {
+export class LimitExceededError extends GraphComposeError {
+  static override readonly code: string = "limit";
   override name = "LimitExceededError";
   readonly key: LimitKey;
   readonly limit: number;
@@ -44,6 +46,7 @@ export class LimitExceededError extends Error {
     super(
       `Limit ${breach.key} = ${String(breach.limit)} exceeded (${String(breach.actual)}); ` +
         `path: ${path.join(" → ")}; spent $${spentUsd.toFixed(4)}`,
+      { details: { key: breach.key, limit: breach.limit, actual: breach.actual } },
     );
     this.key = breach.key;
     this.limit = breach.limit;
@@ -52,6 +55,27 @@ export class LimitExceededError extends Error {
     this.spentUsd = spentUsd;
     this.usage = usage;
   }
+}
+
+/** A money limit was hit: the run's budget (`limits.perRun.cost`) or the day's (`limits.perDay.cost`). */
+export class BudgetExceededError extends LimitExceededError {
+  static override readonly code: string = "limit.budget";
+  override name = "BudgetExceededError";
+}
+
+const isBudgetKey = (key: LimitKey): boolean =>
+  key === "limits.perRun.cost" || key === "limits.perDay.cost";
+
+/** The error for a breach: a `BudgetExceededError` for a money limit, else a `LimitExceededError`. */
+export function limitError(
+  breach: LimitBreach,
+  path: readonly string[],
+  spentUsd: number,
+  usage: readonly UsageRecord[] = [],
+): LimitExceededError {
+  return isBudgetKey(breach.key)
+    ? new BudgetExceededError(breach, path, spentUsd, usage)
+    : new LimitExceededError(breach, path, spentUsd, usage);
 }
 
 /** The account's day is spent (`limits.perDay.cost`): eval and replay stop there. */
@@ -119,9 +143,9 @@ function breachOf(state: FlowStateType, check: VisitCheck): LimitBreach | undefi
   return undefined;
 }
 
-/** Throws `LimitExceededError` when visiting this working node would cross a limit. */
+/** Throws `LimitExceededError` (`BudgetExceededError` for money) when visiting this working node would cross a limit. */
 export function checkVisit(state: FlowStateType, check: VisitCheck): void {
   const breach = breachOf(state, check);
   if (breach === undefined) return;
-  throw new LimitExceededError(breach, [...state.path, check.node.key], totalCost(state.usage));
+  throw limitError(breach, [...state.path, check.node.key], totalCost(state.usage));
 }

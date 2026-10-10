@@ -1,3 +1,4 @@
+import { GraphComposeError } from "../core/errors.js";
 import type { z } from "zod";
 import { pathOf } from "../dto/errors.js";
 import type { Tool, ToolContext, ToolOutput } from "./types.js";
@@ -12,7 +13,9 @@ export class InvalidToolNameError extends Error {
   override name = "InvalidToolNameError";
 }
 
-export class ToolTimeoutError extends Error {
+/** A tool ran past its `timeoutMs` (its agent's model reads it as a tool error). */
+export class ToolTimeoutError extends GraphComposeError {
+  static override readonly code: string = "tool.timeout";
   override name = "ToolTimeoutError";
   constructor(timeoutMs: number) {
     super(`timed out after ${String(timeoutMs)} ms`);

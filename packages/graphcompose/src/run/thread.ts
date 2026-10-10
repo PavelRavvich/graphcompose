@@ -1,8 +1,10 @@
+import { GraphComposeError } from "../core/errors.js";
 import type { HistoryTurn } from "../graph/contributions.js";
 import type { Tern } from "../terns/index.js";
 import type { RunDeps } from "./types.js";
 
-export class UnknownThreadError extends Error {
+export class UnknownThreadError extends GraphComposeError {
+  static override readonly code: string = "run.unknown-thread";
   override name = "UnknownThreadError";
 }
 

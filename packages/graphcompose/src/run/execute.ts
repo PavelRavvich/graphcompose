@@ -1,9 +1,10 @@
+import { WorkflowCancelledError } from "../core/errors.js";
 import { drainRecordingUsage } from "../finops/record-stream.js";
 import { totalCost, type UsageRecord } from "../finops/usage.js";
 import type { FlowGraph } from "../graph/build.js";
 import { PaidStepError } from "../graph/errors.js";
 import type { FlowStateType } from "../graph/flow-state.js";
-import { LimitExceededError, type LimitBreach } from "../graph/limits.js";
+import { BudgetExceededError, LimitExceededError, type LimitBreach } from "../graph/limits.js";
 import type { RunLimits } from "../graph/flow-runtime.js";
 import type { WorkflowLimits } from "../graph/settings.js";
 import type { NewTern, TernOutcome } from "../terns/index.js";
@@ -89,7 +90,9 @@ const errorMessage = (error: unknown): string =>
 
 /** A run stopped by its signal reads as cancelled, whatever error the abort surfaced as. */
 export const outcomeError = (error: unknown, signal: AbortSignal | undefined): unknown =>
-  signal?.aborted === true ? new Error("the run was cancelled") : error;
+  signal?.aborted === true && !(error instanceof WorkflowCancelledError)
+    ? new WorkflowCancelledError("the run was cancelled")
+    : error;
 
 export const failedOutcome = (error: unknown, spent: readonly UsageRecord[]): TernOutcome => ({
   replyWith: "",
@@ -142,7 +145,7 @@ export async function allowedBudget<TName extends string>(
       limit: account.dailyCap,
       actual: spentToday,
     };
-    throw new LimitExceededError(breach, [], 0);
+    throw new BudgetExceededError(breach, [], 0);
   }
   return {
     budgetUsd: Math.min(deps.limits.perRun?.cost ?? Number.POSITIVE_INFINITY, left),
