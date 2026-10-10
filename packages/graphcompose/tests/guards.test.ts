@@ -7,12 +7,12 @@ import {
   type Guard,
 } from "../src/guards/index.js";
 import { runAgent } from "../src/index.js";
-import type { RouteOutcome, Router } from "../src/routers/index.js";
+import type { RouteOutcome, RouterEngine } from "../src/routers/index.js";
 import { routeTo, fakeDeps, memoryLedger, recordingRouters, usageRecord } from "./helpers.js";
 
-const routerSaying = (outcome: RouteOutcome): Router => ({
+const routerSaying = (outcome: RouteOutcome): RouterEngine => ({
   name: "guard",
-  route: vi.fn<Router["route"]>(() => Promise.resolve(outcome)),
+  route: vi.fn<RouterEngine["route"]>(() => Promise.resolve(outcome)),
 });
 
 const flag = (confidence: number): RouteOutcome => ({
@@ -21,7 +21,7 @@ const flag = (confidence: number): RouteOutcome => ({
   usage: usageRecord("router:guard:test", 0.0001),
 });
 
-const guard = (name: string, router: Router, threshold = 0.7): Guard => ({
+const guard = (name: string, router: RouterEngine, threshold = 0.7): Guard => ({
   name,
   router,
   question: `Is this ${name}?`,

@@ -4,16 +4,16 @@ import { createApp } from "../../src/app/create-app.js";
 import { toolLookup, UnknownToolError } from "../../src/app/parts.js";
 import { flowNodesByKey, runResultOf } from "../../src/app/result.js";
 import { workflowOf } from "../../src/testing/index.js";
-import { Workflow } from "../../src/core/index.js";
-import { Text, WorkflowStartText } from "../../src/dto/index.js";
-import { buildCostReport } from "../../src/finops/usage.js";
-import { createMemoryLedger } from "../../src/finops/ledger.js";
 import {
+  Workflow,
   from,
   WorkflowSettings,
   WorkflowStart,
   type WorkflowDefinition,
-} from "../../src/graph/index.js";
+} from "../../src/index.js";
+import { Text, WorkflowStartText } from "../../src/dto/index.js";
+import { buildCostReport } from "../../src/finops/usage.js";
+import { createMemoryLedger } from "../../src/finops/ledger.js";
 import { createSqliteTernStore } from "../../src/terns/index.js";
 import { ScriptBook } from "../../src/testing/script-book.js";
 import { createScriptedGateway } from "../../src/testing/scripted-gateway.js";

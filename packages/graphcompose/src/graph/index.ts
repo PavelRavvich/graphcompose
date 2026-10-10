@@ -1,54 +1,103 @@
 /**
- * `graphcompose/graph` — the workflow's graph: the flow DSL (`from`, `chain`, `node`, `Self`),
- * `@WorkflowStart`, `@Router`, `@WorkflowFinish`, workflow settings and limits, and the errors
- * assembly and runs raise.
- * Wiki → Workflow, Routers.
+ * `graphcompose/graph` — deprecated (#195): the flow DSL, workflow settings and limits moved to
+ * the root entry `graphcompose`. `gc migrate imports` rewrites the imports; this entry is removed
+ * in the next minor release.
  */
-import "../polyfills/symbol-metadata.js";
-
 export {
-  chain,
-  from,
-  node,
-  Self,
-  Return,
-  End,
-  type ChainStep,
-  type ChoiceTarget,
-  type ChooseStep,
-  type Flow,
-  type FlowNode,
-  type FlowNodeClass,
-  type FlowNodeInstance,
-  type FlowSource,
-  type FlowStep,
-  type NamedNode,
-  type SelfTarget,
-  type ToStep,
+  /** @deprecated Import from "graphcompose" (#195). */
   background,
+  /** @deprecated Import from "graphcompose" (#195). */
   bg,
-  parallel,
+  /** @deprecated Import from "graphcompose" (#195). */
+  chain,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type ChainStep,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type ChoiceTarget,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type ChooseStep,
+  /** @deprecated Import from "graphcompose" (#195). */
+  End,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type Flow,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type FlowNode,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type FlowNodeClass,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type FlowNodeInstance,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type FlowSource,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type FlowStep,
+  /** @deprecated Import from "graphcompose" (#195). */
+  from,
+  /** @deprecated Import from "graphcompose" (#195). */
+  GraphRuleError,
+  /** @deprecated Import from "graphcompose" (#195). */
+  LimitExceededError,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type LimitKey,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type NamedNode,
+  /** @deprecated Import from "graphcompose" (#195). */
+  node,
+  /** @deprecated Import from "graphcompose" (#195). */
   optional,
-} from "./flow.js";
-export { SELF_OPTION, type RouteDeclaration } from "./route.js";
-export {
-  WorkflowStart,
-  type StartInputOf,
-  type WorkflowStartClass,
-  type WorkflowStartOptions,
-} from "./workflow-start.decorator.js";
-export { WorkflowFinish, type WorkflowFinishOptions } from "./workflow-finish.decorator.js";
-export { Router, type RouterOptions } from "./router.decorator.js";
-export {
-  WorkflowSettings,
-  WorkflowSettingsError,
+  /** @deprecated Import from "graphcompose" (#195). */
+  parallel,
+  /** @deprecated Import from "graphcompose" (#195). */
   type PerDayLimits,
+  /** @deprecated Import from "graphcompose" (#195). */
   type PerRunLimits,
+  /** @deprecated Import from "graphcompose" (#195). */
+  Return,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type RouteDeclaration,
+  /** @deprecated Import from "graphcompose" (#195). */
+  Router,
+  /** @deprecated Import from "graphcompose" (#195). */
+  RouterDecisionError,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type RouterFailureCode,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type RouterOptions,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type RuleCode,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type RuleViolation,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type RunContext,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type RunId,
+  /** @deprecated Import from "graphcompose" (#195). */
+  Self,
+  /** @deprecated Import from "graphcompose" (#195). */
+  SELF_OPTION,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type SelfTarget,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type StartInputOf,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type ToStep,
+  /** @deprecated Import from "graphcompose" (#195). */
   type WorkflowDefinition,
+  /** @deprecated Import from "graphcompose" (#195). */
+  WorkflowFinish,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type WorkflowFinishOptions,
+  /** @deprecated Import from "graphcompose" (#195). */
   type WorkflowLimits,
+  /** @deprecated Import from "graphcompose" (#195). */
+  WorkflowSettings,
+  /** @deprecated Import from "graphcompose" (#195). */
   type WorkflowSettingsBuilder,
-} from "./settings.js";
-export { GraphRuleError, type RuleCode, type RuleViolation } from "./rule-error.js";
-export { LimitExceededError, type LimitKey } from "./limits.js";
-export { RouterDecisionError, type RouterFailureCode } from "./nodes/flow-router.js";
-export type { RunContext, RunId } from "../core/run-context.js";
+  /** @deprecated Import from "graphcompose" (#195). */
+  WorkflowSettingsError,
+  /** @deprecated Import from "graphcompose" (#195). */
+  WorkflowStart,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type WorkflowStartClass,
+  /** @deprecated Import from "graphcompose" (#195). */
+  type WorkflowStartOptions,
+} from "../index.js";

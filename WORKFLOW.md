@@ -105,7 +105,7 @@ import {
   InboundChannelAdapter,
   type ChannelHandler,
   type ChannelRequest,
-} from "graphcompose/core";
+} from "graphcompose";
 
 @InboundChannelAdapter({ name: "slack-click" })
 export class SlackClick implements InboundChannelAdapter<{ action: string; user: string }> {

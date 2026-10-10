@@ -16,7 +16,7 @@ import {
   type OnWorkflowStart,
   type ToolEndEvent,
   type ToolStartEvent,
-} from "../../../src/core/index.js";
+} from "../../../src/index.js";
 import {
   callTool,
   failWith,

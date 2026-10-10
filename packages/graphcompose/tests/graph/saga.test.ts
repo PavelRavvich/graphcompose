@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Agent, Workflow } from "../../src/components/decorators.js";
-import { from, catchError } from "../../src/router/index.js";
+import { from, catchError, WorkflowStart, WorkflowFinish } from "../../src/index.js";
 
 import { testWith } from "../../src/testing/test-with.js";
 import { replyWith } from "../../src/testing/script.js";
@@ -27,7 +27,6 @@ class BookFlightAgent {}
 @Agent({ name: "fallback_agent", model: "gpt-4", description: "f", prompt: "p" })
 class FallbackAgent {}
 
-import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
 import { WorkflowStartText } from "../../src/dto/standard/framework.js";
 @WorkflowStart({ name: "Start", description: "Start", input: WorkflowStartText })
 class Start {

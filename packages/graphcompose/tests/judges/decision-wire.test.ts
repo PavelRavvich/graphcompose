@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import type { AppOptions } from "../../src/app/create-app.js";
 import { createApp } from "../../src/app/create-app.js";
-import { Decision } from "../../src/core/index.js";
+import { Decision } from "../../src/index.js";
 import { DecisionRequestError, DecisionResponseError } from "../../src/errors.js";
 import { createMemoryLedger } from "../../src/finops/ledger.js";
 import { createModelGateway } from "../../src/llm/gateway.js";

@@ -9,8 +9,12 @@ import {
   Injectable,
   OnAgentEnd,
   type AgentEndEvent,
-} from "../../src/core/index.js";
-import { from, node, WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
+  from,
+  node,
+  WorkflowStart,
+  WorkflowFinish,
+  WorkflowSettings,
+} from "../../src/index.js";
 import { testWith, replyWith } from "../../src/testing/index.js";
 
 const logs: string[] = [];
@@ -41,7 +45,6 @@ class Start {
 @WorkflowFinish({ name: "finish", description: "Finish", output: WorkflowStartText })
 class Finish {}
 
-import { WorkflowSettings } from "../../src/graph/index.js";
 import { usd } from "../../src/units/index.js";
 
 @Workflow({

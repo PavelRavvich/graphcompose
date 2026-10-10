@@ -17,11 +17,9 @@ import {
 } from "../../src/components/decorators.js";
 import { Judge, type JudgeHandler } from "../../src/components/judge-decorators.js";
 import { type Provider } from "../../src/components/injection.js";
-import { Agent, InjectionToken, provide } from "../../src/core/index.js";
+import { Agent, InjectionToken, provide, from, Tool, type ToolHandler } from "../../src/index.js";
 import { Text } from "../../src/dto/index.js";
-import { from } from "../../src/graph/index.js";
 import type { RagRetrieval } from "../../src/rag/types.js";
-import { Tool, type ToolHandler } from "../../src/tool/index.js";
 import { Chat, Done, offline, workflowWith } from "./fixture/deps-contract.workflow.js";
 
 const MISSING = new InjectionToken<string>("MISSING");

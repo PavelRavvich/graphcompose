@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { AgentFailedError, DecisionRequestError, ModelKindError } from "../../src/errors.js";
-import { Decision } from "../../src/core/index.js";
+import { Decision } from "../../src/index.js";
 import { decideWith, replyWith, routeTo, testWith } from "../../src/testing/index.js";
 import { usd } from "../../src/units/index.js";
 import { AnswerGrounded, DecisionDesk, LUNA, Writer } from "./fixtures/decision-judged.workflow.js";

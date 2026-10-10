@@ -1,5 +1,4 @@
-import { Agent, Workflow } from "../../../src/core/index.js";
-import { from, Router, type Flow } from "../../../src/graph/index.js";
+import { Agent, Workflow, from, Router, type Flow } from "../../../src/index.js";
 import type { FlowNodeClass } from "../../../src/graph/flow.js";
 import type { Class } from "../../../src/components/injection.js";
 import { testConfig } from "../../helpers.js";

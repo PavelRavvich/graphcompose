@@ -146,6 +146,12 @@ const SCAFFOLD_COMMANDS: Readonly<Record<string, CommandSpec>> = {
       DRY_RUN,
     ],
   },
+  migrate: {
+    summary: "rewrite imports of the old entries (graphcompose/core, /graph, …) to the new ones",
+    usage: "gc migrate imports [<path>…] [--dry-run]",
+    positionals: "imports [<path>…]",
+    options: [DRY_RUN],
+  },
   help: {
     summary: "this list, or one command's options",
     usage: "gc help [<command>] [--json]",

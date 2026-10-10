@@ -2,12 +2,12 @@ import type { ChatDefaults, RouterModel } from "../config/types.js";
 import type { DecisionModel, ModelGateway } from "../llm/gateway.js";
 import { resolveSettings } from "../llm/registry.js";
 import { decided, failed } from "./outcome.js";
-import type { Router } from "./types.js";
+import type { RouterEngine } from "./types.js";
 
 /**
  * One option = an unconditional step, no options = nothing to routeTo: neither pays for a call.
  */
-export function withTrivialOptions(router: Router): Router {
+export function withTrivialOptions(router: RouterEngine): RouterEngine {
   return {
     name: router.name,
     route: (request) => {
@@ -36,7 +36,7 @@ export function createRouter(
   model: RouterModel,
   chatDefaults: ChatDefaults,
   gateway: Pick<ModelGateway, "routeTo">,
-): Router {
+): RouterEngine {
   const decisionModel = decisionModelOf(model, chatDefaults);
   return withTrivialOptions({
     name,

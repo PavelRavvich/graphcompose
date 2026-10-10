@@ -5,7 +5,7 @@ import type { ModelRegistry } from "../llm/registry.js";
 import type { BaseMemoryStrategy } from "../memory/types.js";
 import type { PauseSeam } from "../pause/index.js";
 import type { KnowledgeSource } from "../rag/types.js";
-import type { Router } from "../routers/index.js";
+import type { RouterEngine } from "../routers/index.js";
 import type { AnyTool } from "../tools/index.js";
 import type { Flow } from "./flow.js";
 import type { LoadedRouter } from "./router-texts.js";
@@ -78,7 +78,7 @@ export interface GraphDeps<TName extends string> {
   /** Every router of the flow with its texts loaded (part of the run's versions). */
   readonly routers: readonly LoadedRouter[];
   /** The routing strategy of a router: its own model (Jev or a chat model). */
-  readonly routerFor: (router: LoadedRouter) => Router;
+  readonly routerFor: (router: LoadedRouter) => RouterEngine;
   readonly observer?: ObserverManager;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters, @typescript-eslint/no-explicit-any
   readonly container?: { get: <T>(token: any) => T };

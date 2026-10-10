@@ -7,9 +7,9 @@ import {
   WorkflowSettings,
   WorkflowStart,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
+} from "../../../src/index.js";
 import type { IncompatibleResume } from "../../../src/run/resume-guard.js";
-import type { ToolHandler } from "../../../src/tool/index.js";
+import type { ToolHandler } from "../../../src/index.js";
 
 /** Emails the tool really sent, in order (the tests reset it). */
 export const sent: string[] = [];

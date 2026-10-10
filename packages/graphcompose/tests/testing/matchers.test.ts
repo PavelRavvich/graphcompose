@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ExecutionOutput } from "../../src/app/types.js";
 import { buildCostReport } from "../../src/finops/usage.js";
 import { AgentFailedError } from "../../src/graph/errors.js";
-import { GraphRuleError, LimitExceededError, RouterDecisionError } from "../../src/graph/index.js";
+import { GraphRuleError, LimitExceededError, RouterDecisionError } from "../../src/index.js";
 import { replyWith, callTool, routeTo, TestFailure, testWith } from "../../src/testing/index.js";
 import {
   ChatStart,

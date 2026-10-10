@@ -4,7 +4,7 @@ import { ZERO_USAGE, type UsageRecord } from "../finops/usage.js";
 import type { JevClient } from "../llm/jev-client.js";
 import { decided, errorReason, failed, unknownOption } from "./outcome.js";
 import { jevRouteInstructions } from "./prompts.js";
-import { routerCaller, type RouteOutcome, type RouteRequest, type Router } from "./types.js";
+import { routerCaller, type RouteOutcome, type RouteRequest, type RouterEngine } from "./types.js";
 
 export interface JevRouterDeps {
   readonly name: string;
@@ -53,7 +53,7 @@ function toOutcome(raw: unknown, request: RouteRequest, usageOf: UsageFactory): 
 type UsageFactory = (reportedModel: string | undefined, costUsd: number) => UsageRecord;
 
 /** Jev picks among options with calibrated probabilities; cost comes from the API response. */
-export function createJevRouter(deps: JevRouterDeps): Router {
+export function createJevRouter(deps: JevRouterDeps): RouterEngine {
   const usageOf: UsageFactory = (reportedModel, costUsd) => ({
     caller: routerCaller(deps.name),
     model: reportedModel ?? deps.model,

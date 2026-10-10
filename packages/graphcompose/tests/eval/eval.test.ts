@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { evaluate, scoreOf, type EvalDeps } from "../../src/eval/eval.js";
 import { runAgent } from "../../src/index.js";
-import type { RouteOutcome, Router } from "../../src/routers/index.js";
+import type { RouteOutcome, RouterEngine } from "../../src/routers/index.js";
 import { routeTo, fakeDeps, memoryLedger, usageRecord } from "../helpers.js";
 
-const judge = (...outcomes: RouteOutcome[]): Router => {
-  const route = vi.fn<Router["route"]>();
+const judge = (...outcomes: RouteOutcome[]): RouterEngine => {
+  const route = vi.fn<RouterEngine["route"]>();
   for (const outcome of outcomes) route.mockResolvedValueOnce(outcome);
   return { name: "judge", route };
 };

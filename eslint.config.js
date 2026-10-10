@@ -2,6 +2,7 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import { testRules } from "./eslint.tests.js";
 import { runStateRules } from "./scripts/eslint-run-state.mjs";
+import { packageImportPatterns } from "./scripts/public-entries.mjs";
 
 /** What any framework module may not import (src/routers, tools and terns have their own rules). */
 const frameworkImportPatterns = [
@@ -156,25 +157,11 @@ export default tseslint.config(
     },
   },
   {
-    // An example uses GraphCompose like any outside project: only its public API.
+    // An example uses GraphCompose like any outside project: only its public entries, the allowlist
+    // generated from packages/graphcompose/package.json#exports (#195), so they cannot drift.
     files: ["examples/*/src/**/*.ts", "examples/*/tests/**/*.ts"],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              regex: "^(\\.\\./){2,}(packages|graphcompose)/",
-              message: 'Examples import only from "graphcompose" (its public API).',
-            },
-            {
-              regex: "^graphcompose/(?!(dto|graph|mcp|models|rag|units|testing|testing/setup)$)",
-              message:
-                'No deep imports: use "graphcompose", "graphcompose/graph", "graphcompose/mcp", "graphcompose/rag", "graphcompose/models", "graphcompose/units", "graphcompose/dto" or "graphcompose/testing" (its public API).',
-            },
-          ],
-        },
-      ],
+      "no-restricted-imports": ["error", { patterns: packageImportPatterns() }],
     },
   },
   testRules,

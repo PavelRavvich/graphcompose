@@ -5,7 +5,7 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { App } from "../app/types.js";
 import type { Class } from "../components/injection.js";
-import type { McpServerOptions } from "./mcp-server.decorator.js";
+import type { McpExposeOptions } from "./mcp-expose.decorator.js";
 import {
   callIdOf,
   createSseTransport,
@@ -20,12 +20,12 @@ export interface McpSession {
 }
 
 /**
- * An app as an MCP server: `tools/list` and `tools/call` for the `@McpServer` exports
+ * An app as an MCP server: `tools/list` and `tools/call` for the `@McpExpose` exports
  * (see `collectTools`), over stdio (`connectStdio`), SSE (`handleSse` + `handleMessage`) or any
  * SDK transport (`connect`, e.g. `InMemoryTransport` in tests).
  */
 export class McpService {
-  private readonly options: McpServerOptions;
+  private readonly options: McpExposeOptions;
   private readonly activeTransports = new Map<
     string,
     { transport: SseTransport; context: unknown }
@@ -37,7 +37,7 @@ export class McpService {
   ) {
     const options = mcpServerOptionsOf(config);
     if (!options) {
-      throw new Error(`${config.name} is not an @McpServer`);
+      throw new Error(`${config.name} is not an @McpExpose`);
     }
     this.options = options;
   }

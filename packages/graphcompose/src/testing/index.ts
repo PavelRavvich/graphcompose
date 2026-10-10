@@ -29,7 +29,7 @@ export {
 } from "./script.js";
 export type { ChatLine, ModelRequest, ModelScript } from "./script-book.js";
 export type { McpStub, McpStubCall } from "./mcp-stubs.js";
-export type { Duration, TestClock } from "./clock.js";
+export type { ClockDuration, TestClock } from "./clock.js";
 export {
   CassetteMissingError,
   LiveCallBlockedError,

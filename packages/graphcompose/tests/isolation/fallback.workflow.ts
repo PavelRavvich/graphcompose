@@ -1,6 +1,11 @@
-import { Agent, Workflow } from "../../src/core/index.js";
-import { MODEL_MAX } from "../../src/index.js";
-import { chain, WorkflowSettings, type WorkflowDefinition } from "../../src/graph/index.js";
+import {
+  Agent,
+  Workflow,
+  MODEL_MAX,
+  chain,
+  WorkflowSettings,
+  type WorkflowDefinition,
+} from "../../src/index.js";
 import {
   DecisionsModelProvider,
   ModelCost,

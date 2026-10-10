@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { createApp, NotAWorkflowStartError, type AppOptions } from "../../src/app/create-app.js";
-import { Workflow } from "../../src/core/index.js";
-import { NotPausedError } from "../../src/index.js";
-import { DtoValidationError, Text, WorkflowStartText } from "../../src/dto/index.js";
-import { createMemoryLedger } from "../../src/finops/ledger.js";
 import {
+  Workflow,
+  NotPausedError,
   from,
   GraphRuleError,
   WorkflowStart,
   type WorkflowDefinition,
   WorkflowSettings,
-} from "../../src/graph/index.js";
+} from "../../src/index.js";
+import { DtoValidationError, Text, WorkflowStartText } from "../../src/dto/index.js";
+import { createMemoryLedger } from "../../src/finops/ledger.js";
 import { createSqliteTernStore } from "../../src/terns/index.js";
 import { replyWith, callTool, routeTo } from "../../src/testing/index.js";
 import { McpStubs, stubbedMcpConnect } from "../../src/testing/mcp-stubs.js";

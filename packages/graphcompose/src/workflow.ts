@@ -13,7 +13,7 @@ import type { Class } from "./components/injection.js";
 import type { QuorumStrategy } from "./concurrency/quorum.decorator.js";
 import type { BatchParallelStrategy } from "./concurrency/batch.decorator.js";
 import type { AnyTool, McpFacade, McpServerHandle } from "./tools/index.js";
-import type { Router } from "./routers/index.js";
+import type { RouterEngine } from "./routers/index.js";
 import type { Flow } from "./graph/flow.js";
 import type { LoadedRouter } from "./graph/router-texts.js";
 import type { ModelProviderSettings, WorkflowLimits } from "./graph/settings.js";
@@ -25,7 +25,7 @@ import type { WorkflowObserver } from "./core/observer-hooks.js";
 /** What the core offers the tools of a workflow. */
 export interface WorkflowServices {
   /** A router on the workflow's default router model (Jev) — cheap decisions inside tools. */
-  readonly router: (name: string) => Router;
+  readonly router: (name: string) => RouterEngine;
   /** The app's environment (`ENV`); absent = the app has none. */
   readonly environment?: Environment;
   /** Framework wiring of the app's container: replacements (test mocks) and lifecycle. */

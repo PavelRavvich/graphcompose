@@ -1,7 +1,8 @@
-import { Agent, Injectable, Workflow } from "../../../src/core/index.js";
-import { MODEL_MAX } from "../../../src/index.js";
-import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
+  Agent,
+  Injectable,
+  Workflow,
+  MODEL_MAX,
   chain,
   from,
   Router,
@@ -9,7 +10,8 @@ import {
   WorkflowStart,
   type WorkflowDefinition,
   WorkflowSettings,
-} from "../../../src/graph/index.js";
+} from "../../../src/index.js";
+import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 
 const price = { inputPerMTok: 1, outputPerMTok: 2 };
 

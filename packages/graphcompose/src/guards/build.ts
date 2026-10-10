@@ -1,5 +1,5 @@
 import type { GuardSettings, RouterModel } from "../config/types.js";
-import type { Router } from "../routers/index.js";
+import type { RouterEngine } from "../routers/index.js";
 import type { Guard, GuardSet, GuardText } from "./types.js";
 
 export class MissingGuardPromptError extends Error {
@@ -15,7 +15,7 @@ export interface GuardsConfig {
 export function buildGuards(
   config: GuardsConfig | undefined,
   texts: Readonly<Record<string, GuardText>>,
-  routerFor: (name: string, model: RouterModel | undefined) => Router,
+  routerFor: (name: string, model: RouterModel | undefined) => RouterEngine,
 ): GuardSet {
   const side = (settings: Readonly<Record<string, GuardSettings>> = {}): Guard[] =>
     Object.entries(settings).map(([name, guard]) => {

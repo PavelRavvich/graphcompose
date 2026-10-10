@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Agent, WorkflowAction, Workflow } from "../../src/components/decorators.js";
-import { from, catchError } from "../../src/router/index.js";
+import { from, catchError, WorkflowStart, WorkflowFinish } from "../../src/index.js";
 import { LocalSagaStrategy } from "../../src/core/saga/local-saga.strategy.js";
 import { WorkflowCancelledError } from "../../src/core/errors.js";
 import { testWith } from "../../src/testing/test-with.js";
@@ -29,7 +29,6 @@ class ProcessPaymentAgent {}
 class SlowAgent {}
 
 import { WorkflowStartText, WorkflowFinishText } from "../../src/dto/standard/framework.js";
-import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
 @WorkflowStart({ name: "Start", description: "Start", input: WorkflowStartText })
 class Start {
   declare readonly input: WorkflowStartText;

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import * as graph from "../../src/graph/index.js";
+import * as root from "../../src/index.js";
 import * as units from "../../src/units/index.js";
 
-describe("AC1: graphcompose/graph and graphcompose/units", () => {
+describe("AC1: the flow DSL (root entry since #195) and graphcompose/units", () => {
   it("export the flow DSL, @WorkflowStart, @Router, @WorkflowFinish, settings and errors", () => {
     const expected = [
       "End",
@@ -26,7 +27,12 @@ describe("AC1: graphcompose/graph and graphcompose/units", () => {
       "parallel",
     ].sort();
 
+    expect(Object.keys(root)).toEqual(expect.arrayContaining(expected));
+    // graphcompose/graph is deprecated (#195): the same values, re-exported from the root
     expect(Object.keys(graph).sort()).toEqual(expected);
+    expected.forEach((name) => {
+      expect(graph[name as keyof typeof graph]).toBe(root[name as keyof typeof root]);
+    });
   });
 
   it("export the unit helpers", () => {

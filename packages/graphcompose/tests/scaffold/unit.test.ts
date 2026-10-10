@@ -12,7 +12,7 @@ import { planProject } from "../../src/scaffold/project.js";
 import { addImport, addToArray } from "../../src/scaffold/wire.js";
 import { applyChanges } from "../../src/scaffold/write.js";
 
-const agent = `import { Agent } from "graphcompose/core";
+const agent = `import { Agent } from "graphcompose";
 import { KIMI } from "../models.js";
 
 @Agent({

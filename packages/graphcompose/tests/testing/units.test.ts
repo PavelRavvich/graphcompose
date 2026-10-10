@@ -1,9 +1,14 @@
 import { HumanMessage } from "@langchain/core/messages";
 import { describe, expect, it } from "vitest";
 import { McpServerClient } from "../../src/mcp/index.js";
-import { Workflow } from "../../src/core/index.js";
+import {
+  Workflow,
+  from,
+  node,
+  WorkflowSettings,
+  type WorkflowDefinition,
+} from "../../src/index.js";
 import { GuardFailedError } from "../../src/graph/errors.js";
-import { from, node, WorkflowSettings, type WorkflowDefinition } from "../../src/graph/index.js";
 import type { ResolvedModelSettings } from "../../src/config/types.js";
 import {
   replyWith,
@@ -13,7 +18,7 @@ import {
   testWith,
   UNSCRIPTED_SUMMARY,
 } from "../../src/testing/index.js";
-import { createTestClock, millisecondsOf, type Duration } from "../../src/testing/clock.js";
+import { createTestClock, millisecondsOf, type ClockDuration } from "../../src/testing/clock.js";
 import { TestEnvironment } from "../../src/testing/environment.js";
 import { asError } from "../../src/testing/errors.js";
 import { failureFactsOf, nodeNameOf } from "../../src/testing/failure-facts.js";
@@ -40,7 +45,7 @@ describe("AC12: the clock, ids and errors of a test", () => {
     expect([millisecondsOf("2d"), millisecondsOf("5m"), millisecondsOf("10ms")]).toEqual([
       172_800_000, 300_000, 10,
     ]);
-    expect(() => millisecondsOf("25 hours" as Duration)).toThrow(TestSetupError);
+    expect(() => millisecondsOf("25 hours" as ClockDuration)).toThrow(TestSetupError);
   });
 
   it("anything thrown becomes an Error", () => {

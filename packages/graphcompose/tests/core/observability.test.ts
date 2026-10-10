@@ -28,8 +28,10 @@ import {
   type OnWorkflowStart,
   type ToolEndEvent,
   type ToolStartEvent,
-} from "../../src/core/index.js";
-import { Router, WorkflowStart, from } from "../../src/graph/index.js";
+  Router,
+  WorkflowStart,
+  from,
+} from "../../src/index.js";
 import { WorkflowFinish } from "../../src/graph/workflow-finish.decorator.js";
 import { Rag } from "../../src/components/decorators.js";
 import { RagRetrieval } from "../../src/rag/types.js";

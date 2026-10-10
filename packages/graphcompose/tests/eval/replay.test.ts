@@ -2,11 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import type { EvalDeps } from "../../src/eval/eval.js";
 import { replay } from "../../src/eval/replay.js";
 import { runAgent, runVersions } from "../../src/index.js";
-import type { Router } from "../../src/routers/index.js";
+import type { RouterEngine } from "../../src/routers/index.js";
 import { routeTo, fakeDeps, memoryLedger } from "../helpers.js";
 
-const judgeWith = (...confidences: number[]): Router => {
-  const route = vi.fn<Router["route"]>();
+const judgeWith = (...confidences: number[]): RouterEngine => {
+  const route = vi.fn<RouterEngine["route"]>();
   for (const confidence of confidences) {
     route.mockResolvedValueOnce({
       kind: "decided",

@@ -6,7 +6,7 @@ import { compareNames } from "../llm/canonical-order.js";
 import { readRouterDecision, type ParsedDecision } from "./decision.js";
 import { decided, errorReason, failed, unknownOption } from "./outcome.js";
 import { llmRouterPrompt } from "./prompts.js";
-import { routerCaller, type RouteOption, type RouteOutcome, type Router } from "./types.js";
+import { routerCaller, type RouteOption, type RouteOutcome, type RouterEngine } from "./types.js";
 import type { UsageRecord } from "../finops/usage.js";
 
 export interface LlmRouterDeps {
@@ -33,7 +33,7 @@ function outcomeOf(read: ParsedDecision, usage: UsageRecord): RouteOutcome {
 /** A call that failed before an replyWith is recorded at no cost. */
 const NO_CALL_COST = { response_metadata: { usage: { cost: 0 } } };
 
-export function createLlmRouter(deps: LlmRouterDeps): Router {
+export function createLlmRouter(deps: LlmRouterDeps): RouterEngine {
   const caller = routerCaller(deps.name);
   return {
     name: deps.name,

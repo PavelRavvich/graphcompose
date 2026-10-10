@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { defaultTransport } from "../../../src/tools/mcp/connect.js";
 import {
   connectMcpServers,
-  defaultTransport,
   mcpResultValue,
   mcpServer,
   McpContractError,

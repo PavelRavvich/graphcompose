@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Agent, Workflow } from "../../src/core/index.js";
-import { ComponentError } from "../../src/core/index.js";
+import { Agent, Workflow, ComponentError } from "../../src/index.js";
 import { workflowOf } from "../../src/testing/index.js";
 import { recordComponent } from "../../src/components/metadata.js";
 import { from, node } from "../../src/graph/flow.js";

@@ -1,10 +1,19 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import type { App } from "../../src/app/types.js";
-import { Agent, Guardrail, Injectable, Judge } from "../../src/core/index.js";
-import type { JudgeContext, JudgeVerdict } from "../../src/core/index.js";
+import {
+  Agent,
+  Guardrail,
+  Injectable,
+  Judge,
+  from,
+  WorkflowFinish,
+  WorkflowStart,
+  type StartInputOf,
+  Tool,
+  type ToolHandler,
+} from "../../src/index.js";
+import type { JudgeContext, JudgeVerdict } from "../../src/index.js";
 import { Text, WorkflowFinishText, WorkflowStartText } from "../../src/dto/index.js";
-import { from, WorkflowFinish, WorkflowStart, type StartInputOf } from "../../src/graph/index.js";
-import { Tool, type ToolHandler } from "../../src/tool/index.js";
 import { MainRouter, Support } from "../testing/fixtures/desk.workflow.js";
 
 /**

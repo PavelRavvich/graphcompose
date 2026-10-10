@@ -18,7 +18,7 @@ import {
   type NewThreadId,
   type TernStore,
 } from "../terns/index.js";
-import { langfuseTracing } from "../tracing/index.js";
+import { tracingOf } from "../tracing/index.js";
 import type { ModelGateway } from "../llm/gateway.js";
 import { createModelRegistry } from "../llm/registry.js";
 import type { ProviderFetch } from "../models/resilient-fetch.js";
@@ -183,7 +183,7 @@ export async function createAppDeps(
   const connect = options.connectMcp ?? connectConfigured(options.transport);
   const mcp = await connect(bundle, config, env);
   const { terns, ownsTerns, ledger, checkpointer } = storesOf(options, env);
-  const tracing = langfuseTracing(env);
+  const tracing = await tracingOf(env);
   const deps = {
     config,
     registry: createModelRegistry(config, gateway),

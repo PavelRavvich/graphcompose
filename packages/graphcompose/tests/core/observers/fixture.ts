@@ -5,15 +5,13 @@ import {
   Workflow,
   type ObserverClass,
   type Provider,
-} from "../../../src/core/index.js";
-import { WorkflowStartText, WorkflowFinishText, Text } from "../../../src/dto/index.js";
-import {
   from,
   WorkflowFinish,
   WorkflowStart,
   WorkflowSettings,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
+} from "../../../src/index.js";
+import { WorkflowStartText, WorkflowFinishText, Text } from "../../../src/dto/index.js";
 import { usd } from "../../../src/units/index.js";
 
 export class EchoInput {

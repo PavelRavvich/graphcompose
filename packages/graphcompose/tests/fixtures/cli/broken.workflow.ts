@@ -1,4 +1,4 @@
-import { Workflow } from "../../../src/core/index.js";
+import { Workflow } from "../../../src/index.js";
 import { from } from "../../../src/graph/flow.js";
 import { TestAnswer, TestChat } from "../test-flow/test.flow.js";
 import { TestSettings } from "../test-flow/star.js";

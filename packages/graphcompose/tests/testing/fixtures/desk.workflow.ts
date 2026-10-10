@@ -3,21 +3,25 @@ import { file } from "../../../src/components/file.js";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { Agent, Injectable, Workflow } from "../../../src/core/index.js";
-import { McpServer, McpServerClient, McpTool } from "../../../src/mcp/index.js";
-import { type OnStart, type OnStop } from "../../../src/core/index.js";
-import { MODEL_MAX } from "../../../src/index.js";
-import { TerminalUserChannel } from "../../../src/channels/terminal-channel.js";
-import { Tool, type ToolHandler } from "../../../src/tool/index.js";
-import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
+  Agent,
+  Injectable,
+  Workflow,
+  type OnStart,
+  type OnStop,
+  MODEL_MAX,
+  Tool,
+  type ToolHandler,
   from,
   Router,
   WorkflowFinish,
   WorkflowSettings,
   WorkflowStart,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
+} from "../../../src/index.js";
+import { McpServer, McpServerClient, McpTool } from "../../../src/mcp/index.js";
+import { TerminalUserChannel } from "../../../src/channels/terminal-channel.js";
+import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import { usd } from "../../../src/units/index.js";
 
 /** What the lifecycle hooks of real components did, in order (the lifecycle tests read it). */

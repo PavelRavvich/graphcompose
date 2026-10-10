@@ -11,6 +11,6 @@ export {
   type RouteOption,
   type RouteOutcome,
   type RouteRequest,
-  type Router,
+  type RouterEngine,
   type RouterDecision,
 } from "./types.js";

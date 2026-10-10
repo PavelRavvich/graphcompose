@@ -5,7 +5,7 @@ import {
   createLlmRouter,
   type RouteOutcome,
   type RouteRequest,
-  type Router,
+  type RouterEngine,
 } from "../routers/index.js";
 import { readDecision, type DecisionOutcome } from "./decision-response.js";
 import { checkDecisionRequest, type DecisionRequest } from "./decisions.js";
@@ -90,7 +90,7 @@ export function createModelGateway(clients: ModelClients): DecidingGateway {
     cache.set(key, model);
     return model;
   };
-  const strategyOf = ({ router, model }: DecisionSpec): Router =>
+  const strategyOf = ({ router, model }: DecisionSpec): RouterEngine =>
     model.kind === "jev"
       ? createJevRouter({ name: router, model: model.model, client: clients.jevClient })
       : createLlmRouter({

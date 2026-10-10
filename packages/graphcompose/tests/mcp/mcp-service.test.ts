@@ -2,9 +2,20 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { afterEach, describe, expect, it } from "vitest";
 import type { AppOptions } from "../../src/app/create-app.js";
-import { createApp, createMcpService, McpServer, type App } from "../../src/index.js";
+import {
+  createApp,
+  type App,
+  Agent,
+  Workflow,
+  from,
+  WorkflowSettings,
+  type WorkflowDefinition,
+  Tool,
+  type ToolContext,
+  type ToolHandler,
+} from "../../src/index.js";
+import { createMcpService, McpExpose } from "../../src/mcp/index.js";
 import { TerminalUserChannel } from "../../src/channels/terminal-channel.js";
-import { Agent, Workflow } from "../../src/core/index.js";
 import { Text } from "../../src/dto/index.js";
 import { jsonSchemaOf } from "../../src/dto/schema.js";
 import { createMemoryLedger } from "../../src/finops/ledger.js";
@@ -13,8 +24,6 @@ import { callTool, replyWith } from "../../src/testing/index.js";
 import { McpStubs, stubbedMcpConnect } from "../../src/testing/mcp-stubs.js";
 import { ScriptBook } from "../../src/testing/script-book.js";
 import { createScriptedGateway } from "../../src/testing/scripted-gateway.js";
-import { from, WorkflowSettings, type WorkflowDefinition } from "../../src/graph/index.js";
-import { Tool, type ToolContext, type ToolHandler } from "../../src/tool/index.js";
 import {
   ChatStart,
   Desk,
@@ -92,7 +101,7 @@ class ClerkDesk implements WorkflowDefinition {
   }
 }
 
-@McpServer({
+@McpExpose({
   name: "desk-mcp",
   version: "1.0.0",
   exports: [OrderStatus, EchoCall, Broken, ChatStart, Clerk],

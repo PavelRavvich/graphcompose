@@ -9,7 +9,7 @@ import {
 import type { EvalDeps } from "../../src/eval/eval.js";
 import type { SpendLedger } from "../../src/finops/ledger.js";
 import type { UsageRecord } from "../../src/finops/usage.js";
-import type { RouteOutcome, Router } from "../../src/routers/index.js";
+import type { RouteOutcome, RouterEngine } from "../../src/routers/index.js";
 import { routeTo, fakeDeps, usageRecord } from "../helpers.js";
 
 /** A ledger that remembers which account each record went to. */
@@ -27,7 +27,7 @@ function keyedLedger(spentToday = 0): SpendLedger & { readonly keys: string[] } 
   };
 }
 
-const judgeSaying = (outcome: RouteOutcome): Router => ({
+const judgeSaying = (outcome: RouteOutcome): RouterEngine => ({
   name: "judge",
   route: vi.fn(() => Promise.resolve(outcome)),
 });
@@ -99,7 +99,7 @@ describe("compare — pairwise", () => {
   };
   const other: ProfileOutcome = { ...base, name: "v2", answers: ["b1", "b2", "b3", "b4"] };
   const evaluationWith = (...outcomes: RouteOutcome[]): EvalDeps => {
-    const route = vi.fn<Router["route"]>();
+    const route = vi.fn<RouterEngine["route"]>();
     outcomes.forEach((o) => route.mockResolvedValueOnce(o));
     return {
       terns: fakeDeps({}).terns,

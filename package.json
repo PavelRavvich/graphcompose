@@ -19,16 +19,19 @@
     "format:check": "prettier --check .",
     "typecheck": "npm run typecheck --workspaces",
     "coverage": "npm run coverage --workspaces",
-    "check": "npm run check:root && npm run check:suppressions && npm run build && npm run format:check && npm run lint && npm run typecheck && npm run coverage && npm run check:models",
+    "check": "npm run check:root && npm run check:suppressions && npm run build && npm run check:api && npm run format:check && npm run lint && npm run typecheck && npm run coverage && npm run check:models",
     "smoke": "npm run smoke -w graphcompose",
     "studio": "npm run build && langgraphjs dev",
     "check:models": "npm run check:models -w job-scout-example",
     "check:suppressions": "node scripts/check-suppressions.mjs",
-    "check:root": "node scripts/check-root.mjs"
+    "check:root": "node scripts/check-root.mjs",
+    "check:api": "node scripts/api-report.mjs",
+    "api:update": "node scripts/api-report.mjs --write"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "@langchain/langgraph-cli": "^1.0.0",
+    "@microsoft/api-extractor": "^7.59.4",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^3.0.0",
     "eslint": "^9.0.0",

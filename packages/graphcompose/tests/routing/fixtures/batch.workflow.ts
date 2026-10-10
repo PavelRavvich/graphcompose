@@ -1,20 +1,23 @@
-import { Agent, Workflow, WorkflowAction } from "../../../src/core/index.js";
-import type { ActionRuntime } from "../../../src/components/decorators.js";
-import { BatchParallelStrategy } from "../../../src/concurrency/index.js";
-import { TerminalUserChannel } from "../../../src/channels/terminal-channel.js";
-import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
+  Agent,
+  Workflow,
+  WorkflowAction,
+  BatchParallelStrategy,
   from,
   WorkflowFinish,
   WorkflowSettings,
   WorkflowStart,
   type Flow,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
+  Tool,
+  type ToolHandler,
+  MODEL_MAX,
+} from "../../../src/index.js";
+import type { ActionRuntime } from "../../../src/components/decorators.js";
+import { TerminalUserChannel } from "../../../src/channels/terminal-channel.js";
+import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import type { FlowStateType } from "../../../src/graph/flow-state.js";
 import type { AgentState, AgentStateUpdate } from "../../../src/graph/state.js";
-import { Tool, type ToolHandler } from "../../../src/tool/index.js";
-import { MODEL_MAX } from "../../../src/index.js";
 
 /** The items of a run: the comma-separated cities of the start text, as objects. */
 @BatchParallelStrategy()

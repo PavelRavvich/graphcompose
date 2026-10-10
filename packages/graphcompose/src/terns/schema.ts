@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import { TERN_STATUSES, type Tern, type VersionScore } from "./types.js";
 
@@ -113,10 +113,14 @@ function migrate(db: DatabaseSync): void {
   });
 }
 
-/** Opens (creating directories) and migrates the database. */
+/**
+ * Opens (creating directories) and migrates the database. `node:sqlite` is loaded here, on first
+ * use, so importing `graphcompose` never loads it (#195).
+ */
 export function openTernDatabase(path: string): DatabaseSync {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
-  const db = new DatabaseSync(path);
+  const { DatabaseSync: Database } = process.getBuiltinModule("node:sqlite");
+  const db = new Database(path);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
   migrate(db);
   return db;
