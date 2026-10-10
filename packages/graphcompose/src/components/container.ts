@@ -1,6 +1,7 @@
 import { InjectionToken, tokenName, type Class, type Provider, type Token } from "./injection.js";
 import { ComponentError, componentOf } from "./metadata.js";
 
+// eslint-disable-next-line complexity
 const depsOf = (cls: Class): readonly Token[] => {
   const meta = componentOf(cls);
   if (
@@ -10,6 +11,7 @@ const depsOf = (cls: Class): readonly Token[] => {
     meta?.kind === "rag"
   )
     return meta.meta.deps;
+  if (meta?.kind === "a2a-agent") return (meta.meta.config as { deps?: Token[] }).deps ?? [];
   return [];
 };
 

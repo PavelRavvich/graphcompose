@@ -10,7 +10,6 @@ export class DependencyCycleError extends Error {
 }
 
 export class WorkflowGraphValidator {
-  /* eslint-disable complexity */
   public validateAcyclic(
     rootWorkflow: Class,
     visiting = new Set<Class>(),

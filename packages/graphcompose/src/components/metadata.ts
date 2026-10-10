@@ -71,7 +71,15 @@ export type ComponentMeta =
       };
     }
   | { readonly kind: "workflow"; readonly meta: WorkflowMeta }
-  | { readonly kind: "judge"; readonly meta: import("./judge-decorators.js").JudgeMeta };
+  | { readonly kind: "judge"; readonly meta: import("./judge-decorators.js").JudgeMeta }
+  | {
+      readonly kind: "a2a-agent";
+      readonly meta: {
+        readonly config: import("../a2a/a2a-decorator.js").A2AAgentConfig<
+          readonly import("../components/injection.js").Token[]
+        >;
+      };
+    };
 
 /** Decorator metadata per class. Symbol.metadata is not available at runtime on Node 26. */
 const components = new WeakMap<object, ComponentMeta>();
@@ -108,6 +116,7 @@ const kindName: Readonly<Record<ComponentMeta["kind"], string>> = {
   tool: "Tool",
   "mcp-server": "McpServer",
   "mcp-tool": "McpTool",
+  "a2a-agent": "A2AAgent",
   agent: "Agent",
   action: "WorkflowAction",
   injectable: "Injectable",
