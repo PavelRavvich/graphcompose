@@ -2,6 +2,7 @@ import type { ObserverManager } from "../core/observer-manager.js";
 import type { AgentPrompts, AgentsConfigOf } from "../config/types.js";
 import type { GuardSet } from "../guards/index.js";
 import type { ModelRegistry } from "../llm/registry.js";
+import type { BaseMemoryStrategy } from "../memory/types.js";
 import type { PauseSeam } from "../pause/index.js";
 import type { KnowledgeSource } from "../rag/types.js";
 import type { Router } from "../routers/index.js";
@@ -25,6 +26,8 @@ export interface GraphDeps<TName extends string> {
   readonly guards: GuardSet;
   /** Resolves an action name to the instantiated WorkflowAction */
   readonly actions?: (name: string) => IWorkflowAction;
+  /** Agents' own memory strategies (`@Agent({ memoryStrategy })`); the rest use the built-in one. */
+  readonly memory?: ReadonlyMap<string, BaseMemoryStrategy>;
   /** Context-mode knowledge bases per agent (knowledge bases, #88). */
   readonly knowledge?: (agent: string) => readonly KnowledgeSource[];
   /** Optional pause seam (approval of tool calls). Off by default. */

@@ -7,6 +7,7 @@ import type { McpStub } from "./mcp-stubs.js";
 import { blockNetwork } from "./network-guard.js";
 import type { ModelScript } from "./script-book.js";
 import { createTestApp, type TestApp } from "./test-app.js";
+import { chatKeyOf } from "./scripted-gateway.js";
 import "./vitest-types.js";
 
 /** What every test of `testWith(Workflow)` gets as its fixtures. */
@@ -21,6 +22,11 @@ export interface WorkflowFixtures {
   readonly recoverApp: () => Promise<TestApp>;
   /** The script of an agent or a router (by class): `mockLlm(Scout).thenReturn(replyWith("…"))`. */
   readonly mockLlm: (component: FlowNode) => ModelScript;
+  /**
+   * The script of the workflow's compaction model (`@Workflow({ compaction })`); unscripted, it
+   * writes a fixed summary at no cost.
+   */
+  readonly mockCompaction: () => ModelScript;
   /** A typed mock injected instead of a component; the same instance the app uses. */
   readonly mockOf: <T>(component: Class<T>) => Mocked<T>;
   /** Mocks a nested workflow to prevent it from executing its subgraph. */
@@ -30,6 +36,8 @@ export interface WorkflowFixtures {
     server: new () => TServer,
   ) => McpStub<TServer>;
 }
+
+const COMPACTION_KEY = chatKeyOf({ kind: "compaction" });
 
 interface Internal {
   readonly testSetup: { readonly workflow: Class; readonly options: TestWithOptions };
@@ -78,6 +86,9 @@ export function testWith(
     },
     mockLlm: async ({ environment }, use) => {
       await use((component) => environment.mockLlm(component));
+    },
+    mockCompaction: async ({ environment }, use) => {
+      await use(() => environment.book.scriptOf(COMPACTION_KEY));
     },
     mockSubworkflow: async ({ environment }, use) => {
       await use((workflow) => environment.mockSubworkflow(workflow));

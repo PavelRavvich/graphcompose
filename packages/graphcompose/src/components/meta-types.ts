@@ -3,6 +3,7 @@ import type { AgentsConfig } from "../config/types.js";
 import type { AnyTool } from "../tools/index.js";
 import type { RagMode } from "../rag/types.js";
 import type { Flow } from "../graph/flow.js";
+import type { BaseMemoryStrategy } from "../memory/types.js";
 import type { Class, Provider } from "./injection.js";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -35,8 +36,12 @@ export interface AgentMeta extends PolicyFields {
   readonly prompt?: string;
   readonly promptUrls?: readonly string[];
   readonly model: string;
-  /** Overrides the global memory strategy for this specific agent. */
-  readonly memoryStrategy?: Class;
+  /**
+   * This agent's memory strategy (a `BaseMemoryStrategy` subclass from `graphcompose/memory`,
+   * created by the workflow's container); other agents use the built-in one (`defaults.history`,
+   * `compaction`).
+   */
+  readonly memoryStrategy?: Class<BaseMemoryStrategy>;
   /** Overrides the model provider's price table; the provider's own reported cost comes first. */
   readonly price?: AgentSettings["price"];
   readonly thinking?: AgentSettings["thinking"];
@@ -81,12 +86,11 @@ export interface WorkflowMeta {
   readonly guards?: AgentsConfig["guards"];
   readonly piiPolicies?: readonly Class[];
   readonly guardrails?: readonly Class[];
-  /** Deprecated: use memoryStorage and defaultMemoryStrategy instead */
+  /**
+   * Conversation compaction: the built-in memory strategy summarises every `every` turns with
+   * `model` and agents see the latest `keep` summaries (off when absent: a sliding window only).
+   */
   readonly compaction?: AgentsConfig["compaction"];
-  /** The DI class used to store memory/context (e.g. GraphStateMemoryStorage) */
-  readonly memoryStorage?: Class;
-  /** The default memory strategy (e.g. StandardCompactionStrategy) */
-  readonly defaultMemoryStrategy?: Class;
   readonly mcp?: readonly Class[];
   readonly providers?: readonly Provider[];
   readonly compactionPrompt?: string;

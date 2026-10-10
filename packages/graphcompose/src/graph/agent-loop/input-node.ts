@@ -5,12 +5,13 @@ import { gatherKnowledge } from "../nodes/knowledge.js";
 import { mergeContent } from "../multimodal.js";
 import type { AsyncNode } from "../types.js";
 import type { AgentLoopDeps } from "./deps.js";
+import { memoryViewOf } from "./memory-view.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
 
 /**
  * The agent's input, once per call of the agent (a node of its own, so a resume never retrieves or
  * pays for it again): context-mode knowledge, the task, the other agents' contributions, the
- * thread's memory and the decisions on its own calls in this turn.
+ * thread's memory (as the agent's memory strategy builds it) and the decisions on its own calls in this turn.
  */
 export function makeInputNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
   const { agent } = deps;
@@ -29,10 +30,11 @@ export function makeInputNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
       deps.observer,
       appState,
     );
+    const view = await memoryViewOf(agent, state);
     const renderedInput = renderAgentInput(
       state.task,
       formatContributions(state.contributions),
-      formatMemory(state, { summaries: agent.summariesLimit, turns: agent.historyLimit }),
+      formatMemory(view, { summaries: view.summaries.length, turns: view.history.length }),
       formatDecisionsForAgent(state.approvals, agent.name),
     );
     const input = mergeContent(knowledge.block, renderedInput);

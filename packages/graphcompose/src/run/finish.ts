@@ -3,7 +3,7 @@ import { buildCostReport, totalCost } from "../finops/usage.js";
 import type { FlowStateType } from "../graph/flow-state.js";
 import type { AgentStateType } from "../graph/state.js";
 import type { TernOutcome } from "../terns/index.js";
-import { compactIfDue } from "./compaction.js";
+import { updateMemoryAfter } from "./memory.js";
 import type { RunContext } from "./execute.js";
 import type { PendingPause } from "../pause/index.js";
 import { isWaiting, pausedLoopOf } from "./paused.js";
@@ -51,20 +51,6 @@ const traceUrlOf = <TName extends string>(
   return traceUrl === undefined ? {} : { traceUrl };
 };
 
-/** Conversation memory after a finished turn; its spend is recorded to the run's account. */
-async function compactAfter<TName extends string>(
-  ctx: RunContext<TName>,
-  state: AgentStateType,
-): Promise<Awaited<ReturnType<typeof compactIfDue>>> {
-  const memory = await compactIfDue(ctx.deps, {
-    threadId: ctx.base.threadId,
-    budgetLeftUsd: ctx.budgetUsd - totalCost(state.usage),
-    callbacks: ctx.callbacks,
-  });
-  if (memory.usage.length > 0) await ctx.record(memory.usage);
-  return memory;
-}
-
 /**
  * The state a run stopped in. A paused run waits inside an agent's loop (a subgraph): its spend so far
  * and the pending call are there — that spend goes to the ledger now, not on resume.
@@ -98,7 +84,7 @@ export async function finishRun<TName extends string>(
   let ternId = existingTernId;
   if (ternId === undefined) ternId = (await ctx.deps.terns.append({ ...ctx.base, ...outcome })).id;
   else await ctx.deps.terns.complete(ternId, outcome);
-  const memory = paused ? { usage: [] } : await compactAfter(ctx, current);
+  const memory = paused ? { usage: [] } : await updateMemoryAfter(ctx, current, outcome);
   return {
     status: outcome.status,
     replyWith: outcome.replyWith,

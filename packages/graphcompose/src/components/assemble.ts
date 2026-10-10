@@ -31,6 +31,7 @@ import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 import { flowOf, settingsOf } from "./flow-parts.js";
 import { channelPartsOf } from "./channel-parts.js";
 import { PromptLoader } from "./prompt-render.js";
+import { checkMemoryStrategies, memoryPartsOf } from "./memory-parts.js";
 
 /** An agent's settings as the config holds them (tools by name). */
 function agentSettings(
@@ -155,6 +156,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   const mcp = mcpOf(bundle, tools.mcp);
   const rags = ragClassesOf(bundle, agents);
   checkProviderClasses(bundle);
+  checkMemoryStrategies(agents);
   checkGraph(
     componentClassesOf(bundle, agents, tools, rags, graph.actions),
     bundle.providers ?? [],
@@ -185,6 +187,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
       return new Map(graph.actions.map((a) => [a.name, container.get(a.cls) as IWorkflowAction]));
     },
     ...(rags.length === 0 ? {} : ragParts(bundle, agents, rags)),
+    ...memoryPartsOf(bundle, agents),
     mcpServers: mcp.handles,
     serverTools: mcp.serverTools,
     toolDependencies: Object.fromEntries(

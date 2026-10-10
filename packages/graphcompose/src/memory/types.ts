@@ -1,26 +1,49 @@
-import type { BaseMessage } from "@langchain/core/messages";
+import type { UsageRecord } from "../finops/usage.js";
+import type { HistoryTurn } from "../graph/contributions.js";
 
-export interface BaseMemoryOptions {
-  windowSize: number;
+export type { HistoryTurn };
+
+/** The thread memory an agent sees: summaries of older turns, then earlier turns — oldest first. */
+export interface MemoryView {
+  readonly summaries: readonly string[];
+  readonly history: readonly HistoryTurn[];
 }
 
-export interface MemoryState {
-  runId: string;
-  [key: string]: unknown;
+/**
+ * What an agent's strategy builds its context from, once per visit of the agent, before its model
+ * calls: the thread memory loaded for the run (turns not yet compacted, the latest summaries) and
+ * how much of it the agent is configured to see (`historyLimit` / `historySummaries`, else the
+ * workflow's `defaults.history`).
+ */
+export interface MemoryContext extends MemoryView {
+  readonly agent: string;
+  readonly task: string;
+  readonly limits: { readonly turns: number; readonly summaries: number };
 }
 
-export abstract class BaseMemoryStorage {
-  abstract load<V>(runId: string, namespace: string): Promise<V | undefined>;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-  abstract save<V>(runId: string, namespace: string, data: V): Promise<void>;
+/** A finished (not paused) turn of the thread, handed to every strategy in use after it. */
+export interface MemoryTurn {
+  readonly threadId: string;
+  readonly runId: string;
+  readonly turn: HistoryTurn;
+  /** What is left of the run's budget; a strategy that calls a model does nothing at 0. */
+  readonly budgetLeftUsd: number;
 }
 
-export abstract class BaseMemoryStrategy<T extends BaseMemoryOptions = BaseMemoryOptions> {
-  abstract buildContext(
-    messages: BaseMessage[],
-    state: MemoryState,
-    options: T,
-  ): Promise<BaseMessage[]>;
+/** What an update did; the spend of its model calls goes to the run's cost report. */
+export interface MemoryUpdate {
+  readonly usage?: readonly UsageRecord[];
+}
 
-  abstract updateMemory(messages: BaseMessage[], state: MemoryState, options: T): Promise<void>;
+/**
+ * How an agent remembers the thread: `buildContext` chooses what of the thread memory the agent's
+ * model calls see; `updateMemory` runs after every finished turn. Set per agent with
+ * `@Agent({ memoryStrategy })` (resolved by the workflow's container — `@Injectable({ deps })` for
+ * dependencies); other agents use the workflow's built-in strategy (`defaults.history`, `compaction`).
+ */
+export abstract class BaseMemoryStrategy {
+  abstract buildContext(context: MemoryContext): MemoryView | Promise<MemoryView>;
+
+  /** After a finished turn (optional: a strategy without it keeps no memory of its own). */
+  updateMemory?(turn: MemoryTurn): Promise<MemoryUpdate>;
 }

@@ -1,3 +1,4 @@
+import type { BaseMemoryStrategy } from "./memory/types.js";
 import type { AgentPrompts, AgentsConfigOf } from "./config/types.js";
 import type { KnowledgeSource, RagConnector } from "./rag/types.js";
 import type {
@@ -67,6 +68,10 @@ export interface AssembledWorkflow<TName extends string = string> {
   readonly serverTools?: readonly McpFacade[];
   /** Action instances instantiated from DI container */
   readonly actions?: (services: WorkflowServices) => ReadonlyMap<string, IWorkflowAction>;
+  /** Agents' own memory strategies by agent name (`@Agent({ memoryStrategy })`). */
+  readonly memoryStrategies?: (
+    services: WorkflowServices,
+  ) => ReadonlyMap<string, BaseMemoryStrategy>;
   /** Context-mode knowledge bases per agent (retrieved before the agent runs). */
   readonly knowledge?: (
     services: WorkflowServices,

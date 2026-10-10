@@ -1,6 +1,7 @@
 import type { ObserverManager } from "../../core/observer-manager.js";
 import type { AIMessage } from "@langchain/core/messages";
 import type { ModelBinding } from "../../llm/registry.js";
+import type { BaseMemoryStrategy } from "../../memory/types.js";
 import type { KnowledgeSource } from "../../rag/types.js";
 import type { AnyTool } from "../../tools/index.js";
 import type { ToolCallApproval } from "./approval.js";
@@ -18,6 +19,8 @@ export interface AgentDefinition {
   readonly limits: AgentLoopLimits;
   readonly historyLimit: number;
   readonly summariesLimit: number;
+  /** What of the thread memory the agent sees; absent = the built-in sliding window. */
+  readonly memory?: BaseMemoryStrategy;
   /** Context-mode knowledge bases: retrieved before the first model call. */
   readonly knowledge: readonly KnowledgeSource[];
   readonly judges?: readonly import("../../components/injection.js").Class[];
