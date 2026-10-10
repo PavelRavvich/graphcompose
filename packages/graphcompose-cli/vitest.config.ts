@@ -14,6 +14,8 @@ export default defineConfig({
   },
   test: {
     include: ["tests/**/*.test.ts"],
+    // most CLI tests spawn the built `gc` (several runs per test): CI runners are slower than 5 s
+    testTimeout: 30_000,
     // a test that asserts nothing proves nothing (#180)
     expect: { requireAssertions: true },
     exclude: ["node_modules/**"],
