@@ -1,0 +1,67 @@
+/** #202: a tool's `sensitive` arguments are masked wherever a channel shows them. */
+import { describe, expect, it } from "vitest";
+import { createApp } from "../../src/app/create-app.js";
+import { redactedArguments, redactedDto } from "../../src/dto/redact.js";
+import { ListOf, Nested, Text } from "../../src/dto/index.js";
+import { schemaOf } from "../../src/dto/schema.js";
+import { createMemoryLedger } from "../../src/finops/ledger.js";
+import { createSqliteTernStore } from "../../src/terns/index.js";
+import { callTool, replyWith } from "../../src/testing/index.js";
+import { ScriptBook } from "../../src/testing/script-book.js";
+import { createScriptedGateway } from "../../src/testing/scripted-gateway.js";
+import { ApprovalDesk, ChatStart, type ButtonClick } from "../channels/approval.workflow.js";
+import { Pay, PaymentLog, Payments } from "./isolation.workflow.js";
+
+const card = { orderId: "A-1", cardNumber: "4111 1111 1111 1111" };
+const approve: ButtonClick = { action: "approve", user: "dana" };
+
+describe("#202: sensitive tool arguments are redacted in channel output", () => {
+  it("the channel, the pause and the ask summary get the card masked; the tool gets it whole", async () => {
+    const book = new ScriptBook();
+    book.scriptOf("agent:cashier").thenReturn(callTool(Pay, card), replyWith("Paid."));
+    const app = await createApp(Payments, {
+      processEnv: {},
+      gateway: createScriptedGateway(book),
+      stores: { terns: createSqliteTernStore(":memory:"), ledger: createMemoryLedger() },
+    });
+
+    const paused = await app.execute(ChatStart, { text: "pay A-1" });
+
+    const desk = app.resolve(ApprovalDesk);
+    expect(desk.posted.map((post) => post.toolArguments)).toEqual([
+      { orderId: "A-1", cardNumber: "***" },
+    ]);
+    expect(paused.pause).toMatchObject({ args: { orderId: "A-1", cardNumber: "***" } });
+    expect(JSON.stringify(paused)).not.toContain("4111");
+    await app.resume(paused.thread, approve);
+    expect(app.resolve(PaymentLog).cards).toEqual(["4111 1111 1111 1111"]);
+    await app.close();
+  });
+
+  it("nested and listed DTOs are masked too; arguments without a DTO stay as they are", () => {
+    class Holder {
+      @Text({ sensitive: true })
+      name!: string;
+    }
+    class Order {
+      @Text()
+      id!: string;
+
+      @Nested(Holder)
+      holder!: Holder;
+
+      @ListOf(Holder)
+      others!: Holder[];
+    }
+    const order = { id: "o", holder: { name: "Ann" }, others: [{ name: "Bo" }], extra: 1 };
+
+    expect(redactedArguments(schemaOf(Order), order)).toEqual({
+      id: "o",
+      holder: { name: "***" },
+      others: [{ name: "***" }],
+      extra: 1,
+    });
+    expect(redactedArguments({}, { name: "Ann" })).toEqual({ name: "Ann" });
+    expect(redactedDto(Order, "text")).toBe("text");
+  });
+});

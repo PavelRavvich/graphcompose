@@ -21,6 +21,8 @@ export interface RunContext {
   readonly signal: AbortSignal;
   /** `execute(…, { metadata })`, kept by the run's resumes. */
   readonly metadata: Readonly<Record<string, string>>;
+  /** Who the thread belongs to (`execute(…, { owner })`); only that owner may continue it. */
+  readonly owner?: string;
 }
 
 /** A run context with defaults: its own thread, a signal nobody aborts, no metadata. */
@@ -29,12 +31,14 @@ export function newRunContext(context: {
   readonly threadId?: string | undefined;
   readonly signal?: AbortSignal | undefined;
   readonly metadata?: Readonly<Record<string, string>> | undefined;
+  readonly owner?: string | undefined;
 }): RunContext {
   return {
     runId: runIdOf(context.runId),
     threadId: context.threadId ?? context.runId,
     signal: context.signal ?? new AbortController().signal,
     metadata: context.metadata ?? {},
+    ...(context.owner === undefined ? {} : { owner: context.owner }),
   };
 }
 

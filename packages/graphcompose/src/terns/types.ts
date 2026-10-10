@@ -101,8 +101,14 @@ export interface VersionScore {
 
 /** Durable memory of runs: threads, Terns, their quality scores and conversation summaries. */
 export interface TernStore extends MemoryStore, ConfigStore {
-  readonly createThread: (bundle: string) => Promise<string>;
+  /** A new thread of the workflow; with an `owner`, only that owner may continue it (#202). */
+  readonly createThread: (bundle: string, owner?: string) => Promise<string>;
   readonly hasThread: (bundle: string, threadId: string) => Promise<boolean>;
+  /** The thread's owner (`owner: undefined` = created without one); `undefined` = no such thread. */
+  readonly threadOwner: (
+    bundle: string,
+    threadId: string,
+  ) => Promise<{ readonly owner: string | undefined } | undefined>;
   readonly append: (tern: NewTern) => Promise<Tern>;
   /** Completes a paused Tern (same id) with its final outcome. */
   readonly complete: (ternId: string, outcome: TernOutcome) => Promise<void>;

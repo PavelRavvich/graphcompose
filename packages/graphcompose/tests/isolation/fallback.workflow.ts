@@ -1,0 +1,118 @@
+import { Agent, Workflow } from "../../src/core/index.js";
+import { MODEL_MAX } from "../../src/index.js";
+import { chain, WorkflowSettings, type WorkflowDefinition } from "../../src/graph/index.js";
+import {
+  JevModelProvider,
+  ModelCost,
+  ModelProvider,
+  OpenAiCompatibleProvider,
+  PromptCaching,
+  Reasoning,
+  RetryPolicy,
+  type NoRequestFields,
+} from "../../src/models/index.js";
+import { minutes, seconds, usd } from "../../src/units/index.js";
+import { ChatStart, Reply } from "../channels/approval.workflow.js";
+
+/** One failed call opens a breaker for a minute (names of their own: breakers are per process). */
+const breaker = { failureThreshold: 1, window: minutes(1), openFor: minutes(1) };
+
+const common = {
+  timeout: seconds(5),
+  reasoning: Reasoning.modelDecides(),
+  promptCaching: PromptCaching.off(),
+  retryPolicy: RetryPolicy.none(),
+};
+
+/** The fallback: its own model and its own, higher prices. */
+@ModelProvider({
+  ...common,
+  name: "backup-202",
+  description: "The backup server",
+  serves: [/^backup\//],
+  baseUrl: "http://backup-202.test/v1",
+  cost: ModelCost.fromPrices({
+    "backup/model": { inputPerMillion: usd(10), outputPerMillion: usd(20) },
+  }),
+  circuitBreakerPolicy: breaker,
+})
+export class Backup202 extends OpenAiCompatibleProvider {
+  override readonly requestFields: NoRequestFields = {};
+}
+
+const primary = {
+  ...common,
+  description: "The primary server",
+  serves: [/^primary\//],
+  baseUrl: "http://primary-202.test/v1",
+  cost: ModelCost.fromPrices({
+    "primary/model": { inputPerMillion: usd(1), outputPerMillion: usd(2) },
+  }),
+};
+
+/** Falls back to the backup with `primary/model` mapped to `backup/model`. */
+@ModelProvider({
+  ...primary,
+  name: "primary-202",
+  circuitBreakerPolicy: {
+    ...breaker,
+    fallback: Backup202,
+    fallbackModels: { "primary/model": "backup/model" },
+  },
+})
+export class Primary202 extends OpenAiCompatibleProvider {
+  override readonly requestFields: NoRequestFields = {};
+}
+
+/** Falls back to the backup without saying which of its models takes over. */
+@ModelProvider({
+  ...primary,
+  name: "unmapped-202",
+  circuitBreakerPolicy: { ...breaker, fallback: Backup202 },
+})
+export class Unmapped202 extends OpenAiCompatibleProvider {
+  override readonly requestFields: NoRequestFields = {};
+}
+
+@Agent({
+  name: "cashier",
+  promptUrls: ["./cashier.prompt.md"],
+  description: "Answers",
+  model: "primary/model",
+})
+export class Answerer {}
+
+const defaults = {
+  models: { temperature: 0, maxTokens: MODEL_MAX },
+  router: { kind: "jev", model: "typesafe/jev-1.13" },
+  tools: { maxToolCalls: 1 },
+  history: { limit: 1 },
+} as const;
+
+@Workflow({
+  name: "fallback",
+  version: "1.0.0",
+  flow: [chain(ChatStart, Answerer, Reply)],
+  defaults,
+})
+export class WithFallback implements WorkflowDefinition {
+  settings(): WorkflowSettings {
+    return WorkflowSettings.builder()
+      .modelProviders([Primary202, JevModelProvider, Backup202])
+      .build();
+  }
+}
+
+@Workflow({
+  name: "unmapped",
+  version: "1.0.0",
+  flow: [chain(ChatStart, Answerer, Reply)],
+  defaults,
+})
+export class UnmappedFallback implements WorkflowDefinition {
+  settings(): WorkflowSettings {
+    return WorkflowSettings.builder()
+      .modelProviders([Unmapped202, JevModelProvider, Backup202])
+      .build();
+  }
+}

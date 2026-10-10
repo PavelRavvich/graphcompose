@@ -1,4 +1,5 @@
 import type { Price, ResolvedModelSettings } from "../config/types.js";
+import { fallbackMarkOf } from "./fallback-mark.js";
 
 /** Anything a chat model returns that may carry token usage (AIMessage, AIMessageChunk). */
 export interface UsageCarrier {
@@ -142,6 +143,16 @@ export function recordUsage(
 ): UsageRecord {
   const usage = extractTokenUsage(message);
   const reported = reportedCostOf(message);
+  const fallback = fallbackMarkOf(message.response_metadata);
+  if (fallback !== undefined) {
+    if (reported === undefined) {
+      throw new ModelCostError(
+        `${caller}: fallback model ${fallback.model} — no cost and no price`,
+      );
+    }
+    const costSource = fallback.priced ? "price-table" : "api";
+    return { caller, model: fallback.model, ...usage, costUsd: reported, costSource };
+  }
   if (reported !== undefined) {
     return { caller, model: settings.model, ...usage, costUsd: reported, costSource: "api" };
   }

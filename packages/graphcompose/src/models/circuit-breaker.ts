@@ -13,6 +13,12 @@ export interface CircuitBreakerPolicy {
   readonly window: Milliseconds;
   readonly openFor: Milliseconds;
   readonly fallback?: ModelProviderClass;
+  /**
+   * With a `fallback`: the fallback's model for each model of this provider the workflow uses
+   * (`{ "moonshotai/kimi-k2.6": "backup/kimi" }`). Checked at startup: every used model is mapped
+   * to one the fallback serves and prices. A fallback call is sent and accounted as that model.
+   */
+  readonly fallbackModels?: Readonly<Record<string, string>>;
 }
 
 /** Codes of a failed model call the framework raises itself. */

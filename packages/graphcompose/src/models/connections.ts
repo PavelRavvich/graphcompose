@@ -57,10 +57,13 @@ export function connectionOf(
   options: ModelProviderOptions,
   connection: ConnectionOptions,
 ): ProviderConnection {
-  const fallbackClass = options.circuitBreakerPolicy.fallback;
-  const fallback =
-    fallbackClass === undefined
-      ? undefined
-      : connect(modelProviderOf(fallbackClass), connection, undefined);
+  const { fallback: fallbackClass, fallbackModels = {} } = options.circuitBreakerPolicy;
+  if (fallbackClass === undefined) return connect(options, connection, undefined);
+  const fallbackOptions = modelProviderOf(fallbackClass);
+  const fallback: FallbackTarget = {
+    ...connect(fallbackOptions, connection, undefined),
+    models: fallbackModels,
+    cost: fallbackOptions.cost,
+  };
   return connect(options, connection, fallback);
 }

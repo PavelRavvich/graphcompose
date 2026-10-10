@@ -1,4 +1,6 @@
 import type { Milliseconds } from "../units/index.js";
+import type { ModelCost } from "./cost.js";
+import { fallbackBody, markedFallbackResponse } from "./fallback.js";
 import { ModelCallError, type CircuitBreaker } from "./circuit-breaker.js";
 import {
   failureOfError,
@@ -11,12 +13,17 @@ import { delayBefore, isRetried, longestWaitOf, type RetryPolicy } from "./retry
 /** The HTTP client of a provider: `fetch` with its timeout, retries and circuit breaker. */
 export type ProviderFetch = typeof fetch;
 
-/** Where calls go while the breaker is open: the fallback provider's base URL, key and client. */
+/**
+ * Where calls go while the breaker is open: the fallback provider's base URL, key and client, its
+ * model for each of the primary's (`models`) and how its calls are priced (`cost`).
+ */
 export interface FallbackTarget {
   readonly provider: string;
   readonly baseUrl: string;
   readonly apiKey: string | undefined;
   readonly fetch: ProviderFetch;
+  readonly models: Readonly<Record<string, string>>;
+  readonly cost: ModelCost;
 }
 
 /** Everything a provider's client needs besides the request; clock, sleep and random for tests. */
@@ -40,8 +47,11 @@ const realSleep = (ms: number): Promise<void> =>
 const urlOf = (input: Parameters<typeof fetch>[0]): string =>
   typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
 
-/** The same request to the fallback: its base URL in place of the provider's, its key. */
-function toFallback(
+/**
+ * The same request to the fallback: its base URL, its key and its model in place of the
+ * provider's; its answer is marked with that model and priced by the fallback's own table.
+ */
+async function toFallback(
   input: Parameters<typeof fetch>[0],
   init: RequestInit | undefined,
   options: ResilienceOptions,
@@ -51,7 +61,9 @@ function toFallback(
   const headers = new Headers(init?.headers);
   if (fallback.apiKey === undefined) headers.delete("authorization");
   else headers.set("authorization", `Bearer ${fallback.apiKey}`);
-  return fallback.fetch(url, { ...init, headers });
+  const { body, model } = fallbackBody(init?.body, fallback.models);
+  const response = await fallback.fetch(url, { ...init, headers, body });
+  return markedFallbackResponse(response, model, fallback.cost);
 }
 
 type Attempt =

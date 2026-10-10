@@ -41,6 +41,8 @@ export interface RunOptions {
   readonly executionContext?: unknown;
   /** The run's metadata, read by tools and actions as `ctx.run.metadata`. */
   readonly metadata?: Readonly<Record<string, string>> | undefined;
+  /** The thread's owner, read by tools and actions as `ctx.run.owner` (checked by the app). */
+  readonly owner?: string | undefined;
   /** Extra LangGraph `configurable` keys for the run's nodes (the framework's own keys win). */
   readonly configurable?: Readonly<Record<string, unknown>> | undefined;
 }

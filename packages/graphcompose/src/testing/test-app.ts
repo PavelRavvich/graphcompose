@@ -56,7 +56,8 @@ export function createTestApp(environment: TestEnvironment): TestApp {
       checked(environment, async () => (await built()).app.execute(start, input, options)),
     resume: (thread, decision, options): Promise<ExecutionOutput> =>
       checked(environment, async () => (await built()).app.resume(thread, decision, options)),
-    cancel: (thread) => checked(environment, async () => (await built()).app.cancel(thread)),
+    cancel: (thread, options) =>
+      checked(environment, async () => (await built()).app.cancel(thread, options)),
     close: async () => {
       closed = true;
       if (building !== undefined) await (await building).app.close();

@@ -9,6 +9,7 @@ import type { RunLimits } from "../graph/flow-runtime.js";
 import type { WorkflowLimits } from "../graph/settings.js";
 import type { NewTern, TernOutcome } from "../terns/index.js";
 import { usd } from "../units/index.js";
+import { reserveSpend, type SpendHold } from "../finops/reservations.js";
 import type { BaseCallbackHandler } from "@langchain/core/callbacks/base";
 import type { RunDeps, SpendAccount } from "./types.js";
 
@@ -56,15 +57,14 @@ export const failedOutcome = (error: unknown, spent: readonly UsageRecord[]): Te
   costUsd: totalCost(spent),
 });
 
-/** Writes spend to the account's ledger as it happens and remembers it for the Tern. */
-export function recorder<TName extends string>(
-  deps: RunDeps<TName>,
-  account: SpendAccount,
+/** Writes spend to the account's ledger through the run's hold as it happens; remembers it for the Tern. */
+export function recorder(
+  hold: Pick<SpendHold, "record">,
   spent: UsageRecord[],
 ): (records: readonly UsageRecord[]) => Promise<void> {
   return async (records) => {
     spent.push(...records);
-    await deps.ledger.record(account.key, records);
+    await hold.record(records);
   };
 }
 
@@ -74,10 +74,11 @@ export const workflowAccount = <TName extends string>(deps: RunDeps<TName>): Spe
   dailyCap: deps.limits.perDay?.cost ?? Number.POSITIVE_INFINITY,
 });
 
-/** What a run may spend, and the limits the flow holds it to (the account's day, read once). */
+/** What a run may spend, the limits the flow holds it to, and its hold on the account's day. */
 export interface RunBudget {
   readonly budgetUsd: number;
   readonly run: RunLimits;
+  readonly hold: SpendHold;
 }
 
 const limitsFor = (limits: WorkflowLimits, account: SpendAccount): WorkflowLimits => ({
@@ -85,24 +86,31 @@ const limitsFor = (limits: WorkflowLimits, account: SpendAccount): WorkflowLimit
   ...(Number.isFinite(account.dailyCap) ? { perDay: { cost: usd(account.dailyCap) } } : {}),
 });
 
-/** Run budget = run cap ∩ what is left of the account's day; nothing left → no calls at all. */
+/**
+ * Run budget = run cap ∩ what is left of the account's day, **reserved** before the first call
+ * (#202): the day's spend and the other runs' holds count, so concurrent runs never jointly pass
+ * the cap. Nothing left → no calls at all. The flow's day check starts from the committed amount.
+ */
 export async function allowedBudget<TName extends string>(
   deps: RunDeps<TName>,
   account: SpendAccount,
 ): Promise<RunBudget> {
-  const spentToday = await deps.ledger.spentToday(account.key);
-  const left = account.dailyCap - spentToday;
-  if (left <= 0) {
+  const want = deps.limits.perRun?.cost ?? Number.POSITIVE_INFINITY;
+  const hold = await reserveSpend(deps.ledger, account, want);
+  if (hold.grantedUsd <= 0) {
+    hold.release();
     const breach: LimitBreach = {
       key: "limits.perDay.cost",
       limit: account.dailyCap,
-      actual: spentToday,
+      actual: hold.committedUsd,
     };
     throw new BudgetExceededError(breach, [], 0);
   }
+  const committed = hold.committedUsd;
   return {
-    budgetUsd: Math.min(deps.limits.perRun?.cost ?? Number.POSITIVE_INFINITY, left),
-    run: { limits: limitsFor(deps.limits, account), spentToday: () => Promise.resolve(spentToday) },
+    budgetUsd: hold.grantedUsd,
+    run: { limits: limitsFor(deps.limits, account), spentToday: () => Promise.resolve(committed) },
+    hold,
   };
 }
 

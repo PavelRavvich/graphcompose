@@ -60,13 +60,15 @@ async function runOnce<TName extends string>(
     replayOf: options.replayOf ?? null,
     ...runVersions(deps),
   };
+  let release = (): void => undefined;
   try {
-    const { budgetUsd, run } = await allowedBudget(deps, account);
+    const { budgetUsd, run, hold } = await allowedBudget(deps, account);
+    release = hold.release;
     const runId = deps.newRunId?.() ?? randomUUID();
     const flow = await flowGraphOf(deps, run);
     const quorumManager = quorumOf(deps, runId);
     const config = streamConfig(deps, { threadId, runId, quorumManager }, options);
-    const record = recorder(deps, account, spent);
+    const record = recorder(hold, spent);
     const initial = {
       task,
       budgetUsd,
@@ -85,5 +87,8 @@ async function runOnce<TName extends string>(
     const cause = outcomeError(error, options.signal);
     await deps.terns.append({ ...base, ...failedOutcome(cause, spent) });
     throw cause;
+  } finally {
+    // ended or paused: what the run did not spend goes back to the day (a resume reserves anew)
+    release();
   }
 }

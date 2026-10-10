@@ -5,10 +5,12 @@ import type { AgentLoopDeps } from "./deps.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
 import { JudgePoint, visitToolThenAgent, mergePolicies } from "./judge-points.js";
 import { extractRunContext } from "../../core/run-context.js";
+import { redactedArguments } from "../../dto/redact.js";
+import type { AnyTool } from "../../tools/index.js";
 
-/** One sentence on what the call will do (the ask's `summary`). */
-const summaryOf = (tool: string, args: Record<string, unknown>): string =>
-  `call ${tool} with ${JSON.stringify(args)}`;
+/** One sentence on what the call will do (the ask's `summary`), `sensitive` fields masked. */
+const summaryOf = (tool: AnyTool, args: Record<string, unknown>): string =>
+  `call ${tool.name} with ${JSON.stringify(redactedArguments(tool.input, args))}`;
 
 /**
  * Asks about ONE call — the first that waits — and records the decision by its call id. Nothing
@@ -37,7 +39,7 @@ export function makeApprovalNode(
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         arguments: call.args as Record<string, unknown>,
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-        summary: summaryOf(call.tool, call.args as Record<string, unknown>),
+        summary: summaryOf(tool, call.args as Record<string, unknown>),
       },
       deps.agent.name,
       tool,

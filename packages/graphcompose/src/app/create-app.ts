@@ -6,6 +6,7 @@ import { validate } from "../dto/schema.js";
 import { workflowStartMetaOf } from "../graph/workflow-start.decorator.js";
 import { withProfile } from "../profile-workflow.js";
 import { resumeAgent } from "../run/resume-agent.js";
+import { checkThreadOwner } from "../run/thread.js";
 import { runAgent } from "../run/run-agent.js";
 import { runVersions } from "../run/versions.js";
 import type { AgentExecutionOutput } from "../run/types.js";
@@ -95,6 +96,8 @@ export async function buildApp(
     return runResultOf(run, pathNodes);
   };
   const live = new LiveRuns();
+  const owned = (thread: string, owner: string | undefined) =>
+    checkThreadOwner(deps.terns, deps.config.name, thread, owner);
   let closed = false;
   const app: App = {
     name: deps.config.name,
@@ -106,7 +109,8 @@ export async function buildApp(
       const meta = startMetaOf(start, nodes, deps.config.name);
       const { text } = validate(meta.input, input);
       // the thread is known before the run starts, so `cancel(thread)` reaches a new one too
-      const thread = call.thread ?? (await deps.terns.createThread(deps.config.name));
+      if (call.thread !== undefined) await owned(call.thread, call.owner);
+      const thread = call.thread ?? (await deps.terns.createThread(deps.config.name, call.owner));
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/restrict-template-expressions
       const runId = deps.newRunId?.() || `run-${Date.now()}`;
       const state = { runId, threadId: thread };
@@ -124,7 +128,8 @@ export async function buildApp(
         throw e;
       }
     },
-    cancel: async (thread) => {
+    cancel: async (thread, options = {}) => {
+      await owned(thread, options.owner);
       const running = live.abort(thread);
       const waiting = await paused.drop(thread);
       // a running resume completes its own Tern when the abort stops it
@@ -134,6 +139,7 @@ export async function buildApp(
       return { cancelled: running || waiting !== undefined };
     },
     resume: async (thread, decision, call = {}) => {
+      await owned(thread, call.owner);
       const run = await paused.resumable(thread);
       return settle(
         await live.track(thread, call.signal, (signal) =>

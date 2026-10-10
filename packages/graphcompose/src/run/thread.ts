@@ -1,11 +1,35 @@
 import { GraphComposeError } from "../core/errors.js";
 import type { HistoryTurn } from "../graph/contributions.js";
-import type { Tern } from "../terns/index.js";
+import type { Tern, TernStore } from "../terns/index.js";
 import type { RunDeps } from "./types.js";
 
 export class UnknownThreadError extends GraphComposeError {
   static override readonly code: string = "run.unknown-thread";
   override name = "UnknownThreadError";
+}
+
+/** A thread used by a caller that is not its owner (`execute`, `resume`, `cancel` with `owner`). */
+export class ThreadOwnerError extends GraphComposeError {
+  static override readonly code: string = "run.thread-owner";
+  override name = "ThreadOwnerError";
+}
+
+/**
+ * A thread is used only by the owner it was created for (`ExecutionOptions.owner`): a different
+ * owner, or none for an owned thread (and the other way round), fails before anything runs. The
+ * message names neither owner. A thread the store does not know is left to the caller's own check.
+ */
+export async function checkThreadOwner(
+  terns: Pick<TernStore, "threadOwner">,
+  bundle: string,
+  threadId: string,
+  owner: string | undefined,
+): Promise<void> {
+  const thread = await terns.threadOwner(bundle, threadId);
+  if (thread === undefined || thread.owner === owner) return;
+  throw new ThreadOwnerError(`Thread "${threadId}" belongs to another owner`, {
+    details: { thread: threadId },
+  });
 }
 
 /** Deepest history any router (defaults) or agent of the config may need. */

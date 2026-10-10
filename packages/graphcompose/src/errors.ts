@@ -23,7 +23,7 @@ export { ModelCallError, type ModelCallErrorCode } from "./models/circuit-breake
 export { ToolTimeoutError } from "./tools/index.js";
 export { DtoValidationError } from "./dto/errors.js";
 export { NotPausedError } from "./run/resume-agent.js";
-export { UnknownThreadError } from "./run/thread.js";
+export { ThreadOwnerError, UnknownThreadError } from "./run/thread.js";
 export {
   DecisionError,
   DecisionRequestError,

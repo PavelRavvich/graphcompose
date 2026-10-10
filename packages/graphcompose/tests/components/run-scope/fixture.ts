@@ -111,9 +111,12 @@ export class Finish {}
 
 class Limits implements WorkflowDefinition {
   settings() {
-    return WorkflowSettings.builder()
-      .limits({ perDay: { cost: usd(100) }, perRun: { steps: 10 } })
-      .build();
+    return (
+      WorkflowSettings.builder()
+        // runs go in parallel here: each reserves its run cap of the day (#202)
+        .limits({ perDay: { cost: usd(100) }, perRun: { steps: 10, cost: usd(1) } })
+        .build()
+    );
   }
 }
 
