@@ -19,7 +19,7 @@ export interface ToolCallApproval {
     ask: ToolCallApprovalAsk,
     agent: string,
     tool: AnyTool,
-    runId: string,
+    run: { readonly runId: string; readonly threadId: string },
     metadata: Record<string, unknown>,
     executionContext?: unknown,
   ) => Promise<ToolCallApprovalDecision>;
@@ -37,13 +37,14 @@ interface AskContext {
   readonly agent: string;
   readonly tool: AnyTool;
   readonly runId: string;
+  readonly threadId: string;
   readonly metadata: Record<string, unknown>;
   readonly executionContext?: unknown;
 }
 
 const appStateOf = (ctx: AskContext) => ({
   runId: ctx.runId,
-  threadId: ctx.runId,
+  threadId: ctx.threadId,
   activeNode: ctx.agent,
 });
 
@@ -88,8 +89,8 @@ async function interpretReply(
  */
 export function pauseSeamApproval(channels: ApprovalChannels = {}): ToolCallApproval {
   return {
-    requestApproval: async (ask, agent, tool, runId, metadata, executionContext) => {
-      const ctx: AskContext = { ask, agent, tool, runId, metadata, executionContext };
+    requestApproval: async (ask, agent, tool, run, metadata, executionContext) => {
+      const ctx: AskContext = { ask, agent, tool, ...run, metadata, executionContext };
       const pending: PendingPause = {
         kind: "approval",
         agent,

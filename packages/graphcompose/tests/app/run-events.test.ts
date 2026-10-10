@@ -1,0 +1,180 @@
+import { beforeEach, describe, expect } from "vitest";
+import { WorkflowCancelledError } from "../../src/core/errors.js";
+import { AgentFailedError } from "../../src/graph/errors.js";
+import type { ExecutionOutput } from "../../src/index.js";
+import { callTool, failWith, ModelFailure, replyWith, testWith } from "../../src/testing/index.js";
+import {
+  Applications,
+  Apply,
+  Ask,
+  Clerk,
+  events,
+  Lookup,
+  resetEvents,
+  workflowEvents,
+} from "./fixtures/run-events.workflow.js";
+
+const approve = { approved: true, by: "dana" };
+const test = testWith(Applications);
+
+beforeEach(resetEvents);
+
+const hooks = (seen = workflowEvents()): string[] => seen.map((event) => event.hook);
+
+/** Every event carries the run's id and its thread. */
+function expectOneRun(run: Pick<ExecutionOutput, "runId" | "thread">): void {
+  expect(events.length).toBeGreaterThan(0);
+  for (const event of events) {
+    expect({ hook: event.hook, runId: event.runId, threadId: event.threadId }).toEqual({
+      hook: event.hook,
+      runId: run.runId,
+      threadId: run.thread,
+    });
+  }
+}
+
+describe("#244 AC1: workflow events across a pause and its resume", () => {
+  test("execute → pause → resume → finish: start, pause, resume, end — one runId, the real thread", async ({
+    app,
+    mockLlm,
+  }) => {
+    mockLlm(Clerk).thenReturn(callTool(Apply, { text: "job 1" }), replyWith("Applied."));
+
+    const paused = await app.execute(Ask, { text: "apply" });
+    const done = await app.resume(paused.thread, approve);
+
+    expect(paused.status).toBe("paused");
+    expect(done.status).not.toBe("paused");
+    expect(hooks()).toEqual([
+      "workflow-start",
+      "workflow-pause",
+      "workflow-resume",
+      "workflow-end",
+    ]);
+    const [, pause, resume, end] = workflowEvents();
+    expect(pause?.detail).toMatchObject({ kind: "approval", tool: "apply", agent: "clerk" });
+    expect(resume?.detail).toEqual(approve);
+    expect(end?.detail).toBe(done.status);
+    expect(done.runId).toBe(paused.runId);
+    expectOneRun(done);
+  });
+
+  test("onWorkflowStart stays once per run: two pauses, two resumes, one start, one end", async ({
+    app,
+    mockLlm,
+  }) => {
+    mockLlm(Clerk).thenReturn(
+      callTool(Apply, { text: "job 1" }),
+      callTool(Apply, { text: "job 2" }),
+      replyWith("Applied twice."),
+    );
+
+    const first = await app.execute(Ask, { text: "apply twice" });
+    const second = await app.resume(first.thread, approve);
+    const done = await app.resume(first.thread, approve);
+
+    expect([first.status, second.status]).toEqual(["paused", "paused"]);
+    expect(hooks()).toEqual([
+      "workflow-start",
+      "workflow-pause",
+      "workflow-resume",
+      "workflow-pause",
+      "workflow-resume",
+      "workflow-end",
+    ]);
+    expectOneRun(done);
+  });
+
+  test("a run that does not pause: start, end", async ({ app, mockLlm }) => {
+    mockLlm(Clerk).thenReturn(callTool(Lookup, { text: "rust" }), replyWith("2 jobs."));
+
+    const done = await app.execute(Ask, { text: "look" });
+
+    expect(hooks()).toEqual(["workflow-start", "workflow-end"]);
+    expectOneRun(done);
+  });
+});
+
+describe("#244 AC2: a run that fails after a resume, or is cancelled while paused, emits onError", () => {
+  test("the resumed run fails: start, pause, resume, error — the error the resume rejects with", async ({
+    app,
+    mockLlm,
+  }) => {
+    mockLlm(Clerk).thenReturn(
+      callTool(Apply, { text: "job 1" }),
+      failWith(ModelFailure.ServerError),
+    );
+
+    const paused = await app.execute(Ask, { text: "apply" });
+    const resumed = app.resume(paused.thread, approve);
+
+    await expect(resumed).rejects.toBeInstanceOf(AgentFailedError);
+    expect(hooks()).toEqual(["workflow-start", "workflow-pause", "workflow-resume", "error"]);
+    expect(workflowEvents().at(-1)?.detail).toBe(await resumed.catch((error: unknown) => error));
+    expectOneRun(paused);
+  });
+
+  test("a paused run is cancelled: start, pause, error (WorkflowCancelledError)", async ({
+    app,
+    mockLlm,
+  }) => {
+    mockLlm(Clerk).thenReturn(callTool(Apply, { text: "job 1" }), replyWith("never"));
+
+    const paused = await app.execute(Ask, { text: "apply" });
+    const cancelled = await app.cancel(paused.thread);
+
+    expect(cancelled).toEqual({ cancelled: true });
+    expect(hooks()).toEqual(["workflow-start", "workflow-pause", "error"]);
+    expect(workflowEvents().at(-1)?.detail).toBeInstanceOf(WorkflowCancelledError);
+    expectOneRun(paused);
+    // nothing is left to cancel: no second error
+    expect(await app.cancel(paused.thread)).toEqual({ cancelled: false });
+    expect(hooks()).toEqual(["workflow-start", "workflow-pause", "error"]);
+  });
+});
+
+describe("#244 AC3: node-level events carry the real threadId, not the run id", () => {
+  test("agent, model, tool, channel and action events before and after a resume name the thread", async ({
+    app,
+    mockLlm,
+  }) => {
+    mockLlm(Clerk).thenReturn(
+      callTool(Lookup, { text: "rust" }),
+      callTool(Apply, { text: "job 1" }),
+      replyWith("Applied."),
+    );
+
+    const paused = await app.execute(Ask, { text: "apply" });
+    const done = await app.resume(paused.thread, approve);
+
+    const nodeEvents = events.filter((event) => !workflowEvents().includes(event));
+    expect(new Set(nodeEvents.map((event) => event.hook))).toEqual(
+      new Set([
+        "agent-start",
+        "model-start",
+        "tool-start",
+        "channel-start",
+        "channel-end",
+        "action-start",
+      ]),
+    );
+    expect(done.thread).not.toBe(done.runId);
+    expect(new Set(nodeEvents.map((event) => event.threadId))).toEqual(new Set([done.thread]));
+    expectOneRun(done);
+  });
+
+  test("a second run on the same thread: its events carry that thread and their own run id", async ({
+    app,
+    mockLlm,
+  }) => {
+    mockLlm(Clerk).thenReturn(replyWith("One."), replyWith("Two."));
+
+    const first = await app.execute(Ask, { text: "one" });
+    resetEvents();
+    const second = await app.execute(Ask, { text: "two" }, { thread: first.thread });
+
+    expect(second.thread).toBe(first.thread);
+    expect(second.runId).not.toBe(first.runId);
+    expectOneRun(second);
+  });
+});

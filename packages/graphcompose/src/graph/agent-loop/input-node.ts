@@ -3,6 +3,7 @@ import { renderAgentInput } from "../../prompts/agents.js";
 import { formatContributions, formatDecisionsForAgent, formatMemory } from "../contributions.js";
 import { gatherKnowledge } from "../nodes/knowledge.js";
 import { mergeContent } from "../multimodal.js";
+import { extractRunContext } from "../../core/run-context.js";
 import type { AsyncNode } from "../types.js";
 import type { AgentLoopDeps } from "./deps.js";
 import { memoryViewOf } from "./memory-view.js";
@@ -18,7 +19,7 @@ export function makeInputNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
   return async (state, config) => {
     const appState = {
       runId: state.runId,
-      threadId: state.runId,
+      threadId: extractRunContext(config, state.runId).threadId,
       activeNode: deps.agent.name,
       variables: {},
       history: [],

@@ -64,7 +64,11 @@ export function makeCollectNode(
         runId: runCtx.runId,
         metadata: runCtx.metadata,
       };
-      const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
+      const appState = {
+        runId: state.runId,
+        threadId: runCtx.threadId,
+        activeNode: deps.agent.name,
+      };
       await visitToolThenAgent(
         combinedGuardrails,
         JudgePoint.AfterToolCall,

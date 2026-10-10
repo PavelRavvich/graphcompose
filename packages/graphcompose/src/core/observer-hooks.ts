@@ -22,6 +22,8 @@ import type {
   RouterStartEvent,
   ToolEndEvent,
   ToolStartEvent,
+  WorkflowPauseEvent,
+  WorkflowResumeEvent,
 } from "./observability.js";
 
 /** What a hook may return: it is awaited, its value is ignored. */
@@ -31,9 +33,19 @@ type HookResult = Promise<void> | void;
  * Observer hooks, one interface per hook. An observer class implements any of them and is listed
  * in `@Workflow({ observers: [...] })`; only listed classes are called.
  */
+/** Once per run, at `execute` (a resume does not start it again). */
 export interface OnWorkflowStart {
   onWorkflowStart(state: AppState): HookResult;
 }
+/** The run paused (an approval, a channel); `onWorkflowResume` follows when it is resumed. */
+export interface OnWorkflowPause {
+  onWorkflowPause(event: WorkflowPauseEvent): HookResult;
+}
+/** `app.resume` picked the paused run up. */
+export interface OnWorkflowResume {
+  onWorkflowResume(event: WorkflowResumeEvent): HookResult;
+}
+/** The run finished — at `execute`, or after a resume. */
 export interface OnWorkflowEnd {
   onWorkflowEnd(result: ExecutionOutput, state: AppState): HookResult;
 }
@@ -68,7 +80,10 @@ export interface OnRagStart {
 export interface OnRagEnd {
   onRagEnd(event: RagEndEvent): HookResult;
 }
-/** A run failed, or an optional branch failed and was skipped. */
+/**
+ * A run failed (also after a resume, or cancelled while paused: `WorkflowCancelledError`), or an
+ * optional branch failed and was skipped.
+ */
 export interface OnError {
   onError(error: Error, state: AppState): HookResult;
 }
@@ -106,6 +121,8 @@ export interface OnJudgeEnd {
 /** Every hook, all optional: the type of an observer instance. */
 export type WorkflowObserver = Partial<
   OnWorkflowStart &
+    OnWorkflowPause &
+    OnWorkflowResume &
     OnWorkflowEnd &
     OnAgentStart &
     OnAgentEnd &
@@ -139,6 +156,8 @@ export type ObserverClass = Class<WorkflowObserver>;
 /** Every hook name; a `Record` so a hook added to `WorkflowObserver` must be listed here. */
 const HOOKS: Readonly<Record<ObserverHook, true>> = {
   onWorkflowStart: true,
+  onWorkflowPause: true,
+  onWorkflowResume: true,
   onWorkflowEnd: true,
   onAgentStart: true,
   onAgentEnd: true,

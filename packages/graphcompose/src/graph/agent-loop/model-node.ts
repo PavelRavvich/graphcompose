@@ -100,7 +100,7 @@ export function makeModelNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
     }
     const appState = {
       runId: state.runId,
-      threadId: state.runId,
+      threadId: runCtx.threadId,
       activeNode: name,
       variables: {},
       history: state.messages,

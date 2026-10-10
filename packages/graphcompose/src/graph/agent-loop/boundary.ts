@@ -92,7 +92,11 @@ export function makeBoundaryNode(
         deps.toolGuardrails?.(call.tool),
       );
 
-      const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
+      const appState = {
+        runId: state.runId,
+        threadId: runCtx.threadId,
+        activeNode: deps.agent.name,
+      };
       await visitToolThenAgent(
         combinedGuardrails,
         JudgePoint.BeforeToolCall,

@@ -8,6 +8,7 @@ import type { LoadedRouter } from "../router-texts.js";
 import type { AsyncNode } from "../types.js";
 import { normalisePromptText } from "../text.js";
 import type { PromptInput } from "../../components/prompt-input.js";
+import { extractRunContext } from "../../core/run-context.js";
 
 /** How much of the thread's memory a router sees. */
 export interface MemoryLimits {
@@ -100,14 +101,14 @@ import type { ObserverManager } from "../../core/observer-manager.js";
 export function makeFlowRouterNode(
   deps: FlowRouterNodeDeps & { observer?: ObserverManager },
 ): AsyncNode<FlowStateType, FlowStateUpdate> {
-  return async (state) => {
+  return async (state, config) => {
     // a call was decided in this turn and the agent has answered since — the turn ends (#100)
     if (state.approvals.length > 0 && deps.finish !== undefined) {
       return { next: deps.finish, routeReason: AFTER_APPROVAL_DECISION };
     }
     const appState = {
       runId: state.runId,
-      threadId: state.runId,
+      threadId: extractRunContext(config, state.runId).threadId,
       activeNode: deps.loaded.name,
       variables: {},
       history: state.history,

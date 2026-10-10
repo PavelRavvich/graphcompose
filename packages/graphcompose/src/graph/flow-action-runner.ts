@@ -124,7 +124,7 @@ export function actionRunner<TName extends string>(
       item: state.batchItem,
     };
 
-    const appState = { runId, activeNode: node.name };
+    const appState = { runId, threadId: scope.threadId, activeNode: node.name };
     await deps.observer?.onActionStart({ name: node.name, input: state, state: appState });
     const result = await action.execute(state, context);
     await deps.observer?.onActionEnd({ name: node.name, update: result, state: appState });

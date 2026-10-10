@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../../src/app/create-app.js";
-import { ComponentError, Injectable, type OnAgentStart } from "../../../src/index.js";
+import {
+  ComponentError,
+  Injectable,
+  type OnAgentStart,
+  type OnWorkflowPause,
+  type OnWorkflowResume,
+} from "../../../src/index.js";
 import { closestHook } from "../../../src/components/observer-checks.js";
 import { ScriptBook } from "../../../src/testing/script-book.js";
 import { createScriptedGateway } from "../../../src/testing/scripted-gateway.js";
@@ -41,6 +47,28 @@ class LifecycleObserver implements OnAgentStart {
   }
 }
 
+/** Only the pause / resume hooks (#244): a valid observer. */
+@Injectable()
+class PauseObserver implements OnWorkflowPause, OnWorkflowResume {
+  onWorkflowPause(): void {
+    /* real hook */
+  }
+  onWorkflowResume(): void {
+    /* real hook */
+  }
+}
+
+/** A typo of the pause hook next to the real one. */
+@Injectable()
+class PausedTypo implements OnWorkflowPause {
+  onWorkflowPause(): void {
+    /* real hook */
+  }
+  onWorkflowPaused(): void {
+    /* never a hook */
+  }
+}
+
 const assemblyError = async (observers: Parameters<typeof workflowWith>[1]): Promise<string> =>
   createApp(workflowWith("checked", observers), {
     processEnv: {},
@@ -74,6 +102,14 @@ describe("@Workflow observers are checked at assembly", () => {
 
   it("accepts lifecycle hooks next to observer hooks", async () => {
     expect(await assemblyError([LifecycleObserver])).toBe("assembled");
+  });
+
+  it("#244: knows onWorkflowPause / onWorkflowResume — accepted, and suggested for a typo", async () => {
+    expect(await assemblyError([PauseObserver])).toBe("assembled");
+    expect(await assemblyError([PausedTypo])).toBe(
+      "[observer.unknown-hook] PausedTypo.onWorkflowPaused is not an observer hook — did you mean onWorkflowPause?",
+    );
+    expect(closestHook("onWorkflowResumed")).toBe("onWorkflowResume");
   });
 
   it("suggests the closest hook", () => {

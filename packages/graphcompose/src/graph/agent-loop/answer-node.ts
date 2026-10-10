@@ -21,7 +21,7 @@ export function makeAnswerNode(
       runId: runCtx.runId,
       metadata: runCtx.metadata,
     };
-    const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
+    const appState = { runId: state.runId, threadId: runCtx.threadId, activeNode: deps.agent.name };
     await visitAgentAnswer(combinedGuardrails, ctx, deps.observer, appState);
     const content = state.move?.content ?? "";
     const isString = typeof content === "string";

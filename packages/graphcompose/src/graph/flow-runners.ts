@@ -1,5 +1,6 @@
 import type { MessageContent } from "@langchain/core/messages";
 import { WorkflowCancelledError } from "../core/errors.js";
+import { extractRunContext } from "../core/run-context.js";
 
 import { agentDefinitions } from "./agent-definitions.js";
 import {
@@ -98,7 +99,14 @@ function agentNodeRunner<TName extends string>(
       throw new WorkflowCancelledError();
     }
     const runId = state.runId;
-    const appState = { runId, activeNode: node.name, variables: {}, history: state.history };
+    const { threadId } = extractRunContext(config, runId);
+    const appState = {
+      runId,
+      threadId,
+      activeNode: node.name,
+      variables: {},
+      history: state.history,
+    };
 
     await deps.observer?.onAgentStart({ name: node.name, input: state.task, state: appState });
     try {
