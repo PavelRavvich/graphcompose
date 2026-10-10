@@ -19,15 +19,18 @@ import type {
   WorkflowServices,
 } from "../workflow.js";
 
-/** Dispatches an approval request to the workflow's channel of that name. */
-export const approvalRequester =
-  (bundle: AssembledWorkflow, services: WorkflowServices) =>
-  async (channelName: string, req: ChannelRequest): Promise<void> => {
-    const channels = bundle.channels?.(services);
+/**
+ * Dispatches an approval request to the workflow's channel of that name. The channels are created
+ * here, with the app (so their lifecycle hooks run and a missing dependency fails at start).
+ */
+export const approvalRequester = (bundle: AssembledWorkflow, services: WorkflowServices) => {
+  const channels = bundle.channels?.(services);
+  return async (channelName: string, req: ChannelRequest): Promise<void> => {
     const channel = channels?.get(channelName);
     if (!channel) throw new Error(`Unknown channel: ${channelName}`);
     await channel.requestApproval(req);
   };
+};
 
 /** No policies of its own: the workflow's apply. */
 const noPolicies = (): ResolvedPolicies<never> => ({ override: false, instances: [], disable: [] });
@@ -46,6 +49,7 @@ export interface PolicyDeps {
 export const policyDepsOf = (
   bundle: AssembledWorkflow,
   services: WorkflowServices,
+  adapters = bundle.channelAdapters?.(services),
 ): PolicyDeps => ({
   piiPolicies: (agent: string) => bundle.piiPolicies?.(services).get(agent) ?? noPolicies(),
   toolPiiPolicies: (tool: string) => bundle.toolPiiPolicies?.(services).get(tool) ?? noPolicies(),
@@ -53,7 +57,7 @@ export const policyDepsOf = (
   workflowPiiPolicies: bundle.workflowPiiPolicies?.(services) ?? [],
   workflowGuardrails: bundle.workflowGuardrails?.(services) ?? [],
   guardrails: (agent: string) => bundle.guardrails?.(services).get(agent) ?? noPolicies(),
-  channelAdapters: (channel: string) => bundle.channelAdapters?.(services).get(channel),
+  channelAdapters: (channel: string) => adapters?.get(channel),
 });
 
 /** A strategy by its name or class, looked up in the workflow's container on every call. */

@@ -78,9 +78,7 @@ export interface AssembledWorkflow<TName extends string = string> {
   readonly toolDependencies?: Readonly<Record<string, string>>;
   /** Compaction prompt override (workflows with `compaction`). */
   readonly compactionPrompt?: string;
-  /** Set to turn the pause seam on; the app supplies an in-process checkpointer. */
-  readonly needsApproval?: (tool: AnyTool) => boolean;
-
+  /** The workflow's channels (`channelClasses`) by name, created by its container. */
   readonly channels?: (services: WorkflowServices) => ReadonlyMap<string, ChannelHandler>;
   /** A component by its class, from the workflow's container (created with its `deps` on first use). */
   readonly resolve?: (services: WorkflowServices) => (token: Class) => unknown;
@@ -99,6 +97,7 @@ export interface AssembledWorkflow<TName extends string = string> {
   ) => ReadonlyMap<string, ResolvedPolicies<Guardrail>>;
   readonly workflowPiiPolicies?: (services: WorkflowServices) => readonly PiiPolicy[];
   readonly workflowGuardrails?: (services: WorkflowServices) => readonly Guardrail[];
+  /** Per channel name: the channel's `inboundAdapter`, created by the workflow's container. */
   readonly channelAdapters?: (
     services: WorkflowServices,
   ) => ReadonlyMap<string, InboundChannelAdapter>;

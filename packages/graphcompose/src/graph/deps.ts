@@ -8,7 +8,11 @@ import type { Router } from "../routers/index.js";
 import type { AnyTool } from "../tools/index.js";
 import type { Flow } from "./flow.js";
 import type { LoadedRouter } from "./router-texts.js";
-import type { IWorkflowAction, ChannelRequest } from "../components/decorators.js";
+import type {
+  IWorkflowAction,
+  ChannelRequest,
+  InboundChannelAdapter,
+} from "../components/decorators.js";
 import type { WorkflowLimits } from "./settings.js";
 
 /** What the workflow's graph is built from: its flow, its agents and the existing nodes' parts. */
@@ -59,8 +63,8 @@ export interface GraphDeps<TName extends string> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     disable: readonly any[];
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly channelAdapters?: (channel: string) => any;
+  /** The inbound adapter of a channel: reads the reply a run is resumed with. */
+  readonly channelAdapters?: (channel: string) => InboundChannelAdapter | undefined;
   /** The workflow's graph: its transitions (`@Workflow({ flow })`). */
   readonly flow: Flow;
   /** From the workflow's `settings()`. */
