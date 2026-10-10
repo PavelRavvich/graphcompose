@@ -71,9 +71,10 @@ function replyOf(
     case "failure":
       throw new ModelCallFailedError(turn.failure, script.label);
     case "decision":
+    case "decide":
       throw new TestFailure(
         "test.wrong-script",
-        `${script.label} is not a router: script it with replyWith(…) / callTool(…), not routeTo(…)`,
+        `${script.label} chats: script it with replyWith(…) / callTool(…), not routeTo(…) / decideWith(…)`,
       );
   }
 }

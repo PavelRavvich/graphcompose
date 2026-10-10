@@ -2,6 +2,10 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { DEFAULT_MAX_TOKENS } from "../config/types.js";
 import { promptCachingOfSetting } from "../models/prompt-caching.js";
 import { reasoningOfThinking } from "../models/reasoning.js";
+import { isDecisionModel } from "../models/decision-models.js";
+import { DecisionError } from "./decision-errors.js";
+import type { DecisionOutcome } from "./decision-response.js";
+import type { DecisionRequest } from "./decisions.js";
 import type { ChatModelUser, ModelGateway } from "./gateway.js";
 import type {
   AgentsConfigOf,
@@ -18,13 +22,25 @@ export interface ModelBinding {
 
 export type ModelFactory = (settings: ResolvedModelSettings) => BaseChatModel;
 
+/** A judge's model: a chat model (`invoke`), or a decision model (`decide`) through the gateway. */
+export type JudgeBinding =
+  | { readonly kind: "chat"; readonly model: string; readonly chat: ModelBinding }
+  | {
+      readonly kind: "decisions";
+      readonly model: string;
+      readonly decide: (request: DecisionRequest) => Promise<DecisionOutcome>;
+    };
+
+/** What the registry needs of the gateway; `decide` only when a judge is on a decision model. */
+export type RegistryGateway = Pick<ModelGateway, "chatModel" | "decide">;
+
 /** Chat models of the agents. The router is built separately (see src/routing). */
 export interface ModelRegistry {
   readonly agents: ReadonlyMap<string, ModelBinding>;
   /** The conversation-compaction model, when the workflow compacts. */
   readonly compaction?: ModelBinding | undefined;
   /** Each `@Judge`'s own model, by judge name. */
-  readonly judges: ReadonlyMap<string, ModelBinding>;
+  readonly judges: ReadonlyMap<string, JudgeBinding>;
 }
 
 /**
@@ -47,10 +63,25 @@ export function resolveSettings(
   };
 }
 
+/** A judge on a decision model decides through the gateway, its cost under `judge:<name>`. */
+function decisionJudge(judge: string, model: string, gateway: RegistryGateway): JudgeBinding {
+  const decide = gateway.decide;
+  if (decide === undefined) {
+    throw new DecisionError(
+      `judge "${judge}" is on decision model ${model}, but the app's model gateway has no decide`,
+    );
+  }
+  return {
+    kind: "decisions",
+    model,
+    decide: (request) => decide({ caller: `judge:${judge}`, model, request }),
+  };
+}
+
 /** Builds one binding per agent and judge; each model comes from the gateway (which shares identical ones). */
 export function createModelRegistry(
   config: AgentsConfigOf<string>,
-  gateway: Pick<ModelGateway, "chatModel">,
+  gateway: RegistryGateway,
 ): ModelRegistry {
   const bindFor =
     (user: ChatModelUser) =>
@@ -68,9 +99,16 @@ export function createModelRegistry(
       ? undefined
       : bindFor({ kind: "compaction" })(config.compaction.model);
   const judges = new Map(
-    Object.entries(config.judges ?? {}).map(
-      ([judge, settings]) => [judge, bindFor({ kind: "judge", judge })(settings)] as const,
-    ),
+    Object.entries(config.judges ?? {}).map(([judge, settings]): [string, JudgeBinding] => [
+      judge,
+      isDecisionModel(settings.model)
+        ? decisionJudge(judge, settings.model, gateway)
+        : {
+            kind: "chat",
+            model: settings.model,
+            chat: bindFor({ kind: "judge", judge })(settings),
+          },
+    ]),
   );
   return { agents, compaction, judges };
 }

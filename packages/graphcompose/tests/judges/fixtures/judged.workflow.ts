@@ -9,7 +9,7 @@ import {
   type WorkflowDefinition,
 } from "../../../src/graph/index.js";
 import { MODEL_MAX } from "../../../src/index.js";
-import { JevModelProvider } from "../../../src/models/index.js";
+import { DecisionsModelProvider } from "../../../src/models/index.js";
 import { LocalModelProvider } from "../../models/providers.fixture.js";
 
 /** What the judge asks its model (a provider value: the judge gets it through its `deps`). */
@@ -52,7 +52,7 @@ export const DEFAULTS = {
 
 export const settings = (): WorkflowSettings =>
   WorkflowSettings.builder()
-    .modelProviders([JevModelProvider, LocalModelProvider])
+    .modelProviders([DecisionsModelProvider, LocalModelProvider])
     .defaultModelProvider(LocalModelProvider)
     .build();
 

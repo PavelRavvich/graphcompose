@@ -4,7 +4,7 @@ import { providerClients, ProviderCapabilityError } from "../../src/llm/provider
 import {
   CircuitBreakers,
   ConfigurationError,
-  JevModelProvider,
+  DecisionsModelProvider,
   ModelProviderDirectory,
   ModelPurpose,
 } from "../../src/models/index.js";
@@ -27,7 +27,7 @@ describe("AC6: the default gateway resolves each model's provider", () => {
       { body: { answers: { route: { choice: "finish" } }, usage: { cost: 0.0001 } } },
     ]);
     const gateway = createProviderGateway(
-      ModelProviderDirectory.of([JevModelProvider]),
+      ModelProviderDirectory.of([DecisionsModelProvider]),
       options(stub.fetch),
     );
 

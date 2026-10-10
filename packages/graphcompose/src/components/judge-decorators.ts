@@ -1,4 +1,5 @@
 import type { BaseMessageLike } from "@langchain/core/messages";
+import type { AnswersOf, DecisionQuestions, DecisionRequest } from "../llm/decisions.js";
 import { recordComponent } from "./metadata.js";
 import type { ResolvedAll, Scoped, Token } from "./injection.js";
 
@@ -6,7 +7,10 @@ import type { ResolvedAll, Scoped, Token } from "./injection.js";
 export interface JudgeMeta {
   /** Unique in the workflow: the judge's settings key (`judges.<name>`) and its cost caller (`judge:<name>`). */
   readonly name: string;
-  /** The judge's own chat model; required — a judge without one fails at app start (`judge.no-model`). */
+  /**
+   * The judge's own model, required (`judge.no-model`): a chat model (`ctx.model.invoke`) or a
+   * decision model such as `openai/gpt-6-luna-decisions` or `typesafe/jev-1.13` (`ctx.model.decide`).
+   */
   readonly model: string;
   readonly description?: string;
 }
@@ -15,8 +19,15 @@ export interface JudgeMeta {
 export interface JudgeModel {
   /** The model id (`@Judge({ model })`). */
   readonly model: string;
-  /** One chat call; returns the reply's text. */
+  /** One chat call; returns the reply's text. On a decision model: `ModelKindError`. */
   readonly invoke: (input: string | readonly BaseMessageLike[]) => Promise<string>;
+  /**
+   * One decision (questions from `Decision.choice / noul / score`), its answers typed by them. On a
+   * chat model: `ModelKindError`.
+   */
+  readonly decide: <const Q extends DecisionQuestions>(
+    request: DecisionRequest<Q>,
+  ) => Promise<AnswersOf<Q>>;
 }
 
 /** What a judge sees besides the reply. */

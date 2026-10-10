@@ -1,0 +1,95 @@
+import { Agent, Decision, Judge, Workflow } from "../../../src/core/index.js";
+import type { JudgeContext, JudgeHandler, JudgeVerdict } from "../../../src/core/index.js";
+import { chain, type WorkflowDefinition, type WorkflowSettings } from "../../../src/graph/index.js";
+import { DEFAULTS, Reply, settings, TaskStart } from "./judged.workflow.js";
+
+/** The decision model judges run on (OpenRouter Decisions API, images supported). */
+export const LUNA = "openai/gpt-6-luna-decisions";
+
+/** A 1×1 png. */
+export const PNG =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+/** Judges with three typed questions on a decision model: grounded (P(yes)), tone (choice), quality (score). */
+@Judge({ name: "answer-grounded", model: LUNA })
+export class AnswerGrounded implements JudgeHandler {
+  async judge(reply: string, ctx: JudgeContext): Promise<JudgeVerdict> {
+    const a = await ctx.model.decide({
+      state: { task: ctx.task, reply },
+      questions: {
+        grounded: Decision.noul("Every fact in the reply appears in the task"),
+        tone: Decision.choice("Tone of the reply", {
+          neutral: "Plain, factual",
+          pushy: "Sells or pressures",
+        }),
+        quality: Decision.score("Overall usefulness", ["useless", "partial", "complete"]),
+      },
+    });
+    // typed answers: a compile error here if decide's answers lost their types
+    const tone: "neutral" | "pushy" = a.tone.choice;
+    const quality: number = a.quality.score;
+    const grounded: number = a.grounded.noul;
+    return grounded > 0.7 && tone === "neutral"
+      ? { passed: true, metrics: { quality, grounded } }
+      : { passed: false, feedback: "Only state facts from the task, neutrally." };
+  }
+}
+
+/** Looks at an image with the reply: the state is text and image parts. */
+@Judge({ name: "looks-right", model: LUNA })
+export class LooksRight implements JudgeHandler {
+  async judge(reply: string, ctx: JudgeContext): Promise<JudgeVerdict> {
+    const a = await ctx.model.decide({
+      state: ["Does the chart match the reply?", Decision.image(PNG, "low"), reply],
+      questions: { matches: Decision.noul("The reply describes the chart") },
+    });
+    return a.matches.noul >= 0.5
+      ? { passed: true }
+      : { passed: false, feedback: "Describe the chart." };
+  }
+}
+
+@Agent({
+  name: "writer",
+  prompt: "Write.",
+  description: "Writes an answer",
+  model: "local/llama",
+  judges: [AnswerGrounded],
+  maxRetries: 1,
+})
+export class Writer {}
+
+@Agent({
+  name: "illustrator",
+  prompt: "Describe the chart.",
+  description: "Describes a chart",
+  model: "local/llama",
+  judges: [LooksRight],
+})
+export class Illustrator {}
+
+/** One agent gated by a judge on a decision model, one retry. */
+@Workflow({
+  name: "decision-judged-desk",
+  version: "1.0.0",
+  flow: [chain(TaskStart, Writer, Reply)],
+  defaults: DEFAULTS,
+})
+export class DecisionDesk implements WorkflowDefinition {
+  settings(): WorkflowSettings {
+    return settings();
+  }
+}
+
+/** An agent gated by a judge that looks at an image. */
+@Workflow({
+  name: "image-judged-desk",
+  version: "1.0.0",
+  flow: [chain(TaskStart, Illustrator, Reply)],
+  defaults: DEFAULTS,
+})
+export class ImageDesk implements WorkflowDefinition {
+  settings(): WorkflowSettings {
+    return settings();
+  }
+}

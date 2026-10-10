@@ -1,6 +1,6 @@
 /**
  * `graphcompose/models` — model providers: `@ModelProvider` classes (`OpenAiCompatibleProvider`,
- * `OpenRouterProvider`, `JevModelProvider`), what each model costs, how it reasons and caches,
+ * `OpenRouterProvider`, `DecisionsModelProvider`), what each model costs, how it reasons and caches,
  * retries and circuit breakers, and the fail-fast check of settings against models.
  * Wiki → Model providers.
  */
@@ -29,12 +29,15 @@ export {
 } from "./openrouter.provider.js";
 export { OpenRouterModelProvider } from "./openrouter-model.provider.js";
 export {
-  JevModelProvider,
+  DecisionsModelProvider,
   JEV_MODELS,
   OPENROUTER_API_KEY,
   OPENROUTER_BASE_URL,
   OPENROUTER_BASE_URL_SETTING,
 } from "./jev.provider.js";
+export { DECISION_MODELS, isDecisionModel } from "./decision-models.js";
+// the deprecated `JevModelProvider` alias (a star export: re-exporting it by name is itself deprecated use)
+export * from "./jev-alias.js";
 export {
   EnvironmentVariable,
   MissingEnvironmentVariableError,

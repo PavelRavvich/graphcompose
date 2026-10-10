@@ -10,7 +10,7 @@ import {
   WorkflowSettings,
   type WorkflowDefinition,
 } from "../../../src/graph/index.js";
-import { JevModelProvider } from "../../../src/models/index.js";
+import { DecisionsModelProvider } from "../../../src/models/index.js";
 import { usd } from "../../../src/units/index.js";
 import { LocalModelProvider, TestOpenRouterProvider } from "../providers.fixture.js";
 
@@ -55,7 +55,7 @@ export class Priced implements WorkflowDefinition {
   settings(): WorkflowSettings {
     return WorkflowSettings.builder()
       .limits({ perRun: { cost: usd(0.05) } })
-      .modelProviders([TestOpenRouterProvider, JevModelProvider, LocalModelProvider])
+      .modelProviders([TestOpenRouterProvider, DecisionsModelProvider, LocalModelProvider])
       .defaultModelProvider(LocalModelProvider)
       .build();
   }

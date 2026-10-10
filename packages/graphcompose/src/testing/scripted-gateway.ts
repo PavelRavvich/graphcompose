@@ -16,6 +16,7 @@ import { nodeNameOf } from "./failure-facts.js";
 import { replyWith, type DecisionDetails, type ScriptedTurn } from "./script.js";
 import type { ComponentScript, ScriptBook, ModelRequest } from "./script-book.js";
 import { ScriptedChatModel } from "./scripted-chat-model.js";
+import { scriptedDecide } from "./scripted-decisions.js";
 
 /** The script key of a chat model's user and of a router. */
 export function chatKeyOf(user: ChatModelUser): string {
@@ -141,5 +142,6 @@ export function createScriptedGateway(book: ScriptBook): ModelGateway {
         return Promise.resolve(failed(book.report(asError(error)).message));
       }
     },
+    decide: (spec) => scriptedDecide(book, spec),
   };
 }

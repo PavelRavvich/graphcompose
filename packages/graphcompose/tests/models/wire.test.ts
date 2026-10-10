@@ -11,7 +11,7 @@ import type { ResolvedModelSettings } from "../../src/config/types.js";
 import { connectionOf } from "../../src/models/connections.js";
 import { CircuitBreakers } from "../../src/models/circuit-breaker.js";
 import {
-  JevModelProvider,
+  DecisionsModelProvider,
   PromptCaching,
   Reasoning,
   toWireRequest,
@@ -114,14 +114,14 @@ describe("AC6: the wire form, made in one place (toWireRequest)", () => {
 
   it("AC6: Jev routes are sent sorted by name", async () => {
     const stub = providerStub([{ body: { answers: { route: { choice: "b" } } } }]);
-    const connection = connectionOf(modelProviderOf(JevModelProvider), {
+    const connection = connectionOf(modelProviderOf(DecisionsModelProvider), {
       env,
       requireKeys: true,
       breakers: new CircuitBreakers(),
       send: stub.fetch,
     });
 
-    await new JevModelProvider().routeTo({
+    await new DecisionsModelProvider().routeTo({
       decision: {
         model: "typesafe/jev-1.13",
         state: "x",

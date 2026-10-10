@@ -4,7 +4,7 @@ import { resolveAgentLimits, type AgentLimit } from "../graph/agent-loop/index.j
 import { reasoningLabel, reasoningOfThinking } from "../models/reasoning.js";
 import { flowLines } from "../graph/flow-text.js";
 import { STEPS_PER_WORKING_NODE } from "../graph/limits.js";
-import { isJevModel } from "../graph/router-model.js";
+import { isDecisionModel } from "../graph/router-model.js";
 import { configSnapshot } from "../run/versions.js";
 import { shortVersion, versionOf } from "../terns/index.js";
 import { isMcpFacade, type AnyTool } from "../tools/index.js";
@@ -74,7 +74,7 @@ function flowSection(bundle: AssembledWorkflow): string[] {
     "routers",
     ...bundle.routers.map(
       (router) =>
-        `  ${router.name}  ${isJevModel(router.model) ? "jev" : "llm"} ${router.model}${router.maxVisits === undefined ? "" : ` · maxVisits ${String(router.maxVisits)}`} — ${router.description}`,
+        `  ${router.name}  ${isDecisionModel(router.model) ? "decisions" : "llm"} ${router.model}${router.maxVisits === undefined ? "" : ` · maxVisits ${String(router.maxVisits)}`} — ${router.description}`,
     ),
   ];
 }

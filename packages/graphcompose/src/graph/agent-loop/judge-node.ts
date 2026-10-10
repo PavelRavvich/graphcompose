@@ -1,27 +1,12 @@
 import { HumanMessage, type MessageContent } from "@langchain/core/messages";
-import type { JudgeModel, JudgeVerdict } from "../../components/judge-decorators.js";
+import type { JudgeVerdict } from "../../components/judge-decorators.js";
 import type { AppState } from "../../core/observability.js";
-import { recordUsage, type UsageRecord } from "../../finops/usage.js";
+import type { UsageRecord } from "../../finops/usage.js";
 import { AgentFailedError, QualityGateError, type JudgeFeedback } from "../errors.js";
 import type { AsyncNode } from "../types.js";
-import type { AgentJudge, AgentLoopDeps } from "./deps.js";
+import type { AgentLoopDeps } from "./deps.js";
+import { meteredModel } from "./judge-model.js";
 import { loopUsage, type AgentLoopStateType, type AgentLoopUpdate } from "./state.js";
-
-/** The cost caller of a judge's model calls (category `review`). */
-export const judgeCaller = (judge: string): string => `judge:${judge}`;
-
-/** A judge's model: each call through the gateway's binding, its spend added to `spent`. */
-function meteredModel(judge: AgentJudge, spent: UsageRecord[]): JudgeModel {
-  const { model, settings } = judge.binding;
-  return {
-    model: settings.model,
-    invoke: async (input) => {
-      const response = await model.invoke(typeof input === "string" ? input : [...input]);
-      spent.push(recordUsage(judgeCaller(judge.name), settings, response));
-      return response.text;
-    },
-  };
-}
 
 /** The judges that rejected the reply, in the agent's order; every judge runs. */
 async function rejectionsOf(

@@ -17,7 +17,7 @@ import {
   type MemoryUpdate,
   type MemoryView,
 } from "../../../src/memory/index.js";
-import { JevModelProvider } from "../../../src/models/index.js";
+import { DecisionsModelProvider } from "../../../src/models/index.js";
 import { LocalModelProvider } from "../../models/providers.fixture.js";
 
 /** Where the noting strategy keeps what it saw (a provider value, so tests read it). */
@@ -84,7 +84,7 @@ const DEFAULTS = {
 
 const settings = (): WorkflowSettings =>
   WorkflowSettings.builder()
-    .modelProviders([JevModelProvider, LocalModelProvider])
+    .modelProviders([DecisionsModelProvider, LocalModelProvider])
     .defaultModelProvider(LocalModelProvider)
     .build();
 

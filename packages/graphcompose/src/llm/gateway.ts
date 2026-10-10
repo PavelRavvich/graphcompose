@@ -7,6 +7,8 @@ import {
   type RouteRequest,
   type Router,
 } from "../routers/index.js";
+import { readDecision, type DecisionOutcome } from "./decision-response.js";
+import { checkDecisionRequest, type DecisionRequest } from "./decisions.js";
 import type { JevClient } from "./jev-client.js";
 import type { ModelFactory } from "./registry.js";
 import { providerClients, type ProviderClientOptions } from "./provider-clients.js";
@@ -25,7 +27,7 @@ export interface ChatModelSpec {
   readonly settings: ResolvedModelSettings;
 }
 
-/** A router's model, resolved: Jev by id, or a chat model with complete settings. */
+/** A router's model, resolved: a decision model by id (`kind: "jev"`), or a chat model with complete settings. */
 export type DecisionModel =
   | { readonly kind: "jev"; readonly model: string }
   | { readonly kind: "llm"; readonly settings: ResolvedModelSettings };
@@ -37,15 +39,31 @@ export interface DecisionSpec {
   readonly request: RouteRequest;
 }
 
+/** A decision call (`ctx.model.decide`): its cost caller (`judge:<name>`), decision model and request. */
+export interface DecideSpec {
+  /** The cost caller, also the script key in tests (`judge:<name>`). */
+  readonly caller: string;
+  readonly model: string;
+  readonly request: DecisionRequest;
+}
+
 /**
  * The one seam every model call goes through. Agents, judges and compaction get their chat model from
- * `chatModel`; routers and guards routeTo through `routeTo`.
+ * `chatModel`; routers and guards routeTo through `routeTo`; judges on a decision model `decide`.
  * Model providers, scripted and replayed models replace the gateway, nothing behind it.
  */
 export interface ModelGateway {
   readonly chatModel: (spec: ChatModelSpec) => BaseChatModel;
   readonly routeTo: (spec: DecisionSpec) => Promise<RouteOutcome>;
+  /**
+   * Answers validated against the questions asked; the cost under the spec's caller. Needed only by
+   * judges on a decision model (a gateway without it fails their app at start).
+   */
+  readonly decide?: (spec: DecideSpec) => Promise<DecisionOutcome>;
 }
+
+/** A gateway that also decides (the default, scripted and recording gateways). */
+export type DecidingGateway = ModelGateway & Required<Pick<ModelGateway, "decide">>;
 
 /** The raw clients the default gateway calls. */
 export interface ModelClients {
@@ -64,7 +82,7 @@ const clientKey = (settings: ResolvedModelSettings): string =>
   ]);
 
 /** The default gateway over raw clients: one chat client per settings, Jev or LLM decisions. */
-export function createModelGateway(clients: ModelClients): ModelGateway {
+export function createModelGateway(clients: ModelClients): DecidingGateway {
   const cache = new Map<string, BaseChatModel>();
   const chatModel = ({ settings }: ChatModelSpec): BaseChatModel => {
     const key = clientKey(settings);
@@ -80,7 +98,13 @@ export function createModelGateway(clients: ModelClients): ModelGateway {
           model: chatModel({ user: { kind: "router", router }, settings: model.settings }),
           settings: model.settings,
         });
-  return { chatModel, routeTo: (spec) => strategyOf(spec).route(spec.request) };
+  const decide = async ({ caller, model, request }: DecideSpec): Promise<DecisionOutcome> => {
+    checkDecisionRequest(request);
+    const { state, questions } = request;
+    const raw = await clients.jevClient({ model, state, questions });
+    return readDecision(raw, { caller, model, questions });
+  };
+  return { chatModel, routeTo: (spec) => strategyOf(spec).route(spec.request), decide };
 }
 
 /**
@@ -90,6 +114,6 @@ export function createModelGateway(clients: ModelClients): ModelGateway {
 export function createProviderGateway(
   directory: ModelProviderDirectory,
   options: ProviderClientOptions,
-): ModelGateway {
+): DecidingGateway {
   return createModelGateway(providerClients(directory, options));
 }

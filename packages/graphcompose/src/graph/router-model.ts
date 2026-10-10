@@ -3,9 +3,9 @@ import type { ModelGateway } from "../llm/gateway.js";
 import { createRouter, type Router } from "../routers/index.js";
 import type { LoadedRouter } from "./router-texts.js";
 
-import { isJevModel } from "../models/uses.js";
+import { isDecisionModel } from "../models/decision-models.js";
 
-export { isJevModel };
+export { isDecisionModel };
 
 export interface FlowRouterFactoryDeps {
   readonly gateway: ModelGateway;
@@ -14,9 +14,9 @@ export interface FlowRouterFactoryDeps {
   readonly chatModelSettings: (model: string) => ModelSettings;
 }
 
-/** A router's model by its id: Jev, or a chat model with the settings the registry knows. */
+/** A router's model by its id: a decision model (`kind: "jev"`), or a chat model with the settings the registry knows. */
 export function routerModelOf(model: string, deps: FlowRouterFactoryDeps): RouterModel {
-  return isJevModel(model)
+  return isDecisionModel(model)
     ? { kind: "jev", model }
     : { ...deps.chatModelSettings(model), kind: "llm", model };
 }

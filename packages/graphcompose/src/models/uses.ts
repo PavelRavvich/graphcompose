@@ -1,5 +1,6 @@
 import type { AgentsConfigOf, ResolvedModelSettings, RouterModel } from "../config/types.js";
 import { resolveSettings } from "../llm/registry.js";
+import { isDecisionModel } from "./decision-models.js";
 import { ModelPurpose } from "./resolve.js";
 
 /** One place a model is used, with the settings it is used with. */
@@ -18,8 +19,9 @@ export interface ModelNamingRouter {
   readonly model: string;
 }
 
-/** Jev (`typesafe/jev-1.13`, …) decides through the Decisions API; anything else is a chat model. */
-export const isJevModel = (model: string): boolean => /(^|\/)jev-/.test(model);
+/** A model's use: a decision (decision models) or a chat model with its settings over the defaults. */
+const purposeOf = (model: string): ModelPurpose =>
+  isDecisionModel(model) ? ModelPurpose.Decision : ModelPurpose.Chat;
 
 const routerUse = (key: string, model: RouterModel, config: AgentsConfigOf<string>): ModelUse =>
   model.kind === "jev"
@@ -52,13 +54,17 @@ export function modelUsesOf(
   return [
     ...Object.entries(config.agents).map(([name, agent]) => chat(`agents.${name}`, agent)),
     ...(config.compaction === undefined ? [] : [chat("compaction", config.compaction.model)]),
-    ...Object.entries(config.judges ?? {}).map(([name, judge]) => chat(`judges.${name}`, judge)),
+    ...Object.entries(config.judges ?? {}).map(([name, judge]) =>
+      purposeOf(judge.model) === ModelPurpose.Decision
+        ? { key: `judges.${name}`, model: judge.model, purpose: ModelPurpose.Decision }
+        : chat(`judges.${name}`, judge),
+    ),
     routerUse("defaults.router", config.defaults.router, config),
     ...guardUses(config),
-    ...routers.map((router): ModelUse =>
-      isJevModel(router.model)
-        ? { key: `routers.${router.name}`, model: router.model, purpose: ModelPurpose.Decision }
-        : { key: `routers.${router.name}`, model: router.model, purpose: ModelPurpose.Chat },
-    ),
+    ...routers.map((router): ModelUse => ({
+      key: `routers.${router.name}`,
+      model: router.model,
+      purpose: purposeOf(router.model),
+    })),
   ];
 }

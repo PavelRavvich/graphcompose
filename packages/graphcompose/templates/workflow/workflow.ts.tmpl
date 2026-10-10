@@ -1,7 +1,7 @@
 import { Workflow } from "graphcompose/core";
 import { WorkflowSettings, type WorkflowDefinition } from "graphcompose/core";
 import { from } from "graphcompose/router";
-import { JevModelProvider } from "graphcompose/models";
+import { DecisionsModelProvider } from "graphcompose/models";
 import { usd } from "graphcompose/units";
 import { OpenRouterModelProvider } from "./model-providers/openrouter.model-provider.js";
 import { TextWorkflowStart } from "./workflow-starts/text.workflow-start.js";
@@ -36,7 +36,7 @@ export class {{pascal}}Workflow implements WorkflowDefinition {
   settings(): WorkflowSettings {
     return WorkflowSettings.builder()
       .limits({ perRun: { cost: usd(0.1) }, perDay: { cost: usd(2) } })
-      .modelProviders([OpenRouterModelProvider, JevModelProvider])
+      .modelProviders([OpenRouterModelProvider, DecisionsModelProvider])
       .build();
   }
 }

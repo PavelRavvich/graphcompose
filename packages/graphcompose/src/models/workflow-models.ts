@@ -1,15 +1,15 @@
 import type { AgentsConfigOf, ModelSettings } from "../config/types.js";
 import type { ModelProviderSettings } from "../graph/settings.js";
 import { costLabel, priceOf } from "./cost.js";
-import { JevModelProvider } from "./jev.provider.js";
+import { DecisionsModelProvider } from "./jev.provider.js";
 import { OpenRouterModelProvider } from "./openrouter-model.provider.js";
 import { promptCachingLabel } from "./prompt-caching.js";
 import { reasoningLabel } from "./reasoning.js";
 import { ModelProviderDirectory, ModelPurpose } from "./resolve.js";
 import type { ModelUse } from "./uses.js";
 
-/** A workflow that registers no providers gets these: OpenRouter for chat, Jev for decisions. */
-export const DEFAULT_MODEL_PROVIDERS = [OpenRouterModelProvider, JevModelProvider] as const;
+/** A workflow that registers no providers gets these: OpenRouter for chat, the Decisions API for decision models. */
+export const DEFAULT_MODEL_PROVIDERS = [OpenRouterModelProvider, DecisionsModelProvider] as const;
 
 /** The directory of a workflow's model providers (`settings().modelProviders([...])`). */
 export const directoryOf = (settings: ModelProviderSettings | undefined): ModelProviderDirectory =>

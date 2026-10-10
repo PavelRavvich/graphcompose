@@ -2,6 +2,7 @@ import type { MessageContent, ToolCall, UsageMetadata } from "@langchain/core/me
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
+import type { DecisionOutcome } from "../llm/decision-response.js";
 import type { RouteOutcome } from "../routers/index.js";
 import { stableJson, versionOf } from "../terns/index.js";
 import { CassetteMissingError } from "./errors.js";
@@ -30,7 +31,18 @@ const DecisionInteraction = z.strictObject({
   outcome: z.custom<RouteOutcome>(isObject),
 });
 
-const Interaction = z.discriminatedUnion("kind", [ChatInteraction, DecisionInteraction]);
+const DecideInteraction = z.strictObject({
+  kind: z.literal("decide"),
+  key: z.string(),
+  request: z.string(),
+  outcome: z.custom<DecisionOutcome>(isObject),
+});
+
+const Interaction = z.discriminatedUnion("kind", [
+  ChatInteraction,
+  DecisionInteraction,
+  DecideInteraction,
+]);
 type Interaction = z.infer<typeof Interaction>;
 
 const CassetteFile = z.strictObject({ version: z.literal(1), interactions: z.array(Interaction) });
@@ -55,7 +67,7 @@ function readCassette(file: string): Interaction[] {
 
 /**
  * The recorded model calls of one test: agents, judges, compaction (`chat`) and every router,
- * guard and judge decision, Jev included (`decision`), each under its script key
+ * guard decision, Jev included (`decision`), every judge's `decide` on a decision model (`decide`), each under its script key
  * (`agent:<name>`, `judge:<name>`, `router:<name>`, `compaction`) and request hash. Replay
  * returns the n-th recording of an equal request in order; anything unrecorded is a
  * `CassetteMissingError`, reported through `report` so the test fails even when the run swallows it.
@@ -89,6 +101,13 @@ export class Cassette {
   decision(key: string, request: string): RouteOutcome {
     const found = this.#take("decision", key, request);
     if (found?.kind !== "decision") throw this.#missing(key);
+    return found.outcome;
+  }
+
+  /** A judge's `ctx.model.decide` (a decision model's answers and cost). */
+  decide(key: string, request: string): DecisionOutcome {
+    const found = this.#take("decide", key, request);
+    if (found?.kind !== "decide") throw this.#missing(key);
     return found.outcome;
   }
 
