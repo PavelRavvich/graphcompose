@@ -1,6 +1,5 @@
 import type { CommandContext, CommandOutcome } from "./context.js";
-import type { Changes } from "../scaffold/write.js";
-import { applyChanges } from "../scaffold/write.js";
+import { apply, skippedOf, type ApplyOptions, type Changes } from "../scaffold/write.js";
 
 const pathsOf = (files: Changes["create"]): string[] => files.map((file) => file.path);
 
@@ -10,19 +9,28 @@ export function dryRun(context: CommandContext, plan: Changes, what: string): Co
   [...pathsOf(plan.create), ...pathsOf(plan.modify)].forEach((path) => {
     context.say(`  ${path}`);
   });
-  return { result: { dryRun: true, plan } };
+  const skipped = skippedOf(plan);
+  skipped.forEach((line) => {
+    context.say(`  skipped: ${line}`);
+  });
+  return { result: { dryRun: true, plan }, warnings: skipped };
 }
 
-/** Writes the plan under `root` (all or nothing) and reports created / modified files. */
+/**
+ * Writes the plan under `root` (all or nothing) and reports created / modified files; wiring left out
+ * because it is already there (`--force`) is reported as warnings.
+ */
 export async function write(
   root: string,
   plan: Changes,
   result: Record<string, unknown> = {},
+  options: ApplyOptions = {},
 ): Promise<CommandOutcome> {
-  const written = await applyChanges(root, plan);
+  const applied = await apply(root, plan, options);
   return {
-    result: { ...result, written },
-    created: pathsOf(plan.create),
-    modified: pathsOf(plan.modify),
+    result: { ...result, written: [...applied.created, ...applied.modified] },
+    created: applied.created,
+    modified: applied.modified,
+    warnings: applied.skipped.map((line) => `skipped: ${line}`),
   };
 }

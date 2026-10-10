@@ -4,13 +4,13 @@ import { addImport } from "./wire.js";
 import type { FileToWrite } from "./write.js";
 
 /** `from(<sources>).<method>(<args>)` in a flow. */
-interface FlowCall {
+export interface FlowCall {
   readonly sources: ts.NodeArray<ts.Expression>;
   readonly method: string;
   readonly args: ts.NodeArray<ts.Expression>;
 }
 
-function flowCalls(source: ts.SourceFile): FlowCall[] {
+export function flowCalls(source: ts.SourceFile): FlowCall[] {
   const calls: FlowCall[] = [];
   const visit = (node: ts.Node): void => {
     if (
@@ -32,8 +32,25 @@ function flowCalls(source: ts.SourceFile): FlowCall[] {
   return calls;
 }
 
-const names = (list: ts.NodeArray<ts.Expression>, source: ts.SourceFile): string[] =>
-  list.map((item) => item.getText(source));
+/** The identifiers of a list (`from(A, B)` → `["A", "B"]`). */
+export const namesIn = (list: ts.NodeArray<ts.Expression>): string[] =>
+  list.map((item) => (ts.isIdentifier(item) ? item.text : item.getText()));
+
+/** The star around `router`: `from(router).routes(…)` and the `from(<agents>).next(router)` back to it. */
+export function starCalls(
+  calls: readonly FlowCall[],
+  router: string,
+  agents: readonly string[],
+): { choose: FlowCall; back: FlowCall } | undefined {
+  const choose = calls.find((c) => c.method === "routes" && namesIn(c.sources).join() === router);
+  const back = calls.find(
+    (c) =>
+      c.method === "next" &&
+      namesIn(c.args).join() === router &&
+      namesIn(c.sources).every((name) => agents.includes(name)),
+  );
+  return choose === undefined || back === undefined ? undefined : { choose, back };
+}
 
 /** A text to insert at a position. */
 interface Insert {
@@ -66,37 +83,48 @@ const applyInserts = (text: string, inserts: readonly Insert[]): string =>
 
 /**
  * Puts a new agent into a star flow: `from(Router).routes(…, Agent, Finish)` and
- * `from(…, Agent).next(Router)`; an unexpected shape → an error naming the file — never a guess.
+ * `from(<agents>, Agent).next(Router)`. An agent already there is skipped (reported, never doubled);
+ * an unexpected shape → an error naming the file — never a guess.
  */
-export function addAgentToFlow(file: FileToWrite, agent: string, router: string): FileToWrite {
+export function addAgentToFlow(
+  file: FileToWrite,
+  agent: string,
+  router: string,
+  agents: readonly string[],
+): FileToWrite {
   const source = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true);
-  const calls = flowCalls(source);
-  const choose = calls.find(
-    (c) => c.method === "routes" && names(c.sources, source).join() === router,
-  );
-  const back = calls.find(
-    (c) =>
-      c.method === "next" &&
-      names(c.args, source).join() === router &&
-      !names(c.sources, source).includes("TextWorkflowStart"),
-  );
-  const intoChoice = choose === undefined ? undefined : insertion(choose.args, agent, true);
-  const intoReturn = back === undefined ? undefined : insertion(back.sources, agent, false);
-  if (intoChoice === undefined || intoReturn === undefined) {
+  const star = starCalls(flowCalls(source), router, [...agents, agent]);
+  if (star === undefined) {
     throw new ScaffoldError(
-      `${file.path}: no from(${router}).routes(…) and from(…).next(${router}) in the flow — add ${agent} by hand`,
+      `${file.path}: no from(${router}).routes(…) and from(<agents>).next(${router}) in the flow — add ${agent} by hand`,
     );
   }
-  return { path: file.path, content: applyInserts(file.content, [intoChoice, intoReturn]) };
+  const skipped: string[] = [];
+  const inserts: Insert[] = [];
+  const add = (call: FlowCall, beforeLast: boolean, where: string): void => {
+    const into = call === star.choose ? call.args : call.sources;
+    if (namesIn(into).includes(agent)) skipped.push(`${file.path}: ${agent} already in ${where}`);
+    else inserts.push(...[insertion(into, agent, beforeLast)].filter((i) => i !== undefined));
+  };
+  add(star.choose, true, `from(${router}).routes(…)`);
+  add(star.back, false, `from(…).next(${router})`);
+  return {
+    path: file.path,
+    content: applyInserts(file.content, inserts),
+    skipped: [...(file.skipped ?? []), ...skipped],
+  };
 }
 
 /** Wires an agent into the workflow's flow and imports it. */
 export const wireAgentIntoFlow = (
   file: FileToWrite,
-  agent: string,
+  agent: { readonly className: string; readonly from: string },
   router: string,
-  from: string,
+  agents: readonly string[],
 ): FileToWrite => {
-  const flowed = addAgentToFlow(file, agent, router);
-  return { path: file.path, content: addImport(flowed.content, file.path, agent, from) };
+  const flowed = addAgentToFlow(file, agent.className, router, agents);
+  return {
+    ...flowed,
+    content: addImport(flowed.content, file.path, agent.className, agent.from),
+  };
 };

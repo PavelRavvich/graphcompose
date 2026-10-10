@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { ScaffoldError, ScaffoldUsageError } from "./errors.js";
-import { namesOf } from "./names.js";
 import type { FileToWrite } from "./write.js";
 
 /** A required option of `gc generate <kind>`. */
@@ -31,6 +30,3 @@ export function targetWorkflow(
     throw new ScaffoldUsageError(`--workflow must be a *.workflow.ts file: ${file}`);
   return { dir: dirname(file), module: read(root, file) };
 }
-
-export const agentFile = (root: string, dir: string, agent: string): FileToWrite =>
-  read(root, `${dir}/agents/${namesOf(agent).kebab}.agent.ts`);

@@ -4,7 +4,8 @@ import { dtoSource } from "./openapi-dto.js";
 import { baseUrlOf, loadDocument, operationsOf, type OperationModel } from "./openapi-spec.js";
 import { testSource } from "./openapi-test.js";
 import { serviceSource, toolSource, type ApiNames } from "./openapi-tool.js";
-import { agentFile, need, targetWorkflow } from "./project-files.js";
+import { need, read } from "./project-files.js";
+import { agentOf, importPath, workflowGraph } from "./workflow-graph.js";
 import { wire } from "./wire.js";
 import type { Changes, FileToWrite } from "./write.js";
 
@@ -72,8 +73,9 @@ export async function planOpenApi(
   options: OpenApiOptions,
 ): Promise<Changes> {
   const url = need(options.url, "--url <OpenAPI document: a file or a URL>", "openapi");
-  const { dir, module } = targetWorkflow(root, options.workflow ?? "", "openapi");
-  const agent = agentFile(root, dir, need(options.agent, "--agent <name>", "openapi"));
+  const graph = workflowGraph(root, options.workflow, "openapi");
+  const { dir, module } = graph;
+  const agent = read(root, agentOf(graph, need(options.agent, "--agent <name>", "openapi")).path);
   const api = apiNamesOf(name);
   const document = await loadDocument(root, url);
   const operations = selected(operationsOf(document), options.operations);
@@ -87,7 +89,7 @@ export async function planOpenApi(
         "tools",
         `${op.names.pascal}Tool`,
         `${op.names.pascal}Tool`,
-        `../tools/${op.names.kebab}.tool.js`,
+        importPath(agent.path, `${dir}/tools/${op.names.kebab}.tool.ts`),
       ),
     agent,
   );
@@ -107,7 +109,7 @@ export async function planOpenApi(
         "providers",
         api.className,
         api.className,
-        `./services/${api.module}.service.js`,
+        importPath(module.path, `${dir}/services/${api.module}.service.ts`),
       ),
     ],
   };

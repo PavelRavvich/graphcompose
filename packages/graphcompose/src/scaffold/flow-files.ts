@@ -9,12 +9,16 @@ export interface RouteSpec {
   readonly text: string;
 }
 
-/** The finish route every generated router has (relative to `routers/`). */
-export const FINISH_ROUTE: RouteSpec = {
-  target: "TextWorkflowFinish",
-  from: "../workflow-finishes/text.workflow-finish.js",
-  text: "Stop and send the replyWith: the contributions so far replyWith the message, or the last agent asked a question and waits for the reply, or it cannot be done",
-};
+/** What the finish route of every generated router says — a stop instruction (CLAUDE.md, `@Router`). */
+export const FINISH_ROUTE_TEXT =
+  "Stop and send the answer: the contributions so far answer the message, or the last agent asked a question and waits for the reply, or it cannot be done";
+
+/** The finish route every generated router has: the workflow finish class and its module. */
+export const finishRoute = (target: string, from: string): RouteSpec => ({
+  target,
+  from,
+  text: FINISH_ROUTE_TEXT,
+});
 
 const quoted = (text: string): string => text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
@@ -51,16 +55,16 @@ export interface RouterFileSpec {
   readonly maxVisits: number;
 }
 
-/** A router file (`routers/<name>.router.ts`) with its routes and their imports. */
+/** A router file (`<folder>/<name>.router.ts`) with its routes and their imports. */
 export function routerFile(
-  dir: string,
+  folder: string,
   router: Names,
   spec: RouterFileSpec,
   routes: readonly RouteSpec[],
 ): FileToWrite {
   const imports = routes.map((r) => `import { ${r.target} } from "${r.from}";`).join("\n");
   return {
-    path: `${dir}/routers/${router.kebab}.router.ts`,
+    path: `${folder}/${router.kebab}.router.ts`,
     content: render("router/router.ts.tmpl", {
       ...vars(router),
       description: quoted(spec.description),
@@ -74,8 +78,8 @@ export function routerFile(
 
 /** What the main router of a generated workflow says; the star around it is a cycle. */
 export const MAIN_ROUTER: RouterFileSpec = {
-  description: "Sends the message to the right agent, or sends the replyWith",
+  description: "Sends the message to the right agent, or sends the answer",
   prompt:
-    "Pick who handles the message next. Send the replyWith when the contributions so far already cover the message.",
+    "Pick who handles the message next. Send the answer when the contributions so far already cover the message.",
   maxVisits: 3,
 };

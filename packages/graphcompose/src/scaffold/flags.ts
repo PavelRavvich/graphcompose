@@ -55,7 +55,7 @@ type Parsed = Partial<Pick<WorkflowSpec, "agents" | "mcp">> & {
   readonly rag?: WorkflowSpec["rag"] | null;
 };
 
-/** What the flags replyWith: `rag: null` = explicitly none. */
+/** What the flags answer: `rag: null` = explicitly none. */
 function parsed(name: string, flags: CreateFlags): Parsed {
   const rag =
     flags.rag === undefined

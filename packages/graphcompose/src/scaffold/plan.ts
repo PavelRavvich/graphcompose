@@ -3,7 +3,7 @@ import { ScaffoldError, ScaffoldUsageError } from "./errors.js";
 import { namesOf, type Names } from "./names.js";
 import { renderTemplate } from "./render.js";
 import { mcpFiles, ragFiles } from "./parts.js";
-import { agentRoute, FINISH_ROUTE, endpointFiles, MAIN_ROUTER, routerFile } from "./flow-files.js";
+import { agentRoute, endpointFiles, finishRoute, MAIN_ROUTER, routerFile } from "./flow-files.js";
 import { wire } from "./wire.js";
 import type { FileToWrite } from "./write.js";
 
@@ -48,21 +48,23 @@ export interface WorkflowSpec {
 /** Where a workflow's files live: `src/<workflow>/`. */
 export const workflowDir = (workflow: Names): string => `src/${workflow.kebab}`;
 
-export function toolFiles(dir: string, tool: Names): FileToWrite[] {
+/** A tool and its test in `folder` (`<workflow>/tools`). */
+export function toolFiles(folder: string, tool: Names): FileToWrite[] {
   return [
     {
-      path: `${dir}/tools/${tool.kebab}.tool.ts`,
+      path: `${folder}/${tool.kebab}.tool.ts`,
       content: render("tool/tool.ts.tmpl", vars(tool)),
     },
     {
-      path: `${dir}/tools/${tool.kebab}.tool.test.ts`,
+      path: `${folder}/${tool.kebab}.tool.test.ts`,
       content: render("tool/tool.test.ts.tmpl", vars(tool)),
     },
   ];
 }
 
+/** An agent and its prompt in `folder` (`<workflow>/agents`), its tools in `../tools`. */
 export function agentFiles(
-  dir: string,
+  folder: string,
   agent: Names,
   description: string,
   tools: readonly Names[],
@@ -78,11 +80,11 @@ export function agentFiles(
   };
   return [
     {
-      path: `${dir}/agents/${agent.kebab}.agent.ts`,
+      path: `${folder}/${agent.kebab}.agent.ts`,
       content: render("agent/agent.ts.tmpl", variables).replace(/\n\n\n/g, "\n\n"),
     },
     {
-      path: `${dir}/agents/${agent.kebab}.prompt.md`,
+      path: `${folder}/${agent.kebab}.prompt.md`,
       content: render("agent/agent.prompt.md.tmpl", variables),
     },
   ];
@@ -130,7 +132,7 @@ export function planWorkflow(spec: WorkflowSpec): FileToWrite[] {
     tools: a.tools.map(namesOf),
   }));
   const [firstAgent, ...otherAgentFiles] = agents.flatMap((a) =>
-    agentFiles(dir, a.names, a.spec.description, a.tools),
+    agentFiles(`${dir}/agents`, a.names, a.spec.description, a.tools),
   );
   if (firstAgent === undefined) throw new ScaffoldUsageError("A workflow needs at least one agent");
   const more = extras(spec, dir, firstAgent);
@@ -148,9 +150,9 @@ export function planWorkflow(spec: WorkflowSpec): FileToWrite[] {
     agents: agents.map((a) => `${a.names.pascal}Agent`).join(", "),
     servers: more.server,
   });
-  const router = routerFile(dir, namesOf("main"), MAIN_ROUTER, [
+  const router = routerFile(`${dir}/routers`, namesOf("main"), MAIN_ROUTER, [
     ...agents.map((a) => agentRoute(a.names, a.spec.description)),
-    FINISH_ROUTE,
+    finishRoute("TextWorkflowFinish", "../workflow-finishes/text.workflow-finish.js"),
   ]);
   return [
     { path: `${dir}/models.ts`, content: render("workflow/models.ts.tmpl", {}) },
@@ -160,7 +162,7 @@ export function planWorkflow(spec: WorkflowSpec): FileToWrite[] {
     },
     ...endpointFiles(dir),
     router,
-    ...agents.flatMap((a) => a.tools.flatMap((t) => toolFiles(dir, t))),
+    ...agents.flatMap((a) => a.tools.flatMap((t) => toolFiles(`${dir}/tools`, t))),
     ...more.files,
     more.agent,
     ...otherAgentFiles,

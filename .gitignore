@@ -11,4 +11,5 @@ coverage/
 .langgraph_api
 packages/*/dist
 packages/*/.scaffold-tmp
+examples/.scaffold-tmp-*
 *.tgz

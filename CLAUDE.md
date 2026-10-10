@@ -134,7 +134,9 @@ flow: [
   `run`, bulky helpers go to `*.helper.ts`.
 - **Framework and examples apart** (ESLint-enforced both ways): `packages/graphcompose` never imports
   `examples/`; an example imports only the public `graphcompose` entry points (`graphcompose`,
-  `graphcompose/graph`, `graphcompose/dto`, `graphcompose/units`), like an outside project.
+  `graphcompose/graph`, `graphcompose/dto`, `graphcompose/units`, `graphcompose/models`,
+  `graphcompose/mcp`, `graphcompose/rag`, `graphcompose/testing`), like an outside project — and so
+  does every file `gc generate` writes (#197).
 
 ## Naming grammar (#127)
 
