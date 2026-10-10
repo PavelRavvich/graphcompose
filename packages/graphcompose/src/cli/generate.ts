@@ -24,6 +24,7 @@ const { positionals, values } = parseArgs({
     tool: { type: "string" },
     folder: { type: "string" },
     url: { type: "string" },
+    operations: { type: "string" },
     json: { type: "boolean" },
     "dry-run": { type: "boolean" },
     help: { type: "boolean", short: "h" },

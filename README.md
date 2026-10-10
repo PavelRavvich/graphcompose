@@ -14,6 +14,8 @@ FinOps on every call, Terns and evaluation, profiles and comparisons, tracing.
 npx gc create my-agents   # alias gc c — a working project from a short questionnaire
 cd my-agents && cp .env.example .env && npm run chat
 npx gc g tool refund --workflow src/my-agents/my-agents.workflow.ts --agent assistant
+# one tool per OpenAPI 3 operation (DTOs, a client in services/, tests), wired into the agent
+npx gc g openapi pets --url ./pets.yaml --workflow src/my-agents/my-agents.workflow.ts --agent assistant
 ```
 
 Or add it to a project and write the components yourself:

@@ -22,6 +22,7 @@ export interface GenerateOptions {
   readonly tool?: string | undefined;
   readonly folder?: string | undefined;
   readonly url?: string | undefined;
+  readonly operations?: string | undefined;
 }
 
 function withScripts(
