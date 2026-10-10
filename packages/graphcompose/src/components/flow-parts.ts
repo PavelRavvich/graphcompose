@@ -41,7 +41,8 @@ class NodesByName<TValue> {
  * call) and reads its parts: each agent node's `@Agent` settings under the node's name, the
  * actions, and every router with its texts loaded. A node shared by parent and child counts once.
  */
-export async function flowOf(tree: readonly WorkflowModule[],
+export async function flowOf(
+  tree: readonly WorkflowModule[],
   loader: PromptLoader,
 ): Promise<FlowParts> {
   const actions = new NodesByName<{ name: string; cls: Class }>();
