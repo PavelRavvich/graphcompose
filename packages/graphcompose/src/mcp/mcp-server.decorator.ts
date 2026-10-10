@@ -14,10 +14,7 @@ export interface McpServerOptions {
  */
 export function McpServer(options: McpServerOptions) {
   return <C extends Class>(target: C): C => {
-    recordComponent(target, {
-      kind: "mcp-server-config",
-      meta: options,
-    } as unknown as import("../components/metadata.js").ComponentMeta);
+    recordComponent(target, { kind: "mcp-server-config", meta: options });
     return target;
   };
 }

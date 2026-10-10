@@ -1,5 +1,5 @@
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Class } from "../components/injection.js";
@@ -8,15 +8,7 @@ import { jsonSchemaOf } from "../dto/schema.js";
 import type { DtoClass } from "../dto/types.js";
 import type { McpServerOptions } from "./mcp-server.decorator.js";
 
-/** Helpers for `McpService`: reading `@McpServer` options, tool schemas and the resume tool. */
-
-/**
- * What this service currently calls on a resolved `@Tool` component.
- * BUG(#191): tool components implement `ToolHandler.run(input, ctx)`, not `execute`.
- */
-export interface LegacyExecutableTool {
-  execute(input: unknown, context: unknown): Promise<unknown>;
-}
+/** Helpers for `McpService`: reading `@McpServer` options, tool schemas, results and the resume tool. */
 
 /** The part of the SDK's SSE server transport that `McpService` uses. */
 export interface SseTransport extends Transport {
@@ -28,36 +20,38 @@ export const createSseTransport = (endpoint: string, res: ServerResponse): SseTr
   // eslint-disable-next-line @typescript-eslint/no-deprecated -- SSE kept as the HTTP transport; migrating to StreamableHTTPServerTransport changes the wire protocol (out of scope for #180)
   new SSEServerTransport(endpoint, res);
 
-export type ToolHandler = (args: unknown) => Promise<unknown>;
+/** One `tools/call` as the service sees it: the raw arguments, the client's cancel signal. */
+export interface McpCall {
+  readonly args: unknown;
+  /** The client's idempotency key (`_meta.callId`), if it sent one. */
+  readonly callId?: string;
+  readonly signal: AbortSignal;
+}
+
+export type CallHandler = (call: McpCall) => Promise<CallToolResult>;
 
 export interface ToolRegistry {
   readonly tools: Tool[];
-  readonly handlers: Map<string, ToolHandler>;
+  readonly handlers: Map<string, CallHandler>;
 }
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
-/** The `@McpServer` options recorded on `config` (the decorator records a kind outside `ComponentMeta`). */
+/** The `@McpServer` options recorded on `config`. */
 export function mcpServerOptionsOf(config: Class): McpServerOptions | undefined {
-  const component: unknown = componentOf(config);
-  if (!isRecord(component) || component.kind !== "mcp-server-config") return undefined;
-  const meta = component.meta;
-  if (
-    !isRecord(meta) ||
-    typeof meta.name !== "string" ||
-    typeof meta.version !== "string" ||
-    !Array.isArray(meta.exports)
-  ) {
-    return undefined;
-  }
-  return { name: meta.name, version: meta.version, exports: meta.exports as readonly Class[] };
+  const component = componentOf(config);
+  return component?.kind === "mcp-server-config" ? component.meta : undefined;
 }
 
-export const toolInputSchema = (dto: DtoClass): Tool["inputSchema"] => ({
+/** A DTO as an MCP object schema (`inputSchema` / `outputSchema`). */
+export const objectSchema = (dto: DtoClass): Tool["inputSchema"] => ({
   ...jsonSchemaOf(dto),
   type: "object",
 });
+
+export const callIdOf = (meta: unknown): string | undefined =>
+  isRecord(meta) && typeof meta.callId === "string" ? meta.callId : undefined;
 
 export const RESUME_TOOL: Tool = {
   name: "resume_workflow",
@@ -87,5 +81,19 @@ export function parseDecision(decision: unknown): unknown {
 export const errorMessage = (err: unknown): string =>
   err instanceof Error ? err.message : String(err);
 
-export const isLegacyExecutableTool = (value: unknown): value is LegacyExecutableTool =>
-  isRecord(value) && typeof value.execute === "function";
+export const textOf = (value: unknown): string =>
+  typeof value === "string" ? value : JSON.stringify(value);
+
+export const errorResult = (message: string): CallToolResult => ({
+  content: [{ type: "text", text: `Error: ${message}` }],
+  isError: true,
+});
+
+/** Runs `work`; its value as text content, a throw as an MCP error result. */
+export async function guarded(work: () => Promise<unknown>): Promise<CallToolResult> {
+  try {
+    return { content: [{ type: "text", text: textOf(await work()) }] };
+  } catch (err: unknown) {
+    return errorResult(errorMessage(err));
+  }
+}

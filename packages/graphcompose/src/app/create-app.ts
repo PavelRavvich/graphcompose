@@ -10,6 +10,7 @@ import type { AgentExecutionOutput } from "../run/types.js";
 import type { AssembledWorkflow } from "../workflow.js";
 import { createAppDeps, type AppDeps, type AppDepsOptions } from "./app-deps.js";
 import { createMemoryPausedRunRepository, type PausedRunRepository } from "./paused-runs.js";
+import { UnknownToolError } from "./parts.js";
 import { flowNodesByKey, runResultOf, type FlowNodesByKey } from "./result.js";
 import type { App, ExecutionOutput } from "./types.js";
 
@@ -126,6 +127,15 @@ export async function buildApp(
     resolve: (token) => {
       if (!deps.container) throw new Error("Container is not available");
       return deps.container.get(token);
+    },
+    hasTool: (name) => {
+      try {
+        deps.tools(name);
+        return true;
+      } catch (error) {
+        if (error instanceof UnknownToolError) return false;
+        throw error;
+      }
     },
   };
   return { app, deps, bundle, nodes };

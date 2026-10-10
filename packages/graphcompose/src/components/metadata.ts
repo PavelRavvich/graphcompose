@@ -9,6 +9,7 @@ import type {
   WorkflowActionMeta,
   WorkflowMeta,
 } from "./meta-types.js";
+import type { McpServerOptions } from "../mcp/mcp-server.decorator.js";
 
 /** `@Tool` — its options as recorded, including the policy settings (`piiPolicies`, `guardrails`, …). */
 export interface ToolMeta extends PolicyFields {
@@ -40,6 +41,8 @@ export type ComponentMeta =
       };
     }
   | { readonly kind: "mcp-tool"; readonly meta: McpToolMeta }
+  /** `@McpServer` from `graphcompose` (root): what `createMcpService` exposes to MCP clients. */
+  | { readonly kind: "mcp-server-config"; readonly meta: McpServerOptions }
   | { readonly kind: "agent"; readonly meta: AgentMeta }
   | { readonly kind: "channel"; readonly meta: ChannelMeta & { readonly deps: readonly Token[] } }
   | {
@@ -130,6 +133,7 @@ const kindName: Readonly<Record<ComponentMeta["kind"], string>> = {
   tool: "Tool",
   "mcp-server": "McpServer",
   "mcp-tool": "McpTool",
+  "mcp-server-config": "McpServer (graphcompose)",
   "a2a-agent": "A2AAgent",
   agent: "Agent",
   action: "WorkflowAction",
