@@ -4,8 +4,10 @@
 //      (conventions — file=, no-check: <reason>, <!-- snippet-context --> — in scripts/docs/snippets.mjs);
 //   2. every `scripts/…`, `npm run …`, `make …` and `gc …` they mention exists, and so does every
 //      `gc …` the CLI's own sources print.
-// Options: --docs a.md,b.md (default: the root docs and docs/**), --out <dir> (keep the written
-// snippets there; default a temporary folder), --no-cli-sources (skip step 2 for the CLI's sources).
+// Options: --docs a.md,b.md (default: the root docs and docs/**), --wiki <dir> (instead: every page
+// of a GitHub Wiki checkout, whose links to other pages must name existing pages; CI clones the
+// wiki and runs this — #240), --out <dir> (keep the written snippets there; default a temporary
+// folder), --no-cli-sources (skip step 2 for the CLI's sources; implied by --wiki).
 import {
   existsSync,
   mkdirSync,
@@ -22,6 +24,7 @@ import { conventionProblems, snippetsOf } from "./docs/snippets.mjs";
 import { prepareRoot, typecheck, writeDoc } from "./docs/typecheck.mjs";
 import { cliCommands, sourceLines } from "./docs/cli-commands.mjs";
 import { commandProblems, knownOf, referenceProblems } from "./docs/references.mjs";
+import { wikiLinkProblems, wikiPages } from "./docs/wiki.mjs";
 
 const REPO = realpathSync(new URL("..", import.meta.url).pathname);
 const ROOT_DOCS = ["README.md", "CLAUDE.md", "QUALITY.md", "WORKFLOW.md"];
@@ -29,6 +32,7 @@ const ROOT_DOCS = ["README.md", "CLAUDE.md", "QUALITY.md", "WORKFLOW.md"];
 const { values } = parseArgs({
   options: {
     docs: { type: "string" },
+    wiki: { type: "string" },
     out: { type: "string" },
     "no-cli-sources": { type: "boolean", default: false },
   },
@@ -41,9 +45,13 @@ function docsFolder(dir) {
     .map((entry) => join(entry.parentPath, entry.name));
 }
 
-const docs = values.docs
-  ? values.docs.split(",").map((doc) => resolve(doc))
-  : [...ROOT_DOCS.map((doc) => join(REPO, doc)), ...docsFolder(join(REPO, "docs"))];
+function docsToCheck() {
+  if (values.wiki !== undefined) return wikiPages(resolve(values.wiki));
+  if (values.docs !== undefined) return values.docs.split(",").map((doc) => resolve(doc));
+  return [...ROOT_DOCS.map((doc) => join(REPO, doc)), ...docsFolder(join(REPO, "docs"))];
+}
+
+const docs = docsToCheck();
 const out = values.out ? resolve(values.out) : mkdtempSync(join(tmpdir(), "graphcompose-docs-"));
 mkdirSync(out, { recursive: true });
 const root = realpathSync(out);
@@ -57,11 +65,12 @@ for (const path of docs) {
   const markdown = readFileSync(path, "utf8");
   const snippets = snippetsOf(markdown, doc);
   problems.push(...conventionProblems(snippets), ...referenceProblems(doc, markdown, known));
+  if (values.wiki !== undefined) problems.push(...wikiLinkProblems(doc, markdown, docs));
   const { files } = writeDoc(root, doc, snippets);
   compiled += files.length;
   problems.push(...typecheck(root, files));
 }
-if (!values["no-cli-sources"])
+if (!values["no-cli-sources"] && values.wiki === undefined)
   for (const { place, text } of sourceLines(REPO))
     for (const problem of commandProblems(text, known).filter((line) => line.includes("gc ")))
       problems.push(`${place}: ${problem}`);
@@ -73,6 +82,7 @@ if (problems.length > 0) {
   );
   process.exit(1);
 }
+const checked = values.wiki === undefined ? "references exist" : "references and links exist";
 console.log(
-  `docs ok: ${String(compiled)} snippets compiled in ${String(docs.length)} docs, references exist`,
+  `docs ok: ${String(compiled)} snippets compiled in ${String(docs.length)} docs, ${checked}`,
 );

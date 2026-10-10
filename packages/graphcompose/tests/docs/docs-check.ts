@@ -28,6 +28,13 @@ export function checkDocs(dir: string, docs: readonly string[]): SpawnSyncReturn
   return spawnSync(process.execPath, [script, ...args], { cwd: dir, encoding: "utf8" });
 }
 
+/** `node scripts/check-docs.mjs --wiki <wiki> --out <dir>/out`, run from `dir` (#240). */
+export function checkWiki(dir: string, wiki: string): SpawnSyncReturns<string> {
+  const script = join(repo, "scripts/check-docs.mjs");
+  const args = ["--wiki", wiki, "--out", join(dir, "out")];
+  return spawnSync(process.execPath, [script, ...args], { cwd: dir, encoding: "utf8" });
+}
+
 /** The environment without this run's Vitest variables, for a Vitest started by a test. */
 const cleanEnv = (): NodeJS.ProcessEnv => ({
   ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("VITEST"))),

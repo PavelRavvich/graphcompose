@@ -19,7 +19,8 @@ Multi-agent project on LangGraph + LangChain (TypeScript). Built with a three-ph
   - Agents: cheap chat models (default `moonshotai/kimi-k2.6`) via `@langchain/openai`, each with
     `maxTokens` (`MODEL_MAX` = model's maximum), `thinking`, `cache`.
   - Everything is set in the workflow's components (`@Workflow` with its `flow` and `settings()`,
-    `@Router`, `@Agent`) — reference: Wiki → Workflow, Routers, Components, Configuration.
+    `@Router`, `@Agent`) — reference: Architecture below (compiled by `make check`), then Wiki →
+    Workflow, Routers, Components, Configuration (compiled by CI, see Quality gates).
 - Observability: Langfuse tracing via env (`LANGFUSE_*` keys, loaded only when set). FinOps: built-in cost
   accounting; limits in the workflow's `settings().limits(...)` — per run (steps, cost) and per day
   (cost, resets 00:00 UTC); hitting any limit fails the run (`QUALITY.md` → FinOps).
@@ -447,7 +448,10 @@ The framework never imports `examples/` (ESLint-enforced).
 included), tests with coverage, and `gc check --models` on the example. Compiled docs
 (`scripts/check-docs.mjs`) typecheck every ` ```ts ` block of README, CLAUDE, QUALITY and WORKFLOW
 (and `docs/`) against the built package, and check that every `scripts/…`, `npm run …`, `make …` and
-`gc …` they mention — and every `gc …` the CLI prints — exists. Snippet conventions:
+`gc …` they mention — and every `gc …` the CLI prints — exists. CI also clones the GitHub Wiki and
+runs `node scripts/check-docs.mjs --wiki wiki`: the same checks for every Wiki page, plus every link
+between pages names an existing page. The Wiki changes outside PRs, so check it before publishing:
+`node scripts/check-docs.mjs --wiki ../<repo>.wiki`. Snippet conventions (README, CLAUDE, Wiki alike):
 
 - ` ```ts file=src/x.ts ` — written at that path, so other blocks of the same doc import it.
 - A hidden `<!-- snippet-context … -->` comment right before a block supplies imports and
@@ -512,7 +516,7 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
   by script, MCP servers stubbed, network blocked); units use fakes from `@langchain/core/utils/testing`.
 - Read existing code before planning — the spec may be stale, the code is not.
 - **No specs, plans or docs as files.** Specs and implementation plans → GitHub Issues (bodies via
-  stdin). Docs → GitHub Wiki via `scripts/wiki.sh`. **ALWAYS update the `../<repo>.wiki` repository directly whenever making API, DSL, or architectural changes so that the wiki is always up-to-date.** Decisions → wiki pages `ADR-NNNN-Title`.
+  stdin). Docs → GitHub Wiki via `scripts/wiki.sh`. **ALWAYS update the `../<repo>.wiki` repository directly whenever making API, DSL, or architectural changes so that the wiki is always up-to-date** — checked with `node scripts/check-docs.mjs --wiki ../<repo>.wiki` before `scripts/wiki.sh publish`, and by CI. Decisions → wiki pages `ADR-NNNN-Title`.
 - Inside the framework, `src/routers` never imports graph/agents/prompts, and the rest imports it
   only via `src/routers/index.ts` (ESLint-enforced; the same for `src/tools` and `src/terns`).
 - **Example code before spec**: a new decorator or a new parameter enters a spec only after example
