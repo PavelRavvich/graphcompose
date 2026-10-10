@@ -14,14 +14,16 @@ const pkg = z
   .object({
     exports: z.record(z.string(), z.unknown()),
     deprecatedExports: z.record(z.string(), z.string()),
+    internalExports: z.array(z.string()),
   })
   .parse(JSON.parse(readFileSync(join(repo, "packages/graphcompose/package.json"), "utf8")));
 const specifier = (subpath: string): string =>
   subpath === "." ? "graphcompose" : `graphcompose/${subpath.slice(2)}`;
 const deprecated = Object.keys(pkg.deprecatedExports).map(specifier);
+const internal = pkg.internalExports.map(specifier);
 const current = Object.keys(pkg.exports)
   .map(specifier)
-  .filter((s) => !deprecated.includes(s));
+  .filter((s) => !deprecated.includes(s) && !internal.includes(s));
 
 /** A throwaway project inside examples/ (ignored by the repo's lint), so the examples' rules apply. */
 const probe = join(repo, `examples/.scaffold-tmp-allowlist-${String(process.pid)}`);
@@ -73,10 +75,17 @@ describe("the examples' import allowlist (#195)", () => {
     expect(messages.at(-1)).toContain("No deep imports");
   }, 60_000);
 
+  it("#205: rejects graphcompose/internal, the entry only the gc CLI is built on", async () => {
+    expect(internal).toEqual(["graphcompose/internal"]);
+    expect(await restrictedImports(internal)).toEqual([
+      expect.stringContaining("No deep imports") as unknown,
+    ]);
+  }, 60_000);
+
   it("AC1: the example and the generator templates carry no no-restricted-imports suppression", () => {
     const files = [
       ...walk(join(repo, "examples/job-scout")),
-      ...walk(join(repo, "packages/graphcompose/templates")),
+      ...walk(join(repo, "packages/graphcompose-cli/templates")),
     ];
     const suppressed = files.filter((file) =>
       /eslint-disable.*no-restricted-imports/.test(readFileSync(file, "utf8")),

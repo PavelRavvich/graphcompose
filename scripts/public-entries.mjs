@@ -11,9 +11,13 @@ const specifierOf = (name, subpath) => (subpath === "." ? name : `${name}/${subp
 export function publicEntries() {
   const pkg = JSON.parse(readFileSync(PACKAGE, "utf8"));
   const deprecated = Object.keys(pkg.deprecatedExports ?? {});
-  const subpaths = Object.keys(pkg.exports);
+  // `graphcompose/internal` (#205): only for graphcompose-cli, never public
+  const internal = pkg.internalExports ?? [];
+  const subpaths = Object.keys(pkg.exports).filter((s) => !internal.includes(s));
   return {
     name: pkg.name,
+    /** e.g. `["graphcompose/internal"]`: entries of the CLI, outside the public API */
+    internal: internal.map((s) => specifierOf(pkg.name, s)),
     /** e.g. `["graphcompose", "graphcompose/dto", …]` */
     current: subpaths.filter((s) => !deprecated.includes(s)).map((s) => specifierOf(pkg.name, s)),
     /** e.g. `{ "graphcompose/core": "graphcompose", … }` — old entry → where to import instead */
@@ -46,6 +50,24 @@ export function packageImportPatterns() {
     {
       regex: `^${escape(name)}/(?!(${[...subpaths, ...old].join("|")})$)`,
       message: `No deep imports: use one of the public entries ${quoted}.`,
+    },
+  ];
+}
+
+/** The `no-restricted-imports` patterns of graphcompose-cli (#205): the package's entries only. */
+export function cliImportPatterns() {
+  const { name, current, internal } = publicEntries();
+  const subpaths = [...current, ...internal]
+    .filter((s) => s !== name)
+    .map((s) => escape(s.slice(name.length + 1)));
+  return [
+    {
+      regex: `^(\\.\\./)+${escape(name)}/`,
+      message: `The CLI uses the framework as a package: import from "${name}" or its entries.`,
+    },
+    {
+      regex: `^${escape(name)}/(?!(${subpaths.join("|")})$)`,
+      message: `No deep imports: use one of the entries of "${name}" (package.json#exports).`,
     },
   ];
 }
