@@ -40,9 +40,7 @@ export interface FlowRuntime {
   readonly observer?: import("../core/observer-manager.js").ObserverManager;
 
   readonly container?: GraphDeps<string>["container"];
-  readonly quorumRouters?: (
-    name: string,
-  ) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
+  readonly quorumRouters?: GraphDeps<string>["quorumRouters"];
   readonly batchStrategies?: GraphDeps<string>["batchStrategies"];
 }
 

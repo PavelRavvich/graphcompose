@@ -2,7 +2,7 @@ import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { AppState } from "../core/observability.js";
 import { recordComponent } from "./metadata.js";
-import type { Class } from "./injection.js";
+import type { Class, ResolvedAll, Token } from "./injection.js";
 
 export interface JudgeRule {
   readonly min?: number;
@@ -19,13 +19,13 @@ export interface JudgeMeta {
   readonly metrics?: Record<string, JudgeRule>;
 }
 
-export function Judge(meta: JudgeMeta): ClassDecorator {
-  return function (target) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    recordComponent(target as unknown as Class, {
-      kind: "judge",
-      meta,
-    });
+/** A quality gate of an agent's answer; created by the workflow's container with its `deps`. */
+export function Judge<const D extends readonly Token[] = []>(
+  options: JudgeMeta & { readonly deps?: D },
+) {
+  return <C extends new (...args: ResolvedAll<D>) => BaseJudge>(value: C): C => {
+    recordComponent(value, { kind: "judge", meta: { ...options, deps: options.deps ?? [] } });
+    return value;
   };
 }
 

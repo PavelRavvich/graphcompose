@@ -1,18 +1,10 @@
 import { InjectionToken, tokenName, type Class, type Provider, type Token } from "./injection.js";
 import { ComponentError, componentOf } from "./metadata.js";
 
-// eslint-disable-next-line complexity
-const depsOf = (cls: Class): readonly Token[] => {
-  const meta = componentOf(cls);
-  if (
-    meta?.kind === "tool" ||
-    meta?.kind === "mcp-tool" ||
-    meta?.kind === "injectable" ||
-    meta?.kind === "rag"
-  )
-    return meta.meta.deps;
-  if (meta?.kind === "a2a-agent") return (meta.meta.config as { deps?: Token[] }).deps ?? [];
-  return [];
+/** A component's constructor dependencies: every decorator kind that takes `deps` records them. */
+export const depsOf = (cls: Class): readonly Token[] => {
+  const meta = componentOf(cls)?.meta;
+  return meta !== undefined && "deps" in meta ? meta.deps : [];
 };
 
 type Registration =

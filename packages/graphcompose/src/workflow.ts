@@ -82,6 +82,8 @@ export interface AssembledWorkflow<TName extends string = string> {
   readonly needsApproval?: (tool: AnyTool) => boolean;
 
   readonly channels?: (services: WorkflowServices) => ReadonlyMap<string, ChannelHandler>;
+  /** A component by its class, from the workflow's container (created with its `deps` on first use). */
+  readonly resolve?: (services: WorkflowServices) => (token: Class) => unknown;
   readonly observers?: (services: WorkflowServices) => readonly unknown[];
   readonly piiPolicies?: (
     services: WorkflowServices,

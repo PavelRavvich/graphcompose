@@ -160,7 +160,8 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 
 ## Component Validation & Context (Epic #177)
 
-- **Strict DI injection:** Every provider or service used in a workflow must be decorated with `@Injectable()` or `@Provider()`. Undecorated providers throw errors during app setup.
+- **Strict DI injection:** One `deps` contract for every component kind (`@Tool`, `@McpTool`, `@Injectable`, `@Rag`, `@WorkflowAction`, `@Guardrail`, `@PiiPolicy`, `@Channel`, inbound adapters, `@Judge`): `deps` are checked against the constructor by the compiler and injected by the container. A dependency without a provider fails at assembly (`Consumer: "TOKEN" is not registered …`). Every class in `providers` must carry a decorator (`@Injectable({ deps })` or its component decorator), else assembly fails with `[di.undecorated-provider]`; values go through `provide(token, value)` — a raw `{ provide, useValue }` literal does not compile.
+- **Tool names:** unique over the names a model sees — local, MCP and `search_<rag>` — else `[tool.duplicate-name]` at assembly.
 - **Channel constraints:** If an `@McpTool` or `@Tool` specifies a `channel`, that channel class MUST be explicitly registered in the `@Workflow({ channelClasses: [...] })` array. Otherwise, compilation throws `ComponentError`.
 - **Environment variables:** Use `environmentToken<T>()` from `graphcompose/core` to define a typed DI token. Do not rely on `process.env` directly in services. Pass the environment object in `createApp(Workflow, { env: environment })`. Create `environments/environment.ts` (Angular style) to export the environment interface and the object itself.
 - **RunContext:** Do not manually parse `config?.configurable?.run_id` in LangGraph nodes. Use `extractRunContext(config, fallbackRunId)` to get a strictly typed `RunContext` object with `runId`, `threadId`, etc.

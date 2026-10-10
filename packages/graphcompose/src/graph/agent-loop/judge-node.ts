@@ -6,6 +6,7 @@ import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
 import { componentOf } from "../../components/metadata.js";
 import { extractRunContext } from "../run-context.js";
 import type { BaseJudge, JudgeMeta } from "../../components/judge-decorators.js";
+import type { Class } from "../../components/injection.js";
 
 // eslint-disable-next-line max-lines-per-function
 export function makeJudgeNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
@@ -34,7 +35,9 @@ export function makeJudgeNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
     let combinedFeedback = "";
 
     for (const JudgeClass of judgesClasses) {
-      const judgeInstance = new (JudgeClass as new () => BaseJudge)();
+      const judgeInstance =
+        deps.container?.get(JudgeClass as Class<BaseJudge>) ??
+        new (JudgeClass as new () => BaseJudge)();
       const judgeMetaWrapper = componentOf(JudgeClass);
       const judgeMeta = judgeMetaWrapper?.meta as JudgeMeta;
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition

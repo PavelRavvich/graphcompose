@@ -10,20 +10,9 @@ import type {
 } from "../workflow.js";
 import type { Guardrail, PiiPolicy } from "./decorators.js";
 import type { Class, Provider } from "./injection.js";
-import { componentOf, type ToolMeta } from "./metadata.js";
-import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
+import { componentOf } from "./metadata.js";
+import type { AgentMeta, PolicyFields, WorkflowMeta } from "./meta-types.js";
 import { containerFor } from "./runtime.js";
-
-/** The policy settings an agent or a tool may declare. */
-type PolicyFields = Pick<
-  AgentMeta,
-  | "piiPolicies"
-  | "guardrails"
-  | "overridePiiPolicies"
-  | "disablePiiPolicies"
-  | "overrideGuardrails"
-  | "disableGuardrails"
->;
 
 /** Per agent or tool: its policy classes, and whether they replace the workflow's own. */
 interface PolicyClasses {
@@ -66,12 +55,10 @@ const guardrailClassesOf = (fields: PolicyFields): PolicyClasses =>
         disable: fields.disableGuardrails ?? [],
       };
 
-/** A tool's policy settings: `@Tool` records them with its options, beside the `ToolMeta` fields. */
+/** A tool's policy settings, as `@Tool` recorded them in its `ToolMeta`. */
 function toolPolicyFields(cls: Class): PolicyFields {
   const component = componentOf(cls);
-  if (component?.kind !== "tool") return {};
-  const meta: ToolMeta & PolicyFields = component.meta;
-  return meta;
+  return component?.kind === "tool" ? component.meta : {};
 }
 
 /** The policy classes of every agent and every local tool (tools by their tool name). */
@@ -135,6 +122,7 @@ function strategiesOf<TStrategy>(
 export type ContainerParts = Pick<
   AssembledWorkflow,
   | "observers"
+  | "resolve"
   | "piiPolicies"
   | "guardrails"
   | "toolPiiPolicies"
@@ -156,6 +144,7 @@ export function containerPartsOf(bundle: WorkflowMeta, policies: PolicyMaps): Co
   const wfGuardrails = bundle.guardrails ?? [];
   const providers = bundle.providers ?? [];
   return {
+    resolve: (services) => (cls) => get(services, cls),
     observers: (services) => observers.map((cls) => get(services, cls)),
     piiPolicies: (services) => resolvePolicies(policies.agentPii, pii(services)),
     guardrails: (services) => resolvePolicies(policies.agentGuardrails, guardrail(services)),

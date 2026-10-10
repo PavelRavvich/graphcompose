@@ -1,0 +1,86 @@
+/**
+ * #183 AC1: one `deps` contract for every component kind — each kind that takes `deps` gets its
+ * dependency injected by the app's container (through `createApp`), not `undefined`.
+ */
+import { beforeEach, describe, expect, it } from "vitest";
+import { createApp } from "../../src/app/create-app.js";
+import { callTool, replyWith } from "../../src/testing/index.js";
+import { ScriptBook } from "../../src/testing/script-book.js";
+import { toolResultsOf } from "../testing/fixtures/requests.js";
+import {
+  MaskSecret,
+  RemoteAgent,
+  RevealTool,
+  SecretInbound,
+  SemanticInbound,
+  seen,
+  StrictJudge,
+  Vault,
+  VaultChannel,
+} from "./fixture/deps-contract.components.js";
+import { Chat, offline, VaultWorkflow } from "./fixture/deps-contract.workflow.js";
+
+const runVault = async () => {
+  const book = new ScriptBook();
+  book.scriptOf("agent:keeper").thenReturn(callTool(RevealTool, { what: "it" }), replyWith("ok"));
+  const app = await createApp(VaultWorkflow, offline(book));
+  const result = await app.execute(Chat, { text: "open" });
+  return { app, book, result };
+};
+
+describe("#183 AC1: every decorator kind with deps gets them injected at run time", () => {
+  beforeEach(() => {
+    seen.length = 0;
+  });
+
+  it("@Tool / @Injectable: the tool's result carries the injected chain Vault ← SECRET", async () => {
+    const { app, book } = await runVault();
+    expect(toolResultsOf(book.scriptOf("agent:keeper").lastRequest)).toEqual(['{"text":"s3cret"}']);
+    await app.close();
+  });
+
+  it("@Guardrail, @Rag, @WorkflowAction: each ran with its dependency during the run", async () => {
+    const { app, result } = await runVault();
+    expect(result.finish).toBe("reply");
+    expect(seen).toContain("guardrail:s3cret");
+    expect(seen).toContain("rag:s3cret");
+    expect(seen).toContain("action:s3cret");
+    await app.close();
+  });
+
+  it("@PiiPolicy: the policy the app created masks with its injected secret", async () => {
+    const { app } = await runVault();
+    await expect(app.resolve(MaskSecret).mask("the s3cret word")).resolves.toBe("the *** word");
+    await app.close();
+  });
+
+  it("@Channel, @InboundChannelAdapter, @SemanticInboundChannelAdapter: created with deps", async () => {
+    const { app } = await runVault();
+    await app.resolve(VaultChannel).requestApproval({
+      runId: "r1",
+      agentName: "keeper",
+      toolName: "reveal",
+      toolArguments: {},
+      metadata: {},
+    });
+    expect(seen).toContain("channel:reveal:s3cret");
+    await expect(app.resolve(SecretInbound).interpret("s3cret")).resolves.toEqual({
+      approved: true,
+    });
+    await expect(app.resolve(SemanticInbound).interpret("a s3cret")).resolves.toEqual({
+      approved: true,
+    });
+    await app.close();
+  });
+
+  it("@Judge and @A2AAgent: the container creates them with their deps", async () => {
+    const { app } = await runVault();
+    const judge = app.resolve(StrictJudge);
+    await expect(judge.evaluate({ replyWith: "leaks s3cret" })).resolves.toEqual({
+      passed: false,
+    });
+    expect(app.resolve(RemoteAgent).vault).toBe(app.resolve(Vault));
+    expect(app.resolve(Vault).secret).toBe("s3cret");
+    await app.close();
+  });
+});

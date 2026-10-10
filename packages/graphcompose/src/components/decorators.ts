@@ -6,7 +6,7 @@ import type { ChannelMeta } from "./meta-types.js";
 import type { Class, ResolvedAll, Token } from "./injection.js";
 import { callerFile } from "./call-site.js";
 import type { McpServerClient, ServerTools } from "./mcp-client.js";
-import { recordComponent, componentOf, ComponentError } from "./metadata.js";
+import { recordComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta, WorkflowActionMeta } from "./meta-types.js";
 import type { AgentState, AgentStateUpdate } from "../graph/state.js";
 import type { WorkflowDefinition } from "../graph/settings.js";
@@ -165,12 +165,15 @@ export interface IWorkflowAction<T = any> {
   ): Promise<Partial<AgentStateUpdate>> | Partial<AgentStateUpdate>;
 }
 
-export function WorkflowAction(options: WorkflowActionMeta) {
-  return <C extends Class>(value: C): C => {
-    recordComponent(value, {
-      kind: "action",
-      meta: options,
-    });
+/**
+ * A programmatic flow node (no LLM): a class implementing `IWorkflowAction`, dependencies through the
+ * constructor — `deps` are checked against it by the compiler, like `@Tool`.
+ */
+export function WorkflowAction<const D extends readonly Token[] = []>(
+  options: WorkflowActionMeta & { readonly deps?: D },
+) {
+  return <C extends new (...args: ResolvedAll<D>) => IWorkflowAction>(value: C): C => {
+    recordComponent(value, { kind: "action", meta: { ...options, deps: options.deps ?? [] } });
     return value;
   };
 }
@@ -209,161 +212,17 @@ export function Channel<const D extends readonly Token[] = []>(
   };
 }
 
-export interface BindToolOptions {
-  agent?: Class | string;
-}
-
-export interface BoundToolConfig {
-  methodName: string;
-  agent?: string;
-}
-
-const boundTools = new WeakMap<object, Record<string, BoundToolConfig[]>>();
-
-export const getBoundTools = (target: object): Record<string, BoundToolConfig[]> => {
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-  return boundTools.get(target) || {};
-};
-
-export function BindTool(tool: Class, options?: BindToolOptions): MethodDecorator;
-// eslint-disable-next-line @typescript-eslint/unified-signatures
-export function BindTool(toolName: string, options?: BindToolOptions): MethodDecorator;
-export function BindTool(tool: Class | string, options?: BindToolOptions) {
-  // eslint-disable-next-line complexity, @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-  return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
-    let toolName: string;
-    if (typeof tool === "string") {
-      toolName = tool;
-    } else {
-      const meta = componentOf(tool);
-      if (meta?.kind !== "tool" && meta?.kind !== "mcp-tool") {
-        throw new ComponentError("@BindTool expects a @Tool, @McpTool, or a string");
-      }
-      toolName = meta.meta.name;
-    }
-
-    let agentName: string | undefined;
-    if (options?.agent) {
-      if (typeof options.agent === "string") {
-        agentName = options.agent;
-      } else {
-        const agentMeta = componentOf(options.agent);
-        if (agentMeta?.kind !== "agent") {
-          throw new ComponentError("@BindTool agent option expects an @Agent or a string");
-        }
-        agentName = agentMeta.meta.name;
-      }
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/prefer-nullish-coalescing
-    const handlers = boundTools.get(target) || {};
-    // eslint-disable-next-line max-lines, @typescript-eslint/prefer-nullish-coalescing
-    if (!handlers[toolName]) {
-      handlers[toolName] = [];
-    }
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    handlers[toolName]!.push({ methodName: propertyKey as string, agent: agentName });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    boundTools.set(target, handlers);
-  };
-}
-
-// --- Guardrails & PII Policies ---
-
-export interface PiiPolicy {
-  mask(text: string): Promise<string>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  maskJson(obj: any): Promise<any>;
-}
-
-export interface GuardrailContext<TExec = unknown> {
-  readonly executionContext?: TExec;
-  agent: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  call?: any;
-  replyWith?: string;
-  runId?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: Record<string, any>;
-}
-
-export interface Guardrail {
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type, @typescript-eslint/no-explicit-any
-  beforeToolCall?: (ctx: GuardrailContext) => Promise<void | { overrideArguments?: any }>;
-  afterToolCall?: (ctx: GuardrailContext) => Promise<void>;
-  onChannelDecision?: (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    decision: any,
-    ctx: GuardrailContext,
-    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type, @typescript-eslint/no-explicit-any
-  ) => Promise<void | { overrideArguments?: any }>;
-  beforeAgentAnswer?: (ctx: GuardrailContext) => Promise<void>;
-}
-
-export function PiiPolicy<const D extends readonly Token[] = []>(options: {
-  name: string;
-  deps?: D;
-}) {
-  return <C extends new (...args: ResolvedAll<D>) => PiiPolicy>(value: C): C => {
-    recordComponent(value, {
-      kind: "pii-policy",
-      meta: { name: options.name, deps: options.deps ?? [] },
-    });
-    return value;
-  };
-}
-
-export function Guardrail<const D extends readonly Token[] = []>(options: {
-  name: string;
-  deps?: D;
-}) {
-  return <C extends new (...args: ResolvedAll<D>) => Guardrail>(value: C): C => {
-    recordComponent(value, {
-      kind: "guardrail",
-      meta: { name: options.name, deps: options.deps ?? [] },
-    });
-    return value;
-  };
-}
-
-// --- Channel Adapters ---
-
-export interface InboundChannelAdapter<T = unknown> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  interpret(input: T): Promise<any>; // any is ChannelDecision
-}
-
-export function InboundChannelAdapter<const D extends readonly Token[] = []>(options: {
-  name: string;
-  deps?: D;
-}) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return <C extends new (...args: ResolvedAll<D>) => InboundChannelAdapter<any>>(value: C): C => {
-    recordComponent(value, {
-      kind: "inbound-adapter",
-      meta: { name: options.name, deps: options.deps ?? [] },
-    });
-    return value;
-  };
-}
-
-export interface SemanticAdapterOptions<D extends readonly Token[] = []> {
-  name: string;
-  model: string;
-  prompt: string;
-  temperature?: number;
-  deps?: D;
-}
-
-export function SemanticInboundChannelAdapter<const D extends readonly Token[] = []>(
-  options: SemanticAdapterOptions<D>,
-) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return <C extends new (...args: ResolvedAll<D>) => InboundChannelAdapter<any>>(value: C): C => {
-    recordComponent(value, {
-      kind: "semantic-inbound-adapter",
-      meta: { ...options, deps: options.deps ?? [] },
-    });
-    return value;
-  };
-}
+export {
+  Guardrail,
+  InboundChannelAdapter,
+  PiiPolicy,
+  SemanticInboundChannelAdapter,
+  type GuardrailContext,
+  type SemanticAdapterOptions,
+} from "./policy-decorators.js";
+export {
+  BindTool,
+  getBoundTools,
+  type BindToolOptions,
+  type BoundToolConfig,
+} from "./bind-tool.js";

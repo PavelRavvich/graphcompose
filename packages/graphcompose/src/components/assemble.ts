@@ -20,7 +20,13 @@ import { ragClassesOf, ragMeta, ragSettings, searchToolName } from "./rag.js";
 import { type Class } from "./injection.js";
 import { ComponentError, componentOf, requireComponent } from "./metadata.js";
 import { containerPartsOf, policyMapsOf } from "./assemble-parts.js";
-import { checkToolChannels, componentClassesOf, promptsOf, toolNames } from "./assemble-checks.js";
+import {
+  checkProviderClasses,
+  checkToolChannels,
+  componentClassesOf,
+  promptsOf,
+  toolNames,
+} from "./assemble-checks.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 import { flowOf, settingsOf } from "./flow-parts.js";
 
@@ -145,6 +151,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   const tools = toolsOf(bundle, agents);
   const mcp = mcpOf(bundle, tools.mcp);
   const rags = ragClassesOf(bundle, agents);
+  checkProviderClasses(bundle);
   checkGraph(
     componentClassesOf(bundle, agents, tools, rags, graph.actions),
     bundle.providers ?? [],
@@ -156,10 +163,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   const config = configOf(bundle, agents, names, mcp);
   const settings = settingsOf(bundleClass, bundle);
 
-  validateAgentsConfig(config, [
-    ...names.values(),
-    ...rags.map((cls) => searchToolName(ragMeta(cls))),
-  ]);
+  validateAgentsConfig(config, [...names.values()]);
   checkToolChannels(bundle, tools);
 
   return {

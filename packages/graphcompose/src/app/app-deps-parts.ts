@@ -62,9 +62,8 @@ const strategyLookup =
     strategiesOf: ((services: WorkflowServices) => StrategiesByKey<T>) | undefined,
     services: WorkflowServices,
   ) =>
-  (key: Class | string): T =>
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain -- GraphDeps.quorumRouters/batchStrategies (src/graph/deps.ts) omit `undefined` from their return type, though callers check for a missing strategy; widen the type there, see #180
-    strategiesOf?.(services).get(key)!;
+  (key: Class | string): T | undefined =>
+    strategiesOf?.(services).get(key);
 
 const isInstanceOf = (instance: unknown, token: unknown): boolean =>
   typeof instance === "object" && instance !== null && instance.constructor === token;
@@ -72,8 +71,10 @@ const isInstanceOf = (instance: unknown, token: unknown): boolean =>
 /** The container's instances: lookup by class, strategies, and the observers (created eagerly). */
 export interface ContainerDeps {
   readonly container: { readonly get: <T>(token: Class<T>) => T };
-  readonly quorumRouters: (key: Class | string) => QuorumStrategy;
-  readonly batchStrategies: (key: Class | string) => BatchParallelStrategy<unknown, unknown>;
+  readonly quorumRouters: (key: Class | string) => QuorumStrategy | undefined;
+  readonly batchStrategies: (
+    key: Class | string,
+  ) => BatchParallelStrategy<unknown, unknown> | undefined;
   readonly observer: ObserverManager;
 }
 
@@ -84,7 +85,14 @@ export function containerDepsOf(
 ): ContainerDeps {
   return {
     container: {
-      get: <T>(token: Class<T>): T => created.find((c) => isInstanceOf(c, token)) as T,
+      get: <T>(token: Class<T>): T => {
+        const resolve = bundle.resolve?.(services);
+        return (
+          typeof token === "function" && resolve !== undefined
+            ? resolve(token)
+            : created.find((c) => isInstanceOf(c, token))
+        ) as T;
+      },
     },
     quorumRouters: strategyLookup(bundle.quorumRouters, services),
     batchStrategies: strategyLookup(bundle.batchStrategies, services),

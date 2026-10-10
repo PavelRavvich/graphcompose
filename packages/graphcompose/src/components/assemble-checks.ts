@@ -1,6 +1,9 @@
-import { ComponentError, requireComponent, type ToolMeta } from "./metadata.js";
+import { batchParallelStrategyMetaOf } from "../concurrency/batch.decorator.js";
+import { nodeInfoOf } from "../graph/node-kind.js";
+import { ComponentError, componentOf, requireComponent, type ToolMeta } from "./metadata.js";
 import { tokenName, type Class } from "./injection.js";
-import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
+import type { AgentMeta, PolicyFields, WorkflowMeta } from "./meta-types.js";
+import { ragMeta, searchToolName } from "./rag.js";
 import { renderPromptVariables } from "./prompt-render.js";
 
 /** A workflow's tool classes: local `@Tool`s and `@McpTool`s. */
@@ -9,7 +12,10 @@ export interface ToolClasses {
   readonly mcp: readonly Class[];
 }
 
-/** Tool classes → their tool names. */
+/**
+ * Tool classes → the tool names they expose to a model (a `@Rag` → `search_<name>`); a name exposed
+ * twice (local, MCP or knowledge-base search) fails assembly.
+ */
 export const toolNames = (tools: ToolClasses, rags: readonly Class[]): Map<Class, string> => {
   const map = new Map<Class, string>();
   const byName = new Map<string, Class>();
@@ -32,10 +38,32 @@ export const toolNames = (tools: ToolClasses, rags: readonly Class[]): Map<Class
     add(cls, requireComponent(cls, "mcp-tool", "workflowOf").meta.name);
   });
   rags.forEach((cls) => {
-    add(cls, requireComponent(cls, "rag", "workflowOf").meta.name);
+    add(cls, searchToolName(ragMeta(cls)));
   });
 
   return map;
+};
+
+/** The classes among a workflow's `providers` (values excluded). */
+const providerClassesOf = (bundle: WorkflowMeta): readonly Class[] =>
+  (bundle.providers ?? []).flatMap((p) => ("provide" in p ? [] : [p]));
+
+/** The policy classes (PII policies, guardrails) an agent or a tool declares. */
+const policyClassesOf = (fields: PolicyFields): readonly Class[] => [
+  ...(fields.piiPolicies ?? []),
+  ...(fields.guardrails ?? []),
+  ...(fields.overridePiiPolicies ?? []),
+  ...(fields.overrideGuardrails ?? []),
+];
+
+/** The `inboundAdapter` a `@Channel` or a `@WorkflowAction` declares, if any. */
+const inboundAdapterOf = (cls: Class): readonly Class[] => {
+  const component = componentOf(cls);
+  const adapter =
+    component?.kind === "channel" || component?.kind === "action"
+      ? component.meta.inboundAdapter
+      : undefined;
+  return adapter === undefined ? [] : [adapter];
 };
 
 /** Every class the container creates for the workflow, for the dependency graph check. */
@@ -48,17 +76,38 @@ export const componentClassesOf = (
 ): Class[] => [
   ...tools.local,
   ...tools.mcp,
+  ...tools.local.flatMap((cls) =>
+    policyClassesOf(requireComponent(cls, "tool", "workflowOf").meta),
+  ),
   ...rags,
   ...actions.map((a) => a.cls),
+  ...actions.flatMap((a) => inboundAdapterOf(a.cls)),
   ...(bundle.observers ?? []),
   ...(bundle.guardrails ?? []),
   ...(bundle.piiPolicies ?? []),
   ...(bundle.channelClasses ?? []),
-  ...agents.flatMap((a) => a.guardrails ?? []),
-  ...agents.flatMap((a) => a.overrideGuardrails ?? []),
-  ...agents.flatMap((a) => a.piiPolicies ?? []),
-  ...agents.flatMap((a) => a.overridePiiPolicies ?? []),
+  ...(bundle.channelClasses ?? []).flatMap(inboundAdapterOf),
+  ...agents.flatMap(policyClassesOf),
+  ...agents.flatMap((a) => a.judges ?? []),
+  ...providerClassesOf(bundle),
 ];
+
+/** Whether a framework decorator marks the class (a component, a flow node or a batch strategy). */
+const isDecorated = (cls: Class): boolean =>
+  componentOf(cls) !== undefined ||
+  nodeInfoOf(cls) !== undefined ||
+  batchParallelStrategyMetaOf(cls) !== undefined;
+
+/** Every class in `providers` carries a decorator — the container cannot know an undecorated one's deps. */
+export function checkProviderClasses(bundle: WorkflowMeta): void {
+  for (const cls of providerClassesOf(bundle)) {
+    if (!isDecorated(cls)) {
+      throw new ComponentError(
+        `[di.undecorated-provider] @Workflow "${bundle.name}": ${tokenName(cls)} in providers has no decorator — add @Injectable({ deps }) (or the component's own decorator), or register a value with provide(token, value).`,
+      );
+    }
+  }
+}
 
 /** Each agent's prompt with the workflow's and the agent's own `{{variables}}` filled in. */
 export const promptsOf = (

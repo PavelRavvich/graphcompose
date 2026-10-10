@@ -16,8 +16,18 @@ export interface RagBinding {
   readonly mode: RagMode;
 }
 
+/** The policy settings an agent or a tool may declare (`@Agent`, `@Tool`). */
+export interface PolicyFields {
+  readonly piiPolicies?: readonly Class[];
+  readonly guardrails?: readonly Class[];
+  readonly overridePiiPolicies?: readonly Class[];
+  readonly disablePiiPolicies?: readonly Class[];
+  readonly overrideGuardrails?: readonly Class[];
+  readonly disableGuardrails?: readonly Class[];
+}
+
 /** `@Agent` — settings of one agent; tools are class references. */
-export interface AgentMeta {
+export interface AgentMeta extends PolicyFields {
   readonly name: string;
   /** The compensating agent class for SAGA rollbacks */
   readonly compensate?: Class;
@@ -43,12 +53,6 @@ export interface AgentMeta {
   readonly tools?: readonly Class[];
   readonly judges?: readonly Class[];
   readonly maxRetries?: number;
-  readonly piiPolicies?: readonly Class[];
-  readonly guardrails?: readonly Class[];
-  readonly overridePiiPolicies?: readonly Class[];
-  readonly disablePiiPolicies?: readonly Class[];
-  readonly overrideGuardrails?: readonly Class[];
-  readonly disableGuardrails?: readonly Class[];
   /** Knowledge bases: `{ use: CompanyDocs, mode: "tool" | "context" }` — `mode` is required. */
   readonly rag?: readonly RagBinding[];
   /** Set by `@Agent` itself: the file the agent is declared in. */
