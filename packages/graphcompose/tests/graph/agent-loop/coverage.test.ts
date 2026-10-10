@@ -80,7 +80,9 @@ describe("agent-loop coverage", () => {
       beforeToolCall: async () => ({ overrideArguments: { a: 1 } }),
     };
     const ctx = { call: { args: null } };
-    await visitToolThenAgent([guardrail], "beforeToolCall", ctx, undefined, observer);
+    await visitToolThenAgent([guardrail], "beforeToolCall", ctx, undefined, observer, {
+      runId: "r1",
+    });
     expect(ctx.call.args).toEqual({ a: 1 });
     expect(observer.onGuardrailStart).toHaveBeenCalled();
     expect(observer.onGuardrailEnd).toHaveBeenCalled();
@@ -89,7 +91,7 @@ describe("agent-loop coverage", () => {
   it("visitAgentAnswer calls observer", async () => {
     const observer = { onGuardrailStart: vi.fn(), onGuardrailEnd: vi.fn() };
     const guardrail = { beforeAgentAnswer: async () => ({}) };
-    await visitAgentAnswer([guardrail], {}, observer);
+    await visitAgentAnswer([guardrail], {}, observer, { runId: "r1" });
     expect(observer.onGuardrailStart).toHaveBeenCalled();
   });
 

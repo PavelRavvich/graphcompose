@@ -144,26 +144,34 @@ const ctx = extractRunContext(config, state.runId);
 console.log(ctx.runId, ctx.threadId);
 ```
 
-You can globally observe agent starts, finishes, and workflow starts by injecting Observers in your `@Workflow({ observers: [...] })`.
+Observers see a run's workflow, agent, router, tool, model, guardrail, policy, action, channel and
+judge start/end events. Only classes listed in `@Workflow({ observers: [...] })` are called; the
+container creates them at app start, with their `deps`. Each hook has its own interface and payload
+type; assembly rejects an observer with no hook or with a misspelled one (`did you mean onToolEnd?`).
+An observer that throws is reported as a process warning and never fails the run.
 
 ```ts
 import {
   Injectable,
-  OnWorkflowStart,
-  OnAgentStart,
-  AppState,
-  AgentContext,
+  Workflow,
+  type AppState,
+  type AgentStartEvent,
+  type OnAgentStart,
+  type OnWorkflowStart,
 } from "graphcompose/core";
 
 @Injectable()
 export class MetricsObserver implements OnWorkflowStart, OnAgentStart {
   onWorkflowStart(state: AppState) {
-    console.log("Workflow started");
+    console.log(`Run ${state.runId} started`);
   }
-  onAgentStart(ctx: AgentContext) {
-    console.log(`Agent ${ctx.name} started in run ${ctx.runContext.runId}`);
+  onAgentStart(event: AgentStartEvent) {
+    console.log(`Agent ${event.name} started in run ${event.state.runId}`);
   }
 }
+
+@Workflow({ name: "support", version: "1", flow: [...], observers: [MetricsObserver] })
+export class SupportWorkflow {}
 ```
 
 ## Tracing (local, optional)

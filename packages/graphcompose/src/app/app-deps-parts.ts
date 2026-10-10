@@ -100,11 +100,8 @@ export function containerDepsOf(
     },
     quorumRouters: strategyLookup(bundle.quorumRouters, services),
     batchStrategies: strategyLookup(bundle.batchStrategies, services),
-    observer: (() => {
-      // Eagerly instantiate all observers so they end up in lifecycle.created
-      bundle.observers?.(services);
-      return new ObserverManager(created);
-    })(),
+    // created now (eagerly), so their `onStart` runs with the app's
+    observer: new ObserverManager(bundle.observers?.(services) ?? []),
   };
 }
 

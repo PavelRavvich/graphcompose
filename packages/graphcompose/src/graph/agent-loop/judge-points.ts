@@ -1,3 +1,5 @@
+import type { AppState, GuardrailInput } from "../../core/observability.js";
+import type { WorkflowObserver } from "../../core/observer-hooks.js";
 import type { ToolCallRequest } from "./deps.js";
 
 /** Where in an agent's loop a judge looks. */
@@ -70,7 +72,26 @@ export function mergePolicies(
   return combined.filter((g) => !disabled.has(g.constructor));
 }
 
-// eslint-disable-next-line complexity
+/** Tells the observers a guardrail ran: start with what it is shown, end with what it returned. */
+interface GuardrailReport {
+  readonly observer?: WorkflowObserver;
+  readonly appState?: AppState;
+}
+
+async function reportGuardrail<T>(
+  report: GuardrailReport,
+  name: string,
+  input: GuardrailInput,
+  run: () => Promise<T>,
+): Promise<T> {
+  const { observer, appState } = report;
+  if (observer === undefined || appState === undefined) return run();
+  await observer.onGuardrailStart?.({ name, input, state: appState });
+  const result = await run();
+  await observer.onGuardrailEnd?.({ name, update: result, state: appState });
+  return result;
+}
+
 export async function visitToolThenAgent(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   guardrails: readonly any[] | undefined,
@@ -79,40 +100,30 @@ export async function visitToolThenAgent(
   ctx: any,
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   decision?: any,
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-  observer?: any,
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-  appState?: any,
+  observer?: WorkflowObserver,
+  appState?: AppState,
 ): Promise<void> {
   if (!guardrails) return;
   for (const g of guardrails) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (typeof g[point] === "function") {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/prefer-nullish-coalescing
-      const gName = g.constructor.name || "UnknownGuardrail";
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      await observer?.onGuardrailStart({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        name: gName,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        input: { point, ctx, decision },
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        state: appState,
-      });
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const result = await g[point](
-        point === JudgePoint.OnChannelDecision ? decision : ctx,
-        point === JudgePoint.OnChannelDecision ? ctx : undefined,
+      const gName: string = g.constructor.name || "UnknownGuardrail";
+      const onChannel = point === JudgePoint.OnChannelDecision;
+      const result: unknown = await reportGuardrail(
+        { observer, appState },
+        gName,
+        { point, ctx, decision },
+        async (): Promise<unknown> =>
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          (await g[point](onChannel ? decision : ctx, onChannel ? ctx : undefined)) as unknown,
       );
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (result && typeof result === "object" && result.overrideArguments) {
+      if (result && typeof result === "object" && "overrideArguments" in result) {
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing, @typescript-eslint/no-unsafe-member-access
         if (!ctx.call.args) ctx.call.args = {};
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        ctx.call.args = { ...ctx.call.args, ...result.overrideArguments };
+        ctx.call.args = { ...ctx.call.args, ...(result.overrideArguments as object) };
       }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-      await observer?.onGuardrailEnd({ name: gName, update: result, state: appState });
     }
   }
 }
@@ -122,30 +133,22 @@ export async function visitAgentAnswer(
   guardrails: readonly any[] | undefined,
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
   ctx: any,
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-  observer?: any,
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-  appState?: any,
+  observer?: WorkflowObserver,
+  appState?: AppState,
 ): Promise<void> {
   if (!guardrails) return;
   for (const g of guardrails) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (typeof g.beforeAgentAnswer === "function") {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/prefer-nullish-coalescing
-      const gName = g.constructor.name || "UnknownGuardrail";
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      await observer?.onGuardrailStart({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        name: gName,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        input: { point: "beforeAgentAnswer", ctx },
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        state: appState,
-      });
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const result = await g.beforeAgentAnswer(ctx);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-      await observer?.onGuardrailEnd({ name: gName, update: result, state: appState });
+      const gName: string = g.constructor.name || "UnknownGuardrail";
+      await reportGuardrail(
+        { observer, appState },
+        gName,
+        { point: "beforeAgentAnswer", ctx },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        async (): Promise<unknown> => (await g.beforeAgentAnswer(ctx)) as unknown,
+      );
     }
   }
 }

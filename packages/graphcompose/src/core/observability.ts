@@ -1,227 +1,129 @@
+import type { BaseMessage, MessageContent } from "@langchain/core/messages";
+import type { JudgeResult } from "../components/judge-decorators.js";
+import type { FlowStateType, FlowStateUpdate } from "../graph/flow-state.js";
+import type { AgentStateUpdate } from "../graph/state.js";
+import type { RagRetrieval } from "../rag/types.js";
+
+/**
+ * The payloads observer hooks receive (`@Workflow({ observers })`). Each event names the node it
+ * is about and carries the run's `AppState`.
+ */
 export interface AppState {
   readonly runId: string;
   readonly threadId?: string;
-  readonly activeNode?: string; // name of the current Agent or Router
-  readonly variables?: Record<string, unknown>;
-  readonly history?: unknown[];
+  /** Name of the current agent, router, tool's agent or action. */
+  readonly activeNode?: string;
+  readonly variables?: Readonly<Record<string, unknown>>;
+  readonly history?: readonly unknown[];
 }
 
-export interface AgentContext<I = unknown> {
+/** The start of a named step (agent, router, knowledge base, guardrail, policy, action, channel). */
+interface StartEvent<I> {
   readonly name: string;
   readonly input: I;
   readonly state: AppState;
 }
-export interface AgentContextUpdate<U = unknown> {
+
+/** The end of a named step, with what it produced. */
+interface EndEvent<U> {
   readonly name: string;
   readonly update: U;
   readonly state: AppState;
 }
 
-export interface RouterContext<I = unknown> {
-  readonly name: string;
-  readonly input: I;
-  readonly state: AppState;
-}
-export interface RouterContextUpdate<U = unknown> {
-  readonly name: string;
-  readonly update: U;
-  readonly state: AppState;
-}
+/** An agent starts: `input` is the run's task text. */
+export type AgentStartEvent = StartEvent<string>;
+/** An agent finished: `update` is what it wrote to the flow state. */
+export type AgentEndEvent = EndEvent<FlowStateUpdate>;
 
-export interface RagContext<I = unknown> {
-  readonly name: string;
-  readonly input: I;
-  readonly state: AppState;
-}
-export interface RagContextUpdate<U = unknown> {
-  readonly name: string;
-  readonly update: U;
-  readonly state: AppState;
-}
+/** A router starts: `input` is the run's task text. */
+export type RouterStartEvent = StartEvent<string>;
+/** A router decided: `update` holds `next`, `routeReason` and the router's usage. */
+export type RouterEndEvent = EndEvent<FlowStateUpdate>;
 
-export interface ToolContext<A = unknown> {
+/** A knowledge base (`@Rag`, context mode) is searched: `input` is the query. */
+export type RagStartEvent = StartEvent<string>;
+/** A knowledge base answered. */
+export type RagEndEvent = EndEvent<RagRetrieval>;
+
+/** A tool is called by an agent, with the model's (validated) arguments. */
+export interface ToolStartEvent {
   readonly toolName: string;
   readonly agentName: string;
-  readonly arguments: A;
+  readonly arguments: Readonly<Record<string, unknown>>;
   readonly state: AppState;
 }
 
-export interface ToolContextUpdate<U = unknown> {
+/** A tool returned: `update` is the text the model sees. */
+export interface ToolEndEvent {
   readonly toolName: string;
   readonly agentName: string;
-  readonly update: U;
+  readonly update: string;
   readonly state: AppState;
 }
 
-export interface GuardrailContext<I = unknown> {
-  readonly name: string;
-  readonly input: I;
-  readonly state: AppState;
+/** What a guardrail is shown: the judge point, its context and (on a channel) the decision. */
+export interface GuardrailInput {
+  readonly point: string;
+  readonly ctx: unknown;
+  readonly decision?: unknown;
 }
-export interface GuardrailContextUpdate<U = unknown> {
-  readonly name: string;
-  readonly update: U;
-  readonly state: AppState;
-}
+export type GuardrailStartEvent = StartEvent<GuardrailInput>;
+/** A guardrail ran: `update` is what it returned (a verdict, overrides, or nothing). */
+export type GuardrailEndEvent = EndEvent<unknown>;
 
-export interface PiiPolicyContext<I = unknown> {
-  readonly name: string;
-  readonly input: I;
-  readonly state: AppState;
+/** The human's feedback and argument overrides, before and after a PII policy masked them. */
+export interface PiiPolicyPayload {
+  readonly feedback?: string;
+  readonly overrideArgs?: unknown;
 }
-export interface PiiPolicyContextUpdate<U = unknown> {
-  readonly name: string;
-  readonly update: U;
-  readonly state: AppState;
-}
+export type PiiPolicyStartEvent = StartEvent<PiiPolicyPayload>;
+export type PiiPolicyEndEvent = EndEvent<PiiPolicyPayload>;
 
-export interface WorkflowActionContext<I = unknown> {
-  readonly name: string;
-  readonly input: I;
-  readonly state: AppState;
-}
-export interface WorkflowActionContextUpdate<U = unknown> {
-  readonly name: string;
-  readonly update: U;
-  readonly state: AppState;
-}
+/** A `@WorkflowAction` (or a nested workflow) starts with the flow state. */
+export type ActionStartEvent = StartEvent<FlowStateType>;
+/** An action finished: `update` is what it wrote to the flow state. */
+export type ActionEndEvent = EndEvent<FlowStateUpdate | Partial<AgentStateUpdate>>;
 
-export interface ChannelContext<I = unknown> {
-  readonly name: string;
-  readonly input: I;
-  readonly state: AppState;
-}
-export interface ChannelContextUpdate<U = unknown> {
-  readonly name: string;
-  readonly update: U;
-  readonly state: AppState;
-}
+/** An approval request goes out on a channel: `input` is the tool call's arguments. */
+export type ChannelStartEvent = StartEvent<unknown>;
+/** A channel answered: `update` is the raw decision, before the channel's adapter reads it. */
+export type ChannelEndEvent = EndEvent<unknown>;
 
-export interface ModelRequest {
+/** A model is called by an agent (`callerName`) with the conversation so far. */
+export interface ModelStartEvent {
   readonly modelName: string;
-  readonly callerName: string; // The Agent, Router, or Rag that invoked the model
-  readonly rawPayload: unknown;
+  readonly callerName: string;
+  readonly rawPayload: readonly BaseMessage[];
   readonly state: AppState;
 }
 
-export interface ModelResponse {
+/** A model answered: its content, token usage and cost. */
+export interface ModelEndEvent {
   readonly model: string;
   readonly callerName: string;
-  readonly rawContent: unknown;
+  readonly rawContent: MessageContent;
   readonly usage: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
+    readonly promptTokens: number;
+    readonly completionTokens: number;
+    readonly totalTokens: number;
   };
   readonly calculatedCost?: number;
   readonly state: AppState;
 }
 
-// --- UNIVERSAL OBSERVABILITY HOOKS ---
-
-// 1. Workflow Level
-export interface OnWorkflowStart {
-  onWorkflowStart(state: AppState): Promise<void> | void;
-}
-export interface OnWorkflowEnd {
-  onWorkflowEnd(result: unknown, state: AppState): Promise<void> | void;
-}
-
-// 2. Agent Level
-export interface OnAgentStart {
-  onAgentStart(ctx: AgentContext): Promise<void> | void;
-}
-export interface OnAgentEnd {
-  onAgentEnd(ctx: AgentContextUpdate): Promise<void> | void;
-}
-
-// 3. Router Level
-export interface OnRouterStart {
-  onRouterStart(ctx: RouterContext): Promise<void> | void;
-}
-export interface OnRouterEnd {
-  onRouterEnd(ctx: RouterContextUpdate): Promise<void> | void;
-}
-
-// 4. Tool Level
-export interface OnToolStart {
-  onToolStart(ctx: ToolContext): Promise<void> | void;
-}
-export interface OnToolEnd {
-  onToolEnd(ctx: ToolContextUpdate): Promise<void> | void;
-}
-
-// 5. Model/AI Level (Triggers whenever LLM/Embeddings are called, regardless of caller)
-export interface OnModelStart {
-  onModelStart(request: ModelRequest): Promise<void> | void;
-}
-export interface OnModelEnd {
-  onModelEnd(response: ModelResponse): Promise<void> | void;
-}
-
-// 6. RAG Level
-export interface OnRagStart {
-  onRagStart(ctx: RagContext): Promise<void> | void;
-}
-export interface OnRagEnd {
-  onRagEnd(ctx: RagContextUpdate): Promise<void> | void;
-}
-
-// 7. Global Error
-export interface OnError {
-  onError(error: Error, state: AppState): Promise<void> | void;
-}
-
-// 8. Guardrail Level
-export interface OnGuardrailStart {
-  onGuardrailStart(ctx: GuardrailContext): Promise<void> | void;
-}
-export interface OnGuardrailEnd {
-  onGuardrailEnd(ctx: GuardrailContextUpdate): Promise<void> | void;
-}
-
-// 9. PiiPolicy Level
-export interface OnPiiPolicyStart {
-  onPiiPolicyStart(ctx: PiiPolicyContext): Promise<void> | void;
-}
-export interface OnPiiPolicyEnd {
-  onPiiPolicyEnd(ctx: PiiPolicyContextUpdate): Promise<void> | void;
-}
-
-// 10. WorkflowAction Level
-export interface OnActionStart {
-  onActionStart(ctx: WorkflowActionContext): Promise<void> | void;
-}
-export interface JudgeContextStart {
+/** A judge evaluates an agent's reply (`input`). */
+export interface JudgeStartEvent {
   readonly name: string;
   readonly agentName: string;
   readonly input: unknown;
   readonly state: AppState;
 }
 
-export interface JudgeContextUpdate {
+/** A judge's verdict. */
+export interface JudgeEndEvent {
   readonly name: string;
   readonly agentName: string;
-  readonly update: import("../components/judge-decorators.js").JudgeResult;
+  readonly update: JudgeResult;
   readonly state: AppState;
-}
-
-export interface OnJudgeStart {
-  onJudgeStart(ctx: JudgeContextStart): Promise<void> | void;
-}
-
-export interface OnJudgeEnd {
-  onJudgeEnd(ctx: JudgeContextUpdate): Promise<void> | void;
-}
-
-export interface OnActionEnd {
-  onActionEnd(ctx: WorkflowActionContextUpdate): Promise<void> | void;
-}
-
-// 11. Channel Level
-export interface OnChannelStart {
-  onChannelStart(ctx: ChannelContext): Promise<void> | void;
-}
-export interface OnChannelEnd {
-  onChannelEnd(ctx: ChannelContextUpdate): Promise<void> | void;
 }

@@ -33,6 +33,7 @@ import { channelPartsOf } from "./channel-parts.js";
 import { PromptLoader } from "./prompt-render.js";
 import { checkMemoryStrategies, memoryPartsOf } from "./memory-parts.js";
 import { moduleOf, workflowTreeOf } from "./nested-modules.js";
+import { checkObservers } from "./observer-checks.js";
 
 /** An agent's settings as the config holds them (tools by name). */
 function agentSettings(
@@ -187,6 +188,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
 
   validateAgentsConfig(config, [...names.values()]);
   checkToolChannels(bundle, tools);
+  checkObservers(bundle.observers ?? []);
 
   return {
     config,

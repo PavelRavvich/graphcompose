@@ -13,6 +13,7 @@ import type { Class, Provider } from "./injection.js";
 import { componentOf } from "./metadata.js";
 import type { AgentMeta, PolicyFields, WorkflowMeta } from "./meta-types.js";
 import { containerFor } from "./runtime.js";
+import type { WorkflowObserver } from "../core/observer-hooks.js";
 
 /** Per agent or tool: its policy classes, and whether they replace the workflow's own. */
 interface PolicyClasses {
@@ -151,7 +152,7 @@ export function containerPartsOf(bundle: WorkflowMeta, policies: PolicyMaps): Co
   const providers = bundle.providers ?? [];
   return {
     resolve: (services) => (cls) => get(services, cls),
-    observers: (services) => observers.map((cls) => get(services, cls)),
+    observers: (services) => observers.map((cls) => get(services, cls) as WorkflowObserver),
     piiPolicies: (services) => resolvePolicies(policies.agentPii, pii(services)),
     guardrails: (services) => resolvePolicies(policies.agentGuardrails, guardrail(services)),
     toolPiiPolicies: (services) => resolvePolicies(policies.toolPii, pii(services)),

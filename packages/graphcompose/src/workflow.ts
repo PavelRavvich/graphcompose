@@ -19,6 +19,7 @@ import type { ModelProviderSettings, WorkflowLimits } from "./graph/settings.js"
 import type { ContainerOptions } from "./components/container.js";
 import type { Environment } from "./environments/define.js";
 import type { IncompatibleResumePolicy } from "./run/resume-guard.js";
+import type { WorkflowObserver } from "./core/observer-hooks.js";
 
 /** What the core offers the tools of a workflow. */
 export interface WorkflowServices {
@@ -91,7 +92,8 @@ export interface AssembledWorkflow<TName extends string = string> {
   readonly channels?: (services: WorkflowServices) => ReadonlyMap<string, ChannelHandler>;
   /** A component by its class, from the workflow's container (created with its `deps` on first use). */
   readonly resolve?: (services: WorkflowServices) => (token: Class) => unknown;
-  readonly observers?: (services: WorkflowServices) => readonly unknown[];
+  /** The workflow's observers (`@Workflow({ observers })`), created by its container. */
+  readonly observers?: (services: WorkflowServices) => readonly WorkflowObserver[];
   readonly piiPolicies?: (
     services: WorkflowServices,
   ) => ReadonlyMap<string, ResolvedPolicies<PiiPolicy>>;

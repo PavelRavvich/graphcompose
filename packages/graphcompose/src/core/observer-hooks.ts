@@ -1,0 +1,168 @@
+import type { Class } from "../components/injection.js";
+import type { ExecutionOutput } from "../app/types.js";
+import type {
+  ActionEndEvent,
+  ActionStartEvent,
+  AgentEndEvent,
+  AgentStartEvent,
+  AppState,
+  ChannelEndEvent,
+  ChannelStartEvent,
+  GuardrailEndEvent,
+  GuardrailStartEvent,
+  JudgeEndEvent,
+  JudgeStartEvent,
+  ModelEndEvent,
+  ModelStartEvent,
+  PiiPolicyEndEvent,
+  PiiPolicyStartEvent,
+  RagEndEvent,
+  RagStartEvent,
+  RouterEndEvent,
+  RouterStartEvent,
+  ToolEndEvent,
+  ToolStartEvent,
+} from "./observability.js";
+
+/** What a hook may return: it is awaited, its value is ignored. */
+type HookResult = Promise<void> | void;
+
+/**
+ * Observer hooks, one interface per hook. An observer class implements any of them and is listed
+ * in `@Workflow({ observers: [...] })`; only listed classes are called.
+ */
+export interface OnWorkflowStart {
+  onWorkflowStart(state: AppState): HookResult;
+}
+export interface OnWorkflowEnd {
+  onWorkflowEnd(result: ExecutionOutput, state: AppState): HookResult;
+}
+export interface OnAgentStart {
+  onAgentStart(event: AgentStartEvent): HookResult;
+}
+export interface OnAgentEnd {
+  onAgentEnd(event: AgentEndEvent): HookResult;
+}
+export interface OnRouterStart {
+  onRouterStart(event: RouterStartEvent): HookResult;
+}
+export interface OnRouterEnd {
+  onRouterEnd(event: RouterEndEvent): HookResult;
+}
+export interface OnToolStart {
+  onToolStart(event: ToolStartEvent): HookResult;
+}
+export interface OnToolEnd {
+  onToolEnd(event: ToolEndEvent): HookResult;
+}
+/** Every model call of an agent. */
+export interface OnModelStart {
+  onModelStart(event: ModelStartEvent): HookResult;
+}
+export interface OnModelEnd {
+  onModelEnd(event: ModelEndEvent): HookResult;
+}
+export interface OnRagStart {
+  onRagStart(event: RagStartEvent): HookResult;
+}
+export interface OnRagEnd {
+  onRagEnd(event: RagEndEvent): HookResult;
+}
+/** A run failed, or an optional branch failed and was skipped. */
+export interface OnError {
+  onError(error: Error, state: AppState): HookResult;
+}
+export interface OnGuardrailStart {
+  onGuardrailStart(event: GuardrailStartEvent): HookResult;
+}
+export interface OnGuardrailEnd {
+  onGuardrailEnd(event: GuardrailEndEvent): HookResult;
+}
+export interface OnPiiPolicyStart {
+  onPiiPolicyStart(event: PiiPolicyStartEvent): HookResult;
+}
+export interface OnPiiPolicyEnd {
+  onPiiPolicyEnd(event: PiiPolicyEndEvent): HookResult;
+}
+export interface OnActionStart {
+  onActionStart(event: ActionStartEvent): HookResult;
+}
+export interface OnActionEnd {
+  onActionEnd(event: ActionEndEvent): HookResult;
+}
+export interface OnChannelStart {
+  onChannelStart(event: ChannelStartEvent): HookResult;
+}
+export interface OnChannelEnd {
+  onChannelEnd(event: ChannelEndEvent): HookResult;
+}
+export interface OnJudgeStart {
+  onJudgeStart(event: JudgeStartEvent): HookResult;
+}
+export interface OnJudgeEnd {
+  onJudgeEnd(event: JudgeEndEvent): HookResult;
+}
+
+/** Every hook, all optional: the type of an observer instance. */
+export type WorkflowObserver = Partial<
+  OnWorkflowStart &
+    OnWorkflowEnd &
+    OnAgentStart &
+    OnAgentEnd &
+    OnRouterStart &
+    OnRouterEnd &
+    OnToolStart &
+    OnToolEnd &
+    OnModelStart &
+    OnModelEnd &
+    OnRagStart &
+    OnRagEnd &
+    OnError &
+    OnGuardrailStart &
+    OnGuardrailEnd &
+    OnPiiPolicyStart &
+    OnPiiPolicyEnd &
+    OnActionStart &
+    OnActionEnd &
+    OnChannelStart &
+    OnChannelEnd &
+    OnJudgeStart &
+    OnJudgeEnd
+>;
+
+/** The name of a hook, e.g. `"onToolEnd"`. */
+export type ObserverHook = keyof WorkflowObserver;
+
+/** A class for `@Workflow({ observers })`: its instances implement some of the hooks. */
+export type ObserverClass = Class<WorkflowObserver>;
+
+/** Every hook name; a `Record` so a hook added to `WorkflowObserver` must be listed here. */
+const HOOKS: Readonly<Record<ObserverHook, true>> = {
+  onWorkflowStart: true,
+  onWorkflowEnd: true,
+  onAgentStart: true,
+  onAgentEnd: true,
+  onRouterStart: true,
+  onRouterEnd: true,
+  onToolStart: true,
+  onToolEnd: true,
+  onModelStart: true,
+  onModelEnd: true,
+  onRagStart: true,
+  onRagEnd: true,
+  onError: true,
+  onGuardrailStart: true,
+  onGuardrailEnd: true,
+  onPiiPolicyStart: true,
+  onPiiPolicyEnd: true,
+  onActionStart: true,
+  onActionEnd: true,
+  onChannelStart: true,
+  onChannelEnd: true,
+  onJudgeStart: true,
+  onJudgeEnd: true,
+};
+
+export const OBSERVER_HOOKS: readonly ObserverHook[] = Object.keys(HOOKS).filter(
+  (name): name is ObserverHook => name in HOOKS,
+);
