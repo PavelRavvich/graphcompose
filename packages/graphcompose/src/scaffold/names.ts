@@ -1,4 +1,4 @@
-import { ScaffoldError } from "./errors.js";
+import { ScaffoldUsageError } from "./errors.js";
 
 /** One name in every spelling the generated code needs. */
 export interface Names {
@@ -27,7 +27,7 @@ export function namesOf(raw: string): Names {
   const parts = words(raw);
   const [first] = parts;
   if (first === undefined || !/^[a-z]/.test(first)) {
-    throw new ScaffoldError(
+    throw new ScaffoldUsageError(
       `"${raw}" is not a valid name: start with a letter, use letters and digits`,
     );
   }

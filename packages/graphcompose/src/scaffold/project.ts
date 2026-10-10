@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { ScaffoldError } from "./errors.js";
+import { ScaffoldUsageError } from "./errors.js";
 import { namesOf, type Names } from "./names.js";
 import { planWorkflow, render, vars, workflowDir, type WorkflowSpec } from "./plan.js";
 import type { FileToWrite } from "./write.js";
@@ -34,7 +34,7 @@ export function workflowScripts(workflow: Names, suffix = ""): Record<string, st
 function workflowTest(spec: WorkflowSpec): FileToWrite {
   const workflow = namesOf(spec.name);
   const [first] = spec.agents;
-  if (first === undefined) throw new ScaffoldError("A workflow needs at least one agent");
+  if (first === undefined) throw new ScaffoldUsageError("A workflow needs at least one agent");
   const agent = namesOf(first.name);
   return {
     path: `${workflowDir(workflow)}/${workflow.kebab}.workflow.test.ts`,

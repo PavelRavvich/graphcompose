@@ -25,6 +25,8 @@ export default defineConfig({
         "src/chat.ts",
         "src/cli/ask.ts",
         "src/eval/cli.ts",
+        "src/eval/cli-deps.ts",
+        "src/eval/compare-cli.ts",
         "src/graph/studio-graph.ts",
         "src/config/write-profile-schema.ts",
       ],

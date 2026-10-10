@@ -16,7 +16,7 @@
   "src eslint:@typescript-eslint/no-unnecessary-type-assertion": 6,
   "src eslint:@typescript-eslint/no-unnecessary-type-parameters": 5,
   "src eslint:@typescript-eslint/no-unsafe-argument": 13,
-  "src eslint:@typescript-eslint/no-unsafe-assignment": 40,
+  "src eslint:@typescript-eslint/no-unsafe-assignment": 35,
   "src eslint:@typescript-eslint/no-unsafe-call": 11,
   "src eslint:@typescript-eslint/no-unsafe-member-access": 38,
   "src eslint:@typescript-eslint/no-unsafe-return": 5,

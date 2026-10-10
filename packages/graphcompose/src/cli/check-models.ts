@@ -1,5 +1,5 @@
 import { checkModelUses } from "../models/check.js";
-import { problemLine } from "../models/problems.js";
+import { problemLine, type ModelProblem } from "../models/problems.js";
 import type { ProviderFetch } from "../models/resilient-fetch.js";
 import { modelUsesOf } from "../models/uses.js";
 import { directoryOf, modelSummaryOf } from "../models/workflow-models.js";
@@ -9,6 +9,19 @@ import type { AssembledWorkflow } from "../workflow.js";
 export interface ModelCheckReport {
   readonly lines: readonly string[];
   readonly exitCode: 0 | 1;
+}
+
+/** Every model setting that does not fit its model, as its provider lists it (no API key). */
+export async function modelProblemsOf(
+  bundle: AssembledWorkflow,
+  env: NodeJS.ProcessEnv,
+  send?: ProviderFetch,
+): Promise<readonly ModelProblem[]> {
+  const directory = directoryOf(bundle.models);
+  return checkModelUses(modelUsesOf(bundle.config, bundle.routers), directory, {
+    env,
+    ...(send === undefined ? {} : { send }),
+  });
 }
 
 /**
@@ -22,10 +35,7 @@ export async function checkWorkflowModels(
 ): Promise<ModelCheckReport> {
   const directory = directoryOf(bundle.models);
   const uses = modelUsesOf(bundle.config, bundle.routers);
-  const problems = await checkModelUses(uses, directory, {
-    env,
-    ...(send === undefined ? {} : { send }),
-  });
+  const problems = await modelProblemsOf(bundle, env, send);
   if (problems.length === 0) {
     return {
       lines: [

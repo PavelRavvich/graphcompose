@@ -206,7 +206,8 @@ packages/graphcompose/        the framework (npm package `graphcompose`; builds 
     dto/            `graphcompose/dto`: field decorators, DTO schemas and validation, standard/ DTOs
     units/          `graphcompose/units`: usd(), seconds(), minutes()
     workflow.ts     the assembled workflow type
-    cli/            main.ts (graphcompose <command>), load-workflow.ts, usage, terminal helpers
+    cli/            main.ts → run-cli.ts (argv → exit code 0/1/2 usage/3 project/4 conflict, --json
+                    envelope), commands.ts (one option schema per command: parser + help), terminal helpers
     config/         typed config schema, profiles (YAML overlays), defaults resolution
     rag/            knowledge-base contract (RagConnector) + reference SQLite FTS5 connector
     graph/          `graphcompose/graph`: flow.ts (DSL), route.ts, workflow-start / router / workflow-finish decorators,

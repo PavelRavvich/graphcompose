@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { ScaffoldError } from "./errors.js";
+import { ScaffoldConflictError, ScaffoldError } from "./errors.js";
 import type { FileToWrite } from "./write.js";
 
 type Decorator = "Agent" | "Workflow" | "Router";
@@ -69,7 +69,7 @@ export function addToArray(
       (e) => e.getText(source).replace(/\s+/g, " ") === element.replace(/\s+/g, " "),
     )
   ) {
-    throw new ScaffoldError(`${file}: ${element} is already in ${property}`);
+    throw new ScaffoldConflictError(`${file}: ${element} is already in ${property}`);
   }
   const lastElement = array.elements.at(-1);
   const at = lastElement === undefined ? array.getStart(source) + 1 : lastElement.getEnd();

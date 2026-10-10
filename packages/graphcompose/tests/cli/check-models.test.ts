@@ -37,7 +37,7 @@ describe("AC6: gc check --models", () => {
 
   it("AC6: gc help lists the check command", () => {
     expect(COMMANDS.check?.usage).toBe(
-      "gc check [--prompts] [--models] --workflow <path> [--profile <name>]",
+      "gc check --workflow <path> [--models] [--profile <name>] [--json]",
     );
   });
 });

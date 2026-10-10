@@ -1,35 +1,75 @@
-import "dotenv/config";
-import { parseArgs } from "node:util";
-import { checkWorkflowModels } from "./cli/check-models.js";
-import { checkWorkflowPrompts } from "./cli/check-prompts.js";
-import { loadWorkflow } from "./cli/load-workflow.js";
-import { withProfile } from "./profile-workflow.js";
+import {
+  flagOption,
+  loadOptions,
+  textOption,
+  workflowPath,
+  type CommandHandler,
+} from "./cli/context.js";
+import { modelProblemsOf } from "./cli/check-models.js";
+import { assemble, modelProblem, problemText, type CheckProblem } from "./cli/check-problems.js";
+import { CliError } from "./cli/errors.js";
+import type { AssembledWorkflow } from "./workflow.js";
 
-// graphcompose check [--prompts] [--models] --workflow <path> [--profile <p>] — no API key needed.
-const { values } = parseArgs({
-  options: {
-    models: { type: "boolean", default: false },
-    prompts: { type: "boolean", default: false },
-    workflow: { type: "string", default: "./src/workflow.ts" },
-    profile: { type: "string" },
-  },
-});
-const print = (lines: readonly string[]): void => {
-  lines.forEach((line) => process.stdout.write(`${line}\n`));
-};
-if (!values.models && !values.prompts) {
-  process.stderr.write("gc check: say what to check — --prompts, --models\n");
-  process.exitCode = 1;
-} else {
-  // assembling reads and checks every prompt, so --models stops on prompt problems too
-  const prompts = await checkWorkflowPrompts(async () =>
-    withProfile(await loadWorkflow(values.workflow), values.profile),
-  );
-  if (values.prompts || prompts.bundle === undefined) print(prompts.lines);
-  process.exitCode = prompts.exitCode;
-  if (values.models && prompts.bundle !== undefined) {
-    const report = await checkWorkflowModels(prompts.bundle, process.env);
-    print(report.lines);
-    process.exitCode = report.exitCode;
-  }
+/** What a check gets: the assembled workflow and where it came from. */
+export interface CheckTarget {
+  readonly file: string;
+  readonly bundle: AssembledWorkflow;
+  readonly env: NodeJS.ProcessEnv;
 }
+
+/** A named check of `gc check`; none needs an API key. */
+export interface WorkflowCheck {
+  readonly name: string;
+  /** Set = runs only with this flag (it needs the network); unset = runs on every `gc check`. */
+  readonly flag?: string;
+  readonly run: (target: CheckTarget) => Promise<readonly CheckProblem[]>;
+}
+
+/**
+ * Every check after assembly (assembly itself — loading, graph rules, DI, config — always runs first).
+ * Adding a check is one line here.
+ */
+export const CHECKS: readonly WorkflowCheck[] = [
+  {
+    // assembly reads and checks every prompt (#199): its problems are reported as prompt.* by
+    // assemble(); a workflow that assembled has none left
+    name: "prompts",
+    run: () => Promise.resolve([]),
+  },
+  {
+    name: "models",
+    flag: "models",
+    run: async ({ file, bundle, env }) =>
+      (await modelProblemsOf(bundle, env)).map((problem) => modelProblem(file, problem)),
+  },
+];
+
+/** `gc check --workflow <path> [--models] [--profile <p>] [--json]` — no API key needed. */
+export const handle: CommandHandler = async (context) => {
+  const file = workflowPath(context);
+  const selected = CHECKS.filter(
+    (check) => check.flag === undefined || flagOption(context.values, check.flag),
+  );
+  const assembly = await assemble(file, textOption(context.values, "profile"), {
+    cwd: context.io.cwd,
+    ...loadOptions(context),
+  });
+  const problems: CheckProblem[] = [];
+  if (assembly.kind === "failed") problems.push(...assembly.problems);
+  else
+    for (const check of selected)
+      problems.push(...(await check.run({ file, bundle: assembly.bundle, env: context.io.env })));
+  const checks = ["assembly", ...selected.map((check) => check.name)];
+  problems.forEach((problem) => {
+    context.say(problemText(problem));
+  });
+  if (problems.length === 0) context.say(`ok: ${file} — ${checks.join(", ")}`);
+  const result = { workflow: file, checks, problems };
+  if (problems.length === 0) return { result };
+  const failure = new CliError(
+    "project",
+    "check.failed",
+    `${String(problems.length)} problem(s) in ${file}`,
+  );
+  return { result, failure };
+};

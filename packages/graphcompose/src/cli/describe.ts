@@ -10,7 +10,7 @@ import { shortVersion, versionOf } from "../terns/index.js";
 import { isMcpFacade, type AnyTool } from "../tools/index.js";
 
 /** Tools are built with a router that is never called — describing needs no key and no network. */
-const describeServices: WorkflowServices = {
+export const describeServices: WorkflowServices = {
   router: (name) => ({
     name,
     route: () => Promise.reject(new Error("describe does not call routers")),

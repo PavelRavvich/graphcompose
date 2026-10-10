@@ -1,80 +1,82 @@
 import "dotenv/config";
-import { stdin, stderr, stdout } from "node:process";
 import { createInterface } from "node:readline";
-import { parseArgs, styleText } from "node:util";
+import { styleText } from "node:util";
 import { createApp } from "./app/create-app.js";
-import { loadWorkflowClass, loadEnvironment } from "./cli/load-workflow.js";
-import { memoryLine, summaryLine, threadLine, untilDone } from "./cli/approve.js";
-import { costSummary, costTotal, costTrace } from "./cli/finops.js";
+import type { App, ExecutionOutput } from "./app/types.js";
 import { askWith } from "./cli/ask.js";
+import { memoryLine, summaryLine, threadLine, untilDone } from "./cli/approve.js";
+import {
+  loadOptions,
+  textOption,
+  type CommandContext,
+  type CommandHandler,
+} from "./cli/context.js";
+import { costSummary, costTotal, costTrace } from "./cli/finops.js";
+import { loadEnvironment, loadWorkflowClass } from "./cli/load-workflow.js";
+import { runTargetOf } from "./cli/run-target.js";
 import { textStartOrFail } from "./cli/text-start.js";
 import type { RunStreamEvent } from "./run/types.js";
 
-// graphcompose run <workflow.ts> --input "Start text" [--thread <id>] [--env <id>]
-const { values, positionals } = parseArgs({
-  allowPositionals: true,
-  options: {
-    input: { type: "string" },
-    profile: { type: "string" },
-    thread: { type: "string" },
-    env: { type: "string" },
-  },
-});
-
-const workflowPath = positionals[0] ?? "./src/workflow.ts";
-const inputText = values.input ?? positionals.slice(1).join(" ");
-if (!inputText) {
-  stderr.write(`Usage: gc run <workflow.ts> --input "Your task here"\n`);
-  process.exit(1);
+/** The reply streams to stdout (stderr under --json); tool use and the summary go to stderr. */
+function streamTo(context: CommandContext): (event: RunStreamEvent) => void {
+  const reply = context.json ? context.io.stderr : context.io.stdout;
+  return (event) => {
+    if (event.kind === "textDelta") reply.write(event.delta);
+    else context.warn(styleText("dim", `\n[Agent is using tool: ${event.tool}]`));
+  };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const env = await loadEnvironment(workflowPath, values.env);
-const app = await createApp(await loadWorkflowClass(workflowPath), {
-  profile: values.profile,
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  env,
-});
-app.warnings.forEach((warning) => {
-  stderr.write(`warning: ${warning}\n`);
-});
-
-const rl = createInterface({ input: stdin, terminal: false });
-
-const onStream = (event: RunStreamEvent) => {
-  if (event.kind === "textDelta") {
-    stdout.write(event.delta);
-  } else {
-    stderr.write(styleText("dim", `\n[Agent is using tool: ${event.tool}]\n`));
-  }
-};
-
-const busy = <T>(work: (signal: AbortSignal | undefined) => Promise<T>): Promise<T> =>
-  work(undefined);
-
-const thread = values.thread === undefined ? {} : { thread: values.thread };
-
-const result = await busy(() =>
-  app.execute(textStartOrFail(app), { text: inputText }, { ...thread, onStream }),
-)
-  .then((first) =>
-    untilDone(
+async function execute(context: CommandContext, app: App, task: string): Promise<ExecutionOutput> {
+  const thread = textOption(context.values, "thread");
+  const rl = createInterface({ input: process.stdin, terminal: false });
+  try {
+    const first = await app.execute(
+      textStartOrFail(app),
+      { text: task },
+      { ...(thread === undefined ? {} : { thread }), onStream: streamTo(context) },
+    );
+    return await untilDone(
       first,
       app,
-      askWith(rl, (text) => stderr.write(text)),
-      busy,
-    ),
-  )
-  .finally(async () => {
+      askWith(rl, (text) => context.io.stderr.write(text)),
+    );
+  } finally {
     rl.close();
-    await app.close();
-  });
+  }
+}
 
-stdout.write(`\n`);
-stderr.write(`${threadLine(result)}  (continue with --thread ${result.thread})\n`);
-stderr.write(`config: ${app.name} | ${summaryLine(result)}\n`);
-const memory = memoryLine(result);
-if (memory !== undefined) stderr.write(`${memory}\n`);
-stderr.write(`cost: ${costSummary(result.spend)}\n`);
-costTrace(result.spend).forEach((line) => stderr.write(`  ${line}\n`));
-stderr.write(`${costTotal(result.spend)}\n`);
+function report(context: CommandContext, app: App, result: ExecutionOutput): void {
+  (context.json ? context.io.stderr : context.io.stdout).write("\n");
+  context.warn(`${threadLine(result)}  (continue with --thread ${result.thread})`);
+  context.warn(`config: ${app.name} | ${summaryLine(result)}`);
+  const memory = memoryLine(result);
+  if (memory !== undefined) context.warn(memory);
+  context.warn(`cost: ${costSummary(result.spend)}`);
+  costTrace(result.spend).forEach((line) => {
+    context.warn(`  ${line}`);
+  });
+  context.warn(costTotal(result.spend));
+}
+
+/** `gc run --workflow <path> [--thread <id>] [--profile <p>] [--env <id>] "<task>"`. */
+export const handle: CommandHandler = async (context) => {
+  const { file, task } = runTargetOf(context);
+  const env: unknown = await loadEnvironment(file, textOption(context.values, "env"));
+  const app = await createApp(await loadWorkflowClass(file, loadOptions(context)), {
+    profile: textOption(context.values, "profile"),
+    profileRoot: context.io.cwd,
+    env: env as NodeJS.ProcessEnv,
+  });
+  app.warnings.forEach((warning) => {
+    context.warn(`warning: ${warning}`);
+  });
+  try {
+    const result = await execute(context, app, task);
+    report(context, app, result);
+    const { thread, status, replyWith, finish, stopReason } = result;
+    const output = { thread, status, replyWith, finish, stopReason, cost: costTotal(result.spend) };
+    return { result: output, warnings: app.warnings };
+  } finally {
+    await app.close();
+  }
+};

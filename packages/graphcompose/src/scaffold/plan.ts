@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { ScaffoldError } from "./errors.js";
+import { ScaffoldError, ScaffoldUsageError } from "./errors.js";
 import { namesOf, type Names } from "./names.js";
 import { renderTemplate } from "./render.js";
 import { mcpFiles, ragFiles } from "./parts.js";
@@ -132,7 +132,7 @@ export function planWorkflow(spec: WorkflowSpec): FileToWrite[] {
   const [firstAgent, ...otherAgentFiles] = agents.flatMap((a) =>
     agentFiles(dir, a.names, a.spec.description, a.tools),
   );
-  if (firstAgent === undefined) throw new ScaffoldError("A workflow needs at least one agent");
+  if (firstAgent === undefined) throw new ScaffoldUsageError("A workflow needs at least one agent");
   const more = extras(spec, dir, firstAgent);
   const imports = [
     ...agents.map(

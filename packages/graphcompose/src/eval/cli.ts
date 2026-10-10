@@ -1,129 +1,77 @@
 import "dotenv/config";
-import { parseArgs } from "node:util";
-import { createAppDeps, type AppDeps } from "../app/app-deps.js";
-import { loadWorkflow, loadEnvironment } from "../cli/load-workflow.js";
-import { withProfile } from "../profile-workflow.js";
-import { pairwise, runProfile, type ProfileOutcome } from "./compare.js";
-import { configDiff, formatComparison, profileReport } from "./compare-report.js";
+import {
+  requiredText,
+  textOption,
+  type CommandContext,
+  type CommandHandler,
+  type CommandOutcome,
+} from "../cli/context.js";
+import { usageError } from "../cli/errors.js";
+import { depsFor } from "./cli-deps.js";
+import { compareProfiles } from "./compare-cli.js";
 import { evaluate } from "./eval.js";
-import { goldenFile, goldenFromRecent, loadGolden, saveGolden } from "./golden.js";
+import { goldenFile, goldenFromRecent, saveGolden } from "./golden.js";
 import { replay } from "./replay.js";
 
-// graphcompose eval    --workflow <path> [--profile <p>] [--version <v>] [--limit N]
-// graphcompose replay  --workflow <path> [--profile <p>] --version <v> [--limit N]
-// graphcompose compare --workflow <path> --profiles base,<p>… [--golden <name> | --last N]
-// graphcompose golden  add --workflow <path> --name <name> [--from-last N]
-const { positionals, values } = parseArgs({
-  allowPositionals: true,
-  options: {
-    workflow: { type: "string", default: "./src/workflow.ts" },
-    profile: { type: "string" },
-    env: { type: "string" },
-    profiles: { type: "string", default: "base" },
-    version: { type: "string" },
-    limit: { type: "string", default: "100" },
-    golden: { type: "string" },
-    last: { type: "string", default: "20" },
-    name: { type: "string" },
-    "from-last": { type: "string", default: "20" },
-  },
-});
-const out = (line: string): void => {
-  process.stdout.write(`${line}\n`);
-};
-const depsFor = async (profile: string | undefined): Promise<AppDeps> => {
-  const deps = await createAppDeps(
-    await withProfile(await loadWorkflow(values.workflow), profile),
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    { env: await loadEnvironment(values.workflow, values.env) },
-  );
-  deps.warnings.forEach((warning) => process.stderr.write(`warning: ${warning}\n`));
-  return deps;
-};
-
-async function evalOrReplay(command: string | undefined): Promise<void> {
-  const deps = await depsFor(values.profile);
-  const limit = Number(values.limit);
+async function replayCommand(context: CommandContext): Promise<CommandOutcome> {
+  const deps = await depsFor(context, textOption(context.values, "profile"));
   try {
-    if (command === "replay") {
-      if (values.version === undefined) throw new Error("--version is required for replay");
-      out(
-        JSON.stringify(
-          await replay(deps, deps.evaluation, { promptVersion: values.version, limit }),
-          null,
-          2,
-        ),
-      );
-      return;
-    }
+    const promptVersion = requiredText(context.values, "version");
+    const limit = Number(requiredText(context.values, "limit"));
+    const report = await replay(deps, deps.evaluation, { promptVersion, limit });
+    context.say(JSON.stringify(report, null, 2));
+    return { result: report, warnings: deps.warnings };
+  } finally {
+    await deps.close();
+  }
+}
+
+async function evalCommand(context: CommandContext): Promise<CommandOutcome> {
+  const deps = await depsFor(context, textOption(context.values, "profile"));
+  try {
+    const version = textOption(context.values, "version");
     const report = await evaluate(deps.evaluation, deps.config.name, {
-      ...(values.version === undefined ? {} : { promptVersion: values.version }),
-      limit,
+      ...(version === undefined ? {} : { promptVersion: version }),
+      limit: Number(requiredText(context.values, "limit")),
     });
-    out(JSON.stringify(report));
-    for (const row of await deps.terns.summary(deps.config.name)) out(JSON.stringify(row));
+    const summary = await deps.terns.summary(deps.config.name);
+    context.say(JSON.stringify(report));
+    summary.forEach((row) => {
+      context.say(JSON.stringify(row));
+    });
+    return { result: { report, summary }, warnings: deps.warnings };
   } finally {
     await deps.close();
   }
 }
 
-async function golden(): Promise<void> {
-  if (positionals[1] !== "add" || values.name === undefined)
-    throw new Error(
-      "usage: graphcompose golden add --workflow <path> --name <name> [--from-last N]",
-    );
-  const deps = await depsFor(undefined);
+async function goldenCommand(context: CommandContext): Promise<CommandOutcome> {
+  if (context.positionals[0] !== "add")
+    throw usageError("golden", "usage.missing-argument", 'expected "gc golden add …"');
+  const name = requiredText(context.values, "name");
+  const deps = await depsFor(context, undefined);
   try {
-    const set = await goldenFromRecent(
-      deps.terns,
-      deps.config.name,
-      values.name,
-      Number(values["from-last"]),
-    );
-    const file = goldenFile(process.cwd(), deps.config.name, values.name);
+    const fromLast = Number(requiredText(context.values, "from-last"));
+    const set = await goldenFromRecent(deps.terns, deps.config.name, name, fromLast);
+    const file = goldenFile(context.io.cwd, deps.config.name, name);
     await saveGolden(file, set);
-    out(`${String(set.tasks.length)} tasks → ${file}`);
+    context.say(`${String(set.tasks.length)} tasks → ${file}`);
+    return { result: { tasks: set.tasks.length, file }, created: [file], warnings: deps.warnings };
   } finally {
     await deps.close();
   }
 }
 
-async function compare(): Promise<void> {
-  const names = values.profiles
-    .split(",")
-    .map((name) => name.trim())
-    .filter((name) => name !== "");
-  const runs = await Promise.all(names.map(async (name) => ({ name, deps: await depsFor(name) })));
-  try {
-    const [base] = runs;
-    if (base === undefined || runs.length < 2)
-      throw new Error("--profiles needs at least two, e.g. base,<profile>");
-    const tasks =
-      values.golden === undefined
-        ? (await base.deps.terns.recentOriginals(base.deps.config.name, Number(values.last))).map(
-            (t) => t.task,
-          )
-        : (
-            await loadGolden(goldenFile(process.cwd(), base.deps.config.name, values.golden))
-          ).tasks.map((t) => t.task);
-    const outcomes: ProfileOutcome[] = [];
-    for (const run of runs)
-      outcomes.push(await runProfile({ ...run, evaluation: run.deps.evaluation }, tasks));
-    const [baseline] = outcomes;
-    const rows = [];
-    for (const [i, outcome] of outcomes.entries()) {
-      const other = runs[i];
-      if (baseline === undefined || other === undefined) continue;
-      const pair = i === 0 ? null : await pairwise(base.deps.evaluation, tasks, baseline, outcome);
-      rows.push(profileReport(outcome, pair, i === 0 ? [] : configDiff(base.deps, other.deps)));
-    }
-    formatComparison(tasks.length, rows).forEach(out);
-  } finally {
-    await Promise.all(runs.map((run) => run.deps.close()));
-  }
-}
+const COMMANDS: Readonly<Record<string, CommandHandler>> = {
+  eval: evalCommand,
+  replay: replayCommand,
+  golden: goldenCommand,
+  compare: compareProfiles,
+};
 
-const command = positionals[0];
-if (command === "compare") await compare();
-else if (command === "golden") await golden();
-else await evalOrReplay(command);
+/** `gc eval | replay | golden add | compare` — see `gc help <command>`. */
+export const handle: CommandHandler = async (context) => {
+  const command = COMMANDS[context.command];
+  if (command === undefined) throw new Error(`not an eval command: ${context.command}`);
+  return command(context);
+};

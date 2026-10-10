@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { helpFor } from "../../src/cli/usage.js";
-import { ScaffoldError } from "../../src/scaffold/errors.js";
+import { ScaffoldUsageError } from "../../src/scaffold/errors.js";
 import { specFromFlags } from "../../src/scaffold/flags.js";
 import { planGenerate } from "../../src/scaffold/generate.js";
 import type { WorkflowSpec } from "../../src/scaffold/plan.js";
@@ -33,6 +33,7 @@ const run = (command: string, args: readonly string[], cwd = project) => {
   return {
     ok: result.status === 0,
     status: result.status,
+    stdout: result.stdout,
     out: `${result.stdout}${result.stderr}`,
   };
 };
@@ -145,7 +146,7 @@ describe("gc generate openapi", () => {
     await expect(
       planGenerate("openapi", "pets", { workflow, agent: "vet" }, project),
     ).rejects.toThrow(
-      new ScaffoldError("gc generate openapi needs --url <OpenAPI document: a file or a URL>"),
+      new ScaffoldUsageError("gc generate openapi needs --url <OpenAPI document: a file or a URL>"),
     );
     await expect(
       planGenerate(
@@ -167,36 +168,40 @@ describe("gc generate openapi", () => {
     ).rejects.toThrow(/only OpenAPI 3.x documents are supported/);
   });
 
-  it("the CLI: --dry-run --json writes nothing, a missing --url exits 3, help lists the kind", () => {
-    const dry = run(gc, [
+  it("the CLI: --dry-run --json writes nothing; exit 2 for usage, 4 when it exists; help lists the flags", () => {
+    const args = ["generate", "openapi", "shop", "--workflow", workflow, "--agent", "vet"];
+    const dry = run(gc, [...args, "--url", spec, "--dry-run", "--json"]);
+    expect(dry.ok, dry.out).toBe(true);
+    const envelope = JSON.parse(dry.stdout) as {
+      ok: boolean;
+      result: { dryRun: boolean; plan: { create: { path: string }[] } };
+    };
+    expect(envelope).toMatchObject({ ok: true, result: { dryRun: true } });
+    const created = envelope.result.plan.create.map((f) => f.path);
+    expect(created).toContain("src/zoo/services/shop-api.service.ts");
+    expect(existsSync(join(project, "src/zoo/services/shop-api.service.ts"))).toBe(false);
+
+    const missing = run(gc, args);
+    expect(missing.status).toBe(2);
+    expect(missing.out).toContain("needs --url");
+    const unknown = run(gc, [...args, "--url", spec, "--operations", "feed"]);
+    expect(unknown.status, unknown.out).toBe(2);
+    expect(unknown.out).toContain('No operation "feed"');
+    const again = run(gc, [
       "generate",
       "openapi",
-      "shop",
+      "pets",
       "--workflow",
       workflow,
       "--agent",
-      "vet",
+      "keeper",
       "--url",
       spec,
-      "--dry-run",
-      "--json",
     ]);
-    expect(dry.ok, dry.out).toBe(true);
-    const plan = JSON.parse(dry.out) as { create: { path: string }[] };
-    expect(plan.create.map((f) => f.path)).toContain("src/zoo/services/shop-api.service.ts");
-    expect(existsSync(join(project, "src/zoo/services/shop-api.service.ts"))).toBe(false);
-    const missing = run(gc, [
-      "generate",
-      "openapi",
-      "shop",
-      "--workflow",
-      workflow,
-      "--agent",
-      "vet",
-    ]);
-    expect(missing.status).toBe(3);
-    expect(missing.out).toContain("needs --url");
+    expect(again.status, again.out).toBe(4);
+
     expect(helpFor("generate")).toMatch(/<workflow\|agent\|router\|tool\|mcp\|rag\|openapi>/);
     expect(helpFor("generate")).toContain("--url <file|url>");
+    expect(helpFor("generate")).toContain("--operations <ids>");
   });
 });

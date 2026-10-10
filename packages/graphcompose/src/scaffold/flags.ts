@@ -1,4 +1,4 @@
-import { ScaffoldError } from "./errors.js";
+import { ScaffoldUsageError } from "./errors.js";
 import { namesOf } from "./names.js";
 import type { AgentSpec, McpSpec, WorkflowSpec } from "./plan.js";
 
@@ -30,7 +30,7 @@ export function agentsFrom(agents: string, tools = ""): AgentSpec[] {
     const [agent = "", tool = ""] = item.split(":").map((part) => part.trim());
     const target = parsed.find((a) => namesOf(a.name).snake === namesOf(agent).snake);
     if (target === undefined || tool === "")
-      throw new ScaffoldError(
+      throw new ScaffoldUsageError(
         `--tools "${item}": expected <agent>:<tool> for an agent in --agents`,
       );
     target.tools.push(tool);
@@ -46,7 +46,9 @@ export function mcpFrom(value: string, workflow: string): McpSpec {
     return { kind: "filesystem", name: `${workflow} files`, dir: first };
   if (kind === "command" && first !== "" && second !== "")
     return { kind: "command", name: `${workflow} server`, command: first, tool: second };
-  throw new ScaffoldError(`--mcp "${value}": use none, filesystem:<dir> or command:<cmd>:<tool>`);
+  throw new ScaffoldUsageError(
+    `--mcp "${value}": use none, filesystem:<dir> or command:<cmd>:<tool>`,
+  );
 }
 
 type Parsed = Partial<Pick<WorkflowSpec, "agents" | "mcp">> & {
