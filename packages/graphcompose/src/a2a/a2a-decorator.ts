@@ -1,8 +1,8 @@
 import { recordComponent } from "../components/metadata.js";
-import type { ResolvedAll, Token } from "../components/injection.js";
+import type { ResolvedAll, Scoped, Token } from "../components/injection.js";
 import type { A2AClient } from "./a2a-client.js";
 
-export interface A2AAgentConfig<D extends readonly Token[] = []> {
+export interface A2AAgentConfig<D extends readonly Token[] = []> extends Scoped {
   readonly name: string;
   /** The remote agent's base URL (`<url>/execute`); the client gets it at construction. */
   readonly url: string;
@@ -16,10 +16,14 @@ export interface A2AAgentConfig<D extends readonly Token[] = []> {
  */
 export function A2AAgent<const D extends readonly Token[] = []>(config: A2AAgentConfig<D>) {
   return <C extends new (...args: ResolvedAll<D>) => A2AClient>(value: C): C => {
-    recordComponent(value, {
-      kind: "a2a-agent",
-      meta: { name: config.name, url: config.url, deps: config.deps ?? [] },
-    });
+    recordComponent(
+      value,
+      {
+        kind: "a2a-agent",
+        meta: { name: config.name, url: config.url, deps: config.deps ?? [] },
+      },
+      config.scope,
+    );
     return value;
   };
 }

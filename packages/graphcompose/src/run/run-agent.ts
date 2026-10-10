@@ -16,6 +16,7 @@ import {
   workflowAccount,
   type TernBase,
 } from "./execute.js";
+import { inRunScope } from "../components/run-scope.js";
 import { finishRun } from "./finish.js";
 import { openThread } from "./thread.js";
 import type { AgentExecutionOutput, RunDeps, RunOptions } from "./types.js";
@@ -33,11 +34,20 @@ function startFor(model: FlowModel, requested: string | undefined): string {
  * Public entry point: validates input, opens or continues a thread, checks the daily cap (nothing
  * left → no calls), runs the flow within the workflow's limits, records spend as it happens and
  * writes a Tern for every outcome — answered, guarded, paused or failed (a limit, a router).
+ * The run has its own run-scoped components (`scope: "run"`), destroyed when it ends.
  */
-export async function runAgent<TName extends string>(
+export function runAgent<TName extends string>(
   input: unknown,
   deps: RunDeps<TName>,
   options: RunOptions = {},
+): Promise<AgentExecutionOutput> {
+  return inRunScope(() => runOnce(input, deps, options));
+}
+
+async function runOnce<TName extends string>(
+  input: unknown,
+  deps: RunDeps<TName>,
+  options: RunOptions,
 ): Promise<AgentExecutionOutput> {
   const { task, threadId: requested, start } = RunInputSchema.parse(input);
   const account = options.account ?? workflowAccount(deps);

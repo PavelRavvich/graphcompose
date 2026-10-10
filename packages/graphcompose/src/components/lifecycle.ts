@@ -18,7 +18,7 @@ export interface OnStop {
   onStop(): Promise<void> | void;
 }
 
-const hasHook = <THook extends "onInit" | "afterAssemble" | "onStart" | "onStop">(
+const hasHook = <THook extends "onInit" | "afterAssemble" | "onStart" | "onStop" | "onDestroy">(
   instance: unknown,
   hook: THook,
 ): instance is Record<THook, () => Promise<void> | void> =>
@@ -61,6 +61,21 @@ export async function stopAll(instances: readonly unknown[]): Promise<void> {
   if (failures.length > 0) throw new AggregateError(failures, "onStop failed");
 }
 
+/** Called on a run-scoped instance (`scope: "run"`) when its run ends — answered, paused or failed. */
 export interface OnDestroy {
   onDestroy(): Promise<void> | void;
+}
+
+/** `onDestroy` of every instance that has it, dependants first; every hook runs even when one fails. */
+export async function destroyAll(instances: readonly unknown[]): Promise<void> {
+  const failures: unknown[] = [];
+  for (const instance of [...instances].reverse()) {
+    if (!hasHook(instance, "onDestroy")) continue;
+    try {
+      await instance.onDestroy();
+    } catch (error) {
+      failures.push(error);
+    }
+  }
+  if (failures.length > 0) throw new AggregateError(failures, "onDestroy failed");
 }

@@ -3,7 +3,7 @@ import type { RagConnector } from "../rag/types.js";
 import type { DtoClass } from "../dto/types.js";
 import type { ToolContext } from "../tools/index.js";
 import type { ChannelMeta } from "./meta-types.js";
-import type { Class, ResolvedAll, Token } from "./injection.js";
+import type { Class, ResolvedAll, Scoped, Token } from "./injection.js";
 import { callerFile } from "./call-site.js";
 import { rememberWorkflowFile } from "../environments/load.js";
 import type { McpServerClient, ServerTools } from "./mcp-client.js";
@@ -23,11 +23,17 @@ export interface ToolHandler<TInput, TOutput> {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { PromptOptions } from "./prompt-options.js";
 
+/** A decorator's options as recorded: `deps` always present. */
+const withDeps = <O extends { readonly deps?: readonly Token[] }>(options: O) => ({
+  ...options,
+  deps: options.deps ?? [],
+});
+
 export interface ToolOptions<
   In extends DtoClass,
   Out extends DtoClass,
   D extends readonly Token[],
-> {
+> extends Scoped {
   readonly name: string;
   readonly description: string;
   readonly prompt?: string;
@@ -57,17 +63,21 @@ export function Tool<
   >(
     value: C,
   ): C => {
-    recordComponent(value, { kind: "tool", meta: { ...options, deps: options.deps ?? [] } });
+    recordComponent(value, { kind: "tool", meta: withDeps(options) }, options.scope);
     return value;
   };
 }
 
 /** A class the container creates for others (a judge, a client, …). */
 export function Injectable<const D extends readonly Token[] = []>(
-  options: { readonly deps?: D } = {},
+  options: { readonly deps?: D } & Scoped = {},
 ) {
   return <C extends new (...args: ResolvedAll<D>) => object>(value: C): C => {
-    recordComponent(value, { kind: "injectable", meta: { deps: options.deps ?? [] } });
+    recordComponent(
+      value,
+      { kind: "injectable", meta: { deps: options.deps ?? [] } },
+      options.scope,
+    );
     return value;
   };
 }
@@ -101,7 +111,11 @@ export function McpTool<
     value: C,
   ): C => {
     const { server, ...tool } = options;
-    recordComponent(value, { kind: "mcp-tool", meta: { ...tool, deps: tool.deps ?? [], server } });
+    recordComponent(
+      value,
+      { kind: "mcp-tool", meta: { ...tool, deps: tool.deps ?? [], server } },
+      tool.scope,
+    );
     return value;
   };
 }
@@ -110,16 +124,18 @@ export function McpTool<
  * A knowledge base: a class implementing `RagConnector`. `topK` (passages per retrieval) is required —
  * there is no default. Agents bind it with a required `mode`: `rag: [{ use: CompanyDocs, mode: "tool" }]`.
  */
-export function Rag<const D extends readonly Token[] = []>(options: {
-  readonly name: string;
-  readonly description: string;
-  readonly topK: number;
-  readonly prompt?: string;
-  readonly promptUrls?: readonly string[];
-  readonly deps?: D;
-}) {
+export function Rag<const D extends readonly Token[] = []>(
+  options: {
+    readonly name: string;
+    readonly description: string;
+    readonly topK: number;
+    readonly prompt?: string;
+    readonly promptUrls?: readonly string[];
+    readonly deps?: D;
+  } & Scoped,
+) {
   return <C extends new (...args: ResolvedAll<D>) => RagConnector>(value: C): C => {
-    recordComponent(value, { kind: "rag", meta: { ...options, deps: options.deps ?? [] } });
+    recordComponent(value, { kind: "rag", meta: withDeps(options) }, options.scope);
     return value;
   };
 }
@@ -175,10 +191,10 @@ export interface IWorkflowAction<T = any> {
  * constructor — `deps` are checked against it by the compiler, like `@Tool`.
  */
 export function WorkflowAction<const D extends readonly Token[] = []>(
-  options: WorkflowActionMeta & { readonly deps?: D },
+  options: WorkflowActionMeta & { readonly deps?: D } & Scoped,
 ) {
   return <C extends new (...args: ResolvedAll<D>) => IWorkflowAction>(value: C): C => {
-    recordComponent(value, { kind: "action", meta: { ...options, deps: options.deps ?? [] } });
+    recordComponent(value, { kind: "action", meta: withDeps(options) }, options.scope);
     return value;
   };
 }
@@ -206,13 +222,10 @@ export interface ChannelHandler<T = Record<string, unknown>> {
 }
 
 export function Channel<const D extends readonly Token[] = []>(
-  options: ChannelMeta & { readonly deps?: D },
+  options: ChannelMeta & { readonly deps?: D } & Scoped,
 ) {
   return <C extends new (...args: ResolvedAll<D>) => ChannelHandler>(value: C): C => {
-    recordComponent(value, {
-      kind: "channel",
-      meta: { ...options, deps: options.deps ?? [] },
-    });
+    recordComponent(value, { kind: "channel", meta: withDeps(options) }, options.scope);
     return value;
   };
 }
