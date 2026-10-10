@@ -365,7 +365,10 @@ export class SearchSession {
   `@Workflow({ channelClasses })`, else assembly fails.
 - **Observers are registered**, not discovered: `@Workflow({ observers: [...] })`, typed hooks
   (`implements OnToolEnd, …`); an observer with no or a misspelled hook fails assembly
-  (`[observer.no-hooks]`, `[observer.unknown-hook]`), one that throws is a warning.
+  (`[observer.no-hooks]`, `[observer.unknown-hook]`), one that throws is a warning. Workflow
+  events: `onWorkflowStart` once per run, `onWorkflowPause` / `onWorkflowResume` around a pause,
+  `onWorkflowEnd` / `onError` when the run ends — also after a resume (a cancelled paused run:
+  `onError`, `WorkflowCancelledError`); all events carry the run's `runId` and real `threadId`.
 - **Memory** (`graphcompose/memory`): agents see the thread's last `defaults.history.limit` turns
   (+ `compaction` summaries); `@Agent({ memoryStrategy })` replaces that for one agent
   (`extends BaseMemoryStrategy`).

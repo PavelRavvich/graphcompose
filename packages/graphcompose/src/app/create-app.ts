@@ -21,6 +21,7 @@ import {
 } from "./paused-runs.js";
 import { UnknownToolError } from "./parts.js";
 import { cancelledOutcome, LiveRuns, runOptionsOf } from "./live-runs.js";
+import { observeCancelledPause, observeLeg } from "./run-events.js";
 import {
   flowNodesByKey,
   nestedFlowNodesByKey,
@@ -118,24 +119,15 @@ export async function buildApp(
       // one id for the whole run: its observer events, `ctx.run.runId`, its Tern and its result
       const runId = deps.newRunId?.() ?? randomUUID();
       const state = { runId, threadId: thread };
-      try {
-        await deps.observer.onWorkflowStart(state);
-        const task = {
-          task: startInput.text,
-          input: startInput,
-          start: meta.name,
-          threadId: thread,
-        };
-        const run = await live.track(thread, call.signal, (signal) =>
-          runAgent(task, deps, { ...runOptionsOf(call, signal), runId }),
-        );
-        const result = await settle(run);
-        await deps.observer.onWorkflowEnd(result, state);
-        return result;
-      } catch (e) {
-        await deps.observer.onError(e as Error, state);
-        throw e;
-      }
+      await deps.observer.onWorkflowStart(state);
+      const task = { task: startInput.text, input: startInput, start: meta.name, threadId: thread };
+      return observeLeg(deps.observer, state, async () =>
+        settle(
+          await live.track(thread, call.signal, (signal) =>
+            runAgent(task, deps, { ...runOptionsOf(call, signal), runId }),
+          ),
+        ),
+      );
     },
     cancel: async (thread, options = {}) => {
       await owned(thread, options.owner);
@@ -144,15 +136,20 @@ export async function buildApp(
       // a running resume completes its own Tern when the abort stops it
       if (waiting !== undefined && !running) {
         await deps.terns.complete(waiting.ternId, cancelledOutcome(waiting));
+        await observeCancelledPause(deps.observer, { runId: waiting.runId, threadId: thread });
       }
       return { cancelled: running || waiting !== undefined };
     },
     resume: async (thread, decision, call = {}) => {
       await owned(thread, call.owner);
       const run = await paused.resumable(thread);
-      return settle(
-        await live.track(thread, call.signal, (signal) =>
-          resumeAgent(run, decision, deps, runOptionsOf(call, signal)),
+      const state = { runId: run.runId, threadId: thread };
+      await deps.observer.onWorkflowResume({ decision, state });
+      return observeLeg(deps.observer, state, async () =>
+        settle(
+          await live.track(thread, call.signal, (signal) =>
+            resumeAgent(run, decision, deps, runOptionsOf(call, signal)),
+          ),
         ),
       );
     },

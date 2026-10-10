@@ -3,6 +3,7 @@ import type { JudgeVerdict } from "../../components/judge-decorators.js";
 import type { AppState } from "../../core/observability.js";
 import type { UsageRecord } from "../../finops/usage.js";
 import { AgentFailedError, QualityGateError, type JudgeFeedback } from "../errors.js";
+import { extractRunContext } from "../../core/run-context.js";
 import type { AsyncNode } from "../types.js";
 import type { AgentLoopDeps } from "./deps.js";
 import { meteredModel } from "./judge-model.js";
@@ -14,9 +15,10 @@ async function rejectionsOf(
   deps: AgentLoopDeps,
   reply: string,
   spent: UsageRecord[],
+  threadId: string,
 ): Promise<JudgeFeedback[]> {
   const agent = deps.agent.name;
-  const appState: AppState = { runId: state.runId, threadId: state.runId, activeNode: agent };
+  const appState: AppState = { runId: state.runId, threadId, activeNode: agent };
   const rejected: JudgeFeedback[] = [];
   for (const judge of deps.agent.judges ?? []) {
     const ctx = {
@@ -59,10 +61,16 @@ function replyContent(state: AgentLoopStateType, reply: string): MessageContent 
  */
 export function makeJudgeNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
   const { name: agent, judges = [], maxRetries = 0 } = deps.agent;
-  return async (state) => {
+  return async (state, config) => {
     if (judges.length === 0 || state.reply === null) return {};
     const spent: UsageRecord[] = [];
-    const rejected = await rejectionsOf(state, deps, state.reply, spent);
+    const rejected = await rejectionsOf(
+      state,
+      deps,
+      state.reply,
+      spent,
+      extractRunContext(config, state.runId).threadId,
+    );
     if (rejected.length === 0) {
       return {
         usage: spent,

@@ -23,13 +23,13 @@ export function makeApprovalNode(
 ): AsyncNode<AgentLoopStateType, AgentLoopUpdate> {
   // eslint-disable-next-line max-lines-per-function, complexity
   return async (state, config) => {
-    const appState = { runId: state.runId, threadId: state.runId, activeNode: deps.agent.name };
+    const runCtx = extractRunContext(config, state.runId);
+    const appState = { runId: state.runId, threadId: runCtx.threadId, activeNode: deps.agent.name };
     const [call] = awaitingApproval(state, deps);
     if (call === undefined || deps.approval === undefined) return {};
     const tool = toolNamed(deps.agent, call.tool);
     // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     if (!tool || !tool.channel) return {};
-    const runCtx = extractRunContext(config, state.runId);
     const metadata = runCtx.metadata;
 
     const decision = await deps.approval.requestApproval(
@@ -43,7 +43,7 @@ export function makeApprovalNode(
       },
       deps.agent.name,
       tool,
-      state.runId,
+      { runId: state.runId, threadId: runCtx.threadId },
       metadata,
       runCtx.executionContext,
     );

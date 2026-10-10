@@ -2,6 +2,7 @@ import type { BaseMessage, MessageContent } from "@langchain/core/messages";
 import type { JudgeVerdict } from "../components/judge-decorators.js";
 import type { FlowStateType, FlowStateUpdate } from "../graph/flow-state.js";
 import type { AgentStateUpdate } from "../graph/state.js";
+import type { PendingPause } from "../pause/index.js";
 import type { RagRetrieval } from "../rag/types.js";
 
 /**
@@ -125,5 +126,17 @@ export interface JudgeEndEvent {
   readonly name: string;
   readonly agentName: string;
   readonly update: JudgeVerdict;
+  readonly state: AppState;
+}
+
+/** A run paused (`ExecutionOutput.status` `"paused"`): `pause` is what it waits for. */
+export interface WorkflowPauseEvent {
+  readonly pause: PendingPause;
+  readonly state: AppState;
+}
+
+/** `app.resume` picked a paused run up with `decision`; the run's id is the one it started with. */
+export interface WorkflowResumeEvent {
+  readonly decision: unknown;
   readonly state: AppState;
 }

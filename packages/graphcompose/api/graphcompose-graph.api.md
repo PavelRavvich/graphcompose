@@ -432,9 +432,9 @@ export interface WorkflowStartOptions<In extends DtoClass<WorkflowStartText> = D
 // src/graph/limits.ts:36:3 - (ae-undocumented) Missing documentation for "path".
 // src/graph/limits.ts:37:3 - (ae-undocumented) Missing documentation for "spentUsd".
 // src/graph/limits.ts:38:3 - (ae-undocumented) Missing documentation for "usage".
-// src/graph/nodes/flow-router.ts:34:3 - (ae-undocumented) Missing documentation for "code".
-// src/graph/nodes/flow-router.ts:35:12 - (ae-undocumented) Missing documentation for "name".
-// src/graph/nodes/flow-router.ts:38:3 - (ae-undocumented) Missing documentation for "router".
+// src/graph/nodes/flow-router.ts:35:3 - (ae-undocumented) Missing documentation for "code".
+// src/graph/nodes/flow-router.ts:36:12 - (ae-undocumented) Missing documentation for "name".
+// src/graph/nodes/flow-router.ts:39:3 - (ae-undocumented) Missing documentation for "router".
 // src/graph/route.ts:8:3 - (ae-undocumented) Missing documentation for "target".
 // src/graph/router.decorator.ts:13:3 - (ae-undocumented) Missing documentation for "name".
 // src/graph/router.decorator.ts:14:3 - (ae-undocumented) Missing documentation for "description".

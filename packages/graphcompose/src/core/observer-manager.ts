@@ -21,6 +21,8 @@ import type {
   RouterStartEvent,
   ToolEndEvent,
   ToolStartEvent,
+  WorkflowPauseEvent,
+  WorkflowResumeEvent,
 } from "./observability.js";
 import type { ObserverHook, WorkflowObserver } from "./observer-hooks.js";
 
@@ -57,6 +59,12 @@ export class ObserverManager implements Required<WorkflowObserver> {
 
   onWorkflowStart(state: AppState): Promise<void> {
     return this.each("onWorkflowStart", (o) => o.onWorkflowStart?.(state));
+  }
+  onWorkflowPause(event: WorkflowPauseEvent): Promise<void> {
+    return this.each("onWorkflowPause", (o) => o.onWorkflowPause?.(event));
+  }
+  onWorkflowResume(event: WorkflowResumeEvent): Promise<void> {
+    return this.each("onWorkflowResume", (o) => o.onWorkflowResume?.(event));
   }
   onWorkflowEnd(result: ExecutionOutput, state: AppState): Promise<void> {
     return this.each("onWorkflowEnd", (o) => o.onWorkflowEnd?.(result, state));

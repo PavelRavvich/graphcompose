@@ -322,7 +322,11 @@ run — it stops before its next model or tool call and `execute` rejects with
 `graphcompose/testing` builds a `ctx.run`.
 
 Observers see a run's workflow, agent, router, tool, model, guardrail, policy, action, channel and
-judge start/end events. Only classes listed in `@Workflow({ observers: [...] })` are called; the
+judge start/end events. `onWorkflowStart` fires once per run (at `execute`); a run that pauses emits
+`onWorkflowPause` (`event.pause`: what it waits for), `app.resume` emits `onWorkflowResume`
+(`event.decision`), and `onWorkflowEnd` / `onError` fire when the run finishes or fails — also
+after a resume; cancelling a paused run is an `onError` with `WorkflowCancelledError`. Every event
+carries the run's one `runId` and its real `threadId`. Only classes listed in `@Workflow({ observers: [...] })` are called; the
 container creates them at app start, with their `deps`. Each hook has its own interface and payload
 type; assembly rejects an observer with no hook or with a misspelled one (`did you mean onToolEnd?`).
 An observer that throws is reported as a process warning and never fails the run.
