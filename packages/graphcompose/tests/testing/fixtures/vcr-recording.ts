@@ -3,6 +3,7 @@ import { buildApp } from "../../../src/app/create-app.js";
 import type { ExecutionOutput } from "../../../src/app/types.js";
 import { workflowOf } from "../../../src/components/assemble.js";
 import type { Class } from "../../../src/components/injection.js";
+import type { WorkflowStartClass } from "../../../src/graph/workflow-start.decorator.js";
 import { createMemoryLedger } from "../../../src/finops/ledger.js";
 import { createSqliteTernStore } from "../../../src/terns/index.js";
 import { McpStubs, stubbedMcpConnect } from "../../../src/testing/mcp-stubs.js";
@@ -26,7 +27,7 @@ export function recordDesk(
 
 /** Records a run of any workflow from `start` into `file`, the scripted models standing in. */
 export async function recordRun(
-  { workflow, start }: { readonly workflow: Class; readonly start: Class },
+  { workflow, start }: { readonly workflow: Class; readonly start: WorkflowStartClass },
   file: string,
   text: string,
   script: (book: ScriptBook) => void,

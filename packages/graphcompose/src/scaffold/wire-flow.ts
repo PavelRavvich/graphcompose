@@ -36,7 +36,7 @@ export function flowCalls(source: ts.SourceFile): FlowCall[] {
 export const namesIn = (list: ts.NodeArray<ts.Expression>): string[] =>
   list.map((item) => (ts.isIdentifier(item) ? item.text : item.getText()));
 
-/** The star around `router`: `from(router).routes(…)` and the `from(<agents>).next(router)` back to it. */
+/** The star around `router`: `from(router).routes()` and the `from(<agents>).next(router)` back to it. */
 export function starCalls(
   calls: readonly FlowCall[],
   router: string,
@@ -52,39 +52,11 @@ export function starCalls(
   return choose === undefined || back === undefined ? undefined : { choose, back };
 }
 
-/** A text to insert at a position. */
-interface Insert {
-  readonly at: number;
-  readonly text: string;
-}
-
-/** Before the last element (`routeOne(A, Finish)` → `routeOne(A, B, Finish)`) or after the last one. */
-function insertion(
-  list: ts.NodeArray<ts.Expression>,
-  element: string,
-  beforeLast: boolean,
-): Insert | undefined {
-  const last = list.at(-1);
-  if (last === undefined) return undefined;
-  if (!beforeLast) return { at: last.getEnd(), text: `, ${element}` };
-  const previous = list.at(-2);
-  return previous === undefined
-    ? { at: last.getStart(), text: `${element}, ` }
-    : { at: previous.getEnd(), text: `, ${element}` };
-}
-
-const applyInserts = (text: string, inserts: readonly Insert[]): string =>
-  [...inserts]
-    .sort((left, right) => right.at - left.at)
-    .reduce(
-      (result, insert) => result.slice(0, insert.at) + insert.text + result.slice(insert.at),
-      text,
-    );
-
 /**
- * Puts a new agent into a star flow: `from(Router).routes(…, Agent, Finish)` and
- * `from(<agents>, Agent).next(Router)`. An agent already there is skipped (reported, never doubled);
- * an unexpected shape → an error naming the file — never a guess.
+ * Puts a new agent into a star flow: `from(<agents>, Agent).next(Router)`. The router's targets are
+ * its `@Router({ routes })` (`from(Router).routes()` stays empty, #200), wired in the router file. An
+ * agent already there is skipped (reported, never doubled); an unexpected shape → an error naming the
+ * file — never a guess.
  */
 export function addAgentToFlow(
   file: FileToWrite,
@@ -94,24 +66,21 @@ export function addAgentToFlow(
 ): FileToWrite {
   const source = ts.createSourceFile(file.path, file.content, ts.ScriptTarget.Latest, true);
   const star = starCalls(flowCalls(source), router, [...agents, agent]);
-  if (star === undefined) {
+  const last = star?.back.sources.at(-1);
+  if (star === undefined || last === undefined) {
     throw new ScaffoldError(
-      `${file.path}: no from(${router}).routes(…) and from(<agents>).next(${router}) in the flow — add ${agent} by hand`,
+      `${file.path}: no from(${router}).routes() and from(<agents>).next(${router}) in the flow — add ${agent} by hand`,
     );
   }
-  const skipped: string[] = [];
-  const inserts: Insert[] = [];
-  const add = (call: FlowCall, beforeLast: boolean, where: string): void => {
-    const into = call === star.choose ? call.args : call.sources;
-    if (namesIn(into).includes(agent)) skipped.push(`${file.path}: ${agent} already in ${where}`);
-    else inserts.push(...[insertion(into, agent, beforeLast)].filter((i) => i !== undefined));
-  };
-  add(star.choose, true, `from(${router}).routes(…)`);
-  add(star.back, false, `from(…).next(${router})`);
+  if (namesIn(star.back.sources).includes(agent)) {
+    const skipped = `${file.path}: ${agent} already in from(…).next(${router})`;
+    return { ...file, skipped: [...(file.skipped ?? []), skipped] };
+  }
+  const at = last.getEnd();
   return {
     path: file.path,
-    content: applyInserts(file.content, inserts),
-    skipped: [...(file.skipped ?? []), ...skipped],
+    content: `${file.content.slice(0, at)}, ${agent}${file.content.slice(at)}`,
+    skipped: [...(file.skipped ?? [])],
   };
 }
 

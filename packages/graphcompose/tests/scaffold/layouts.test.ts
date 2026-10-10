@@ -60,9 +60,8 @@ describe("gc generate on job-scout's layout", () => {
 
     // targets resolved from the workflow module: its agents folder, its router, its finish
     expect(existsSync(join(project, "src/agents/billing.agent.ts"))).toBe(true);
-    expect(text(workflow)).toContain(
-      "from(MainRouter).routes(Profiler, Scout, Shortlist, BillingAgent, ChatWorkflowFinish)",
-    );
+    // #200: the router's targets are its @Router routes — the flow's routes() stays empty
+    expect(text(workflow)).toContain("from(MainRouter).routes(),");
     expect(text(workflow)).toContain(
       "from(Profiler, Scout, Shortlist, BillingAgent).next(MainRouter)",
     );
@@ -113,7 +112,7 @@ describe("gc generate on job-scout's layout", () => {
     );
 
     await expect(applyChanges(project, again)).rejects.toThrow(
-      "Already exists: src/agents/billing.agent.ts, src/agents/billing.prompt.md. Already wired: src/job-scout.workflow.ts: BillingAgent already in from(MainRouter).routes(…)",
+      "Already exists: src/agents/billing.agent.ts, src/agents/billing.prompt.md. Already wired: src/job-scout.workflow.ts: BillingAgent already in from(…).next(MainRouter); src/routers/main.router.ts: BillingAgent already in routes",
     );
 
     const forced = gcIn(project, [
@@ -130,7 +129,6 @@ describe("gc generate on job-scout's layout", () => {
     expect(forced.ok, forced.out).toBe(true);
     const envelope = JSON.parse(forced.stdout) as { warnings: string[]; modified: string[] };
     expect(envelope.warnings).toEqual([
-      "skipped: src/job-scout.workflow.ts: BillingAgent already in from(MainRouter).routes(…)",
       "skipped: src/job-scout.workflow.ts: BillingAgent already in from(…).next(MainRouter)",
       "skipped: src/routers/main.router.ts: BillingAgent already in routes",
     ]);

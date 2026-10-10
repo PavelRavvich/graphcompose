@@ -11,7 +11,7 @@
   "src eslint:@typescript-eslint/no-invalid-void-type": 2,
   "src eslint:@typescript-eslint/no-non-null-assertion": 2,
   "src eslint:@typescript-eslint/no-unnecessary-condition": 12,
-  "src eslint:@typescript-eslint/no-unnecessary-type-assertion": 5,
+  "src eslint:@typescript-eslint/no-unnecessary-type-assertion": 4,
   "src eslint:@typescript-eslint/no-unnecessary-type-parameters": 1,
   "src eslint:@typescript-eslint/no-unsafe-argument": 10,
   "src eslint:@typescript-eslint/no-unsafe-assignment": 19,

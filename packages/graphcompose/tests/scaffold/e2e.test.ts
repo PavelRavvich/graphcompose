@@ -133,7 +133,7 @@ describe("gc create / gc generate end to end", () => {
 
     expect(out).toMatch(/billing .*\n\s+Handles invoices/);
     // #116: a new agent joins the star — a route in the main router and both transitions
-    expect(out).toContain("main → triage | answerer | text (workflow finish) | billing");
+    expect(out).toContain("main → triage | answerer | billing | text (workflow finish)");
     expect(out).toContain("triage, answerer, billing → main");
     expect(readFileSync(join(project, "src/desk/routers/main.router.ts"), "utf8")).toContain(
       '{ prompt: "Handles invoices", target: BillingAgent }',
