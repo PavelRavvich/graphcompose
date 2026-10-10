@@ -26,7 +26,7 @@
   "src eslint:@typescript-eslint/unbound-method": 1,
   "src eslint:@typescript-eslint/unified-signatures": 1,
   "src eslint:complexity": 10,
-  "src eslint:max-lines-per-function": 14,
+  "src eslint:max-lines-per-function": 13,
   "src eslint:no-console": 1,
   "src eslint:no-restricted-imports": 25,
   "src eslint:prefer-const": 1,
