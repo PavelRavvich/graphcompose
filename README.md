@@ -160,13 +160,28 @@ export class AnswerGrounded implements JudgeHandler {
 
 ## Run Context & Observers
 
-GraphCompose executes all workflows with a strict **Run Context**. Inside your internal services or custom nodes, use `extractRunContext` to extract typed `runId`, `threadId`, etc.:
+Every tool and action gets the run it is part of as `ctx.run` (`RunContext`): built once per
+`execute` / `resume`, the same for every node of the run.
 
 ```ts
-import { extractRunContext } from "graphcompose/graph";
-const ctx = extractRunContext(config, state.runId);
-console.log(ctx.runId, ctx.threadId);
+async execute(state: AgentState, ctx: ActionContext) {
+  ctx.run.runId;      // RunId, unique per run, the same after a resume
+  ctx.run.threadId;   // the conversation (ExecutionOutput.thread)
+  ctx.run.signal;     // aborted by app.cancel(thread) or the caller's signal
+  ctx.run.metadata;   // from execute(…, { metadata }), kept by the run's resumes
+  ctx.idempotencyKey; // `${runId}:${node}` (+ `:${index}` inside batchParallel)
+}
+
+await app.execute(Start, input, { thread, signal, metadata: { tenant: "acme" }, onStream });
+const { cancelled } = await app.cancel(thread);
 ```
+
+`execute` and `resume` forward `signal`, `metadata`, `onStream` (token and tool-call events) and
+`configurable` (extra LangGraph keys; the framework's own win). `app.cancel(thread)` aborts a running
+run — it stops before its next model or tool call and `execute` rejects with
+`WorkflowCancelledError` — or drops a paused one, whose `resume` then throws `NotPausedError`;
+`cancelled` is `false` when the thread had neither. In unit tests, `testRunContext()` from
+`graphcompose/testing` builds a `ctx.run`.
 
 Observers see a run's workflow, agent, router, tool, model, guardrail, policy, action, channel and
 judge start/end events. Only classes listed in `@Workflow({ observers: [...] })` are called; the

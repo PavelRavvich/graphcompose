@@ -39,6 +39,10 @@ export interface RunOptions {
   /** Callback to receive token streaming and tool calls in real time. */
   readonly onStream?: (event: RunStreamEvent) => void;
   readonly executionContext?: unknown;
+  /** The run's metadata, read by tools and actions as `ctx.run.metadata`. */
+  readonly metadata?: Readonly<Record<string, string>> | undefined;
+  /** Extra LangGraph `configurable` keys for the run's nodes (the framework's own keys win). */
+  readonly configurable?: Readonly<Record<string, unknown>> | undefined;
 }
 
 /** How a run ended for its caller. Failures are thrown, not returned. */
@@ -67,4 +71,6 @@ export interface AgentExecutionOutput {
   readonly runId: string;
   /** Present only when `status` is "paused": the tool call waiting for an approval. */
   readonly pending?: PendingPause;
+  /** The run's metadata (`RunOptions.metadata`), kept so its resume sees the same `ctx.run.metadata`. */
+  readonly metadata?: Readonly<Record<string, string>>;
 }

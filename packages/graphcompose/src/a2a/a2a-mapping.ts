@@ -1,4 +1,5 @@
 import type { ExecutionOutput } from "../app/types.js";
+import { WorkflowCancelledError } from "../core/errors.js";
 import { LimitExceededError } from "../graph/limits.js";
 import type { RunStatus, RunStreamEvent } from "../run/types.js";
 import type { A2AEvent, A2AExecutionResponse, A2AStatus } from "./types.js";
@@ -21,9 +22,9 @@ export function statusOf(status: RunStatus): A2AStatus {
   }
 }
 
-/** The A2A status of a run that threw: its signal aborted → cancelled, a limit → limited, else failed. */
-export function failureStatusOf(error: unknown, signal: AbortSignal): A2AStatus {
-  if (signal.aborted) return "cancelled";
+/** The A2A status of a run that threw: cancelled (its signal, `app.cancel`), a limit → limited, else failed. */
+export function failureStatusOf(error: unknown, signal: AbortSignal | undefined): A2AStatus {
+  if (signal?.aborted === true || error instanceof WorkflowCancelledError) return "cancelled";
   if (error instanceof LimitExceededError) return "limited";
   return "failed";
 }
@@ -41,7 +42,7 @@ export function responseOf(output: ExecutionOutput): A2AExecutionResponse {
 /** The response for a run that threw. */
 export function failureResponseOf(
   error: unknown,
-  signal: AbortSignal,
+  signal: AbortSignal | undefined,
   thread: string | undefined,
 ): A2AExecutionResponse {
   return {

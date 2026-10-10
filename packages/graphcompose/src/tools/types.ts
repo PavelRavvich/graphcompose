@@ -1,8 +1,11 @@
+import type { RunContext } from "../core/run-context.js";
 import type { z } from "zod";
 
 /** What a tool may know about the run it serves. */
 export interface ToolContext<TExec = unknown> {
   readonly executionContext?: TExec;
+  /** The run this call is part of: its id, thread, cancel signal and metadata. */
+  readonly run: RunContext;
   readonly runId: string;
   readonly workflow: string;
   readonly agent: string;

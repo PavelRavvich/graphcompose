@@ -6,6 +6,7 @@ import { agentLoopGraph, loopInputOf, noJudges } from "../graph/agent-loop/index
 import { RouterDecisionError } from "../graph/nodes/flow-router.js";
 import type { FlowStateType } from "../graph/flow-state.js";
 import type { ToolContext, ToolOutput } from "../tools/index.js";
+import { newRunContext } from "../core/run-context.js";
 import { TestSetupError } from "./errors.js";
 import { nodeNameOf } from "./failure-facts.js";
 import { toolNameOf } from "./script.js";
@@ -37,6 +38,7 @@ export function toolSlice<TInput, TOutput>(
 ): ToolSlice<TInput, TOutput> {
   const tool = built.deps.tools(toolNameOf(cls));
   const ctx: ToolContext = {
+    run: newRunContext({ runId: "tool-slice" }),
     runId: "tool-slice",
     workflow: built.deps.config.name,
     agent: "",
@@ -115,6 +117,7 @@ const freshState = (task: string, runId: string): FlowStateType => ({
   path: [],
   daySpentBeforeRunUsd: null,
   batchItem: undefined,
+  batchIndex: undefined,
   _batchCursor: {},
   lastError: null,
   cancelRequested: false,

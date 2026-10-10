@@ -1,5 +1,6 @@
 import type { DtoClass } from "../dto/types.js";
 import type { ToolContext, ToolOutput } from "../tools/index.js";
+import { newRunContext } from "../core/run-context.js";
 
 /** A server tool as a workflow uses it: the DTOs of its arguments and its result. */
 export interface ServerTool {
@@ -43,6 +44,7 @@ export abstract class McpServerClient<TTools extends ServerTools> {
     const tool = this.#tools.get(name);
     if (tool === undefined) throw new Error(`MCP tool "${name}" is not declared on this server`);
     const result = await tool.invoke(args, {
+      run: newRunContext({ runId: "", signal }),
       runId: "",
       workflow: "",
       agent: "",

@@ -5,14 +5,18 @@ import { renderToolResult, type AnyTool, type ToolContext } from "../../tools/in
 import { toolNamed, type AgentLoopDeps } from "./deps.js";
 import type { AgentLoopUpdate, ToolTask } from "./state.js";
 import type { PendingPause } from "../../pause/index.js";
-import { extractRunContext } from "../run-context.js";
+import { extractRunContext, throwIfCancelled, type RunContext } from "../../core/run-context.js";
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-/** The run's signal combined with the tool's own timeout. */
-const signalFor = (tool: AnyTool, config: RunnableConfig | undefined): AbortSignal => {
-  const timeout = AbortSignal.timeout(tool.timeoutMs);
-  return config?.signal === undefined ? timeout : AbortSignal.any([config.signal, timeout]);
+/** The run's signal (cancel included) combined with the tool's own timeout. */
+const signalFor = (
+  tool: AnyTool,
+  config: RunnableConfig | undefined,
+  run: RunContext,
+): AbortSignal => {
+  const signals = [run.signal, AbortSignal.timeout(tool.timeoutMs)];
+  return AbortSignal.any(config?.signal === undefined ? signals : [...signals, config.signal]);
 };
 
 /** Tool failures are recoverable: whatever went wrong, the model reads it as `Tool error: …`. */
@@ -42,7 +46,7 @@ export function makeToolNode(
     const runCtx = extractRunContext(config, task.runId);
     const appState = {
       runId: runCtx.runId,
-      threadId: runCtx.threadId ?? runCtx.runId,
+      threadId: runCtx.threadId,
       activeNode: deps.agent.name,
       variables: {},
       history: [],
@@ -50,14 +54,16 @@ export function makeToolNode(
     if (tool === undefined) {
       return {};
     }
+    throwIfCancelled(runCtx.run);
     const usage: UsageRecord[] = [];
     const context: ToolContext = {
       executionContext: runCtx.executionContext,
+      run: runCtx.run,
       runId: task.runId,
       workflow: deps.bundle,
       agent: deps.agent.name,
       callId: task.callId,
-      signal: signalFor(tool, config),
+      signal: signalFor(tool, config, runCtx.run),
       reportCost: (usd) => {
         usage.push(recordReportedCost(tool, usd));
       },

@@ -6,8 +6,6 @@ import type { FlowNode } from "../graph/flow.js";
 import type { PendingPause } from "../pause/index.js";
 import type { AgentExecutionOutput, RunStreamEvent } from "../run/types.js";
 
-/** Per call: the conversation to continue (omit for a new one) and a signal to stop the run. */
-
 export interface FinishOutput {
   readonly kind: string;
 }
@@ -52,12 +50,23 @@ export interface BinaryFinishOutput extends FinishOutput {
   readonly data: Uint8Array;
 }
 
+/** Per call: the conversation to continue (omit for a new one) and what the run carries. */
 export interface ExecutionOptions {
   readonly thread?: string;
+  /** Stops the run, like `app.cancel(thread)`. */
   readonly signal?: AbortSignal | undefined;
+  /** Token and tool-call events while the run works. */
   readonly onStream?: (event: RunStreamEvent) => void;
   readonly executionContext?: unknown;
-  readonly configurable?: Record<string, unknown>;
+  /** Read by tools and actions as `ctx.run.metadata`; a resume keeps it unless it passes its own. */
+  readonly metadata?: Readonly<Record<string, string>>;
+  /** Extra LangGraph `configurable` keys for the run's nodes (the framework's own keys win). */
+  readonly configurable?: Readonly<Record<string, unknown>>;
+}
+
+/** What `app.cancel(thread)` did: `cancelled` when the thread had a running or a paused run. */
+export interface CancelOutput {
+  readonly cancelled: boolean;
 }
 
 /**
@@ -102,9 +111,13 @@ export interface App {
   resume(
     thread: string,
     decision: unknown,
-    options?: Pick<ExecutionOptions, "signal" | "executionContext" | "onStream">,
+    options?: Omit<ExecutionOptions, "thread">,
   ): Promise<ExecutionOutput>;
-  cancel(thread: string): Promise<void>;
+  /**
+   * Cancels the thread's run: a running one is aborted (`ctx.run.signal`; its `execute` rejects
+   * with `WorkflowCancelledError`), a paused one is dropped (its `resume` throws `NotPausedError`).
+   */
+  cancel(thread: string): Promise<CancelOutput>;
   close(): Promise<void>;
   /** Resolves a service or component from the app's internal container. */
   resolve<T>(token: Class<T> | symbol | string): T;

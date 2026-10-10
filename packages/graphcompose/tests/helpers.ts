@@ -144,6 +144,7 @@ export function baseState(overrides: Partial<AgentStateType> = {}): AgentStateTy
     batchItem: undefined,
     _batchCursor: {},
     cancelRequested: false,
+    batchIndex: undefined,
 
     ...overrides,
   };

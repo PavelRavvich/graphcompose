@@ -11,7 +11,7 @@ import { callsOf, type AgentLoopDeps } from "./deps.js";
 import { agentLimitError } from "./limits.js";
 import { loopUsage, type AgentLoopStateType, type AgentLoopUpdate } from "./state.js";
 import { normalisePromptText } from "../text.js";
-import { extractRunContext } from "../run-context.js";
+import { extractRunContext, throwIfCancelled } from "../../core/run-context.js";
 
 export class ToolCallingUnsupportedError extends Error {
   override name = "ToolCallingUnsupportedError";
@@ -80,6 +80,7 @@ export function makeModelNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
     if (runCtx.branchCancelToken?.cancelled) {
       throw new QuorumCancelledError();
     }
+    throwIfCancelled(runCtx.run);
     if (isBudgetSpent(state, deps)) {
       return {
         reply: BUDGET_STOP_MESSAGE,

@@ -3,7 +3,7 @@ import type { AgentLoopDeps } from "./deps.js";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { JudgeOwner, JudgePoint, visitAgentAnswer, mergePolicies } from "./judge-points.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
-import { extractRunContext } from "../run-context.js";
+import { extractRunContext } from "../../core/run-context.js";
 
 /** A move without tool calls is the agent's replyWith: `beforeAgentAnswer`, then it leaves the loop. */
 export function makeAnswerNode(

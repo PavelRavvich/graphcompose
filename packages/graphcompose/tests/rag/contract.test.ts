@@ -5,12 +5,14 @@ import { workflowOf } from "../../src/testing/index.js";
 import { describeWorkflow } from "../../src/cli/describe.js";
 import type { ToolContext } from "../../src/tools/index.js";
 import { bundleWith, Handbook, HandbookFromApi } from "./fixture.js";
+import { testRunContext } from "../../src/testing/index.js";
 
 const services: WorkflowServices = {
   router: (name) => ({ name, route: () => Promise.reject(new Error("unused")) }),
 };
 const costs: number[] = [];
 const ctx: ToolContext = {
+  run: testRunContext(),
   runId: "r",
   workflow: "b",
   agent: "helper",

@@ -2,6 +2,7 @@ import type { McpServerConfig } from "../config/types.js";
 import type { RagConnector } from "../rag/types.js";
 import type { DtoClass } from "../dto/types.js";
 import type { ToolContext } from "../tools/index.js";
+import type { RunContext } from "../core/run-context.js";
 import type { ChannelMeta } from "./meta-types.js";
 import type { Class, ResolvedAll, Scoped, Token } from "./injection.js";
 import { callerFile } from "./call-site.js";
@@ -167,9 +168,14 @@ export function Workflow(options: WorkflowMeta) {
 
 export interface ActionRuntime<TExec = unknown> {
   readonly executionContext?: TExec;
+  /** The run this action is part of: its id, thread, cancel signal and metadata. */
+  readonly run: RunContext;
   readonly runId: string;
-  /** Unique key combining runId and node name for safe external API calls */
-  readonly idempotencyKey?: string;
+  /**
+   * `${runId}:${node}` (plus `:${index}` of the item inside `batchParallel`): unique per run and
+   * node, the same after a resume — the key for side effects such as a payment.
+   */
+  readonly idempotencyKey: string;
   readonly signal?: AbortSignal;
   readonly getComponentClass?: (nodeName: string) => Class | undefined | Promise<Class | undefined>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -177,6 +183,9 @@ export interface ActionRuntime<TExec = unknown> {
   /** In a `batchParallel` step: this worker's item (its batch when `batchSize` > 1); else undefined. */
   readonly item?: unknown;
 }
+
+/** What an action's `execute` gets besides the state (`ActionRuntime`). */
+export type ActionContext<TExec = unknown> = ActionRuntime<TExec>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface IWorkflowAction<T = any> {

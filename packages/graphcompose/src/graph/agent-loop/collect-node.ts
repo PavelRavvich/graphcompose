@@ -5,7 +5,7 @@ import type { AsyncNode } from "../types.js";
 import { callsOf, toolNamed, type AgentLoopDeps, type ToolCallRequest } from "./deps.js";
 import { JudgePoint, visitToolThenAgent, mergePolicies } from "./judge-points.js";
 import type { AgentLoopStateType, AgentLoopUpdate } from "./state.js";
-import { extractRunContext } from "../run-context.js";
+import { extractRunContext } from "../../core/run-context.js";
 
 /** What the model reads for a call: its stored result, or who rejected it and why. */
 function contentOf(state: AgentLoopStateType, call: ToolCallRequest): string {

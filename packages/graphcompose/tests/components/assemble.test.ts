@@ -23,6 +23,7 @@ const services: WorkflowServices = {
   router: (name) => ({ name, route: () => Promise.reject(new Error("unused")) }),
 };
 const ctx: ToolContext = {
+  run: testRunContext(),
   runId: "r",
   workflow: "b",
   agent: "a",
@@ -84,6 +85,7 @@ describe("components — assembly", () => {
 
 import { Guardrail, Tool } from "../../src/core/index.js";
 import { Person, Greeting } from "./fixture/components.js";
+import { testRunContext } from "../../src/testing/index.js";
 
 describe("components — policy overrides and disables", () => {
   // eslint-disable-next-line @typescript-eslint/no-extraneous-class

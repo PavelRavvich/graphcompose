@@ -30,7 +30,8 @@ export {
   type ResumeDecision,
   type ResumeVersions,
 } from "./run/resume-guard.js";
-export type { App, ExecutionOptions, ExecutionOutput } from "./app/types.js";
+export type { App, CancelOutput, ExecutionOptions, ExecutionOutput } from "./app/types.js";
+export type { RunContext, RunId } from "./core/run-context.js";
 export { loadWorkflow, loadWorkflowClass, WorkflowLoadError } from "./cli/load-workflow.js";
 export { withProfile } from "./profile-workflow.js";
 export { describeWorkflow } from "./cli/describe.js";
@@ -58,6 +59,8 @@ export {
 } from "./config/types.js";
 export {
   Channel,
+  type ActionContext,
+  type ActionRuntime,
   type ChannelHandler,
   type ChannelRequest,
   type ChannelDecision,

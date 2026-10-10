@@ -115,6 +115,7 @@ const flowStateOf = (task: string): FlowStateType => ({
   batchItem: undefined,
   _batchCursor: {},
   cancelRequested: false,
+  batchIndex: undefined,
   lastError: null,
 });
 

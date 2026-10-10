@@ -44,4 +44,4 @@ export {
 export { GraphRuleError, type RuleCode, type RuleViolation } from "./rule-error.js";
 export { LimitExceededError, type LimitKey } from "./limits.js";
 export { RouterDecisionError, type RouterFailureCode } from "./nodes/flow-router.js";
-export { type RunContext, extractRunContext } from "./run-context.js";
+export type { RunContext, RunId } from "../core/run-context.js";

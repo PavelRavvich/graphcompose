@@ -143,11 +143,12 @@ export class DeleteUserTool {
 
 ### 3. Provide Metadata and Execute
 
-When starting the graph, you can pass arbitrary context (like user ID, tenant, etc.) using the `metadata` parameter. This metadata is seamlessly passed to the `requestApproval` method of your channel.
+When starting the graph, you can pass string context (like user ID, tenant, etc.) using the `metadata` parameter. This metadata is passed to the `requestApproval` method of your channel, and tools and actions read it as `ctx.run.metadata` (its resume keeps it).
 
 ```typescript
 const result = await app.execute(
-  { task: "Delete user 123" },
+  Start,
+  { text: "Delete user 123" },
   { metadata: { approverEmail: "admin@example.com" } },
 );
 ```

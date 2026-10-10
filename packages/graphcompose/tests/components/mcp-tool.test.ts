@@ -5,8 +5,10 @@ import { connectMcpServers, type ToolContext } from "../../src/tools/index.js";
 import { resolveTools, type WorkflowServices } from "../../src/workflow.js";
 import { fakeMcpServer, type FakeTool } from "../tools/mcp/fake-server.js";
 import { FilesServer, Greetings, ReadFile } from "./fixture/components.js";
+import { testRunContext } from "../../src/testing/index.js";
 
 const ctx: ToolContext = {
+  run: testRunContext(),
   runId: "r",
   workflow: "w",
   agent: "a",

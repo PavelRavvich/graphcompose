@@ -5,14 +5,9 @@ import type { UsageRecord } from "../finops/usage.js";
 import type { FlowGraph } from "../graph/build.js";
 import { flowGraphOf } from "../graph/flow-runtime.js";
 import type { AgentStateType } from "../graph/state.js";
-import {
-  drainRun,
-  failedOutcome,
-  outcomeError,
-  recorder,
-  streamConfig,
-  workflowAccount,
-} from "./execute.js";
+import { drainRun, failedOutcome, outcomeError, recorder, workflowAccount } from "./execute.js";
+import { quorumOf, settleQuorum, withMetadata } from "./run-services.js";
+import { streamConfig } from "./stream-config.js";
 import { finishRun } from "./finish.js";
 import { isWaiting, pausedLoopOf } from "./paused.js";
 import type { AgentExecutionOutput, RunDeps, RunOptions } from "./types.js";
@@ -61,7 +56,7 @@ export function resumeAgent<TName extends string>(
   return inRunScope(() => resumeOnce(paused, decision, deps, options));
 }
 
-type ResumeOptions = Pick<RunOptions, "signal" | "executionContext" | "onStream">;
+type ResumeOptions = Omit<RunOptions, "replayOf" | "account">;
 
 async function resumeOnce<TName extends string>(
   paused: AgentExecutionOutput,
@@ -70,6 +65,8 @@ async function resumeOnce<TName extends string>(
   options: ResumeOptions,
 ): Promise<AgentExecutionOutput> {
   const { flow, before } = await pausedRun(paused, deps);
+  const metadata = options.metadata ?? paused.metadata;
+  const quorumManager = quorumOf(deps, paused.runId);
   const spent: UsageRecord[] = [];
   const record = recorder(deps, workflowAccount(deps), spent);
   const base = {
@@ -82,8 +79,8 @@ async function resumeOnce<TName extends string>(
   try {
     const streaming = streamConfig(
       deps,
-      { threadId: paused.threadId, runId: paused.runId },
-      options,
+      { threadId: paused.threadId, runId: paused.runId, quorumManager },
+      { ...options, metadata },
     );
     const states = await flow.graph.stream(new Command({ resume: decision }), streaming);
     const state = await drainRun(states, record, before.usage.length);
@@ -97,7 +94,9 @@ async function resumeOnce<TName extends string>(
       recorded: Math.max(before.usage.length, state.usage.length),
       callbacks: streaming.callbacks,
     };
-    return await finishRun(context, state, paused.ternId);
+    const output = await finishRun(context, state, paused.ternId);
+    settleQuorum(deps, paused.runId, quorumManager, output.status === "paused");
+    return withMetadata(output, metadata);
   } catch (error) {
     const cause = outcomeError(error, options.signal);
     await deps.terns.complete(paused.ternId, failedOutcome(cause, [...before.usage, ...spent]));

@@ -116,6 +116,6 @@ describe("Global Cancellation", () => {
 
     const cancelLog = logs.find((l) => l.startsWith("cancel_payment:"));
     expect(cancelLog).toBeDefined();
-    expect(cancelLog).toMatch(/cancel_payment:run_.*_node_process-payment-global/);
+    expect(cancelLog).toMatch(/^cancel_payment:run-\d+:process-payment-global$/);
   });
 });
