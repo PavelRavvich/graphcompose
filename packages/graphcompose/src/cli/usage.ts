@@ -1,130 +1,6 @@
-/** One description of every command: `gc help` and `gc help <command>` are built from it. */
-interface CommandHelp {
-  readonly summary: string;
-  readonly usage: string;
-  readonly options: readonly (readonly [string, string])[];
-}
+import { COMMANDS, COMMON_OPTIONS, type CommandSpec, type OptionSpec } from "./commands.js";
 
-const WORKFLOW: readonly [string, string] = [
-  "--workflow <path>",
-  "a module exporting one @Workflow class (default ./src/workflow.ts)",
-];
-const PROFILE: readonly [string, string] = [
-  "--profile <name>",
-  "apply profiles/<workflow>/<name>.yaml",
-];
-const THREAD: readonly [string, string] = ["--thread <id>", "continue a conversation"];
-
-export const COMMANDS: Readonly<Record<string, CommandHelp>> = {
-  chat: {
-    summary: "interactive chat with the workflow",
-    usage: "gc chat --workflow <path> [--thread <id>] [--profile <name>]",
-    options: [WORKFLOW, THREAD, PROFILE],
-  },
-  run: {
-    summary: "one task, the replyWith to stdout",
-    usage: 'gc run --workflow <path> [--thread <id>] [--profile <name>] "<task>"',
-    options: [WORKFLOW, THREAD, PROFILE],
-  },
-  describe: {
-    summary: "agents, their tools, knowledge bases and settings (no API key needed)",
-    usage: "gc describe --workflow <path> [--profile <name>]",
-    options: [WORKFLOW, PROFILE],
-  },
-  check: {
-    summary: "prompts and model settings, all problems at once (no API key needed)",
-    usage: "gc check [--prompts] [--models] --workflow <path> [--profile <name>]",
-    options: [
-      ["--prompts", "check prompts: files exist, every {{variable}} is known — file:line"],
-      ["--models", "check models: providers, reasoning, caching, prices — all problems at once"],
-      WORKFLOW,
-      PROFILE,
-    ],
-  },
-  eval: {
-    summary: "score recent runs with Jev",
-    usage: "gc eval --workflow <path> [--version <v>] [--limit N] [--profile <name>]",
-    options: [
-      WORKFLOW,
-      ["--version <v>", "only runs of this prompt version"],
-      ["--limit N", "how many runs (default 100)"],
-      PROFILE,
-    ],
-  },
-  replay: {
-    summary: "re-run a prompt version on recent tasks",
-    usage: "gc replay --workflow <path> --version <v> [--limit N] [--profile <name>]",
-    options: [
-      WORKFLOW,
-      ["--version <v>", "the prompt version to replay (required)"],
-      ["--limit N", "how many tasks (default 100)"],
-      PROFILE,
-    ],
-  },
-  golden: {
-    summary: "save recent real tasks as a golden set",
-    usage: "gc golden add --workflow <path> --name <name> [--from-last N]",
-    options: [
-      WORKFLOW,
-      ["--name <name>", "the set: golden/<workflow>/<name>.yaml (required)"],
-      ["--from-last N", "how many recent tasks (default 20)"],
-    ],
-  },
-  compare: {
-    summary: "profiles side by side on the same tasks",
-    usage: "gc compare --workflow <path> --profiles base,<p>… [--golden <name> | --last N]",
-    options: [
-      WORKFLOW,
-      ["--profiles <list>", "comma-separated; the first is the baseline (base = no profile)"],
-      ["--golden <name>", "the tasks of a golden set"],
-      ["--last N", "or the last N real tasks (default 20)"],
-    ],
-  },
-  "rag:index": {
-    summary: "build / update the workflow's knowledge bases",
-    usage: "gc rag:index --workflow <path> [--kb <name>]",
-    options: [WORKFLOW, ["--kb <name>", "only this knowledge base"]],
-  },
-  create: {
-    summary: "a new project from a short questionnaire (alias c)",
-    usage:
-      'gc create <name> [--agents "a:role,…"] [--tools "a:tool,…"] [--mcp …] [--rag …] [--yes] [--skip-install]',
-    options: [
-      ["--agents <list>", 'agents and roles: "triage:Sorts requests,answerer:Answers"'],
-      ["--tools <list>", 'tools per agent: "answerer:search_orders,answerer:refund"'],
-      ["--mcp <spec>", "none | filesystem:<dir> | command:<cmd>:<tool>"],
-      ["--rag <folder>", "none | a folder of notes to search"],
-      ["--yes, -y", "no questions: defaults for anything not given"],
-      ["--skip-install", "do not run npm install"],
-    ],
-  },
-  generate: {
-    summary:
-      "add a workflow, agent, router, tool, MCP server, knowledge base or OpenAPI tools, wired (alias g)",
-    usage:
-      "gc generate <workflow|agent|router|tool|mcp|rag|openapi> <name> [--workflow <path>] [options]",
-    options: [
-      ["--workflow <path>", "the workflow to add to (src/<name>/<name>.workflow.ts)"],
-      ["--agent <name>", "the agent that uses the tool / MCP tool / knowledge base"],
-      ["--description <text>", "an agent's role, or what a router decides"],
-      ["--dir <folder>", "mcp: a filesystem server over this folder"],
-      ["--command <cmd>", "mcp: a server started with this command (with --tool <name>)"],
-      ["--folder <dir>", "rag: the folder of notes"],
-      [
-        "--url <file|url>",
-        "openapi: the OpenAPI 3 document — one tool per operation (with --agent)",
-      ],
-      ["--operations <ids>", "openapi: only these operations (operationIds, comma-separated)"],
-      ["--dry-run", "print what would be written, write nothing"],
-      ["--json", "machine-readable output"],
-    ],
-  },
-  help: {
-    summary: "this list, or one command's options",
-    usage: "gc help [<command>]",
-    options: [],
-  },
-};
+export { COMMANDS } from "./commands.js";
 
 const pad = (text: string, width: number): string => text.padEnd(width);
 
@@ -139,8 +15,11 @@ Usage: graphcompose <command> [options]      (short: gc)
 
 ${lines.join("\n")}
 
-Every command takes --workflow <path>: a module exporting one @Workflow class.
-gc help <command> — its options.
+Every workflow command takes --workflow <path>: a module exporting one @Workflow class.
+Every command takes --json (one JSON envelope on stdout), --debug (stack traces) and --help.
+gc help <command> — its options; gc help <command> --json — the same, for a machine.
+
+Exit codes: 0 ok · 1 internal error · 2 usage · 3 invalid project · 4 conflict (already exists).
 
 Environment:
   GRAPHCOMPOSE_NO_STAR=1   hide the closing "Star us on GitHub" line on stderr; it is also
@@ -148,16 +27,60 @@ Environment:
 `;
 }
 
+/** `--workflow <path>`, `--yes, -y`. */
+const flagLabel = (option: OptionSpec): string =>
+  `--${option.name}${option.value === undefined ? "" : ` ${option.value}`}${option.short === undefined ? "" : `, -${option.short}`}`;
+
+const optionText = (option: OptionSpec): string =>
+  `${option.help}${option.required === true ? " (required)" : ""}${option.default === undefined ? "" : ` (default ${option.default})`}`;
+
+function optionLines(options: readonly OptionSpec[], width: number): string {
+  return options
+    .map((option) => `  ${pad(flagLabel(option), width)}  ${optionText(option)}`)
+    .join("\n");
+}
+
 /** `gc help <command>`; undefined for an unknown command. */
 export function helpFor(name: string): string | undefined {
   const command = COMMANDS[name];
   if (command === undefined) return undefined;
-  const width = Math.max(0, ...command.options.map(([flag]) => flag.length));
-  const options = command.options
-    .map(([flag, text]) => `  ${pad(flag, width)}  ${text}`)
-    .join("\n");
-  return `gc ${name} — ${command.summary}\n\nUsage: ${command.usage}\n${options === "" ? "" : `\nOptions:\n${options}\n`}`;
+  const width = Math.max(
+    0,
+    ...[...command.options, ...COMMON_OPTIONS].map((o) => flagLabel(o).length),
+  );
+  const own = optionLines(command.options, width);
+  return `gc ${name} — ${command.summary}
+
+Usage: ${command.usage}
+${own === "" ? "" : `\nOptions:\n${own}\n`}
+Common options:
+${optionLines(COMMON_OPTIONS, width)}
+`;
 }
 
-/** Kept for `--help` and older imports. */
-export const USAGE = usage();
+/** One option as a machine reads it. */
+const optionDescription = (option: OptionSpec) => ({
+  flag: `--${option.name}`,
+  type: option.type,
+  ...(option.short === undefined ? {} : { short: `-${option.short}` }),
+  ...(option.value === undefined ? {} : { value: option.value }),
+  required: option.required === true,
+  ...(option.default === undefined ? {} : { default: option.default }),
+  description: option.help,
+});
+
+/** A command as a machine reads it: `gc help <command> --json`, `gc <command> --help --json`. */
+export function describeCommand(name: string, command: CommandSpec): Record<string, unknown> {
+  return {
+    name,
+    summary: command.summary,
+    usage: command.usage,
+    positionals: command.positionals ?? null,
+    options: command.options.map(optionDescription),
+    commonOptions: COMMON_OPTIONS.map(optionDescription),
+  };
+}
+
+/** Every command, for `gc help --json`. */
+export const describeCommands = (): Record<string, unknown>[] =>
+  Object.entries(COMMANDS).map(([name, command]) => describeCommand(name, command));

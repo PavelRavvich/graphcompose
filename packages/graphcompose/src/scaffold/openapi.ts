@@ -1,4 +1,4 @@
-import { ScaffoldError } from "./errors.js";
+import { ScaffoldError, ScaffoldUsageError } from "./errors.js";
 import { namesOf } from "./names.js";
 import { dtoSource } from "./openapi-dto.js";
 import { baseUrlOf, loadDocument, operationsOf, type OperationModel } from "./openapi-spec.js";
@@ -37,7 +37,7 @@ function selected(
       const found = all.find((op) => op.names.snake === namesOf(name).snake);
       if (found === undefined) {
         const known = all.map((op) => op.names.snake).join(", ");
-        throw new ScaffoldError(`No operation "${name}" in the document — one of: ${known}`);
+        throw new ScaffoldUsageError(`No operation "${name}" in the document — one of: ${known}`);
       }
       return found;
     });

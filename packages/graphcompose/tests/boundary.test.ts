@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { USAGE } from "../src/cli/usage.js";
+import { usage } from "../src/cli/usage.js";
 import * as publicApi from "../src/index.js";
 
 const root = new URL("../../..", import.meta.url).pathname;
@@ -32,8 +32,8 @@ describe("framework and examples apart (#91)", () => {
     expect(Object.keys(publicApi)).toEqual(
       expect.arrayContaining(["createAppDeps", "loadWorkflow"]),
     );
-    expect(USAGE).not.toMatch(/bundle/i);
-    expect(USAGE).toContain("--workflow");
+    expect(usage()).not.toMatch(/bundle/i);
+    expect(usage()).toContain("--workflow");
   });
   it("AC1 (#101): the package is graphcompose; the command is graphcompose, short gc", () => {
     const pkg = JSON.parse(
@@ -45,7 +45,7 @@ describe("framework and examples apart (#91)", () => {
 
     expect(pkg.name).toBe("graphcompose");
     expect(pkg.bin).toEqual({ graphcompose: "./bin/graphcompose.js", gc: "./bin/graphcompose.js" });
-    expect(USAGE).toContain("GraphCompose");
+    expect(usage()).toContain("GraphCompose");
   });
 
   it("AC4 (#101): no graphInject / graphinject left in the repository's code, commands or docs", () => {

@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { ScaffoldError } from "./errors.js";
+import { ScaffoldConflictError, ScaffoldError } from "./errors.js";
 
 export interface FileToWrite {
   /** relative to the project root */
@@ -21,7 +21,7 @@ export async function applyChanges(root: string, changes: Changes): Promise<stri
     .filter((file) => existsSync(join(root, file.path)))
     .map((file) => file.path);
   if (clashes.length > 0) {
-    throw new ScaffoldError(`Already exists, nothing was written: ${clashes.join(", ")}`);
+    throw new ScaffoldConflictError(`Already exists, nothing was written: ${clashes.join(", ")}`);
   }
   const missing = changes.modify
     .filter((file) => !existsSync(join(root, file.path)))

@@ -1,35 +1,25 @@
-import { PromptError, promptProblemLine } from "../components/prompt-problems.js";
-import type { AssembledWorkflow } from "../workflow.js";
+import { PromptError, type PromptProblem } from "../components/prompt-problems.js";
+import type { CheckProblem } from "./check-problems.js";
 
-/** What `gc check --prompts` prints, its exit code and — when it assembled — the workflow. */
-export interface PromptCheckReport {
-  readonly lines: readonly string[];
-  readonly exitCode: 0 | 1;
-  readonly bundle?: AssembledWorkflow;
+/** `prompts/x.md:3 {{typo}} — known: …` → that file and line; anything else stays with the workflow. */
+const LOCATED = /^([^\s:]+):(\d+) ([\s\S]*)$/;
+
+function promptProblem(workflow: string, problem: PromptProblem): CheckProblem {
+  const located = LOCATED.exec(problem.message);
+  if (located?.[1] === undefined || located[2] === undefined || located[3] === undefined)
+    return { file: workflow, code: problem.code, message: problem.message };
+  return { file: located[1], line: Number(located[2]), code: problem.code, message: located[3] };
 }
 
 /**
- * `gc check --prompts`: assembles the workflow, which reads every prompt (agents, routers, routes)
- * and checks its `{{variables}}` and files — all problems at once, exit code 1 when there is any.
- * Needs no API key.
+ * The `prompts` check of `gc check` (#199): assembly reads every prompt (agents, routers, routes) and
+ * checks its `{{variables}}` and files, throwing one `PromptError` with all problems — here each
+ * becomes its own `file[:line] code message` problem. Undefined: not a prompt error.
  */
-export async function checkWorkflowPrompts(
-  assemble: () => Promise<AssembledWorkflow>,
-): Promise<PromptCheckReport> {
-  try {
-    const bundle = await assemble();
-    const count =
-      Object.keys(bundle.prompts).length +
-      bundle.routers.reduce((sum, router) => sum + 1 + router.routes.length, 0);
-    return { lines: [`ok: ${String(count)} prompts render`], exitCode: 0, bundle };
-  } catch (error) {
-    if (!(error instanceof PromptError)) throw error;
-    return {
-      lines: [
-        `PromptError: ${String(error.problems.length)} prompt problem(s)`,
-        ...error.problems.map(promptProblemLine),
-      ],
-      exitCode: 1,
-    };
-  }
+export function promptProblemsOf(
+  workflow: string,
+  error: unknown,
+): readonly CheckProblem[] | undefined {
+  if (!(error instanceof PromptError)) return undefined;
+  return error.problems.map((problem) => promptProblem(workflow, problem));
 }

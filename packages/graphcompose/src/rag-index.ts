@@ -1,32 +1,35 @@
-import { parseArgs } from "node:util";
+import { loadOptions, textOption, workflowPath, type CommandHandler } from "./cli/context.js";
 import { loadWorkflow } from "./cli/load-workflow.js";
 
-// graphcompose rag:index --workflow <path> [--kb <name>] — builds or updates the workflow's knowledge-base indexes.
-const { values } = parseArgs({
-  options: { workflow: { type: "string", default: "./src/workflow.ts" }, kb: { type: "string" } },
-});
-const bundle = await loadWorkflow(values.workflow);
-const services = {
-  router: (name: string) => ({
-    name,
-    route: () => Promise.reject(new Error("rag:index does not route")),
-  }),
-  env: process.env,
-};
-const bases = (bundle.knowledgeBases?.(services) ?? []).filter(
-  (kb) => values.kb === undefined || kb.name === values.kb,
-);
-if (bases.length === 0)
-  process.stdout.write(
-    `No knowledge bases in "${bundle.config.name}"${values.kb === undefined ? "" : ` named ${values.kb}`}.\n`,
+/** `gc rag:index --workflow <path> [--kb <name>]` — builds or updates the knowledge-base indexes. */
+export const handle: CommandHandler = async (context) => {
+  const kb = textOption(context.values, "kb");
+  const bundle = await loadWorkflow(workflowPath(context), loadOptions(context));
+  const services = {
+    router: (name: string) => ({
+      name,
+      route: () => Promise.reject(new Error("rag:index does not route")),
+    }),
+    env: context.io.env,
+  };
+  const bases = (bundle.knowledgeBases?.(services) ?? []).filter(
+    (base) => kb === undefined || base.name === kb,
   );
-for (const { name, connector } of bases) {
-  if (connector.index === undefined) {
-    process.stdout.write(`${name}: no index to build (the connector has none)\n`);
-    continue;
+  if (bases.length === 0)
+    context.say(
+      `No knowledge bases in "${bundle.config.name}"${kb === undefined ? "" : ` named ${kb}`}.`,
+    );
+  const indexed = [];
+  for (const { name, connector } of bases) {
+    if (connector.index === undefined) {
+      context.say(`${name}: no index to build (the connector has none)`);
+      continue;
+    }
+    const report = await connector.index();
+    indexed.push({ name, ...report });
+    context.say(
+      `${name}: ${String(report.documents)} documents, ${String(report.chunks)} chunks, ${String(report.skipped)} unchanged · $${(report.costUsd ?? 0).toFixed(6)}`,
+    );
   }
-  const report = await connector.index();
-  process.stdout.write(
-    `${name}: ${String(report.documents)} documents, ${String(report.chunks)} chunks, ${String(report.skipped)} unchanged · $${(report.costUsd ?? 0).toFixed(6)}\n`,
-  );
-}
+  return { result: { indexed } };
+};

@@ -121,11 +121,11 @@ describe("the star line (#129)", () => {
     expect(stderr.lines).toEqual(['Unknown command "nope".\n', `${STAR_LINE}\n`]);
   });
 
-  it("AC3: gc with an unknown command still exits with 1", () => {
+  it("AC3: gc with an unknown command exits with the usage code 2 (#198)", () => {
     const result = gc(["nope"]);
 
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('Unknown command "nope".');
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('gc nope: unknown command "nope" — see gc help');
   });
 
   it("spec: gc help documents GRAPHCOMPOSE_NO_STAR and when the line is hidden", () => {

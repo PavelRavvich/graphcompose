@@ -4,9 +4,9 @@ import { pathToFileURL } from "node:url";
 import { componentOf, workflowOf, type Class } from "../components/index.js";
 import type { AssembledWorkflow } from "../workflow.js";
 
-export class WorkflowLoadError extends Error {
-  override name = "WorkflowLoadError";
-}
+import { WorkflowLoadError } from "./load-errors.js";
+
+export { WorkflowLoadError } from "./load-errors.js";
 
 let tsxRegistered = false;
 
@@ -41,8 +41,10 @@ export async function loadWorkflowClass(
 }
 
 /** Loads and assembles the workflow of a module file. */
-export const loadWorkflow = async (path: string): Promise<AssembledWorkflow> =>
-  workflowOf(await loadWorkflowClass(path));
+export const loadWorkflow = async (
+  path: string,
+  options: { readonly typescript?: boolean } = {},
+): Promise<AssembledWorkflow> => workflowOf(await loadWorkflowClass(path, options));
 
 import { dirname, join } from "node:path";
 

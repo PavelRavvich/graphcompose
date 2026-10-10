@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { ScaffoldError } from "./errors.js";
+import { ScaffoldConflictError, ScaffoldUsageError } from "./errors.js";
 import { namesOf } from "./names.js";
 import { mcpFiles, ragFiles } from "./parts.js";
 import { planWorkflow, toolFiles } from "./plan.js";
@@ -36,7 +36,7 @@ function withScripts(
   };
   const clash = Object.keys(scripts).filter((k) => pkg.scripts?.[k] !== undefined);
   if (clash.length > 0)
-    throw new ScaffoldError(`package.json already has scripts: ${clash.join(", ")}`);
+    throw new ScaffoldConflictError(`package.json already has scripts: ${clash.join(", ")}`);
   const deps =
     dependency === undefined
       ? pkg.dependencies
@@ -148,6 +148,6 @@ export async function planGenerate(
   root: string,
 ): Promise<Changes> {
   if (!(KINDS as readonly string[]).includes(kind))
-    throw new ScaffoldError(`Unknown kind "${kind}" — one of: ${KINDS.join(", ")}`);
+    throw new ScaffoldUsageError(`Unknown kind "${kind}" — one of: ${KINDS.join(", ")}`);
   return PLANS[kind as Kind](root, name, options);
 }

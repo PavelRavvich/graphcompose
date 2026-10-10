@@ -1,104 +1,148 @@
 import "dotenv/config";
-import { stdin, stdout } from "node:process";
+import { stdin } from "node:process";
 import { createInterface } from "node:readline";
-import { parseArgs, styleText } from "node:util";
+import { styleText } from "node:util";
 import { createApp } from "./app/create-app.js";
-import { loadWorkflowClass, loadEnvironment } from "./cli/load-workflow.js";
-import { memoryLine, summaryLine, threadLine, untilDone } from "./cli/approve.js";
-import { costSummary, costTotal, costTrace } from "./cli/finops.js";
+import type { App, ExecutionOutput } from "./app/types.js";
+import { memoryLine, summaryLine, threadLine, untilDone, type Ask } from "./cli/approve.js";
 import { askWith } from "./cli/ask.js";
+import {
+  loadOptions,
+  textOption,
+  workflowPath,
+  type CommandContext,
+  type CommandHandler,
+} from "./cli/context.js";
+import { costSummary, costTotal, costTrace } from "./cli/finops.js";
 import { onInterruptKey } from "./cli/keys.js";
+import { loadEnvironment, loadWorkflowClass } from "./cli/load-workflow.js";
 import { askMessage } from "./cli/multiline.js";
-import { withSpinner } from "./cli/spinner.js";
+import { withSpinner, type SpinnerOutput } from "./cli/spinner.js";
 import { textStartOrFail } from "./cli/text-start.js";
 
-// graphcompose chat --workflow <path> [--thread <id>] [--profile <p>]
-const { values } = parseArgs({
-  options: {
-    workflow: { type: "string", default: "./src/workflow.ts" },
-    profile: { type: "string" },
-    thread: { type: "string" },
-    env: { type: "string" },
-  },
-});
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const env = await loadEnvironment(values.workflow, values.env);
-const app = await createApp(await loadWorkflowClass(values.workflow), {
-  profile: values.profile,
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  env,
-});
-const start = textStartOrFail(app);
-app.models.forEach((line) => {
-  stdout.write(`${styleText("dim", `model ${line}`)}\n`);
-});
-app.warnings.forEach((warning) => {
-  stdout.write(`warning: ${warning}\n`);
-});
-const rl = createInterface({ input: stdin, terminal: false });
-const ask = askWith(rl, (text) => stdout.write(text));
-const say = (text: string): void => {
-  stdout.write(`${text}\n`);
-};
-let threadId = values.thread;
-const turn = { interrupted: false };
-/** A turn: loader, and Esc / Ctrl+C abort it through its signal. */
-const busy = async <T>(work: (signal: AbortSignal | undefined) => Promise<T>): Promise<T> => {
-  const controller = new AbortController();
-  const stopKeys = onInterruptKey(stdin, () => {
-    turn.interrupted = true;
-    controller.abort();
-  });
-  try {
-    return await withSpinner(stdout, "thinking · esc to interrupt", () => work(controller.signal));
-  } finally {
-    stopKeys();
-  }
-};
+/** One chat session: the app, how it asks, and the conversation it continues. */
+interface Session {
+  readonly app: App;
+  readonly start: ReturnType<typeof textStartOrFail>;
+  readonly ask: Ask;
+  readonly say: (text: string) => void;
+  readonly out: SpinnerOutput;
+  thread: string | undefined;
+  interrupted: boolean;
+}
 
-say(
-  styleText(
-    "dim",
-    `Chat with "${app.name}"${values.profile === undefined ? "" : ` (profile ${values.profile})`} ${app.version}. /new — new conversation, /exit — quit, \\ + Enter — new line, Esc — interrupt.`,
-  ),
-);
-try {
+/** A turn: loader, and Esc / Ctrl+C abort it through its signal. */
+function busyOf(session: Session) {
+  return async <T>(work: (signal: AbortSignal | undefined) => Promise<T>): Promise<T> => {
+    const controller = new AbortController();
+    const stopKeys = onInterruptKey(stdin, () => {
+      session.interrupted = true;
+      controller.abort();
+    });
+    try {
+      return await withSpinner(session.out, "thinking · esc to interrupt", () =>
+        work(controller.signal),
+      );
+    } finally {
+      stopKeys();
+    }
+  };
+}
+
+function showResult(session: Session, result: ExecutionOutput): void {
+  const { say } = session;
+  say(`${styleText("cyan", "agent ›")} ${result.replyWith}`);
+  say(styleText("dim", `  ${threadLine(result)}`));
+  say(styleText("dim", `  ${summaryLine(result)}`));
+  const memory = memoryLine(result);
+  if (memory !== undefined) say(styleText("dim", `  ${memory}`));
+  say(styleText("dim", `  ${costSummary(result.spend)}`));
+  costTrace(result.spend).forEach((line) => {
+    say(styleText("dim", `    ${line}`));
+  });
+  say(styleText("bold", `  ${costTotal(result.spend)}`));
+}
+
+async function turn(session: Session, line: string): Promise<void> {
+  const busy = busyOf(session);
+  try {
+    const thread = session.thread === undefined ? {} : { thread: session.thread };
+    session.interrupted = false;
+    const first = await busy((signal) =>
+      session.app.execute(session.start, { text: line }, { ...thread, signal }),
+    );
+    const result = await untilDone(first, session.app, session.ask, busy);
+    session.thread = result.thread;
+    showResult(session, result);
+  } catch (error) {
+    if (session.interrupted) session.say(styleText("yellow", "interrupted"));
+    else
+      session.say(
+        styleText("red", `error › ${error instanceof Error ? error.message : String(error)}`),
+      );
+  }
+}
+
+async function converse(session: Session): Promise<void> {
   for (;;) {
     const line = (
-      await askMessage(ask, styleText("bold", "you › "), styleText("dim", "  … "))
+      await askMessage(session.ask, styleText("bold", "you › "), styleText("dim", "  … "))
     )?.trim();
-    if (line === undefined || line === "/exit") break;
+    if (line === undefined || line === "/exit") return;
     if (line === "") continue;
     if (line === "/new") {
-      threadId = undefined;
-      say(styleText("dim", "— new conversation —"));
+      session.thread = undefined;
+      session.say(styleText("dim", "— new conversation —"));
       continue;
     }
-    try {
-      const thread = threadId === undefined ? {} : { thread: threadId };
-      turn.interrupted = false;
-      const first = await busy((signal) =>
-        app.execute(start, { text: line }, { ...thread, signal }),
-      );
-      const result = await untilDone(first, app, ask, busy);
-      threadId = result.thread;
-      say(`${styleText("cyan", "agent ›")} ${result.replyWith}`);
-      say(styleText("dim", `  ${threadLine(result)}`));
-      say(styleText("dim", `  ${summaryLine(result)}`));
-      const memory = memoryLine(result);
-      if (memory !== undefined) say(styleText("dim", `  ${memory}`));
-      say(styleText("dim", `  ${costSummary(result.spend)}`));
-      costTrace(result.spend).forEach((line) => {
-        say(styleText("dim", `    ${line}`));
-      });
-      say(styleText("bold", `  ${costTotal(result.spend)}`));
-    } catch (error) {
-      if (turn.interrupted) say(styleText("yellow", "interrupted"));
-      else
-        say(styleText("red", `error › ${error instanceof Error ? error.message : String(error)}`));
-    }
+    await turn(session, line);
   }
-} finally {
-  rl.close();
-  await app.close();
 }
+
+async function appOf(context: CommandContext, file: string): Promise<App> {
+  const env: unknown = await loadEnvironment(file, textOption(context.values, "env"));
+  return createApp(await loadWorkflowClass(file, loadOptions(context)), {
+    profile: textOption(context.values, "profile"),
+    profileRoot: context.io.cwd,
+    env: env as NodeJS.ProcessEnv,
+  });
+}
+
+/** `gc chat --workflow <path> [--thread <id>] [--profile <p>] [--env <id>]`. */
+export const handle: CommandHandler = async (context) => {
+  const app = await appOf(context, workflowPath(context));
+  const out = context.json ? process.stderr : process.stdout;
+  const rl = createInterface({ input: stdin, terminal: false });
+  const say = (text: string): void => {
+    out.write(`${text}\n`);
+  };
+  const session: Session = {
+    app,
+    start: textStartOrFail(app),
+    ask: askWith(rl, (text) => out.write(text)),
+    say,
+    out,
+    thread: textOption(context.values, "thread"),
+    interrupted: false,
+  };
+  app.models.forEach((line) => {
+    say(styleText("dim", `model ${line}`));
+  });
+  app.warnings.forEach((warning) => {
+    say(`warning: ${warning}`);
+  });
+  const profile = textOption(context.values, "profile");
+  say(
+    styleText(
+      "dim",
+      `Chat with "${app.name}"${profile === undefined ? "" : ` (profile ${profile})`} ${app.version}. /new — new conversation, /exit — quit, \\ + Enter — new line, Esc — interrupt.`,
+    ),
+  );
+  try {
+    await converse(session);
+  } finally {
+    rl.close();
+    await app.close();
+  }
+  return { result: { thread: session.thread ?? null }, warnings: app.warnings };
+};
