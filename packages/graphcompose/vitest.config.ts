@@ -3,6 +3,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
+    // a test that asserts nothing proves nothing (#180)
+    expect: { requireAssertions: true },
     exclude: ["tests/smoke/**", "node_modules/**"],
     // the workflow matchers (graphcompose/testing/setup in a project)
     setupFiles: ["./src/testing/setup.ts"],

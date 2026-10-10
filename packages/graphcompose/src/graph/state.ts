@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { Annotation } from "@langchain/langgraph";
 import type { UsageRecord } from "../finops/usage.js";
 import type { ApprovalRecord } from "../pause/index.js";
@@ -8,10 +6,10 @@ import type { Contribution, HistoryTurn } from "./contributions.js";
 
 const append = <TItem>(left: TItem[], right: TItem[]): TItem[] => left.concat(right);
 
-const mergeRecords = (
-  left: Record<string, any>,
-  right: Record<string, any>,
-): Record<string, any> => ({
+const mergeRecords = <TRecord extends Record<string, unknown>>(
+  left: TRecord,
+  right: TRecord,
+): TRecord => ({
   ...left,
   ...right,
 });
@@ -58,7 +56,10 @@ export const AgentState = Annotation.Root({
   payload: Annotation<Record<string, unknown>>({ reducer: mergeRecords, default: () => ({}) }),
   /** System cursor for batchParallel loop elements. */
   batchItem: Annotation<unknown>({ reducer: (p, n) => n }),
-  _batchCursor: Annotation<Record<string, { queue: unknown[]; offset: number }>>({
+  /** Per batch target: the items still queued and the batches of the current round. */
+  _batchCursor: Annotation<
+    Record<string, { queue: unknown[]; activeBatch?: unknown[][]; offset?: number }>
+  >({
     reducer: mergeRecords,
     default: () => ({}),
   }),

@@ -1,12 +1,11 @@
-/* eslint-disable */
-import type { ChannelRequest } from "../components/decorators.js";
 import { MemorySaver, type BaseCheckpointSaver } from "@langchain/langgraph";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { resolveTools, type AssembledWorkflow } from "../workflow.js";
 import { validateAgentsConfig, type AgentsConfigOf } from "../config/types.js";
 import type { ContainerOptions } from "../components/container.js";
-import { initAll, assembleAll, startAll, stopAll } from "../components/lifecycle.js";
+import type { ObserverManager } from "../core/observer-manager.js";
+import { initAll, assembleAll, startAll } from "../components/lifecycle.js";
 import { createFileLedger, type Clock, type SpendLedger } from "../finops/ledger.js";
 import type { EvalDeps } from "../eval/eval.js";
 import type { RunDeps } from "../run/types.js";
@@ -39,6 +38,7 @@ import {
   toolLookup,
   actionLookup,
 } from "./parts.js";
+import { approvalRequester, closeOf, containerDepsOf, policyDepsOf } from "./app-deps-parts.js";
 
 /** Daily spend ledgers live outside the repo. */
 export const DEFAULT_LEDGER_DIR = join(homedir(), ".langgraph-agents", "spend");
@@ -47,8 +47,6 @@ export const DEFAULT_LEDGER_DIR = join(homedir(), ".langgraph-agents", "spend");
 export const DEFAULT_TERN_DB = join(homedir(), ".langgraph-agents", "terns.sqlite");
 
 /** Run dependencies, eval dependencies, and resources to release after the run. */
-import { ObserverManager } from "../core/observer-manager.js";
-
 export interface AppDeps extends RunDeps<string> {
   readonly observer: ObserverManager;
   readonly evaluation: EvalDeps;
@@ -77,8 +75,7 @@ export type McpConnect = (
 /** Everything an app may be given instead of its production default. */
 export interface AppDepsOptions {
   /** Default: process.env. */
-
-  readonly env?: any;
+  readonly env?: NodeJS.ProcessEnv;
   /**
    * Every model call goes through it. Default: the workflow's model providers, credentials from
    * `env`, each model's settings checked against what its provider says it supports.
@@ -159,30 +156,21 @@ function lifecycleOf(container: ContainerOptions | undefined) {
  * spend ledger, Tern store; every part can be given instead (`options`, e.g. by `graphcompose/testing`).
  * Fails fast when an MCP server is unavailable or drifted. Components' `onStart` runs at the end.
  */
-
 export async function createAppDeps(
   bundle: AssembledWorkflow,
   options: AppDepsOptions = {},
 ): Promise<AppDeps> {
   const env = options.env ?? process.env;
-
   const models = await modelsFor(bundle, options.gateway, providerClientsOf(options, env));
   const gateway = models.gateway;
   const lifecycle = lifecycleOf(options.container);
-
   const services = servicesFor(bundle, gateway, env, lifecycle.options);
   const tools: readonly AnyTool[] = resolveTools(bundle, services);
   const toolNames = tools.map((tool) => tool.name);
   const config = models.priced(validateAgentsConfig(bundle.config, toolNames));
-  const mcp = await (options.connectMcp ?? connectConfigured(options.transport))(
-    bundle,
-    config,
-
-    env,
-  );
-
+  const connect = options.connectMcp ?? connectConfigured(options.transport);
+  const mcp = await connect(bundle, config, env);
   const { terns, ownsTerns, ledger, checkpointer } = storesOf(options, env);
-
   const tracing = langfuseTracing(env);
   const deps = {
     config,
@@ -193,60 +181,17 @@ export async function createAppDeps(
     tools: toolLookup(tools),
     actions: actionLookup(bundle, services),
     pause: pauseFor(bundle, checkpointer),
-    requestApproval: async (channelName: string, req: ChannelRequest) => {
-      const channels = bundle.channels?.(services);
-
-      const channel = channels?.get(channelName);
-      if (!channel) throw new Error(`Unknown channel: ${channelName}`);
-
-      await channel.requestApproval(req);
-    },
+    requestApproval: approvalRequester(bundle, services),
     compactionPrompt: bundle.compactionPrompt,
-    piiPolicies: (agent: string) =>
-      bundle.piiPolicies?.(services)?.get(agent) ?? { override: false, instances: [], disable: [] },
-    toolPiiPolicies: (tool: string) =>
-      bundle.toolPiiPolicies?.(services)?.get(tool) ?? {
-        override: false,
-        instances: [],
-        disable: [],
-      },
-    toolGuardrails: (tool: string) =>
-      bundle.toolGuardrails?.(services)?.get(tool) ?? {
-        override: false,
-        instances: [],
-        disable: [],
-      },
-    workflowPiiPolicies: bundle.workflowPiiPolicies?.(services) ?? [],
-    workflowGuardrails: bundle.workflowGuardrails?.(services) ?? [],
-    guardrails: (agent: string) =>
-      bundle.guardrails?.(services)?.get(agent) ?? { override: false, instances: [], disable: [] },
-
-    channelAdapters: (channel: string) => bundle.channelAdapters?.(services)?.get(channel),
+    ...policyDepsOf(bundle, services),
     ...knowledgeFor(bundle, services),
     ledger,
     terns,
     evaluation: evaluationFor(bundle, { terns, ledger }, gateway),
     tracing,
-    container: {
-      get: <T>(token: any) => lifecycle.created.find((c: any) => c.constructor === token) as T,
-    },
-    quorumRouters: (nameOrClass: any) => bundle.quorumRouters?.(services).get(nameOrClass)!,
-    batchStrategies: (nameOrClass: any) => bundle.batchStrategies?.(services).get(nameOrClass)!,
-    observer: (() => {
-      // Eagerly instantiate all observers so they end up in lifecycle.created
-      bundle.observers?.(services);
-      return new ObserverManager(lifecycle.created);
-    })(),
+    ...containerDepsOf(bundle, services, lifecycle.created),
     ...(options.newRunId === undefined ? {} : { newRunId: options.newRunId }),
-    close: async () => {
-      try {
-        await stopAll(lifecycle.created);
-      } finally {
-        await mcp.close();
-        await tracing?.shutdown();
-        if (ownsTerns) terns.close();
-      }
-    },
+    close: closeOf(lifecycle.created, mcp, tracing, ownsTerns ? terns : undefined),
   };
   await initAll(lifecycle.created);
   await assembleAll(lifecycle.created);

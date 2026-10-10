@@ -37,8 +37,7 @@ export interface SuiteReport {
 export class Suite<TInput = unknown, TExpected = unknown> {
   constructor(public readonly config: SuiteConfig<TInput, TExpected>) {}
 
-  /* eslint-disable max-lines-per-function */
-  // eslint-disable-next-line complexity
+  // eslint-disable-next-line max-lines-per-function, complexity -- reworked with the eval unification in #204
   async evaluate(
     target: (input: TInput) => Promise<unknown>,
     options: SuiteEvaluateOptions,

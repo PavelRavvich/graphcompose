@@ -1,0 +1,115 @@
+import type {
+  ChannelRequest,
+  Guardrail,
+  InboundChannelAdapter,
+  PiiPolicy,
+} from "../components/decorators.js";
+import type { BatchParallelStrategy } from "../concurrency/batch.decorator.js";
+import type { QuorumStrategy } from "../concurrency/quorum.decorator.js";
+import type { Class } from "../components/injection.js";
+import { stopAll } from "../components/lifecycle.js";
+import { ObserverManager } from "../core/observer-manager.js";
+import type { TernStore } from "../terns/index.js";
+import type { McpConnections } from "../tools/index.js";
+import type { RunTracing } from "../tracing/index.js";
+import type {
+  AssembledWorkflow,
+  ResolvedPolicies,
+  StrategiesByKey,
+  WorkflowServices,
+} from "../workflow.js";
+
+/** Dispatches an approval request to the workflow's channel of that name. */
+export const approvalRequester =
+  (bundle: AssembledWorkflow, services: WorkflowServices) =>
+  async (channelName: string, req: ChannelRequest): Promise<void> => {
+    const channels = bundle.channels?.(services);
+    const channel = channels?.get(channelName);
+    if (!channel) throw new Error(`Unknown channel: ${channelName}`);
+    await channel.requestApproval(req);
+  };
+
+/** No policies of its own: the workflow's apply. */
+const noPolicies = (): ResolvedPolicies<never> => ({ override: false, instances: [], disable: [] });
+
+/** Per agent and per tool: its PII policies and guardrails; the workflow's own; channel adapters. */
+export interface PolicyDeps {
+  readonly piiPolicies: (agent: string) => ResolvedPolicies<PiiPolicy>;
+  readonly toolPiiPolicies: (tool: string) => ResolvedPolicies<PiiPolicy>;
+  readonly toolGuardrails: (tool: string) => ResolvedPolicies<Guardrail>;
+  readonly workflowPiiPolicies: readonly PiiPolicy[];
+  readonly workflowGuardrails: readonly Guardrail[];
+  readonly guardrails: (agent: string) => ResolvedPolicies<Guardrail>;
+  readonly channelAdapters: (channel: string) => InboundChannelAdapter | undefined;
+}
+
+export const policyDepsOf = (
+  bundle: AssembledWorkflow,
+  services: WorkflowServices,
+): PolicyDeps => ({
+  piiPolicies: (agent: string) => bundle.piiPolicies?.(services).get(agent) ?? noPolicies(),
+  toolPiiPolicies: (tool: string) => bundle.toolPiiPolicies?.(services).get(tool) ?? noPolicies(),
+  toolGuardrails: (tool: string) => bundle.toolGuardrails?.(services).get(tool) ?? noPolicies(),
+  workflowPiiPolicies: bundle.workflowPiiPolicies?.(services) ?? [],
+  workflowGuardrails: bundle.workflowGuardrails?.(services) ?? [],
+  guardrails: (agent: string) => bundle.guardrails?.(services).get(agent) ?? noPolicies(),
+  channelAdapters: (channel: string) => bundle.channelAdapters?.(services).get(channel),
+});
+
+/** A strategy by its name or class, looked up in the workflow's container on every call. */
+const strategyLookup =
+  <T>(
+    strategiesOf: ((services: WorkflowServices) => StrategiesByKey<T>) | undefined,
+    services: WorkflowServices,
+  ) =>
+  (key: Class | string): T =>
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-non-null-asserted-optional-chain -- GraphDeps.quorumRouters/batchStrategies (src/graph/deps.ts) omit `undefined` from their return type, though callers check for a missing strategy; widen the type there, see #180
+    strategiesOf?.(services).get(key)!;
+
+const isInstanceOf = (instance: unknown, token: unknown): boolean =>
+  typeof instance === "object" && instance !== null && instance.constructor === token;
+
+/** The container's instances: lookup by class, strategies, and the observers (created eagerly). */
+export interface ContainerDeps {
+  readonly container: { readonly get: <T>(token: Class<T>) => T };
+  readonly quorumRouters: (key: Class | string) => QuorumStrategy;
+  readonly batchStrategies: (key: Class | string) => BatchParallelStrategy<unknown, unknown>;
+  readonly observer: ObserverManager;
+}
+
+export function containerDepsOf(
+  bundle: AssembledWorkflow,
+  services: WorkflowServices,
+  created: unknown[],
+): ContainerDeps {
+  return {
+    container: {
+      get: <T>(token: Class<T>): T => created.find((c) => isInstanceOf(c, token)) as T,
+    },
+    quorumRouters: strategyLookup(bundle.quorumRouters, services),
+    batchStrategies: strategyLookup(bundle.batchStrategies, services),
+    observer: (() => {
+      // Eagerly instantiate all observers so they end up in lifecycle.created
+      bundle.observers?.(services);
+      return new ObserverManager(created);
+    })(),
+  };
+}
+
+/** Runs `onStop` of the components, then closes MCP, tracing and the Tern store the app opened. */
+export const closeOf =
+  (
+    created: unknown[],
+    mcp: McpConnections,
+    tracing: RunTracing | undefined,
+    ownedTerns: TernStore | undefined,
+  ) =>
+  async (): Promise<void> => {
+    try {
+      await stopAll(created);
+    } finally {
+      await mcp.close();
+      await tracing?.shutdown();
+      ownedTerns?.close();
+    }
+  };

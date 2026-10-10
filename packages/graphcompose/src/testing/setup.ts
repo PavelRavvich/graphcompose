@@ -1,5 +1,3 @@
-// eslint-disable-next-line no-console
-console.log("HELLO FROM SETUP.TS");
 /**
  * `graphcompose/testing/setup` — registers the workflow matchers (`toFollowPath`, `toFinishWith`,
  * …): one line in vitest.config.ts, `setupFiles: ["graphcompose/testing/setup"]`.

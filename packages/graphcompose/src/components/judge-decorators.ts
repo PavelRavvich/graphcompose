@@ -86,7 +86,7 @@ export abstract class BaseJudge {
         new HumanMessage(state.replyWith),
       ]);
     } catch (e) {
-      // eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console -- swallowed judge failure; becomes a typed error in #185
       console.error("Failed to execute declarative judge:", e);
       return { passed: false, feedback: "Internal judge failure." };
     }

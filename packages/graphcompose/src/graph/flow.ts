@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { nodeInfoOf } from "./node-kind.js";
-
 import type { Class } from "../components/injection.js";
 
 /**
@@ -77,14 +73,10 @@ export function optional(target: ChoiceTarget): OptionalTarget {
   return { kind: "optional", target };
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const isParallel = (t: any): t is ParallelGroup =>
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  typeof t === "object" && t !== null && t.kind === "parallel";
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export const isOptional = (t: any): t is OptionalTarget =>
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  typeof t === "object" && t !== null && t.kind === "optional";
+export const isParallel = (t: unknown): t is ParallelGroup =>
+  typeof t === "object" && t !== null && "kind" in t && t.kind === "parallel";
+export const isOptional = (t: unknown): t is OptionalTarget =>
+  typeof t === "object" && t !== null && "kind" in t && t.kind === "optional";
 
 export type ChoiceTarget =
   FlowNode | SelfTarget | ReturnTarget | EndTarget | ParallelGroup | OptionalTarget;
@@ -251,18 +243,7 @@ export function catchError(
   errorType: Class = Error,
 ): { next: (nextNode: FlowNode) => CatchStep; compensateWith: (nextNode: FlowNode) => CatchStep } {
   return {
-    next: (nextNode) => ({
-      kind: "catch",
-      target,
-      errorType,
-      nextNode,
-    }),
-    compensateWith: (nextNode) => ({
-      kind: "catch",
-      target,
-      errorType,
-      // eslint-disable-next-line max-lines
-      nextNode,
-    }),
+    next: (nextNode) => ({ kind: "catch", target, errorType, nextNode }),
+    compensateWith: (nextNode) => ({ kind: "catch", target, errorType, nextNode }),
   };
 }

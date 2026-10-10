@@ -13,22 +13,11 @@ export function makeJudgeNode(deps: AgentLoopDeps): AsyncNode<AgentLoopStateType
   // eslint-disable-next-line max-lines-per-function, complexity
   return async (state, config) => {
     const runCtx = extractRunContext(config, state.runId);
-    // eslint-disable-next-line no-console
-    console.log("EXECUTING JUDGE NODE", state.reply);
     const meta = deps.agent;
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     const judgesClasses = meta.judges || [];
     const maxRetries = meta.maxRetries ?? 0;
 
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    import("fs").then((fs) =>
-      // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
-      fs.writeFileSync(
-        "/tmp/judge_run.log",
-        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
-        "reached judge node with " + judgesClasses.length + " classes",
-      ),
-    );
     if (judgesClasses.length === 0 || state.reply === null) {
       return {}; // No judges or no reply to judge
     }

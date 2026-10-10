@@ -33,7 +33,75 @@ function getDtoType(schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject |
   return { tsType: "unknown", decorator: "Property" };
 }
 
-/* eslint-disable max-lines-per-function, complexity, @typescript-eslint/prefer-nullish-coalescing */
+/** `value` unless it is missing or empty, else `fallback`. */
+const orElse = (value: string | undefined, fallback: string): string =>
+  value !== undefined && value !== "" ? value : fallback;
+
+interface Operation {
+  readonly path: string;
+  readonly method: string;
+  readonly op: OpenAPIV3.OperationObject;
+}
+
+function operationsOf(api: OpenAPIV3.Document): Operation[] {
+  const operations: Operation[] = [];
+  for (const [path, methods] of Object.entries(api.paths)) {
+    if (!methods) continue;
+    for (const [method, operation] of Object.entries(methods)) {
+      if (method === "parameters" || method === "summary" || method === "description") continue;
+      operations.push({ path, method, op: operation as OpenAPIV3.OperationObject });
+    }
+  }
+  return operations;
+}
+
+function dtoSource(op: OpenAPIV3.OperationObject, pascal: string): string {
+  let dto = `export class ${pascal}Input {\n`;
+  const params = op.parameters ?? [];
+  for (const p of params) {
+    const param = p as OpenAPIV3.ParameterObject;
+    const pType = getDtoType(param.schema);
+    const required = param.required ? "!" : "?";
+    const prompt = JSON.stringify(orElse(param.description, ""));
+
+    if (pType.isArray && pType.itemDecorator) {
+      dto += `  @${pType.decorator}(${pType.itemDecorator}, { prompt: ${prompt} })\n`;
+    } else {
+      dto += `  @${pType.decorator}({ prompt: ${prompt} })\n`;
+    }
+    dto += `  ${param.name.replace(/[^a-zA-Z0-9]/g, "")}${required}: ${pType.tsType};\n`;
+  }
+  dto += `}\n\n`;
+  return dto;
+}
+
+function toolSource(
+  { path, method, op }: Operation,
+  opId: string,
+  pascal: string,
+  baseUrl: string,
+): string {
+  let tool = `@Tool({\n`;
+  tool += `  name: "${opId}",\n`;
+  tool += `  description: ${JSON.stringify(orElse(op.summary, orElse(op.description, opId)))},\n`;
+  tool += `  input: ${pascal}Input,\n`;
+  tool += `})\n`;
+  tool += `export class ${pascal}Tool implements ToolHandler<${pascal}Input, any> {\n`;
+  tool += `  async run(input: ${pascal}Input, ctx: ToolContext): Promise<any> {\n`;
+  tool += `    // Generated fetch execution for ${method.toUpperCase()} ${path}\n`;
+  tool += `    const url = \`${baseUrl}${path}\`;\n`;
+  tool += `    // Inject query/path parameters dynamically here based on input\n`;
+  tool += `    const res = await fetch(url, {\n`;
+  tool += `      method: "${method.toUpperCase()}",\n`;
+  tool += `      headers: { "Content-Type": "application/json" },\n`;
+  tool += `      // body: JSON.stringify(input)\n`;
+  tool += `    });\n`;
+  tool += `    return res.json();\n`;
+  tool += `  }\n`;
+  tool += `}\n\n`;
+  return tool;
+}
+
 export async function planOpenApi(
   root: string,
   name: string,
@@ -53,55 +121,14 @@ export async function planOpenApi(
 
   const tools: string[] = [];
   const dtosContent: string[] = [];
+  const baseUrl = orElse(api.servers?.[0]?.url, "http://localhost");
 
-  for (const [path, methods] of Object.entries(api.paths)) {
-    if (!methods) continue;
-    for (const [method, operation] of Object.entries(methods)) {
-      if (method === "parameters" || method === "summary" || method === "description") continue;
-      const op = operation as OpenAPIV3.OperationObject;
-      const opId = op.operationId || `${method}${path.replace(/[^a-zA-Z0-9]/g, "_")}`;
-      const opName = namesOf(opId);
-
-      // Generate DTO
-      let dto = `export class ${opName.pascal}Input {\n`;
-      const params = op.parameters || [];
-      for (const p of params) {
-        const param = p as OpenAPIV3.ParameterObject;
-        const pType = getDtoType(param.schema);
-        const required = param.required ? "!" : "?";
-
-        if (pType.isArray && pType.itemDecorator) {
-          dto += `  @${pType.decorator}(${pType.itemDecorator}, { prompt: ${JSON.stringify(param.description || "")} })\n`;
-        } else {
-          dto += `  @${pType.decorator}({ prompt: ${JSON.stringify(param.description || "")} })\n`;
-        }
-        dto += `  ${param.name.replace(/[^a-zA-Z0-9]/g, "")}${required}: ${pType.tsType};\n`;
-      }
-      dto += `}\n\n`;
-      dtosContent.push(dto);
-
-      // Generate Tool
-      let tool = `@Tool({\n`;
-      tool += `  name: "${opId}",\n`;
-      tool += `  description: ${JSON.stringify(op.summary || op.description || opId)},\n`;
-      tool += `  input: ${opName.pascal}Input,\n`;
-      tool += `})\n`;
-      tool += `export class ${opName.pascal}Tool implements ToolHandler<${opName.pascal}Input, any> {\n`;
-      tool += `  async run(input: ${opName.pascal}Input, ctx: ToolContext): Promise<any> {\n`;
-      tool += `    // Generated fetch execution for ${method.toUpperCase()} ${path}\n`;
-      tool += `    const url = \`${api.servers?.[0]?.url || "http://localhost"}${path}\`;\n`;
-      tool += `    // Inject query/path parameters dynamically here based on input\n`;
-      tool += `    const res = await fetch(url, {\n`;
-      tool += `      method: "${method.toUpperCase()}",\n`;
-      tool += `      headers: { "Content-Type": "application/json" },\n`;
-      tool += `      // body: JSON.stringify(input)\n`;
-      tool += `    });\n`;
-      tool += `    return res.json();\n`;
-      tool += `  }\n`;
-      tool += `}\n\n`;
-
-      tools.push(tool);
-    }
+  for (const operation of operationsOf(api)) {
+    const { path, method, op } = operation;
+    const opId = orElse(op.operationId, `${method}${path.replace(/[^a-zA-Z0-9]/g, "_")}`);
+    const opName = namesOf(opId);
+    dtosContent.push(dtoSource(op, opName.pascal));
+    tools.push(toolSource(operation, opId, opName.pascal, baseUrl));
   }
 
   const fileContent = toolsContent + dtosContent.join("") + tools.join("");

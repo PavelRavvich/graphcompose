@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-
 import {
   isSelf,
   isReturn,
@@ -65,7 +63,7 @@ function stepLine(step: FlowStep, name: (target: ChoiceTarget) => string): strin
     case "catch":
       return `catchError(${name(step.target)}) → ${name(step.nextNode)}`;
     case "joinQuorum":
-      return `${step.from.map(name).join(", ")} → joinQuorum(${step.count}, ${name(step.target)})`;
+      return `${step.from.map(name).join(", ")} → joinQuorum(${String(step.count)}, ${name(step.target)})`;
   }
 }
 

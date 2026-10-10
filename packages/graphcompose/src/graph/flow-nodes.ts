@@ -1,23 +1,21 @@
-/* eslint-disable complexity, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import type { Class } from "../components/injection.js";
 import { componentOf } from "../components/metadata.js";
 import {
   isNamedNode,
-  isSelf,
-  isReturn,
-  isEnd,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  isParallel,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  isOptional,
   unwrapTarget,
   labelOf,
-  type ChoiceTarget,
   type Flow,
   type FlowNode,
   type FlowStep,
 } from "./flow.js";
+import {
+  batchParallelTransitions,
+  catchTransitions,
+  chooseTransitions,
+  defined,
+  joinTransitions,
+  type Resolve,
+} from "./flow-transitions.js";
 import { nodeInfoOf, type NodeKind } from "./node-kind.js";
 import { violation, type RuleViolation } from "./rule-error.js";
 
@@ -53,8 +51,11 @@ export type NextDeclaration =
       readonly kind: "choose";
       readonly targets: readonly string[];
       readonly parallelTargets: readonly { optionName: string; targets: string[] }[];
+      /** Option names in declaration order (parallel groups excluded). */
+      readonly optionNames: readonly string[];
       readonly self: boolean;
-      readonly skip: boolean;
+      readonly return: boolean;
+      readonly end: boolean;
       readonly quorumRouter?: string;
       readonly quorumMin?: number;
       readonly quorumMax?: number;
@@ -138,61 +139,6 @@ function createResolver() {
   return { nodes, violations, resolve, lookup };
 }
 
-type Resolve = (target: FlowNode) => string | undefined;
-
-const defined = (names: readonly (string | undefined)[]): string[] =>
-  names.filter((name): name is string => name !== undefined);
-
-function chooseTargets(targets: readonly ChoiceTarget[], resolve: Resolve): NextDeclaration {
-  const nodesOnly: FlowNode[] = [];
-  const parallelTargets: { optionName: string; targets: string[] }[] = [];
-  const optionNames: string[] = [];
-  let hasSelf = false;
-  let hasReturn = false;
-  let hasEnd = false;
-
-  const extract = (t: ChoiceTarget) => {
-    if (isSelf(t)) hasSelf = true;
-    else if (isReturn(t)) hasReturn = true;
-    else if (isEnd(t)) hasEnd = true;
-    else if ((t as any).kind === "parallel") {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      const pTargets = (t as any).targets.map((inner: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        if (isSelf(inner) || isReturn(inner) || isEnd(inner) || inner.kind === "parallel")
-          throw new Error("Invalid parallel target");
-        let actual = inner;
-        if (inner.kind === "optional") actual = inner.target;
-        nodesOnly.push(actual as FlowNode);
-        return resolve(actual as FlowNode);
-      });
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      parallelTargets.push({ optionName: labelOf(t), targets: defined(pTargets) });
-    } else if ((t as any).kind === "optional") {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      extract((t as any).target);
-    } else {
-      nodesOnly.push(t as FlowNode);
-      const res = resolve(t as FlowNode);
-      if (res) optionNames.push(res);
-    }
-  };
-
-  targets.forEach(extract);
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return {
-    kind: "choose",
-    targets: defined(nodesOnly.map(resolve)),
-    parallelTargets,
-    optionNames,
-    self: hasSelf,
-    return: hasReturn,
-    end: hasEnd,
-  } as any;
-}
-
-// eslint-disable-next-line max-lines-per-function
 function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
   switch (step.kind) {
     case "to": {
@@ -202,52 +148,20 @@ function transitionsOf(step: FlowStep, resolve: Resolve): Transition[] {
 
       return sources.map((from) => ({ from, next: { kind: "to", targets } }));
     }
-    case "catch": {
-      const source = resolve(step.target);
-      const nextNode = resolve(step.nextNode);
-      if (!source || !nextNode) return [];
-      return [{ from: source, next: { kind: "catch", errorType: step.errorType, nextNode } }];
-    }
-    case "join": {
-      const sources = defined(step.from.map(resolve));
-      const target = resolve(unwrapTarget(step.target));
-      if (!target) return [];
-      return sources.map((from) => ({
-        from,
-        next: { kind: "join", target, joinSources: sources },
-      }));
-    }
-    case "choose": {
-      const sources = defined(step.from.map(resolve));
-      const next = {
-        ...chooseTargets(step.targets, resolve),
-        quorumRouter: step.quorumRouter?.name,
-        quorumMin: step.quorumMin,
-        quorumMax: step.quorumMax,
-        quorumTimeoutSeconds: step.quorumTimeoutSeconds,
-      };
-      return sources.map((from) => ({ from, next }));
-    }
-
-    case "batchParallel": {
-      // eslint-disable-next-line no-console
-      console.log("batchParallel step:", step);
-      const sources = defined(step.from.map(resolve));
-      const target = resolve(step.target);
-      return target === undefined
-        ? []
-        : sources.map((from) => ({
-            from,
-            next: { kind: "batchParallel", options: step.options, target, strategy: step.strategy },
-          }));
-    }
+    case "catch":
+      return catchTransitions(step, resolve);
+    case "join":
+      return joinTransitions(step, resolve);
+    case "choose":
+      return chooseTransitions(step, resolve);
+    case "batchParallel":
+      return batchParallelTransitions(step, resolve);
     case "chain":
       return step.nodes.slice(1).flatMap((to, index) => {
         const source = step.nodes[index];
         return source === undefined
           ? []
           : transitionsOf({ kind: "to", from: [source], targets: [to] }, resolve);
-        // eslint-disable-next-line max-lines
       });
   }
   return [];

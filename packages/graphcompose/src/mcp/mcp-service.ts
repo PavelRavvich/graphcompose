@@ -1,16 +1,30 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-deprecated, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-confusing-void-expression, max-lines-per-function, complexity, @typescript-eslint/prefer-nullish-coalescing */
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  type CallToolResult,
+} from "@modelcontextprotocol/sdk/types.js";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { App, ExecutionOutput } from "../app/types.js";
 import type { Class } from "../components/injection.js";
-import { componentOf } from "../components/metadata.js";
+import { componentOf, type ToolMeta } from "../components/metadata.js";
 import { nodeInfoOf } from "../graph/node-kind.js";
 import { workflowStartMetaOf } from "../graph/workflow-start.decorator.js";
-import { jsonSchemaOf, validate } from "../dto/schema.js";
-
-type ToolHandler = (args: any, context?: unknown) => Promise<unknown>;
+import { validate } from "../dto/schema.js";
+import type { McpServerOptions } from "./mcp-server.decorator.js";
+import {
+  RESUME_TOOL,
+  createSseTransport,
+  errorMessage,
+  isLegacyExecutableTool,
+  isRecord,
+  mcpServerOptionsOf,
+  parseDecision,
+  toolInputSchema,
+  type SseTransport,
+  type ToolRegistry,
+} from "./mcp-service-helpers.js";
 
 export interface McpSession {
   readonly sessionId: string;
@@ -18,128 +32,124 @@ export interface McpSession {
 }
 
 export class McpService {
-  private readonly options: any;
+  private readonly options: McpServerOptions;
   private readonly activeTransports = new Map<
     string,
-    { transport: SSEServerTransport; context: unknown }
+    { transport: SseTransport; context: unknown }
   >();
 
   constructor(
     private readonly app: App,
     config: Class,
   ) {
-    const component = componentOf(config) as any;
-    if (component?.kind !== "mcp-server-config") {
+    const options = mcpServerOptionsOf(config);
+    if (!options) {
       throw new Error(`${config.name} is not an @McpServer`);
     }
-    this.options = component.meta;
+    this.options = options;
   }
 
-  private createServerInstance(context: unknown): Server {
-    const server = new Server(
+  private createServerInstance(context: unknown): McpServer {
+    const mcp = new McpServer(
       { name: this.options.name, version: this.options.version },
       { capabilities: { tools: {} } },
     );
+    const { tools, handlers } = this.collectTools(context);
 
-    const tools: any[] = [];
-    let hasWorkflows = false;
-    const handlers = new Map<string, ToolHandler>();
+    mcp.server.setRequestHandler(ListToolsRequestSchema, () => ({ tools }));
 
-    for (const exp of this.options.exports || []) {
-      const cmp = componentOf(exp);
-      const node = nodeInfoOf(exp);
-
-      if (cmp?.kind === "tool") {
-        tools.push({
-          name: cmp.meta.name,
-          description: cmp.meta.description || cmp.meta.prompt || "",
-          inputSchema: jsonSchemaOf(cmp.meta.input),
-        });
-
-        handlers.set(cmp.meta.name, async (args: unknown) => {
-          const validated = validate(cmp.meta.input, args);
-          const toolInstance = this.app.resolve(exp) as any;
-          return await toolInstance.execute(validated, context);
-        });
-      } else if (node?.kind === "workflow-start") {
-        hasWorkflows = true;
-        const startMeta = workflowStartMetaOf(exp);
-        if (!startMeta) continue;
-
-        tools.push({
-          name: startMeta.name,
-          description: startMeta.description || `Run workflow starting at ${startMeta.name}`,
-          inputSchema: jsonSchemaOf(startMeta.input),
-        });
-
-        handlers.set(startMeta.name, async (args: unknown) => {
-          const validated = validate(startMeta.input, args);
-          const result = await this.app.execute(exp, validated as any, {
-            executionContext: context,
-          });
-          return this.formatWorkflowOutput(result);
-        });
-      }
-    }
-
-    if (hasWorkflows) {
-      tools.push({
-        name: "resume_workflow",
-        description: "Resume a paused workflow by providing the thread ID and decision data.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            threadId: { type: "string", description: "The ID of the paused thread." },
-            decision: {
-              type: "string",
-              description: "The decision/data as a JSON string to pass back to the workflow.",
-            },
-          },
-          required: ["threadId", "decision"],
-        },
-      });
-
-      handlers.set("resume_workflow", async (args: any) => {
-        let decisionData: unknown = args.decision;
-        try {
-          if (typeof args.decision === "string") {
-            decisionData = JSON.parse(args.decision);
-          }
-        } catch {
-          // ignore, pass as string
+    mcp.server.setRequestHandler(
+      CallToolRequestSchema,
+      async (request): Promise<CallToolResult> => {
+        const { name, arguments: args } = request.params;
+        const handler = handlers.get(name);
+        if (!handler) {
+          throw new Error(`Tool not found: ${name}`);
         }
-        const result = await this.app.resume(args.threadId, decisionData, {
-          executionContext: context,
-        });
-        return this.formatWorkflowOutput(result);
-      });
+        try {
+          const result = await handler(args);
+          return {
+            content: [
+              { type: "text", text: typeof result === "string" ? result : JSON.stringify(result) },
+            ],
+          };
+        } catch (err: unknown) {
+          return {
+            content: [{ type: "text", text: `Error: ${errorMessage(err)}` }],
+            isError: true,
+          };
+        }
+      },
+    );
+
+    return mcp;
+  }
+
+  private collectTools(context: unknown): ToolRegistry {
+    const registry: ToolRegistry = { tools: [], handlers: new Map() };
+    let hasWorkflows = false;
+
+    for (const exp of this.options.exports) {
+      const cmp = componentOf(exp);
+      if (cmp?.kind === "tool") {
+        this.addTool(registry, exp, cmp.meta, context);
+      } else if (nodeInfoOf(exp)?.kind === "workflow-start") {
+        hasWorkflows = true;
+        this.addWorkflowStart(registry, exp, context);
+      }
     }
 
-    server.setRequestHandler("tools/list" as any, async () => ({
-      tools,
-    }));
+    if (hasWorkflows) this.addResumeTool(registry, context);
+    return registry;
+  }
 
-    server.setRequestHandler("tools/call" as any, async (request: any) => {
-      const handler = handlers.get(request.params.name);
-      if (!handler) {
-        throw new Error(`Tool not found: ${request.params.name}`);
-      }
-      try {
-        const result = await handler(request.params.arguments);
-        return {
-          content: [
-            { type: "text", text: typeof result === "string" ? result : JSON.stringify(result) },
-          ],
-        };
-      } catch (err: any) {
-        return {
-          content: [{ type: "text", text: `Error: ${err.message}` }],
-          isError: true,
-        };
-      }
+  private addTool(registry: ToolRegistry, exp: Class, meta: ToolMeta, context: unknown): void {
+    registry.tools.push({
+      name: meta.name,
+      description: meta.description || (meta.prompt ?? ""),
+      inputSchema: toolInputSchema(meta.input),
     });
 
-    return server;
+    registry.handlers.set(meta.name, async (args) => {
+      const validated = validate(meta.input, args);
+      const toolInstance: unknown = this.app.resolve(exp);
+      // BUG(#191): tool components implement `run(input, ctx)`; this still calls `execute`.
+      if (!isLegacyExecutableTool(toolInstance)) {
+        throw new TypeError("toolInstance.execute is not a function");
+      }
+      return await toolInstance.execute(validated, context);
+    });
+  }
+
+  private addWorkflowStart(registry: ToolRegistry, exp: Class, context: unknown): void {
+    const startMeta = workflowStartMetaOf(exp);
+    if (!startMeta) return;
+
+    registry.tools.push({
+      name: startMeta.name,
+      description: startMeta.description || `Run workflow starting at ${startMeta.name}`,
+      inputSchema: toolInputSchema(startMeta.input),
+    });
+
+    registry.handlers.set(startMeta.name, async (args) => {
+      const validated = validate(startMeta.input, args);
+      const result = await this.app.execute(exp, validated, { executionContext: context });
+      return this.formatWorkflowOutput(result);
+    });
+  }
+
+  private addResumeTool(registry: ToolRegistry, context: unknown): void {
+    registry.tools.push(RESUME_TOOL);
+    registry.handlers.set(RESUME_TOOL.name, async (args) => {
+      const input = isRecord(args) ? args : {};
+      if (typeof input.threadId !== "string") {
+        throw new Error("threadId must be a string");
+      }
+      const result = await this.app.resume(input.threadId, parseDecision(input.decision), {
+        executionContext: context,
+      });
+      return this.formatWorkflowOutput(result);
+    });
   }
 
   private formatWorkflowOutput(result: ExecutionOutput) {
@@ -176,7 +186,7 @@ export class McpService {
     context?: unknown,
   ): Promise<McpSession> {
     const server = this.createServerInstance(context);
-    const transport = new SSEServerTransport(messageEndpoint, res);
+    const transport = createSseTransport(messageEndpoint, res);
     await server.connect(transport);
 
     this.activeTransports.set(transport.sessionId, { transport, context });
@@ -187,7 +197,9 @@ export class McpService {
 
     return {
       sessionId: transport.sessionId,
-      close: async () => await transport.close(),
+      close: async () => {
+        await transport.close();
+      },
     };
   }
 
@@ -206,7 +218,7 @@ export class McpService {
       res.end("Session not found");
       return;
     }
-    await session.transport.handlePostMessage(req as any, res, parsedBody);
+    await session.transport.handlePostMessage(req, res, parsedBody);
   }
 }
 
