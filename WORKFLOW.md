@@ -93,33 +93,48 @@ The `@Channel` decorator provides a unified way to handle human-in-the-loop and 
 
 ### 1. Define a Channel
 
-A channel is a class that implements `ChannelHandler`. It must provide a `requestApproval` method that takes a `ChannelRequest` and returns `void`.
+A channel is a class that implements `ChannelHandler`: `requestApproval(req)` is called once each
+time a run pauses at one of its tools (`req`: `runId`, `agentName`, `toolName`, `toolArguments`,
+`metadata`). The container creates it, so it takes `deps` like a tool. An optional `inboundAdapter`
+(`@InboundChannelAdapter`) turns the reply your channel receives (a button click, a webhook body)
+into the decision.
 
 ```typescript
-import { Channel, type ChannelHandler, type ChannelRequest } from "graphcompose";
+import {
+  Channel,
+  InboundChannelAdapter,
+  type ChannelHandler,
+  type ChannelRequest,
+} from "graphcompose/core";
 
-@Channel({
-  name: "slack_approval",
-  description: "Sends an approval request to a Slack channel.",
-})
-export class SlackChannel implements ChannelHandler {
-  async requestApproval(req: ChannelRequest): Promise<void> {
-    // req contains: runId, agentName, toolName, toolArguments, summary, metadata
-    console.log(`Sending slack message for run ${req.runId} to approve ${req.toolName}`);
-    // You can pass req.metadata.approverEmail to direct the message to a specific user.
+@InboundChannelAdapter({ name: "slack-click" })
+export class SlackClick implements InboundChannelAdapter<{ action: string; user: string }> {
+  interpret(click: { action: string; user: string }) {
+    return Promise.resolve({ approved: click.action === "approve", by: click.user });
   }
+}
+
+@Channel({ name: "slack_approval", inboundAdapter: SlackClick, deps: [SlackClient] })
+export class SlackChannel implements ChannelHandler {
+  constructor(private readonly slack: SlackClient) {}
+
+  requestApproval = (req: ChannelRequest): Promise<void> =>
+    this.slack.post(`Approve ${req.toolName} for run ${req.runId}?`);
 }
 ```
 
 ### 2. Attach the Channel to a Tool
 
-Use the `channel` property in the `@Tool` decorator to specify which channel should handle approvals for this tool.
+Set `channel` on `@Tool` / `@McpTool` to the channel class, and list the class in
+`@Workflow({ channelClasses })`. Every call of that tool pauses the run before the tool runs.
 
 ```typescript
 @Tool({
   name: "delete_user",
   description: "Deletes a user account.",
-  channel: "slack_approval", // This tool will trigger an interrupt!
+  input: DeleteUser,
+  output: Deleted,
+  channel: SlackChannel, // calls wait for an approval through SlackChannel
 })
 export class DeleteUserTool {
   // ...
@@ -139,24 +154,26 @@ const result = await app.execute(
 
 ### 4. Resume the Run
 
-Once the approval is obtained out-of-band (e.g., the user clicks "Approve" in Slack), resume the run by providing a `ChannelDecision` payload.
+The paused run's result carries its `thread`. Once the reply arrives out-of-band (e.g., the user
+clicks "Approve" in Slack), resume that thread with it. With an `inboundAdapter`, pass the raw reply
+and the adapter turns it into the decision; without one, pass a `ChannelDecision`. `gc chat` asks in
+the terminal and resumes by itself.
 
 ```typescript
-// Approve as-is
-await app.resume(runId, {
-  approved: true,
-  by: "admin@example.com",
-});
+const paused = await app.execute(ChatStart, { text: "Delete user 123" });
 
-// Reject with feedback for the LLM
-await app.resume(runId, {
+// Through the channel's adapter: the raw reply
+await app.resume(paused.thread, { action: "approve", user: "admin@example.com" });
+
+// Without an adapter: the decision itself
+await app.resume(paused.thread, {
   approved: false,
   by: "admin@example.com",
   feedback: "Please double check the user ID, 123 belongs to the CEO.",
 });
 
 // Approve but override the arguments (bypassing the LLM)
-await app.resume(runId, {
+await app.resume(paused.thread, {
   approved: true,
   by: "admin@example.com",
   overrideArguments: { userId: "456" }, // Corrected argument!
@@ -166,4 +183,4 @@ await app.resume(runId, {
 ### Important Concepts
 
 - **Override Arguments**: If the user modifies the tool arguments during the approval step, returning `overrideArguments` in the decision will inject those modified arguments straight into the tool, bypassing the LLM.
-- **Timeouts and Rejections**: Channels are asynchronous fire-and-forget mechanisms. If a run should timeout, use an external cron job or scheduler to call `app.resume(runId, { approved: false, feedback: "Timeout" })`.
+- **Timeouts and Rejections**: Channels are asynchronous fire-and-forget mechanisms. If a run should timeout, use an external cron job or scheduler to call `app.resume(thread, { approved: false, by: "scheduler", feedback: "Timeout" })`.

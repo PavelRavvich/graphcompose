@@ -1,4 +1,4 @@
-import { interrupt } from "@langchain/langgraph";
+import { interrupt, isGraphInterrupt } from "@langchain/langgraph";
 import { validate } from "../../dto/schema.js";
 import {
   ToolCallApprovalDecision,
@@ -6,12 +6,12 @@ import {
 } from "../../dto/standard/framework.js";
 import type { PendingPause } from "../../pause/index.js";
 import type { AnyTool } from "../../tools/index.js";
-import type { ChannelRequest } from "../../components/decorators.js";
+import type { ChannelRequest, InboundChannelAdapter } from "../../components/decorators.js";
 import type { ObserverManager } from "../../core/observer-manager.js";
 
 /**
- * How the loop gets a decision on a tool call before it runs — one call per ask. Until #152 wires it
- * to channels, it is backed by the pause seam: the run pauses and `resume` brings the decision.
+ * How the loop gets a decision on a tool call before it runs — one call per ask. It is backed by the
+ * pause seam: the run pauses, the tool's channel is asked, and `resume` brings the decision.
  */
 export interface ToolCallApproval {
   readonly requestApproval: (
@@ -24,20 +24,71 @@ export interface ToolCallApproval {
   ) => Promise<ToolCallApprovalDecision>;
 }
 
+/** Where an ask goes and how a reply comes back: the workflow's channels and their adapters. */
+export interface ApprovalChannels {
+  readonly dispatch?: (channelName: string, req: ChannelRequest) => Promise<void>;
+  readonly adapterOf?: (channel: string) => InboundChannelAdapter | undefined;
+  readonly observer?: ObserverManager;
+}
+
+interface AskContext {
+  readonly ask: ToolCallApprovalAsk;
+  readonly agent: string;
+  readonly tool: AnyTool;
+  readonly runId: string;
+  readonly metadata: Record<string, unknown>;
+  readonly executionContext?: unknown;
+}
+
+const appStateOf = (ctx: AskContext) => ({
+  runId: ctx.runId,
+  threadId: ctx.runId,
+  activeNode: ctx.agent,
+});
+
+/** The run just paused at the ask: the tool's channel gets the request (once per pause). */
+async function askChannel(channels: ApprovalChannels, ctx: AskContext): Promise<void> {
+  const channel = ctx.tool.channel;
+  if (channel === undefined || channels.dispatch === undefined) return;
+  await channels.observer?.onChannelStart({
+    name: channel,
+    input: ctx.ask.arguments,
+    state: appStateOf(ctx),
+  });
+  await channels.dispatch(channel, {
+    runId: ctx.runId,
+    agentName: ctx.agent,
+    toolName: ctx.tool.name,
+    toolArguments: ctx.ask.arguments,
+    metadata: ctx.metadata,
+    executionContext: ctx.executionContext,
+  });
+}
+
+/** The reply `resume` brought, read by the channel's inbound adapter when it has one. */
+async function interpretReply(
+  channels: ApprovalChannels,
+  ctx: AskContext,
+  raw: unknown,
+): Promise<unknown> {
+  const channel = ctx.tool.channel;
+  if (channel === undefined) return raw;
+  await channels.observer?.onChannelEnd({ name: channel, update: raw, state: appStateOf(ctx) });
+  const adapter = channels.adapterOf?.(channel);
+  if (adapter === undefined) return raw;
+  const interpreted: unknown = await adapter.interpret(raw);
+  return interpreted;
+}
+
 /**
  * The pause seam as an approval: `interrupt` pauses the run at the call (the checkpoint is the
- * boundary — nothing ran before it), the decision `resume` brings is validated like any external input.
+ * boundary — nothing ran before it) and the tool's channel is asked; on resume `interrupt` returns
+ * the reply, which the channel's adapter interprets and which is validated like any external input.
  */
-// eslint-disable-next-line max-lines-per-function
-export function pauseSeamApproval(
-  dispatchChannel?: (channelName: string, req: ChannelRequest) => Promise<void>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  channelAdapters?: (channel: string) => any,
-  observer?: ObserverManager,
-): ToolCallApproval {
+export function pauseSeamApproval(channels: ApprovalChannels = {}): ToolCallApproval {
   return {
-    // eslint-disable-next-line complexity
     requestApproval: async (ask, agent, tool, runId, metadata, executionContext) => {
+      const ctx: AskContext = { ask, agent, tool, runId, metadata, executionContext };
       const pending: PendingPause = {
         kind: "approval",
         agent,
@@ -45,51 +96,14 @@ export function pauseSeamApproval(
         tool: ask.tool,
         args: ask.arguments,
       };
-
+      let raw: unknown;
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        let rawDecision = interrupt(pending);
-
-        if (tool.channel && channelAdapters) {
-          const appState = { runId, threadId: runId, activeNode: agent };
-          await observer?.onChannelEnd({
-            name: tool.channel,
-            update: rawDecision,
-            state: appState,
-          });
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const adapter = channelAdapters(tool.channel);
-          if (adapter) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            rawDecision = await adapter.interpret(rawDecision);
-          }
-        }
-
-        return validate(ToolCallApprovalDecision, rawDecision);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (e: any) {
-        // eslint-disable-next-line @typescript-eslint/prefer-optional-chain, @typescript-eslint/no-unsafe-member-access
-        if (e && e.name === "NodeInterrupt") {
-          if (tool.channel && dispatchChannel) {
-            const appState = { runId, threadId: runId, activeNode: agent };
-            await observer?.onChannelStart({
-              name: tool.channel,
-              input: ask.arguments,
-              state: appState,
-            });
-            await dispatchChannel(tool.channel, {
-              runId,
-              agentName: agent,
-              toolName: tool.name,
-              // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-              toolArguments: ask.arguments as Record<string, unknown>,
-              metadata,
-              executionContext,
-            });
-          }
-        }
+        raw = interrupt<PendingPause, unknown>(pending);
+      } catch (e) {
+        if (isGraphInterrupt(e)) await askChannel(channels, ctx);
         throw e;
       }
+      return validate(ToolCallApprovalDecision, await interpretReply(channels, ctx, raw));
     },
   };
 }

@@ -130,7 +130,7 @@ export function jobScoutDeps(script: JobScoutScript): JobScoutRun {
     },
     tools: () => saveShortlist,
     guards: script.guards ?? NO_GUARDS,
-    pause: { checkpointer: new MemorySaver() /* needsApproval removed */ },
+    pause: { checkpointer: new MemorySaver() },
     knowledge: (name) => (name === "scout" ? (script.knowledge ?? []) : []),
     flow: jobScoutFlow,
     limits: { perRun: { steps: 12, cost: usd(0.1) }, perDay: { cost: usd(1) } },

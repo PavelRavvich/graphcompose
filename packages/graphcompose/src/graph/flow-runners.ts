@@ -55,7 +55,11 @@ function agentLoops<TName extends string>(
   const approval =
     deps.pause === undefined
       ? undefined
-      : pauseSeamApproval(deps.requestApproval, deps.channelAdapters, deps.observer);
+      : pauseSeamApproval({
+          dispatch: deps.requestApproval,
+          adapterOf: deps.channelAdapters,
+          observer: deps.observer,
+        });
   const runBudgetCap = deps.limits.perRun?.cost ?? Number.POSITIVE_INFINITY;
   return new Map(
     [...agentDefinitions(deps)].map(([name, agent]) => [

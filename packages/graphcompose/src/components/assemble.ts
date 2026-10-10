@@ -29,6 +29,7 @@ import {
 } from "./assemble-checks.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 import { flowOf, settingsOf } from "./flow-parts.js";
+import { channelPartsOf } from "./channel-parts.js";
 
 /** An agent's settings as the config holds them (tools by name). */
 function agentSettings(
@@ -170,6 +171,7 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
     config,
     flow: bundle.flow,
     ...containerPartsOf(bundle, policyMapsOf(agents, tools.local, names)),
+    ...channelPartsOf(bundle),
     limits: settings.limits,
     models: settings.models,
     routers: graph.routers,

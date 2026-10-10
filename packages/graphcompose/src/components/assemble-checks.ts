@@ -5,6 +5,7 @@ import { tokenName, type Class } from "./injection.js";
 import type { AgentMeta, PolicyFields, WorkflowMeta } from "./meta-types.js";
 import { ragMeta, searchToolName } from "./rag.js";
 import { renderPromptVariables } from "./prompt-render.js";
+import { channelComponentClassesOf } from "./channel-parts.js";
 
 /** A workflow's tool classes: local `@Tool`s and `@McpTool`s. */
 export interface ToolClasses {
@@ -85,8 +86,7 @@ export const componentClassesOf = (
   ...(bundle.observers ?? []),
   ...(bundle.guardrails ?? []),
   ...(bundle.piiPolicies ?? []),
-  ...(bundle.channelClasses ?? []),
-  ...(bundle.channelClasses ?? []).flatMap(inboundAdapterOf),
+  ...channelComponentClassesOf(bundle),
   ...agents.flatMap(policyClassesOf),
   ...agents.flatMap((a) => a.judges ?? []),
   ...providerClassesOf(bundle),
