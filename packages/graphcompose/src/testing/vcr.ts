@@ -1,227 +1,96 @@
-import { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import type { BaseMessage } from "@langchain/core/messages";
-import { AIMessage } from "@langchain/core/messages";
-import type { ChatResult } from "@langchain/core/outputs";
-import type { CallbackManagerForLLMRun } from "@langchain/core/callbacks/manager";
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
-import {
-  createModelGateway,
-  type ChatModelSpec,
-  type ChatModelUser,
-  type DecisionSpec,
-  type ModelGateway,
-} from "../llm/gateway.js";
-import { providerClients } from "../llm/provider-clients.js";
-import { directoryOf } from "../models/workflow-models.js";
-import type { AssembledWorkflow } from "../workflow.js";
+import fs from "node:fs";
+import path from "node:path";
 import { providerClientsOf } from "../app/models.js";
+import { createProviderGateway, type DecisionSpec, type ModelGateway } from "../llm/gateway.js";
+import { directoryOf } from "../models/workflow-models.js";
+import type { RouteOutcome } from "../routers/index.js";
+import type { AssembledWorkflow } from "../workflow.js";
+import { CassetteMissingError } from "./errors.js";
+import { chatKeyOf, routerKeyOf } from "./scripted-gateway.js";
+import { Cassette, requestHashOf } from "./vcr-cassette.js";
+import { VcrChatModel } from "./vcr-chat-model.js";
 
 export enum VCRMode {
+  /** Call the real models and write every call to the cassette (from scratch). */
   RECORD = "RECORD",
+  /** Answer only from the cassette; a missing cassette or call fails with `CassetteMissingError`. */
   REPLAY = "REPLAY",
+  /** REPLAY when the cassette exists, else RECORD. */
   AUTO = "AUTO",
 }
 
+/** `testWith(W, { vcr })`: record real model calls once, replay them in every later run. */
 export interface VcrConfig {
-  cassetteName: string;
-  mode?: VCRMode;
-  dir?: string;
+  readonly cassetteName: string;
+  /** Default: REPLAY when `CI` is set (CI never calls a model), else AUTO. */
+  readonly mode?: VCRMode;
+  /** Where `<cassetteName>.cassette.json` lives; default `__snapshots__` (from the working directory). */
+  readonly dir?: string;
 }
 
-interface CassetteInteraction {
-  agentName: string;
-  request: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    messages: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tools?: any[];
+const isCi = (env: NodeJS.ProcessEnv): boolean =>
+  env.CI !== undefined && !["", "0", "false"].includes(env.CI.toLowerCase());
+
+/** The mode a VCR test runs in: the given one; REPLAY under `CI`; else AUTO. */
+export const vcrModeOf = (config: VcrConfig, env: NodeJS.ProcessEnv): VCRMode =>
+  config.mode ?? (isCi(env) ? VCRMode.REPLAY : VCRMode.AUTO);
+
+export const cassetteFileOf = (config: VcrConfig): string =>
+  path.join(config.dir ?? "__snapshots__", `${config.cassetteName}.cassette.json`);
+
+function cassetteOf(file: string, mode: VCRMode, report: (failure: Error) => Error): Cassette {
+  const replay = mode === VCRMode.REPLAY || (mode === VCRMode.AUTO && fs.existsSync(file));
+  return replay ? Cassette.replaying(file, report) : Cassette.recording(file);
+}
+
+const decisionRequestOf = ({ model, request }: DecisionSpec): string =>
+  requestHashOf({
+    model: model.kind === "jev" ? model.model : model.settings.model,
+    instructions: request.instructions ?? "",
+    input: request.input,
+    options: request.options,
+  });
+
+/**
+ * A gateway over a cassette: every chat model (agents, judges, compaction) and every decision
+ * (routers, guards, judges — Jev and LLM alike) answers from it, or, while recording, from `real`
+ * — created on the first recorded call, so a replay never builds a provider client or needs a key.
+ */
+export function vcrGateway(cassette: Cassette, real: () => ModelGateway): ModelGateway {
+  return {
+    chatModel: (spec) =>
+      new VcrChatModel(cassette, chatKeyOf(spec.user), spec.settings.model, () =>
+        real().chatModel(spec),
+      ),
+    routeTo: async (spec): Promise<RouteOutcome> => {
+      const key = routerKeyOf(spec.router);
+      const request = decisionRequestOf(spec);
+      if (cassette.recording) {
+        const outcome = await real().routeTo(spec);
+        cassette.record({ kind: "decision", key, request, outcome });
+        return outcome;
+      }
+      try {
+        return cassette.decision(key, request);
+      } catch (error) {
+        if (!(error instanceof CassetteMissingError)) throw error;
+        return { kind: "failed", reason: error.message };
+      }
+    },
   };
-  response: ChatResult;
 }
 
-interface Cassette {
-  interactions: CassetteInteraction[];
-}
-
-export class VcrChatModel extends BaseChatModel {
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  _llmType() {
-    return "vcr_chat_model";
-  }
-
-  constructor(
-    private wrappedModel: BaseChatModel,
-    private cassettePath: string,
-    private mode: VCRMode,
-    private agentName: string,
-  ) {
-    super({});
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private hashRequest(messages: BaseMessage[], tools?: any[]): string {
-    const data = JSON.stringify({
-      messages: messages.map((m) => ({
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        _getType: m._getType(),
-        content: m.content,
-        additional_kwargs: m.additional_kwargs,
-      })),
-      tools,
-    });
-    return crypto.createHash("sha256").update(data).digest("hex");
-  }
-
-  // eslint-disable-next-line max-lines-per-function
-  async _generate(
-    messages: BaseMessage[],
-    options: this["ParsedCallOptions"],
-    runManager?: CallbackManagerForLLMRun,
-  ): Promise<ChatResult> {
-    const isReplay =
-      this.mode === VCRMode.REPLAY ||
-      (this.mode === VCRMode.AUTO && fs.existsSync(this.cassettePath));
-    const isRecord =
-      this.mode === VCRMode.RECORD ||
-      (this.mode === VCRMode.AUTO && !fs.existsSync(this.cassettePath));
-
-    if (isReplay) {
-      if (!fs.existsSync(this.cassettePath)) {
-        throw new Error(
-          `Cassette mismatch: please re-record. File not found: ${this.cassettePath}`,
-        );
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const cassette: Cassette = JSON.parse(fs.readFileSync(this.cassettePath, "utf-8"));
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const requestHash = this.hashRequest(messages, (options as any).tools);
-
-      const match = cassette.interactions.find((i) => {
-        if (i.agentName !== this.agentName) return false;
-        const storedHash = crypto
-          .createHash("sha256")
-          .update(JSON.stringify(i.request))
-          .digest("hex");
-        return storedHash === requestHash;
-      });
-
-      if (!match) {
-        throw new Error(
-          `Cassette mismatch: please re-record. Interaction not found for ${this.agentName}`,
-        );
-      }
-
-      // Reconstruct AIMessages from the stored JSON to satisfy LangChain
-      const response = match.response;
-      response.generations = response.generations.map((gen) => {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
-        if (gen.message && gen.message.id) {
-          const msg = new AIMessage({
-            content: gen.message.content,
-            additional_kwargs: gen.message.additional_kwargs,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-            tool_calls: (gen.message as any).tool_calls,
-            id: gen.message.id,
-          });
-          gen.message = msg;
-        }
-        return gen;
-      });
-      return response;
-    }
-
-    if (isRecord) {
-      const result = await this.wrappedModel._generate(messages, options, runManager);
-
-      let cassette: Cassette = { interactions: [] };
-      if (fs.existsSync(this.cassettePath)) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        cassette = JSON.parse(fs.readFileSync(this.cassettePath, "utf-8"));
-      }
-
-      cassette.interactions.push({
-        agentName: this.agentName,
-        request: {
-          messages: messages.map((m) => ({
-            // eslint-disable-next-line @typescript-eslint/no-deprecated
-            _getType: m._getType(),
-            content: m.content,
-            additional_kwargs: m.additional_kwargs,
-          })),
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-          tools: (options as any).tools,
-        },
-        response: result,
-      });
-
-      fs.mkdirSync(path.dirname(this.cassettePath), { recursive: true });
-      fs.writeFileSync(this.cassettePath, JSON.stringify(cassette, null, 2));
-
-      return result;
-    }
-
-    throw new Error("Invalid VCR Mode");
-  }
-}
-
-/** Whose interactions a cassette entry holds: the agent, the router, the judge (`judge:<name>`) or compaction. */
-function cassetteKeyOf(user: ChatModelUser): string {
-  if (user.kind === "agent") return user.agent;
-  if (user.kind === "router") return user.router;
-  return user.kind === "judge" ? `judge:${user.judge}` : "compaction";
-}
-
+/** The VCR gateway of a test: the workflow's real providers (keys from `env`) behind the cassette. */
 export function createVcrGateway(
   bundle: AssembledWorkflow,
-  vcrConfig: VcrConfig,
+  config: VcrConfig,
   env: NodeJS.ProcessEnv,
+  report: (failure: Error) => Error,
 ): ModelGateway {
-  const directory = directoryOf(bundle.models);
-  const clientsOpts = providerClientsOf({}, env);
-  const realClients = providerClients(directory, clientsOpts);
-
-  // Create a real gateway
-  const realGateway = createModelGateway(realClients);
-
-  const dir = vcrConfig.dir ?? "__snapshots__";
-  const cassettePath = path.join(dir, `${vcrConfig.cassetteName}.cassette.json`);
-  const mode = vcrConfig.mode ?? VCRMode.AUTO;
-
-  // Wrap it so that chatModel AND routeTo (which calls chatModel) both use the intercepted BaseChatModel
-  const vcrGateway: ModelGateway = {
-    chatModel: (spec: ChatModelSpec) => {
-      const realModel = realGateway.chatModel(spec);
-      const agentName = cassetteKeyOf(spec.user);
-      return new VcrChatModel(realModel, cassettePath, mode, agentName);
-    },
-    routeTo: async (spec: DecisionSpec) => {
-      // routeTo uses the gateway's chatModel if it's an LLM decision.
-      // We can recreate strategyOf here, or just delegate to realGateway but passing our wrapped model inside?
-      // Wait, routeTo in createModelGateway uses `chatModel({user, settings})` which calls ITS internal chatModel.
-      // So if we just delegate routeTo to `realGateway.routeTo`, it will NOT use our `VcrChatModel`.
-      // To fix this, we can recreate the routing logic or just recreate the gateway over wrapped clients?
-      // Recreating gateway logic for routeTo:
-      if (spec.model.kind === "jev") {
-        // JeV doesn't use BaseChatModel, we could record it differently, but spec implies wrapping BaseChatModel.
-        return realGateway.routeTo(spec);
-      } else {
-        const { createLlmRouter } = await import("../routers/index.js");
-        // Get the wrapped model using OUR chatModel override
-        const wrappedModel = vcrGateway.chatModel({
-          user: { kind: "router", router: spec.router },
-          settings: spec.model.settings,
-        });
-        const router = createLlmRouter({
-          name: spec.router,
-          model: wrappedModel,
-          settings: spec.model.settings,
-        });
-        return router.route(spec.request);
-      }
-    },
-  };
-  return vcrGateway;
+  const cassette = cassetteOf(cassetteFileOf(config), vcrModeOf(config, env), report);
+  let real: ModelGateway | undefined;
+  return vcrGateway(
+    cassette,
+    () => (real ??= createProviderGateway(directoryOf(bundle.models), providerClientsOf({}, env))),
+  );
 }

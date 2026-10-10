@@ -4,7 +4,8 @@ export type TestFailureCode =
   | "test.script-exhausted"
   | "test.not-a-route"
   | "test.wrong-script"
-  | "test.app-closed";
+  | "test.app-closed"
+  | "test.cassette-missing";
 
 /** A failure the toolkit raises for a test: it carries a stable code. */
 export class TestFailure extends Error {
@@ -23,6 +24,18 @@ export class LiveCallBlockedError extends TestFailure {
 
   constructor(message: string) {
     super("test.live-call-blocked", message);
+  }
+}
+
+/**
+ * A VCR replay found no recording: the cassette file is missing, or it holds no interaction for
+ * this request (a prompt, tool or input changed since it was recorded) — re-record it.
+ */
+export class CassetteMissingError extends TestFailure {
+  override name = "CassetteMissingError";
+
+  constructor(message: string) {
+    super("test.cassette-missing", message);
   }
 }
 

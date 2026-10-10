@@ -26,7 +26,7 @@ import { mockInstanceOf } from "./mocks.js";
 import { ScriptBook, type ModelScript } from "./script-book.js";
 import { createScriptedGateway, judgeScriptKeyOf, routerKeyOf } from "./scripted-gateway.js";
 import { mcpServersOf, usedComponentsOf } from "./workflow-parts.js";
-import { createVcrGateway } from "./vcr.js";
+import { createVcrGateway, type VcrConfig } from "./vcr.js";
 
 /** What `testWith` takes besides the workflow. */
 export interface TestWithOptions extends EnvironmentSelection {
@@ -34,11 +34,11 @@ export interface TestWithOptions extends EnvironmentSelection {
   readonly real?: readonly Class[];
   /** Hosts a test may reach (`localhost` covers every loopback address); everything else is blocked. */
   readonly allowNetwork?: readonly string[];
-  readonly vcr?: {
-    cassetteName: string;
-    mode?: import("./vcr.js").VCRMode;
-    dir?: string;
-  };
+  /**
+   * Models answer from a recorded cassette instead of scripts: recorded once with real models,
+   * replayed in every later run (REPLAY by default under `CI`: no key, no network).
+   */
+  readonly vcr?: VcrConfig;
 }
 
 /** The process env without tracing keys: tests never export traces. */
@@ -107,7 +107,9 @@ export class TestEnvironment {
       processEnv: testEnv(),
       ...(environment === undefined ? {} : { environment }),
       gateway: options.vcr
-        ? createVcrGateway(assembled, options.vcr, testEnv())
+        ? createVcrGateway(assembled, options.vcr, testEnv(), (failure) =>
+            this.book.report(failure),
+          )
         : createScriptedGateway(this.book),
       connectMcp: stubbedMcpConnect(this.mcp, labels, real),
       stores: {
