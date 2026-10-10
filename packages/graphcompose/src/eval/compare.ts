@@ -1,5 +1,6 @@
 import { isDayCapReached } from "../graph/limits.js";
-import { runAgent, type RunDeps } from "../index.js";
+import { runAgent } from "../run/run-agent.js";
+import type { RunDeps } from "../run/types.js";
 import type { RouteRequest } from "../routers/index.js";
 import { judgeRequest, scoreOf, type EvalDeps } from "./eval.js";
 import { FIRST_BETTER, PAIR_INSTRUCTIONS, SECOND_BETTER } from "./prompts.js";

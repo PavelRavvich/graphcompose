@@ -28,6 +28,7 @@ export type { ChatLine, ModelRequest, ModelScript } from "./script-book.js";
 export type { McpStub, McpStubCall } from "./mcp-stubs.js";
 export type { Duration, TestClock } from "./clock.js";
 export {
+  CassetteMissingError,
   LiveCallBlockedError,
   TestFailure,
   TestSetupError,
@@ -46,14 +47,4 @@ export { testRunContext } from "./run-context.js";
 
 export { mcpServerStub } from "../components/mcp-client.js";
 
-export { VCRMode, VcrChatModel } from "./vcr.js";
-
-export { Dataset, type TestCase } from "./dataset.js";
-export {
-  Suite,
-  type SuiteConfig,
-  type SuiteReport,
-  type SuiteEvaluateOptions,
-  type CaseResult,
-} from "./suite.js";
-export { Compare, type ComparisonReport } from "./compare.js";
+export { VCRMode, type VcrConfig } from "./vcr.js";

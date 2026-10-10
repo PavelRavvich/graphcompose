@@ -29,8 +29,6 @@ export interface JudgeContext {
   /** Retries so far: 0 for the agent's first reply. */
   readonly attempt: number;
   readonly model: JudgeModel;
-  /** Eval suites only (`Suite`): the case's expected output. */
-  readonly expected?: unknown;
 }
 
 /** A judge's verdict: a failed one sends `feedback` back to the agent for its retry. */
