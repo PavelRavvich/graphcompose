@@ -16,9 +16,9 @@ import {
   WorkflowSettings,
   WorkflowStart,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
+} from "../../../src/index.js";
 import type { AgentState, AgentStateUpdate } from "../../../src/graph/state.js";
-import type { ToolContext, ToolHandler } from "../../../src/tool/index.js";
+import type { ToolContext, ToolHandler } from "../../../src/index.js";
 
 /** What the components saw of their run, in order (the tests reset it with `resetSeen`). */
 export const seen = {

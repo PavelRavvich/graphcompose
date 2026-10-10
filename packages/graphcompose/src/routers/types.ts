@@ -37,7 +37,7 @@ export type RouteOutcome =
     };
 
 /** A routing strategy (Jev, LLM, …). Pure input → outcome; testable on its own. */
-export interface Router {
+export interface RouterEngine {
   readonly name: string;
   readonly route: (request: RouteRequest) => Promise<RouteOutcome>;
 }

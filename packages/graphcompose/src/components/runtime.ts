@@ -1,6 +1,6 @@
 import type { AssembledWorkflow, WorkflowServices } from "../workflow.js";
 import type { RagConnector } from "../rag/types.js";
-import type { Router } from "../routers/index.js";
+import type { RouterEngine } from "../routers/index.js";
 import { schemaOf } from "../dto/schema.js";
 import { defineTool, type AnyTool, type Tool, type ToolContext } from "../tools/index.js";
 import type { Environment } from "../environments/define.js";
@@ -14,7 +14,7 @@ import { contextSources, ragMeta, searchTool } from "./rag.js";
 /** What a workflow creates per run of the app: the container, tool instances, knowledge sources. */
 
 /** Core services a component can depend on. */
-export const ROUTER_FACTORY = new InjectionToken<(name: string) => Router>("ROUTER_FACTORY");
+export const ROUTER_FACTORY = new InjectionToken<(name: string) => RouterEngine>("ROUTER_FACTORY");
 /**
  * The app's environment (#182): the values of `environments/<name>.environment.ts`, typed by the
  * `Environment` contract — `@Injectable({ deps: [ENV] })`, `constructor(env: Environment)`.

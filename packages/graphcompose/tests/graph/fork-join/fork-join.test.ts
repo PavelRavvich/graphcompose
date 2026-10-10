@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Workflow, Agent } from "../../../src/core/index.js";
+import { Workflow, Agent, WorkflowStart, WorkflowFinish, from } from "../../../src/index.js";
 import { workflowOf } from "../../../src/components/assemble.js";
-import { WorkflowStart, WorkflowFinish, from } from "../../../src/graph/index.js";
 import { recordNode } from "../../../src/graph/node-kind.js";
 import { WorkflowStartText, WorkflowFinishText } from "../../../src/dto/index.js";
 import type { JoinOutput, JoinHandler } from "../../../src/graph/fork-join.js";
@@ -83,7 +82,7 @@ describe("fork-join", () => {
           return { contributions: [{ agent: "joinNode", content: "Final Answer" }] };
         return {};
       },
-      routerFor: () => ({}) as unknown as import("../../../src/routers/index.js").Router,
+      routerFor: () => ({}) as unknown as import("../../../src/routers/index.js").RouterEngine,
       routerMemory: { limit: 10, summaries: 0, turns: 10 },
       limits: { perRun: { steps: 50 } },
       spentToday: () => Promise.resolve(0),

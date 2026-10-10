@@ -1,13 +1,13 @@
 import type { SpendLedger } from "../finops/ledger.js";
 import type { SpendAccount } from "../index.js";
-import type { RouteOutcome, RouteRequest, Router } from "../routers/index.js";
+import type { RouteOutcome, RouteRequest, RouterEngine } from "../routers/index.js";
 import type { Tern, TernStore } from "../terns/index.js";
 import { ADEQUATE, INADEQUATE, JUDGE_INSTRUCTIONS } from "./prompts.js";
 
 export interface EvalDeps {
   readonly terns: TernStore;
   /** A two-option router (adequate / inadequate); Jev by default. */
-  readonly judge: Router;
+  readonly judge: RouterEngine;
   readonly ledger: SpendLedger;
   /** Where eval spend goes: `<workflow>:eval`, its own day capped at `limits.perDay.cost`. */
   readonly account: SpendAccount;

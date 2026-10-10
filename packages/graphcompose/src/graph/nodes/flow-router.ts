@@ -1,5 +1,5 @@
 import type { UsageRecord } from "../../finops/usage.js";
-import type { RouteOutcome, RouteRequest, Router } from "../../routers/index.js";
+import type { RouteOutcome, RouteRequest, RouterEngine } from "../../routers/index.js";
 import { formatMemory, renderRouteInput } from "../contributions.js";
 import { PaidStepError } from "../errors.js";
 import type { FlowStateType, FlowStateUpdate } from "../flow-state.js";
@@ -16,7 +16,7 @@ export interface MemoryLimits {
 }
 
 export interface FlowRouterNodeDeps {
-  readonly router: Router;
+  readonly router: RouterEngine;
   readonly loaded: LoadedRouter;
   readonly memory: MemoryLimits;
   /** The router's route to a workflow finish, if it has one: taken without a call after an approval decision. */

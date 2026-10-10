@@ -5,7 +5,7 @@ import type { FlowRuntime } from "../../../src/graph/build.js";
 import { recordNode, type NodeKind } from "../../../src/graph/node-kind.js";
 import type { LoadedRouter } from "../../../src/graph/router-texts.js";
 import type { FlowNodeRunner } from "../../../src/graph/visit.js";
-import type { RouteRequest, Router } from "../../../src/routers/index.js";
+import type { RouteRequest, RouterEngine } from "../../../src/routers/index.js";
 import { usageRecord } from "../../helpers.js";
 
 /** Test-only node decorator: marks a class as a flow node of a kind (workflow starts and workflow finishes come in branch B). */
@@ -17,7 +17,7 @@ export const testNode =
   };
 
 /** Every request a scripted router received. */
-export interface ScriptedRouter extends Router {
+export interface ScriptedRouter extends RouterEngine {
   readonly requests: RouteRequest[];
 }
 
@@ -75,7 +75,7 @@ export function testRunner(node: FlowNodeRef, agentCostUsd = 0): FlowNodeRunner 
 
 /** A runtime of test nodes: routers by name from `routers`, no daily spend unless given. */
 export function testRuntime(
-  routers: Readonly<Record<string, Router>>,
+  routers: Readonly<Record<string, RouterEngine>>,
   overrides: Partial<FlowRuntime> = {},
 ): FlowRuntime {
   return {

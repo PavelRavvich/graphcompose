@@ -1,9 +1,8 @@
 /** #118 AC5: tools and MCP servers on DTOs — validation at the edge, DTO-shaped data inside. */
 import { describe, expect, it } from "vitest";
-import { Agent, Workflow } from "../../src/core/index.js";
+import { Agent, Workflow, Tool, type ToolHandler } from "../../src/index.js";
 import { McpServer, McpServerClient } from "../../src/mcp/index.js";
 import { mcpServerStub } from "../../src/testing/index.js";
-import { Tool, type ToolHandler } from "../../src/tool/index.js";
 import { toolOf, workflowOf } from "../../src/testing/index.js";
 import { DtoError, Integer, ListOf, Nested, Text, Url } from "../../src/dto/index.js";
 import { toolDefinitionOf, type ToolContext } from "../../src/tools/index.js";

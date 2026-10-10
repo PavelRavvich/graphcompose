@@ -8,10 +8,11 @@ import {
   WorkflowSettings,
   WorkflowStart,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
-import { MODEL_MAX } from "../../../src/index.js";
-import { catchError } from "../../../src/router/index.js";
-import { Tool, type ToolHandler } from "../../../src/tool/index.js";
+  MODEL_MAX,
+  catchError,
+  Tool,
+  type ToolHandler,
+} from "../../../src/index.js";
 
 /** What the compensating workflow's action did (the saga test reads it). */
 export const undone: string[] = [];

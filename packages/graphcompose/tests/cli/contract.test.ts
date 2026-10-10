@@ -43,7 +43,7 @@ describe("#198 AC1: every command has --help and a --json description", () => {
     const withoutWorkflow = all
       .filter((c) => !c.options.some((o) => o.flag === "--workflow"))
       .map((c) => c.name);
-    expect(withoutWorkflow).toEqual(["create", "help"]);
+    expect(withoutWorkflow).toEqual(["create", "migrate", "help"]);
   });
 
   it("gc describe --json: the workflow as data, only the envelope on stdout", async () => {

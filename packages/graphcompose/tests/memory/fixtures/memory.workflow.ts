@@ -1,14 +1,16 @@
-import { Agent, Injectable, Workflow } from "../../../src/core/index.js";
-import { InjectionToken, provide } from "../../../src/components/injection.js";
-import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
+  Agent,
+  Injectable,
+  Workflow,
   chain,
   WorkflowFinish,
   WorkflowSettings,
   WorkflowStart,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
-import { MODEL_MAX } from "../../../src/index.js";
+  MODEL_MAX,
+} from "../../../src/index.js";
+import { InjectionToken, provide } from "../../../src/components/injection.js";
+import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
   BaseMemoryStrategy,
   SlidingWindowStrategy,

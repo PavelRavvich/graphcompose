@@ -1,12 +1,15 @@
-import { Agent, Decision, Judge, Workflow } from "../../../src/core/index.js";
-import type { JudgeContext, JudgeHandler, JudgeVerdict } from "../../../src/core/index.js";
 import {
+  Agent,
+  Decision,
+  Judge,
+  Workflow,
   chain,
   from,
   Router,
   type WorkflowDefinition,
   type WorkflowSettings,
-} from "../../../src/graph/index.js";
+} from "../../../src/index.js";
+import type { JudgeContext, JudgeHandler, JudgeVerdict } from "../../../src/index.js";
 import { LUNA } from "./decision-judged.workflow.js";
 import { DEFAULTS, Reply, settings, TaskStart } from "./judged.workflow.js";
 

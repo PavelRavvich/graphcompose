@@ -3,7 +3,7 @@ import type { BaseCheckpointSaver } from "@langchain/langgraph";
 import { StateGraph } from "@langchain/langgraph";
 
 import { requireComponent } from "../components/metadata.js";
-import type { Router } from "../routers/index.js";
+import type { RouterEngine } from "../routers/index.js";
 import { checkFlow, type FlowModel } from "./check-flow.js";
 
 import { WorkflowGraphValidator } from "./validator.js";
@@ -32,7 +32,7 @@ export interface FlowRuntime {
   /** The runner of a workflow start, agent or workflow finish (routers are the engine's own). */
   readonly runnerFor: (node: FlowNodeRef) => FlowNodeRunner;
   /** The routing strategy of a router (its own model). */
-  readonly routerFor: (router: LoadedRouter) => Router;
+  readonly routerFor: (router: LoadedRouter) => RouterEngine;
   /** The routers as assembled (texts rendered with the workflow's variables); absent = load from the flow. */
   readonly routers?: readonly LoadedRouter[];
   readonly routerMemory: MemoryLimits;

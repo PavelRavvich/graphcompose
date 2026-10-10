@@ -17,10 +17,9 @@ import {
   type JudgeHandler,
   type JudgeVerdict,
 } from "../../../src/components/judge-decorators.js";
-import { Injectable, InjectionToken } from "../../../src/core/index.js";
+import { Injectable, InjectionToken, Tool, type ToolHandler } from "../../../src/index.js";
 import { Text } from "../../../src/dto/index.js";
 import type { RagRetrieval } from "../../../src/rag/types.js";
-import { Tool, type ToolHandler } from "../../../src/tool/index.js";
 
 /** One component of every kind that takes `deps`, each depending on `Vault` (which depends on SECRET). */
 export const SECRET = new InjectionToken<string>("SECRET");

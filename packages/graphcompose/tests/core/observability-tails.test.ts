@@ -34,10 +34,11 @@ import {
   type PiiPolicyStartEvent,
   type ToolEndEvent,
   type ToolStartEvent,
-} from "../../src/core/index.js";
+  from,
+  WorkflowStart,
+  WorkflowFinish,
+} from "../../src/index.js";
 import { ActionRuntime } from "../../src/components/decorators.js";
-import { from } from "../../src/router/index.js";
-import { WorkflowStart, WorkflowFinish } from "../../src/graph/index.js";
 import { WorkflowStartText, WorkflowFinishText, Text } from "../../src/dto/index.js";
 import { createSqliteTernStore } from "../../src/terns/index.js";
 import { buildApp } from "../../src/app/create-app.js";

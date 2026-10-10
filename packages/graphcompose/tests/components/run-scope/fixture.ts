@@ -6,16 +6,14 @@ import {
   type OnDestroy,
   type Class,
   type Provider,
-} from "../../../src/core/index.js";
-import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
-import {
   from,
   WorkflowFinish,
   WorkflowStart,
   WorkflowSettings,
   type FlowNodeClass,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
+} from "../../../src/index.js";
+import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import { usd } from "../../../src/units/index.js";
 
 /** What the components of this fixture did, in order (`created:session-1`, `destroyed:tool-1`, …). */

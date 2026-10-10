@@ -3,18 +3,21 @@ import type { AddressInfo } from "node:net";
 import { A2AAdapter, a2aHttpListener } from "../../../src/a2a/index.js";
 import type { AppOptions } from "../../../src/app/create-app.js";
 import type { App } from "../../../src/app/types.js";
-import { Agent, Workflow } from "../../../src/core/index.js";
-import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
-import { createMemoryLedger } from "../../../src/finops/ledger.js";
 import {
+  Agent,
+  Workflow,
   chain,
   WorkflowFinish,
   WorkflowSettings,
   WorkflowStart,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
+  Tool,
+  type ToolContext,
+  type ToolHandler,
+} from "../../../src/index.js";
+import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
+import { createMemoryLedger } from "../../../src/finops/ledger.js";
 import { createSqliteTernStore } from "../../../src/terns/index.js";
-import { Tool, type ToolContext, type ToolHandler } from "../../../src/tool/index.js";
 import type { ScriptBook } from "../../../src/testing/script-book.js";
 import { createScriptedGateway } from "../../../src/testing/scripted-gateway.js";
 

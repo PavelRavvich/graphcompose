@@ -1,9 +1,18 @@
-import { Agent, Injectable, Workflow } from "../../../../src/core/index.js";
-import { ENV, MODEL_MAX, type Environment } from "../../../../src/index.js";
-import { Tool, type ToolHandler } from "../../../../src/tool/index.js";
+import {
+  Agent,
+  Injectable,
+  Workflow,
+  ENV,
+  MODEL_MAX,
+  type Environment,
+  Tool,
+  type ToolHandler,
+  from,
+  WorkflowFinish,
+  WorkflowStart,
+} from "../../../../src/index.js";
 import { Text, WorkflowFinishText, WorkflowStartText } from "../../../../src/dto/index.js";
 import { TestSettings } from "../../test-flow/star.js";
-import { from, WorkflowFinish, WorkflowStart } from "../../../../src/graph/index.js";
 
 /** A service that reads the app's environment (#182). */
 @Injectable({ deps: [ENV] })

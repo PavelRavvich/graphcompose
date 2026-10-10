@@ -6,9 +6,9 @@ import type { Class } from "../components/injection.js";
 import { componentOf } from "../components/metadata.js";
 import { jsonSchemaOf } from "../dto/schema.js";
 import type { DtoClass } from "../dto/types.js";
-import type { McpServerOptions } from "./mcp-server.decorator.js";
+import type { McpExposeOptions } from "./mcp-expose.decorator.js";
 
-/** Helpers for `McpService`: reading `@McpServer` options, tool schemas, results and the resume tool. */
+/** Helpers for `McpService`: reading `@McpExpose` options, tool schemas, results and the resume tool. */
 
 /** The part of the SDK's SSE server transport that `McpService` uses. */
 export interface SseTransport extends Transport {
@@ -38,10 +38,10 @@ export interface ToolRegistry {
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
-/** The `@McpServer` options recorded on `config`. */
-export function mcpServerOptionsOf(config: Class): McpServerOptions | undefined {
+/** The `@McpExpose` options recorded on `config`. */
+export function mcpServerOptionsOf(config: Class): McpExposeOptions | undefined {
   const component = componentOf(config);
-  return component?.kind === "mcp-server-config" ? component.meta : undefined;
+  return component?.kind === "mcp-expose" ? component.meta : undefined;
 }
 
 /** A DTO as an MCP object schema (`inputSchema` / `outputSchema`). */

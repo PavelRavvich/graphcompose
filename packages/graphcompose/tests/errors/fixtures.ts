@@ -1,17 +1,20 @@
-import { Agent, Workflow } from "../../src/core/index.js";
-import { MODEL_MAX } from "../../src/index.js";
-import { TerminalUserChannel } from "../../src/channels/terminal-channel.js";
-import { Tool, type ToolHandler } from "../../src/tool/index.js";
-import { Text, WorkflowFinishText, WorkflowStartText } from "../../src/dto/index.js";
-import { catchError } from "../../src/router/index.js";
 import {
+  Agent,
+  Workflow,
+  MODEL_MAX,
+  Tool,
+  type ToolHandler,
+  catchError,
   from,
   WorkflowFinish,
   WorkflowSettings,
   WorkflowStart,
   type WorkflowDefinition,
-} from "../../src/graph/index.js";
-import { BudgetExceededError, LimitExceededError } from "../../src/index.js";
+  BudgetExceededError,
+  LimitExceededError,
+} from "../../src/index.js";
+import { TerminalUserChannel } from "../../src/channels/terminal-channel.js";
+import { Text, WorkflowFinishText, WorkflowStartText } from "../../src/dto/index.js";
 import { usd } from "../../src/units/index.js";
 
 export class Payment {

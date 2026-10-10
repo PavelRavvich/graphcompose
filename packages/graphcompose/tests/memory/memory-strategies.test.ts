@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Class } from "../../src/components/injection.js";
 import { workflowOf } from "../../src/components/assemble.js";
-import { Agent, Workflow } from "../../src/core/index.js";
-import { chain, WorkflowSettings } from "../../src/graph/index.js";
+import { Agent, Workflow, chain, WorkflowSettings } from "../../src/index.js";
 import { replyWith, testWith, type ModelScript } from "../../src/testing/index.js";
 import type { TestApp } from "../../src/testing/test-app.js";
 import { usd } from "../../src/units/index.js";

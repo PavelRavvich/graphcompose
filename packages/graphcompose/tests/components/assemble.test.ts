@@ -1,9 +1,17 @@
 import { file } from "../../src/components/file.js";
 
 import { describe, expect, it } from "vitest";
-import { Agent, Workflow, Injectable, ROUTER_FACTORY, provide } from "../../src/core/index.js";
+import {
+  Agent,
+  Workflow,
+  Injectable,
+  ROUTER_FACTORY,
+  provide,
+  ComponentError,
+  Guardrail,
+  Tool,
+} from "../../src/index.js";
 import { workflowOf, toolOf } from "../../src/testing/index.js";
-import { ComponentError } from "../../src/core/index.js";
 import { checkGraph, createContainer } from "../../src/components/container.js";
 import { recordComponent } from "../../src/components/metadata.js";
 import type { WorkflowServices } from "../../src/workflow.js";
@@ -85,7 +93,6 @@ describe("components — assembly", () => {
   });
 });
 
-import { Guardrail, Tool } from "../../src/core/index.js";
 import { Person, Greeting } from "./fixture/components.js";
 import { testRunContext } from "../../src/testing/index.js";
 

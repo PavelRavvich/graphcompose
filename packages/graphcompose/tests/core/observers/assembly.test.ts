@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../../src/app/create-app.js";
-import { ComponentError, Injectable, type OnAgentStart } from "../../../src/core/index.js";
+import { ComponentError, Injectable, type OnAgentStart } from "../../../src/index.js";
 import { closestHook } from "../../../src/components/observer-checks.js";
 import { ScriptBook } from "../../../src/testing/script-book.js";
 import { createScriptedGateway } from "../../../src/testing/scripted-gateway.js";

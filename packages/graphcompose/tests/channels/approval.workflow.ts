@@ -8,16 +8,15 @@ import {
   type ChannelDecision,
   type ChannelHandler,
   type ChannelRequest,
-} from "../../src/core/index.js";
-import { Text, WorkflowFinishText, WorkflowStartText } from "../../src/dto/index.js";
-import {
   from,
   WorkflowFinish,
   WorkflowSettings,
   WorkflowStart,
   type WorkflowDefinition,
-} from "../../src/graph/index.js";
-import { Tool, type ToolHandler } from "../../src/tool/index.js";
+  Tool,
+  type ToolHandler,
+} from "../../src/index.js";
+import { Text, WorkflowFinishText, WorkflowStartText } from "../../src/dto/index.js";
 
 /** What the channel posted and what the tool did — the observable effects the tests read. */
 @Injectable()

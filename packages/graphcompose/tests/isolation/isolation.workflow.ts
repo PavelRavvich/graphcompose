@@ -1,7 +1,16 @@
-import { Agent, Injectable, Workflow } from "../../src/core/index.js";
+import {
+  Agent,
+  Injectable,
+  Workflow,
+  chain,
+  from,
+  WorkflowSettings,
+  type WorkflowDefinition,
+  Tool,
+  type ToolContext,
+  type ToolHandler,
+} from "../../src/index.js";
 import { Text } from "../../src/dto/index.js";
-import { chain, from, WorkflowSettings, type WorkflowDefinition } from "../../src/graph/index.js";
-import { Tool, type ToolContext, type ToolHandler } from "../../src/tool/index.js";
 import { usd } from "../../src/units/index.js";
 import { ApprovalDesk, ChatAppChannel, ChatStart, Reply } from "../channels/approval.workflow.js";
 

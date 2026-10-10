@@ -1,14 +1,18 @@
-import { Agent, InjectionToken, Judge, provide, Workflow } from "../../../src/core/index.js";
-import type { JudgeContext, JudgeHandler, JudgeVerdict } from "../../../src/core/index.js";
-import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
+  Agent,
+  InjectionToken,
+  Judge,
+  provide,
+  Workflow,
   chain,
   WorkflowFinish,
   WorkflowSettings,
   WorkflowStart,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
-import { MODEL_MAX } from "../../../src/index.js";
+  MODEL_MAX,
+} from "../../../src/index.js";
+import type { JudgeContext, JudgeHandler, JudgeVerdict } from "../../../src/index.js";
+import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import { DecisionsModelProvider } from "../../../src/models/index.js";
 import { LocalModelProvider } from "../../models/providers.fixture.js";
 

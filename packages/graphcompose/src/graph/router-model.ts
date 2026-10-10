@@ -1,6 +1,6 @@
 import type { AgentsConfigOf, ChatDefaults, ModelSettings, RouterModel } from "../config/types.js";
 import type { ModelGateway } from "../llm/gateway.js";
-import { createRouter, type Router } from "../routers/index.js";
+import { createRouter, type RouterEngine } from "../routers/index.js";
 import type { LoadedRouter } from "./router-texts.js";
 
 import { isDecisionModel } from "../models/decision-models.js";
@@ -22,7 +22,9 @@ export function routerModelOf(model: string, deps: FlowRouterFactoryDeps): Route
 }
 
 /** `FlowRuntime.routerFor` through the existing routers (one route → no call). */
-export function flowRouterFactory(deps: FlowRouterFactoryDeps): (router: LoadedRouter) => Router {
+export function flowRouterFactory(
+  deps: FlowRouterFactoryDeps,
+): (router: LoadedRouter) => RouterEngine {
   return (router) =>
     createRouter(router.name, routerModelOf(router.model, deps), deps.chatDefaults, deps.gateway);
 }

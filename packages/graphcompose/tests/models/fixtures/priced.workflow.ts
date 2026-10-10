@@ -1,15 +1,16 @@
 import { file } from "../../../src/components/file.js";
 
-import { Agent, Workflow } from "../../../src/core/index.js";
-import { MODEL_MAX } from "../../../src/index.js";
-import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
+  Agent,
+  Workflow,
+  MODEL_MAX,
   chain,
   WorkflowFinish,
   WorkflowStart,
   WorkflowSettings,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
+} from "../../../src/index.js";
+import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import { DecisionsModelProvider } from "../../../src/models/index.js";
 import { usd } from "../../../src/units/index.js";
 import { LocalModelProvider, TestOpenRouterProvider } from "../providers.fixture.js";

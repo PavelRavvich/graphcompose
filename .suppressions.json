@@ -26,7 +26,6 @@
   "src eslint:@typescript-eslint/unified-signatures": 1,
   "src eslint:complexity": 6,
   "src eslint:max-lines-per-function": 8,
-  "src eslint:no-restricted-imports": 21,
   "tests @ts-ignore": 1,
   "tests as any": 25,
   "tests as unknown as": 5,
@@ -39,6 +38,5 @@
   "tests eslint:@typescript-eslint/only-throw-error": 1,
   "tests eslint:@typescript-eslint/restrict-template-expressions": 3,
   "tests eslint:complexity": 1,
-  "tests eslint:no-console": 3,
-  "tests eslint:no-restricted-imports": 4
+  "tests eslint:no-console": 3
 }

@@ -14,53 +14,13 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./concurrency": {
-      "types": "./dist/concurrency/index.d.ts",
-      "import": "./dist/concurrency/index.js"
-    },
-    "./graph": {
-      "types": "./dist/graph/index.d.ts",
-      "import": "./dist/graph/index.js"
-    },
-    "./channels": {
-      "types": "./dist/channels/index.d.ts",
-      "import": "./dist/channels/index.js"
-    },
-    "./core": {
-      "types": "./dist/core/index.d.ts",
-      "import": "./dist/core/index.js"
-    },
-    "./router": {
-      "types": "./dist/router/index.d.ts",
-      "import": "./dist/router/index.js"
-    },
-    "./tool": {
-      "types": "./dist/tool/index.d.ts",
-      "import": "./dist/tool/index.js"
-    },
-    "./a2a": {
-      "types": "./dist/a2a/index.d.ts",
-      "import": "./dist/a2a/index.js"
-    },
-    "./mcp": {
-      "types": "./dist/mcp/index.d.ts",
-      "import": "./dist/mcp/index.js"
-    },
-    "./rag": {
-      "types": "./dist/rag/index.d.ts",
-      "import": "./dist/rag/index.js"
-    },
-    "./units": {
-      "types": "./dist/units/index.d.ts",
-      "import": "./dist/units/index.js"
-    },
     "./dto": {
       "types": "./dist/dto/index.d.ts",
       "import": "./dist/dto/index.js"
     },
-    "./memory": {
-      "types": "./dist/memory/index.d.ts",
-      "import": "./dist/memory/index.js"
+    "./units": {
+      "types": "./dist/units/index.d.ts",
+      "import": "./dist/units/index.js"
     },
     "./models": {
       "types": "./dist/models/index.d.ts",
@@ -73,7 +33,55 @@
     "./testing/setup": {
       "types": "./dist/testing/setup.d.ts",
       "import": "./dist/testing/setup.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/index.d.ts",
+      "import": "./dist/mcp/index.js"
+    },
+    "./rag": {
+      "types": "./dist/rag/index.d.ts",
+      "import": "./dist/rag/index.js"
+    },
+    "./a2a": {
+      "types": "./dist/a2a/index.d.ts",
+      "import": "./dist/a2a/index.js"
+    },
+    "./memory": {
+      "types": "./dist/memory/index.d.ts",
+      "import": "./dist/memory/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    },
+    "./graph": {
+      "types": "./dist/graph/index.d.ts",
+      "import": "./dist/graph/index.js"
+    },
+    "./router": {
+      "types": "./dist/router/index.d.ts",
+      "import": "./dist/router/index.js"
+    },
+    "./tool": {
+      "types": "./dist/tool/index.d.ts",
+      "import": "./dist/tool/index.js"
+    },
+    "./channels": {
+      "types": "./dist/channels/index.d.ts",
+      "import": "./dist/channels/index.js"
+    },
+    "./concurrency": {
+      "types": "./dist/concurrency/index.d.ts",
+      "import": "./dist/concurrency/index.js"
     }
+  },
+  "deprecatedExports": {
+    "./core": ".",
+    "./graph": ".",
+    "./router": ".",
+    "./tool": ".",
+    "./channels": ".",
+    "./concurrency": "."
   },
   "bin": {
     "graphcompose": "./bin/graphcompose.js",

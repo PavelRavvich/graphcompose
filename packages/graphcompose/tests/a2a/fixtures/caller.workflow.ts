@@ -1,17 +1,20 @@
 import { A2AAgent, A2AClient } from "../../../src/a2a/index.js";
-import { Agent, Injectable, Workflow } from "../../../src/core/index.js";
-import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import {
+  Agent,
+  Injectable,
+  Workflow,
   chain,
   WorkflowFinish,
   WorkflowSettings,
   WorkflowStart,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
+  Tool,
+  type ToolHandler,
+} from "../../../src/index.js";
+import { Text, WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import type { Class } from "../../../src/components/injection.js";
 import type { WorkflowStartClass } from "../../../src/graph/workflow-start.decorator.js";
 import type { ToolClass } from "../../../src/testing/index.js";
-import { Tool, type ToolHandler } from "../../../src/tool/index.js";
 
 export class Question {
   @Text({ prompt: "the question for the order desk" })

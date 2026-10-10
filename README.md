@@ -75,6 +75,28 @@ cd examples/job-scout && npm run chat # "my resume src/data/sample-resume.md"
 
 More: [Wiki → Example](https://github.com/PavelRavvich/graphcompose/wiki/Example).
 
+## Public entries
+
+One package; the root `graphcompose` is the authoring API, the rest are focused entries:
+
+- `graphcompose` — `@Workflow`, `@Agent`, `@Router`, `@Tool`, `@Injectable`, `@WorkflowAction`,
+  `@WorkflowStart` / `@WorkflowFinish`, `@Judge`, `@Guardrail`, `@PiiPolicy`, `@Channel`,
+  `InjectionToken`, `provide`, `ENV`, `defineEnvironment`, `fromEnv`, `from`, `chain`,
+  `WorkflowSettings`, `createApp`, `Decision`, observers, errors and types
+- `graphcompose/dto` — field decorators (`@Text`, `@ListOf`, …) and the standard DTOs
+- `graphcompose/units` — `usd()`, `seconds()`, `minutes()`
+- `graphcompose/models` — model providers
+- `graphcompose/testing` — `testWith`, `replyWith`, `mcpOf`, VCR (+ `graphcompose/testing/setup`)
+- `graphcompose/mcp`, `/rag`, `/a2a`, `/memory` — integrations (`@McpServer`, `@McpTool`,
+  `@McpExpose`, `@Rag`, A2A, memory)
+
+Importing `graphcompose` has no side effects: tracing, the MCP SDK and SQLite load only when an app
+uses them. The old entries `graphcompose/core`, `/graph`, `/router`, `/tool`, `/channels` and
+`/concurrency` are deprecated re-exports for one minor release; `gc migrate imports` rewrites them
+(and the renamed `Router` engine type → `RouterEngine`, root `McpServer` → `McpExpose` from
+`graphcompose/mcp`, testing `Duration` → `ClockDuration`). Every entry's surface is in
+`packages/graphcompose/api/*.api.md`; `npm run api:update` after an intended API change.
+
 ## Repository
 
 ```
@@ -161,7 +183,7 @@ most 200 questions per call; an answer that does not fit its question fails with
 `ModelKindError` (`model.wrong-kind`).
 
 ```ts
-import { Decision, Judge, type JudgeContext, type JudgeHandler } from "graphcompose/core";
+import { Decision, Judge, type JudgeContext, type JudgeHandler } from "graphcompose";
 
 @Judge({ name: "answer-grounded", model: "openai/gpt-6-luna-decisions", deps: [JOB_SEARCH] })
 export class AnswerGrounded implements JudgeHandler {
@@ -242,7 +264,7 @@ import {
   type AgentStartEvent,
   type OnAgentStart,
   type OnWorkflowStart,
-} from "graphcompose/core";
+} from "graphcompose";
 
 @Injectable()
 export class MetricsObserver implements OnWorkflowStart, OnAgentStart {

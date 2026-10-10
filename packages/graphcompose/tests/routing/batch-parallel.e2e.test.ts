@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../src/app/create-app.js";
-import { GraphRuleError } from "../../src/graph/index.js";
+import { GraphRuleError } from "../../src/index.js";
 import { checkFlow } from "../../src/graph/check-flow.js";
 import { callTool, replyWith, testWith, type ModelRequest } from "../../src/testing/index.js";
 import {

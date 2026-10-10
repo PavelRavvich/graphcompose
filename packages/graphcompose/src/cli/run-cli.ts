@@ -19,6 +19,7 @@ const HANDLERS: Readonly<Record<string, () => Promise<CommandHandler>>> = {
   compare: async () => (await import("../eval/cli.js")).handle,
   create: async () => (await import("./create.js")).handle,
   generate: async () => (await import("./generate.js")).handle,
+  migrate: async () => (await import("./migrate.js")).handle,
 };
 
 interface Call {

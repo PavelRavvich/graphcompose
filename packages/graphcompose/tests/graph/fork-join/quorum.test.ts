@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { Workflow, Agent, Tool } from "../../../src/components/decorators.js";
-import { from } from "../../../src/router/index.js";
-import { WorkflowStart, WorkflowFinish } from "../../../src/graph/index.js";
-import { type WorkflowDefinition } from "../../../src/core/index.js";
+import {
+  from,
+  WorkflowStart,
+  WorkflowFinish,
+  type WorkflowDefinition,
+} from "../../../src/index.js";
 import { testWith } from "../../../src/testing/test-with.js";
 import { QuorumRouter, type QuorumStrategy } from "../../../src/concurrency/quorum.decorator.js";
 import { replyWith } from "../../../src/testing/script.js";

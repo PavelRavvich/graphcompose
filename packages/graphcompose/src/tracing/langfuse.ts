@@ -2,6 +2,7 @@ import { CallbackHandler } from "@langfuse/langchain";
 import { LangfuseSpanProcessor } from "@langfuse/otel";
 import { setLangfuseTracerProvider } from "@langfuse/tracing";
 import { BasicTracerProvider } from "@opentelemetry/sdk-trace-base";
+import { langfuseSettings } from "./settings.js";
 import type { RunTracing } from "./types.js";
 
 /**
@@ -10,11 +11,10 @@ import type { RunTracing } from "./types.js";
  * not register global OpenTelemetry. Session = conversation thread, tags = workflow.
  */
 export function langfuseTracing(env: NodeJS.ProcessEnv): RunTracing | undefined {
-  const publicKey = env.LANGFUSE_PUBLIC_KEY;
-  const secretKey = env.LANGFUSE_SECRET_KEY;
-  const baseUrl = env.LANGFUSE_BASE_URL;
+  const settings = langfuseSettings(env);
+  if (settings === undefined) return undefined;
+  const { publicKey, secretKey, baseUrl } = settings;
   const projectId = env.LANGFUSE_PROJECT_ID === "" ? undefined : env.LANGFUSE_PROJECT_ID;
-  if (!publicKey || !secretKey || !baseUrl) return undefined;
   const processor = new LangfuseSpanProcessor({ publicKey, secretKey, baseUrl });
   const provider = new BasicTracerProvider({ spanProcessors: [processor] });
   setLangfuseTracerProvider(provider);

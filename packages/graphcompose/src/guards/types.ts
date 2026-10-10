@@ -1,5 +1,5 @@
 import type { UsageRecord } from "../finops/usage.js";
-import type { Router } from "../routers/index.js";
+import type { RouterEngine } from "../routers/index.js";
 
 /** Texts of a guard: the question and what "flag" and "pass" mean. */
 export interface GuardText {
@@ -11,7 +11,7 @@ export interface GuardText {
 /** A configured guard, ready to check a text. */
 export interface Guard extends GuardText {
   readonly name: string;
-  readonly router: Router;
+  readonly router: RouterEngine;
   /** Trips when P(flag) ≥ threshold. */
   readonly threshold: number;
   readonly refusal: string;

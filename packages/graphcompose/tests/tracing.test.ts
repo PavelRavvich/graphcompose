@@ -3,7 +3,8 @@ import { CallbackHandler } from "@langfuse/langchain";
 import { describe, expect, it } from "vitest";
 import { threadLine } from "../src/cli/approve.js";
 import { runAgent } from "../src/index.js";
-import { langfuseTracing, type RunTracing, type TraceContext } from "../src/tracing/index.js";
+import { langfuseTracing } from "../src/tracing/langfuse.js";
+import { tracingOf, type RunTracing, type TraceContext } from "../src/tracing/index.js";
 import { routeTo, fakeDeps } from "./helpers.js";
 
 /** Records which graph nodes started — proves callbacks reach the graph. */
@@ -23,6 +24,18 @@ describe("tracing", () => {
     expect(
       langfuseTracing({ LANGFUSE_PUBLIC_KEY: "pk", LANGFUSE_SECRET_KEY: "sk" }),
     ).toBeUndefined();
+  });
+
+  it("tracingOf loads Langfuse only when it is configured (#195)", async () => {
+    await expect(tracingOf({ LANGFUSE_PUBLIC_KEY: "pk" })).resolves.toBeUndefined();
+    const tracing = await tracingOf({
+      LANGFUSE_PUBLIC_KEY: "pk-lf-test",
+      LANGFUSE_SECRET_KEY: "sk-lf-test",
+      LANGFUSE_BASE_URL: "http://localhost:3000",
+      LANGFUSE_PROJECT_ID: "p1",
+    });
+    expect(tracing?.sessionUrl("t1")).toBe("http://localhost:3000/project/p1/sessions/t1");
+    await tracing?.shutdown();
   });
 
   it("with settings: one Langfuse handler per run, session = thread, tag = bundle", async () => {

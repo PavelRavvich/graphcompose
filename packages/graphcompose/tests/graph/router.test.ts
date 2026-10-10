@@ -9,7 +9,7 @@ import { from, Self, type Flow } from "../../src/graph/flow.js";
 import { RouterDecisionError } from "../../src/graph/nodes/flow-router.js";
 import { Router } from "../../src/graph/router.decorator.js";
 import { flowRouterFactory, routerModelOf } from "../../src/graph/router-model.js";
-import type { Router as RoutingStrategy } from "../../src/routers/index.js";
+import type { RouterEngine as RoutingStrategy } from "../../src/routers/index.js";
 import { fakeChatFactory, fakeGateway, usageRecord } from "../helpers.js";
 import { codeReviewFlow } from "./fixtures/code-review.js";
 import { scriptedRouter, testRuntime } from "./fixtures/nodes.js";

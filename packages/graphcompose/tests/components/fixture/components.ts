@@ -7,11 +7,12 @@ import {
   InjectionToken,
   provide,
   ROUTER_FACTORY,
-} from "../../../src/core/index.js";
+  Tool,
+  type ToolHandler,
+} from "../../../src/index.js";
 import { McpServer, McpServerClient, McpTool } from "../../../src/mcp/index.js";
-import { Tool, type ToolHandler } from "../../../src/tool/index.js";
 import { Text } from "../../../src/dto/index.js";
-import type { Router } from "../../../src/routers/index.js";
+import type { RouterEngine } from "../../../src/routers/index.js";
 import { testConfig } from "../../helpers.js";
 import { starOf, TestSettings } from "../../fixtures/test-flow/star.js";
 
@@ -21,7 +22,7 @@ export const GREETING = new InjectionToken<string>("GREETING");
 export class Greeter {
   constructor(
     readonly greeting: string,
-    readonly router: (name: string) => Router,
+    readonly router: (name: string) => RouterEngine,
   ) {}
   greet(name: string): string {
     return `${this.greeting}, ${name}`;

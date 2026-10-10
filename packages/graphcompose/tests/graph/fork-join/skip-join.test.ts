@@ -1,19 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { MemorySaver } from "@langchain/langgraph";
-import { Agent, Workflow } from "../../../src/core/index.js";
-import { workflowOf } from "../../../src/components/assemble.js";
-import { assembleFlowGraph } from "../../../src/graph/build.js";
 import {
+  Agent,
+  Workflow,
   from,
   Router,
   WorkflowFinish,
   WorkflowStart,
   WorkflowSettings,
   type WorkflowDefinition,
-} from "../../../src/graph/index.js";
+} from "../../../src/index.js";
+import { workflowOf } from "../../../src/components/assemble.js";
+import { assembleFlowGraph } from "../../../src/graph/build.js";
 import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
 import { Return } from "../../../src/graph/flow.js";
-import type { Router as RoutingStrategy } from "../../../src/routers/index.js";
+import type { RouterEngine as RoutingStrategy } from "../../../src/routers/index.js";
 
 @WorkflowStart({ name: "skipStart", description: "Start", input: WorkflowStartText })
 export class SkipStart {

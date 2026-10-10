@@ -1,6 +1,13 @@
-import { Agent, Decision, Judge, Workflow } from "../../../src/core/index.js";
-import type { JudgeContext, JudgeHandler, JudgeVerdict } from "../../../src/core/index.js";
-import { chain, type WorkflowDefinition, type WorkflowSettings } from "../../../src/graph/index.js";
+import {
+  Agent,
+  Decision,
+  Judge,
+  Workflow,
+  chain,
+  type WorkflowDefinition,
+  type WorkflowSettings,
+} from "../../../src/index.js";
+import type { JudgeContext, JudgeHandler, JudgeVerdict } from "../../../src/index.js";
 import { DEFAULTS, Reply, settings, TaskStart } from "./judged.workflow.js";
 
 /** The decision model judges run on (OpenRouter Decisions API, images supported). */

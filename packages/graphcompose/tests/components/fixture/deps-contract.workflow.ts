@@ -1,9 +1,16 @@
-import { Agent, provide, Workflow } from "../../../src/core/index.js";
+import {
+  Agent,
+  provide,
+  Workflow,
+  from,
+  WorkflowFinish,
+  WorkflowSettings,
+  WorkflowStart,
+} from "../../../src/index.js";
 import type { Class } from "../../../src/components/injection.js";
 import type { FlowNodeClass } from "../../../src/graph/flow.js";
 import type { WorkflowMeta } from "../../../src/components/meta-types.js";
 import { WorkflowFinishText, WorkflowStartText } from "../../../src/dto/index.js";
-import { from, WorkflowFinish, WorkflowSettings, WorkflowStart } from "../../../src/graph/index.js";
 import type { AppOptions } from "../../../src/app/create-app.js";
 import { createMemoryLedger } from "../../../src/finops/ledger.js";
 import { createSqliteTernStore } from "../../../src/terns/index.js";

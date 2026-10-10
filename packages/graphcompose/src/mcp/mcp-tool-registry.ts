@@ -21,7 +21,7 @@ import {
 } from "./mcp-service-helpers.js";
 
 /**
- * What an `@McpServer` exposes: its `@Tool` / `@McpTool` exports (run through the same adapter as
+ * What an `@McpExpose` exposes: its `@Tool` / `@McpTool` exports (run through the same adapter as
  * agent tool calls — DTO validation of input and output, timeout, `callId`), its workflow starts
  * (`app.execute`), and `resume_workflow` (`app.resume`) when there is a start.
  */
@@ -61,7 +61,7 @@ function addTool(registry: ToolRegistry, exported: ExportedTool): void {
   const instance: unknown = app.hasTool(meta.name) ? app.resolve(exp) : undefined;
   if (!isToolHandler(instance)) {
     throw new Error(
-      `@McpServer exports ${exp.name}, which is not a tool of workflow "${app.name}"`,
+      `@McpExpose exports ${exp.name}, which is not a tool of workflow "${app.name}"`,
     );
   }
   const tool = adapt(instance, meta);

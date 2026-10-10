@@ -18,7 +18,7 @@ import {
   WorkflowStart,
   WorkflowFinish,
   Router,
-} from "../../../src/graph/index.js";
+} from "../../../src/index.js";
 import { WorkflowStartText, WorkflowFinishText } from "../../../src/dto/index.js";
 import { createMemoryPausedRunRepository } from "../../../src/app/paused-runs.js";
 

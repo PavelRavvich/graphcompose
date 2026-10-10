@@ -47,7 +47,7 @@ takes `--profile <name>` (`profiles/<workflow>/<name>.yaml`) and `--thread <id>`
 ## Architecture
 
 **The workflow file is the graph** (Wiki → Workflow): `@Workflow({ flow: [...] })` lists the
-transitions with a small DSL from `graphcompose/graph`, checked at assembly and built into LangGraph.
+transitions with a small DSL from `graphcompose`, checked at assembly and built into LangGraph.
 job-scout is a star:
 
 ```ts
@@ -141,10 +141,19 @@ flow: [
   `*.server.ts` + `*.mcp.ts`, `*.rag.ts`, `*.service.ts` (`@Injectable`), `*.helper.ts`; tools keep
   `run`, bulky helpers go to `*.helper.ts`.
 - **Framework and examples apart** (ESLint-enforced both ways): `packages/graphcompose` never imports
-  `examples/`; an example imports only the public `graphcompose` entry points (`graphcompose`,
-  `graphcompose/graph`, `graphcompose/dto`, `graphcompose/units`, `graphcompose/models`,
-  `graphcompose/mcp`, `graphcompose/rag`, `graphcompose/testing`), like an outside project — and so
-  does every file `gc generate` writes (#197).
+  `examples/`; an example imports only the public `graphcompose` entry points, like an outside
+  project — and so does every file `gc generate` writes (#197). The allowlist is generated from
+  `packages/graphcompose/package.json#exports` minus `deprecatedExports` (scripts/public-entries.mjs,
+  #195): a new entry is allowed by adding it there, never by an `eslint-disable`.
+- **Public entries (#195)**: the root `graphcompose` is the authoring API (decorators, DI, flow DSL,
+  settings, environments, observers, `createApp`, errors, types); focused entries `/dto`, `/units`,
+  `/models`, `/testing`, and the integrations `/mcp`, `/rag`, `/a2a`, `/memory`. The root import has
+  no side effects (tests/public-api/side-effects.test.ts): load tracing, MCP, SQLite and the like
+  lazily, inside the function that needs them. One name per meaning across entries
+  (tests/public-api/names.test.ts). A public surface change updates the committed api-extractor
+  reports (`npm run api:update` → packages/graphcompose/api/*.api.md; `npm run check` fails on a stale
+  one). `/core`, `/graph`, `/router`, `/tool`, `/channels`, `/concurrency` are deprecated re-exports
+  for one minor release; `gc migrate imports` rewrites old imports.
 
 ## Naming grammar (#127)
 
@@ -191,7 +200,7 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 - **Scopes (#184):** every DI decorator takes `scope: "app" | "run"` (default `"app"`: one instance for the app, shared by every run). Per-run state (what a run has seen, a session) belongs in a `scope: "run"` component: `@Injectable({ scope: "run" })`, `@Tool({ scope: "run", deps: [SearchSession] })`. Each run (`app.execute`, `app.resume`, a `testWith` tool slice call) gets its own instances in a child container, and `onDestroy` (`implements OnDestroy`) runs when it ends — answered, paused or failed. An app-scoped component depending on a run-scoped one fails assembly with `[di.scope-mismatch] GreenhouseJobs (app) → SearchSession (run)`; using a run-scoped component outside a run fails with `[di.run-scope-outside-run]`. Lint (`graphcompose/no-run-state-in-singleton`, `scripts/eslint-run-state.mjs`) flags `this.x = …` inside `run()` of an app-scoped component.
 - **Tool names:** unique over the names a model sees — local, MCP and `search_<rag>` — else `[tool.duplicate-name]` at assembly.
 - **Channel constraints:** If an `@McpTool` or `@Tool` specifies a `channel`, that channel class MUST be explicitly registered in the `@Workflow({ channelClasses: [...] })` array. Otherwise, compilation throws `ComponentError`.
-- **Observers are registered, not discovered:** only classes listed in `@Workflow({ observers: [...] })` get hooks (`implements OnToolEnd, …`, payloads like `ToolEndEvent` from `graphcompose/core`). A service that merely has an `onError` method is never called. Assembly rejects an observer with no hook (`[observer.no-hooks]`) or a misspelled one (`[observer.unknown-hook] … did you mean onToolEnd?`). An observer that throws is reported as a process warning; the run goes on.
+- **Observers are registered, not discovered:** only classes listed in `@Workflow({ observers: [...] })` get hooks (`implements OnToolEnd, …`, payloads like `ToolEndEvent` from `graphcompose`). A service that merely has an `onError` method is never called. Assembly rejects an observer with no hook (`[observer.no-hooks]`) or a misspelled one (`[observer.unknown-hook] … did you mean onToolEnd?`). An observer that throws is reported as a process warning; the run goes on.
 - **Environment:** the app's settings live in `environments/` next to the workflow file: the contract in `environment.ts` (`declare module "graphcompose" { interface Environment { … } }`), the values in `<name>.environment.ts` (`export default defineEnvironment({ … })`, `fromEnv("VAR", { default, secret })` for process variables). Services inject them with `ENV` from `graphcompose` (`@Injectable({ deps: [ENV] })`, `constructor(env: Environment)`), never `process.env`. `--env <name>` / `createApp(W, { env })` / `testWith(W, { env | environment })` pick one; the default is `dev`. Model provider keys stay process variables (`EnvironmentVariable.named`).
 - **RunContext:** tools and actions read their run as `ctx.run` (`runId: RunId`, `threadId`, `signal`, `metadata` from `execute(…, { metadata })`, `owner` from `execute(…, { owner })` — a thread is bound to its owner; `execute`/`resume`/`cancel` by another throw `ThreadOwnerError`); actions get `ctx.idempotencyKey` = `${runId}:${node}` (`:${index}` inside `batchParallel`). It is built once in `streamConfig` (`configurable.run`); framework nodes read it with the internal `extractRunContext` — never parse `configurable` by hand. `app.cancel(thread)` aborts a running run (`WorkflowCancelledError`) or drops a paused one (`resume` → `NotPausedError`) and returns `{ cancelled }`.
 
@@ -227,7 +236,8 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 ```
 packages/graphcompose/        the framework (npm package `graphcompose`; builds to dist/, bin `graphcompose`)
   src/
-    index.ts        public API (components, createApp, runAgent / resumeAgent, createAppDeps, RAG, tools, types)
+    index.ts        the root entry `graphcompose` (public/: components, flow, observers, app) + errors.ts
+    migrate/        `gc migrate imports` (#195): rewrites the old entries' imports to the new ones
     app/            createApp → app.execute / resume / close; app-deps.ts — production wiring (model gateway,
                     MCP, ledger, Terns, tracing), every part replaceable
     testing/        `graphcompose/testing`: testWith (Vitest fixtures), scripted gateway, matchers, setup.ts
@@ -239,7 +249,7 @@ packages/graphcompose/        the framework (npm package `graphcompose`; builds 
                     envelope), commands.ts (one option schema per command: parser + help), terminal helpers
     config/         typed config schema, profiles (YAML overlays), defaults resolution
     rag/            knowledge-base contract (RagConnector) + reference SQLite FTS5 connector
-    graph/          `graphcompose/graph`: flow.ts (DSL), route.ts, workflow-start / router / workflow-finish decorators,
+    graph/          flow.ts (DSL), route.ts, workflow-start / router / workflow-finish decorators,
                     rules.ts + check-flow.ts + router-rules.ts (assembly rules, rule-error.ts), build.ts
                     (LangGraph), limits.ts, settings.ts, flow-state.ts, visit.ts; nodes/ (flow-router,
                     agent loop, approval, guards, knowledge, finalize)
