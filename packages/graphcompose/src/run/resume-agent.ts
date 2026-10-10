@@ -1,4 +1,5 @@
 import { GraphComposeError } from "../core/errors.js";
+import { inRunScope } from "../components/run-scope.js";
 import { Command } from "@langchain/langgraph";
 import type { UsageRecord } from "../finops/usage.js";
 import type { FlowGraph } from "../graph/build.js";
@@ -48,13 +49,25 @@ async function pausedRun<TName extends string>(
 
 /**
  * Continues a paused run with the approver's decision — same run id, same Tern, same budget. Spend
- * recorded before the pause is not recorded again.
+ * recorded before the pause is not recorded again. The resumed part gets fresh run-scoped components
+ * (`scope: "run"`): those of the part before the pause were destroyed when it paused.
  */
-export async function resumeAgent<TName extends string>(
+export function resumeAgent<TName extends string>(
   paused: AgentExecutionOutput,
   decision: unknown,
   deps: RunDeps<TName>,
-  options: Pick<RunOptions, "signal" | "executionContext" | "onStream"> = {},
+  options: ResumeOptions = {},
+): Promise<AgentExecutionOutput> {
+  return inRunScope(() => resumeOnce(paused, decision, deps, options));
+}
+
+type ResumeOptions = Pick<RunOptions, "signal" | "executionContext" | "onStream">;
+
+async function resumeOnce<TName extends string>(
+  paused: AgentExecutionOutput,
+  decision: unknown,
+  deps: RunDeps<TName>,
+  options: ResumeOptions,
 ): Promise<AgentExecutionOutput> {
   const { flow, before } = await pausedRun(paused, deps);
   const spent: UsageRecord[] = [];

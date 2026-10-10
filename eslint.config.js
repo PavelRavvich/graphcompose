@@ -1,6 +1,7 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import { testRules } from "./eslint.tests.js";
+import { runStateRules } from "./scripts/eslint-run-state.mjs";
 
 /** What any framework module may not import (src/routers, tools and terns have their own rules). */
 const frameworkImportPatterns = [
@@ -175,6 +176,7 @@ export default tseslint.config(
     },
   },
   testRules,
+  runStateRules,
   {
     files: ["**/*.js", "**/*.cjs", "**/*.mjs"],
     ...tseslint.configs.disableTypeChecked,
@@ -182,7 +184,8 @@ export default tseslint.config(
   {
     files: ["scripts/**/*.mjs"],
     languageOptions: { globals: { process: "readonly", console: "readonly", URL: "readonly" } },
-    rules: { "no-console": "off" },
+    // plain JS (lint rules, checks): no type annotations to give
+    rules: { "no-console": "off", "@typescript-eslint/explicit-module-boundary-types": "off" },
   },
   {
     files: ["**/*.cjs"],

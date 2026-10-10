@@ -1,6 +1,6 @@
 import type { BaseMessageLike } from "@langchain/core/messages";
 import { recordComponent } from "./metadata.js";
-import type { ResolvedAll, Token } from "./injection.js";
+import type { ResolvedAll, Scoped, Token } from "./injection.js";
 
 /** `@Judge` — a quality gate of an agent's reply, with the model it judges with. */
 export interface JudgeMeta {
@@ -50,10 +50,14 @@ export interface JudgeHandler {
  * workflow's container with its `deps`; its model calls go through the model gateway.
  */
 export function Judge<const D extends readonly Token[] = []>(
-  options: JudgeMeta & { readonly deps?: D },
+  options: JudgeMeta & { readonly deps?: D } & Scoped,
 ) {
   return <C extends new (...args: ResolvedAll<D>) => JudgeHandler>(value: C): C => {
-    recordComponent(value, { kind: "judge", meta: { ...options, deps: options.deps ?? [] } });
+    recordComponent(
+      value,
+      { kind: "judge", meta: { ...options, deps: options.deps ?? [] } },
+      options.scope,
+    );
     return value;
   };
 }

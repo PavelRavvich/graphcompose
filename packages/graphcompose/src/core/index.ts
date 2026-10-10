@@ -37,6 +37,7 @@ export {
   provide,
   type Class,
   type Provider,
+  type Scope,
   type ValueProvider,
   type Token,
 } from "../components/injection.js";

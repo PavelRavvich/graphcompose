@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { initAll, assembleAll, startAll, stopAll } from "../../src/components/lifecycle.js";
+import {
+  assembleAll,
+  destroyAll,
+  initAll,
+  startAll,
+  stopAll,
+} from "../../src/components/lifecycle.js";
 
 describe("AC12: lifecycle hooks of components", () => {
   it("starts in creation order and stops dependants first; things without hooks are skipped", async () => {
@@ -48,5 +54,20 @@ describe("AC12: lifecycle hooks of components", () => {
 
     await expect(stopAll([fine, failing])).rejects.toBeInstanceOf(AggregateError);
     expect(stopped).toEqual(["fine"]);
+  });
+
+  it("onDestroy (run-scoped instances, #184): dependants first, every hook runs, failures together", async () => {
+    const destroyed: string[] = [];
+    const hooked = (name: string) => ({
+      onDestroy: () => {
+        destroyed.push(name);
+      },
+    });
+    const failing = { onDestroy: () => Promise.reject(new Error("socket gone")) };
+
+    await expect(
+      destroyAll([hooked("session"), failing, { plain: true }, hooked("tool")]),
+    ).rejects.toBeInstanceOf(AggregateError);
+    expect(destroyed).toEqual(["tool", "session"]);
   });
 });

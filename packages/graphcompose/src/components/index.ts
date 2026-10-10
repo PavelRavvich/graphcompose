@@ -11,7 +11,7 @@ export {
   Tool,
   type ToolHandler,
 } from "./decorators.js";
-export { InjectionToken, type Class, type Provider, type Token } from "./injection.js";
+export { InjectionToken, type Class, type Provider, type Scope, type Token } from "./injection.js";
 export { ComponentError, componentOf } from "./metadata.js";
 export { PromptError, type PromptProblem, type PromptProblemCode } from "./prompt-problems.js";
 export type { OnStart, OnStop } from "./lifecycle.js";

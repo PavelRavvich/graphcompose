@@ -9,6 +9,7 @@ import type { ToolContext, ToolOutput } from "../tools/index.js";
 import { TestSetupError } from "./errors.js";
 import { nodeNameOf } from "./failure-facts.js";
 import { toolNameOf } from "./script.js";
+import { inRunScope } from "../components/run-scope.js";
 
 /** One tool of the app, as the agents get it (validation, timeout, errors as results). */
 export interface ToolSlice<TInput, TOutput> {
@@ -48,7 +49,9 @@ export function toolSlice<TInput, TOutput>(
   };
   return {
     // the tool validates its result against the output DTO that `run` returns
-    invoke: async (input) => (await tool.invoke(input, ctx)) as ToolOutput<TOutput>,
+    // one call is one run: a run-scoped tool (`scope: "run"`) gets a fresh instance per call
+    invoke: (input) =>
+      inRunScope(async () => (await tool.invoke(input, ctx)) as ToolOutput<TOutput>),
   };
 }
 

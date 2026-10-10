@@ -1,5 +1,6 @@
 import { InjectionToken, tokenName, type Class, type Provider, type Token } from "./injection.js";
-import { ComponentError, componentOf } from "./metadata.js";
+import { ComponentError, componentOf, scopeOf } from "./metadata.js";
+import { runScopedProxy, type RunContainer, type ScopeOwner } from "./run-scope.js";
 
 /** A component's constructor dependencies: every decorator kind that takes `deps` records them. */
 export const depsOf = (cls: Class): readonly Token[] => {
@@ -41,9 +42,18 @@ export function dependencyTree(cls: Class, providers: readonly Provider[]): stri
   return render(depsOf(cls));
 }
 
+/** An app-scoped component lives across runs: it cannot hold one run's instance (#184). */
+const checkScope = (cls: Class, dep: Class): void => {
+  if (scopeOf(cls) === "app" && scopeOf(dep) === "run") {
+    throw new ComponentError(
+      `[di.scope-mismatch] ${tokenName(cls)} (app) → ${tokenName(dep)} (run): give ${tokenName(cls)} scope: "run" too, or make ${tokenName(dep)} app-scoped`,
+    );
+  }
+};
+
 /**
  * Checks the dependency graph of `roots` without creating anything: every dependency registered,
- * no cycles. Errors name the component and the chain.
+ * no cycles, no app-scoped component depending on a run-scoped one. Errors name the component and the chain.
  */
 export function checkGraph(
   roots: readonly Class[],
@@ -64,7 +74,10 @@ export function checkGraph(
           `${tokenName(cls)}: "${tokenName(dep)}" is not registered in @Workflow({ providers })`,
         );
       }
-      if (reg.kind === "class") visit(reg.cls, path);
+      if (reg.kind === "class") {
+        checkScope(cls, reg.cls);
+        visit(reg.cls, path);
+      }
     }
     done.add(cls);
   };
@@ -88,7 +101,7 @@ export interface ContainerOptions {
   readonly onCreate?: (instance: unknown) => void;
 }
 
-export interface Container {
+export interface Container extends ScopeOwner {
   readonly get: (token: Token) => unknown;
   /** Class names in creation order (dependencies before dependants). */
   readonly created: readonly string[];
@@ -100,7 +113,53 @@ const failIfUnavailable = (reg: Registration | undefined, dependant: string): vo
   }
 };
 
-/** Creates components once (singletons), dependencies first; `created` records the order. */
+/** What a token is registered as; an unregistered class (a tool, an action) is its own registration. */
+function registrationOf(
+  registered: ReadonlyMap<Token, Registration>,
+  token: Token,
+  dependant: string,
+): Registration {
+  const reg = registered.get(token);
+  failIfUnavailable(reg, dependant);
+  if (reg === undefined && token instanceof InjectionToken) {
+    throw new ComponentError(`"${tokenName(token)}" is not registered in @Workflow({ providers })`);
+  }
+  return reg ?? { kind: "class", cls: token as Class };
+}
+
+type Resolve = (token: Token, dependant: string) => unknown;
+
+/** A new instance of `cls`, its dependencies resolved first. */
+function construct(cls: Class, resolve: Resolve): unknown {
+  const args = depsOf(cls).map((dep) => resolve(dep, tokenName(cls)));
+  if (args.length === 0 && cls.length > 0 && !componentOf(cls)) {
+    throw new ComponentError(
+      `[di.undecorated-provider] ${tokenName(cls)} takes ${String(cls.length)} constructor argument(s) but has no @Injectable({ deps }) or similar decorator.`,
+    );
+  }
+  return new (cls as unknown as new (...a: unknown[]) => unknown)(...args);
+}
+
+/** A run's child container: run-scoped classes are created in it, everything else comes from the app's. */
+function runChildOf(registered: ReadonlyMap<Token, Registration>, app: Resolve): RunContainer {
+  const instances = new Map<Token, unknown>();
+  const created: unknown[] = [];
+  const resolve = (token: Token, dependant: string): unknown => {
+    if (instances.has(token)) return instances.get(token);
+    const reg = registrationOf(registered, token, dependant);
+    if (reg.kind === "value" || scopeOf(reg.cls) === "app") return app(token, dependant);
+    const instance = construct(reg.cls, resolve);
+    created.push(instance);
+    instances.set(token, instance);
+    return instance;
+  };
+  return { get: (token) => resolve(token, "the run"), created };
+}
+
+/**
+ * Creates app-scoped components once (singletons), dependencies first; `created` records the order.
+ * A run-scoped class resolves to a stand-in for the current run's instance (`runChild`, #184).
+ */
 export function createContainer(
   providers: readonly Provider[],
   core: ReadonlyMap<Token, unknown>,
@@ -112,35 +171,28 @@ export function createContainer(
   }
   const instances = new Map<Token, unknown>();
   const created: string[] = [];
-  const resolve = (token: Token, dependant = "the app"): unknown => {
-    if (instances.has(token)) return instances.get(token);
-    const reg = registered.get(token);
-    failIfUnavailable(reg, dependant);
-    if (reg === undefined && token instanceof InjectionToken) {
-      throw new ComponentError(
-        `"${tokenName(token)}" is not registered in @Workflow({ providers })`,
-      );
-    }
-    const value =
-      reg?.kind === "value"
-        ? reg.value
-        : instantiate(reg?.kind === "class" ? reg.cls : (token as Class));
-    instances.set(token, value);
-    return value;
-  };
-  const instantiate = (cls: Class): unknown => {
-    const args = depsOf(cls).map((dep) => resolve(dep, tokenName(cls)));
-    if (args.length === 0 && cls.length > 0) {
-      if (!componentOf(cls)) {
-        throw new ComponentError(
-          `[di.undecorated-provider] ${tokenName(cls)} takes ${String(cls.length)} constructor argument(s) but has no @Injectable({ deps }) or similar decorator.`,
-        );
-      }
-    }
-    const instance: unknown = new (cls as unknown as new (...a: unknown[]) => unknown)(...args);
+  const singleton = (cls: Class): unknown => {
+    const instance = construct(cls, resolve);
     created.push(tokenName(cls));
     options.onCreate?.(instance);
     return instance;
   };
-  return { get: (token: Token): unknown => resolve(token), created };
+  const resolve = (token: Token, dependant = "the app"): unknown => {
+    if (instances.has(token)) return instances.get(token);
+    const reg = registrationOf(registered, token, dependant);
+    const value =
+      reg.kind === "value"
+        ? reg.value
+        : scopeOf(reg.cls) === "run"
+          ? runScopedProxy(reg.cls, container)
+          : singleton(reg.cls);
+    instances.set(token, value);
+    return value;
+  };
+  const container: Container = {
+    get: (token: Token): unknown => resolve(token),
+    created,
+    runChild: () => runChildOf(registered, resolve),
+  };
+  return container;
 }
