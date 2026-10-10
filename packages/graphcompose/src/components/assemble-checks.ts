@@ -90,6 +90,7 @@ export const componentClassesOf = (
   ...agents.flatMap(policyClassesOf),
   ...agents.flatMap((a) => a.judges ?? []),
   ...providerClassesOf(bundle),
+  ...agents.flatMap((a) => a.memoryStrategy ?? []),
 ];
 
 /** Whether a framework decorator marks the class (a component, a flow node or a batch strategy). */

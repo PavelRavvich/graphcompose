@@ -1,3 +1,4 @@
+import type { BaseMemoryStrategy } from "../memory/types.js";
 import type { BaseCheckpointSaver } from "@langchain/langgraph";
 import type { AssembledWorkflow, WorkflowServices } from "../workflow.js";
 import type { KnowledgeSource } from "../rag/types.js";
@@ -88,6 +89,15 @@ export function knowledgeFor(
   const byAgent = bundle.knowledge?.(services);
   return byAgent === undefined ? {} : { knowledge: (agent) => byAgent.get(agent) ?? [] };
 }
+
+/** The agents' own memory strategies (`@Agent({ memoryStrategy })`), from the container. */
+export const memoryFor = (
+  bundle: AssembledWorkflow,
+  services: WorkflowServices,
+): { readonly memory?: ReadonlyMap<string, BaseMemoryStrategy> } => {
+  const memory = bundle.memoryStrategies?.(services);
+  return memory === undefined ? {} : { memory };
+};
 
 /** The pause seam, when the workflow has tools that wait for an approval; on the app's checkpointer. */
 export const pauseFor = (

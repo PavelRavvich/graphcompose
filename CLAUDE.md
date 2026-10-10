@@ -87,6 +87,13 @@ flow: [
   net far above the steps.
 - Every turn: spend to the daily ledger, a Tern to SQLite, financials in the result, optional
   tracing (Langfuse) and conversation compaction (summaries queue).
+- **Memory** (`graphcompose/memory`): by default an agent sees the thread's last
+  `defaults.history.limit` turns (its own `historyLimit`) and, with `compaction`, the latest
+  summaries — the built-in strategy (`SlidingWindowStrategy`; compaction is its after-turn update,
+  cost in the run's report). `@Agent({ memoryStrategy: Cls })` replaces it for that agent only:
+  `Cls extends BaseMemoryStrategy`, created by the container (`@Injectable({ deps })`);
+  `buildContext` picks the turns and summaries the agent's model calls see, the optional
+  `updateMemory` runs after every finished turn. Anything else fails assembly (`[memory.not-a-strategy]`).
 - Components, Angular style (Wiki → Components): annotated classes, one per file, folders by kind
   (`workflow-starts/`, `routers/`, `agents/`, `workflow-finishes/`, `tools/`, `mcp/`, `rag/`, `services/`); the
   `@Workflow` module places nodes in its `flow` and lists `mcp` servers and `providers` by class

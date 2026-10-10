@@ -1,35 +1,35 @@
-import { describe, it, expect } from "vitest";
-import { HumanMessage } from "@langchain/core/messages";
-import { SlidingWindowStrategy } from "../../src/memory/strategies/sliding-window.strategy.js";
+import { describe, expect, it } from "vitest";
+import { SlidingWindowStrategy, type MemoryContext } from "../../src/memory/index.js";
+
+const turn = (task: string) => ({ task, replyWith: `re ${task}`, status: "answered" });
+
+const context = (limits: MemoryContext["limits"]): MemoryContext => ({
+  agent: "a",
+  task: "now",
+  history: ["t1", "t2", "t3"].map(turn),
+  summaries: ["s1", "s2"],
+  limits,
+});
 
 describe("SlidingWindowStrategy", () => {
-  it("should truncate messages to windowSize", async () => {
-    const strategy = new SlidingWindowStrategy();
-    const messages = [
-      new HumanMessage("1"),
-      new HumanMessage("2"),
-      new HumanMessage("3"),
-      new HumanMessage("4"),
-    ];
+  it("keeps the agent's configured number of last turns and summaries", () => {
+    const view = new SlidingWindowStrategy().buildContext(context({ turns: 2, summaries: 1 }));
 
-    const state = { runId: "test-run" };
-
-    // Testing windowSize = 2
-    const context = await strategy.buildContext(messages, state, { windowSize: 2 });
-
-    expect(context).toHaveLength(2);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    expect(context[0]!.content).toBe("3");
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    expect(context[1]!.content).toBe("4");
+    expect(view).toEqual({ history: [turn("t2"), turn("t3")], summaries: ["s2"] });
   });
 
-  it("should return all messages if windowSize is greater than messages length", async () => {
-    const strategy = new SlidingWindowStrategy();
-    const messages = [new HumanMessage("1"), new HumanMessage("2")];
+  it("a limit of 0 shows nothing", () => {
+    expect(new SlidingWindowStrategy().buildContext(context({ turns: 0, summaries: 0 }))).toEqual({
+      history: [],
+      summaries: [],
+    });
+  });
 
-    const context = await strategy.buildContext(messages, { runId: "test" }, { windowSize: 10 });
+  it("a fixed window overrides the configured limits", () => {
+    const view = new SlidingWindowStrategy({ turns: 1 }).buildContext(
+      context({ turns: 3, summaries: 2 }),
+    );
 
-    expect(context).toHaveLength(2);
+    expect(view).toEqual({ history: [turn("t3")], summaries: ["s1", "s2"] });
   });
 });
