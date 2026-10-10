@@ -1,7 +1,7 @@
 {
   "src @ts-ignore": 2,
   "src as any": 21,
-  "src as unknown as": 9,
+  "src as unknown as": 8,
   "src eslint:@typescript-eslint/ban-ts-comment": 2,
   "src eslint:@typescript-eslint/explicit-module-boundary-types": 37,
   "src eslint:@typescript-eslint/no-base-to-string": 2,
@@ -32,7 +32,7 @@
   "src eslint:no-restricted-imports": 27,
   "src eslint:prefer-const": 1,
   "tests @ts-ignore": 1,
-  "tests as any": 31,
+  "tests as any": 30,
   "tests as unknown as": 11,
   "tests eslint:@typescript-eslint/ban-ts-comment": 2,
   "tests eslint:@typescript-eslint/no-extraneous-class": 4,
