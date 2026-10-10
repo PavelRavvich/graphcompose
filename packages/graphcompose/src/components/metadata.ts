@@ -2,9 +2,16 @@ import type { McpServerConfig } from "../config/types.js";
 import type { DtoClass } from "../dto/types.js";
 import type { ServerTools } from "./mcp-client.js";
 import type { Class, Token } from "./injection.js";
-import type { AgentMeta, WorkflowMeta, WorkflowActionMeta, ChannelMeta } from "./meta-types.js";
+import type {
+  AgentMeta,
+  ChannelMeta,
+  PolicyFields,
+  WorkflowActionMeta,
+  WorkflowMeta,
+} from "./meta-types.js";
 
-export interface ToolMeta {
+/** `@Tool` — its options as recorded, including the policy settings (`piiPolicies`, `guardrails`, …). */
+export interface ToolMeta extends PolicyFields {
   readonly name: string;
   readonly description: string;
   readonly prompt?: string;
@@ -35,7 +42,10 @@ export type ComponentMeta =
   | { readonly kind: "mcp-tool"; readonly meta: McpToolMeta }
   | { readonly kind: "agent"; readonly meta: AgentMeta }
   | { readonly kind: "channel"; readonly meta: ChannelMeta & { readonly deps: readonly Token[] } }
-  | { readonly kind: "action"; readonly meta: WorkflowActionMeta }
+  | {
+      readonly kind: "action";
+      readonly meta: WorkflowActionMeta & { readonly deps: readonly Token[] };
+    }
   | { readonly kind: "injectable"; readonly meta: { readonly deps: readonly Token[] } }
   | {
       readonly kind: "rag";
@@ -71,13 +81,17 @@ export type ComponentMeta =
       };
     }
   | { readonly kind: "workflow"; readonly meta: WorkflowMeta }
-  | { readonly kind: "judge"; readonly meta: import("./judge-decorators.js").JudgeMeta }
+  | {
+      readonly kind: "judge";
+      readonly meta: import("./judge-decorators.js").JudgeMeta & {
+        readonly deps: readonly Token[];
+      };
+    }
   | {
       readonly kind: "a2a-agent";
       readonly meta: {
-        readonly config: import("../a2a/a2a-decorator.js").A2AAgentConfig<
-          readonly import("../components/injection.js").Token[]
-        >;
+        readonly config: import("../a2a/a2a-decorator.js").A2AAgentConfig<readonly Token[]>;
+        readonly deps: readonly Token[];
       };
     };
 

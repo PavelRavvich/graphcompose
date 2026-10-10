@@ -1,7 +1,7 @@
 import { recordComponent } from "../components/metadata.js";
 import type { A2AClient } from "./a2a-client.js";
 
-import type { Token } from "../components/injection.js";
+import type { ResolvedAll, Token } from "../components/injection.js";
 
 export interface A2AAgentConfig<D extends readonly Token[] = []> {
   readonly name: string;
@@ -14,9 +14,8 @@ export interface A2AAgentConfig<D extends readonly Token[] = []> {
  * Works similarly to `@McpServer`.
  */
 export function A2AAgent<const D extends readonly Token[] = []>(config: A2AAgentConfig<D>) {
-  return <C extends new (...args: unknown[]) => A2AClient>(value: C): C => {
-    // Record it so the container or assembler can initialize it
-    recordComponent(value, { kind: "a2a-agent", meta: { config } });
+  return <C extends new (...args: ResolvedAll<D>) => A2AClient>(value: C): C => {
+    recordComponent(value, { kind: "a2a-agent", meta: { config, deps: config.deps ?? [] } });
     return value;
   };
 }

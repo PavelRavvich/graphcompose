@@ -1,3 +1,4 @@
+import type { GraphDeps } from "./deps.js";
 import type { MessageContent } from "@langchain/core/messages";
 import type { FlowNodeRef } from "./flow-nodes.js";
 import type { FlowStateType, FlowStateUpdate } from "./flow-state.js";
@@ -20,9 +21,7 @@ export type SpentToday = () => Promise<number>;
 
 export interface VisitDeps {
   readonly limits: ResolvedLimits;
-  readonly quorumRouters?: (
-    name: string,
-  ) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
+  readonly quorumRouters?: GraphDeps<string>["quorumRouters"];
   readonly spentToday: SpentToday;
   /** A router's `maxVisits`. */
   readonly maxVisits?: number;
@@ -163,7 +162,6 @@ export function visitNode(
 
       if (quorumContext && manager && deps.quorumRouters) {
         const strategy = deps.quorumRouters(quorumContext.routerClass);
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (strategy) {
           const isVoteValid = await strategy.filterVote({ ...state, ...update });
           manager.addVote(quorumContext.quorumId, isVoteValid);

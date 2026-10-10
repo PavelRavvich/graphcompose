@@ -7,6 +7,7 @@ import type { ToolCallApproval } from "./approval.js";
 import type { JudgePoints } from "./judge-points.js";
 import type { AgentLoopLimits } from "./limits.js";
 import type { PromptInput } from "../../components/prompt-input.js";
+import type { Class } from "../../components/injection.js";
 
 /** Everything needed to run one configured agent. */
 export interface AgentDefinition {
@@ -31,6 +32,8 @@ export interface AgentLoopDeps {
   /** Set only with a pause seam: which calls wait for a decision, and how it is asked. */
   readonly approval?: ToolCallApproval | undefined;
   readonly judges: JudgePoints;
+  /** The workflow's container: `@Judge` classes are created through it, with their `deps`. */
+  readonly container?: { readonly get: <T>(token: Class<T>) => T | undefined };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly piiPolicies?: { override: boolean; instances: readonly any[]; disable: readonly any[] };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

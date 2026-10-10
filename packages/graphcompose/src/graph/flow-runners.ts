@@ -67,6 +67,7 @@ function agentLoops<TName extends string>(
           runBudgetCap,
           approval,
           judges: noJudges,
+          container: deps.container,
           piiPolicies: deps.piiPolicies?.(name),
           guardrails: deps.guardrails?.(name),
           observer: deps.observer,

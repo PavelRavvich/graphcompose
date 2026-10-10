@@ -72,16 +72,18 @@ export interface GraphDeps<TName extends string> {
   readonly observer?: ObserverManager;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters, @typescript-eslint/no-explicit-any
   readonly container?: { get: <T>(token: any) => T };
+  /** The quorum strategy of a router by name; undefined when no provider declares it. */
   readonly quorumRouters?: (
     name: string,
-  ) => import("../concurrency/quorum.decorator.js").QuorumStrategy;
+  ) => import("../concurrency/quorum.decorator.js").QuorumStrategy | undefined;
   readonly mockedWorkflows?: ReadonlyMap<
     import("../components/injection.js").Class,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (...args: any[]) => any
   >;
+  /** A batch strategy by name; undefined when no provider declares it. */
   readonly batchStrategies?: (
     name: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ) => import("../concurrency/batch.decorator.js").BatchParallelStrategy<any, any>;
+  ) => import("../concurrency/batch.decorator.js").BatchParallelStrategy<any, any> | undefined;
 }
