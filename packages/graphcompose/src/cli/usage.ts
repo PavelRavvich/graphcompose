@@ -99,8 +99,10 @@ export const COMMANDS: Readonly<Record<string, CommandHelp>> = {
     ],
   },
   generate: {
-    summary: "add a workflow, agent, router, tool, MCP server or knowledge base, wired (alias g)",
-    usage: "gc generate <workflow|agent|router|tool|mcp|rag> <name> [--workflow <path>] [options]",
+    summary:
+      "add a workflow, agent, router, tool, MCP server, knowledge base or OpenAPI tools, wired (alias g)",
+    usage:
+      "gc generate <workflow|agent|router|tool|mcp|rag|openapi> <name> [--workflow <path>] [options]",
     options: [
       ["--workflow <path>", "the workflow to add to (src/<name>/<name>.workflow.ts)"],
       ["--agent <name>", "the agent that uses the tool / MCP tool / knowledge base"],
@@ -108,6 +110,13 @@ export const COMMANDS: Readonly<Record<string, CommandHelp>> = {
       ["--dir <folder>", "mcp: a filesystem server over this folder"],
       ["--command <cmd>", "mcp: a server started with this command (with --tool <name>)"],
       ["--folder <dir>", "rag: the folder of notes"],
+      [
+        "--url <file|url>",
+        "openapi: the OpenAPI 3 document — one tool per operation (with --agent)",
+      ],
+      ["--operations <ids>", "openapi: only these operations (operationIds, comma-separated)"],
+      ["--dry-run", "print what would be written, write nothing"],
+      ["--json", "machine-readable output"],
     ],
   },
   help: {

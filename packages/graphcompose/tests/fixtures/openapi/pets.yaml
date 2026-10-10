@@ -1,0 +1,108 @@
+openapi: 3.0.3
+info:
+  title: Pets
+  version: 1.0.0
+servers:
+  - url: https://pets.example.com/v1/
+paths:
+  /pets/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The pet's number
+        schema:
+          type: integer
+    get:
+      operationId: getPet
+      summary: Find one pet by its number, with the "visits" it had in the last days (as many as asked)
+      parameters:
+        - name: days
+          in: query
+          description: How many days of visits to include
+          schema:
+            type: integer
+        - name: fields
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        "200":
+          description: The pet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+    delete:
+      operationId: deletePet
+      summary: Remove a pet
+      responses:
+        "204":
+          description: Removed
+  /pets:
+    get:
+      operationId: listPets
+      summary: Every pet
+      responses:
+        "200":
+          description: The pets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pet"
+    post:
+      operationId: createPet
+      summary: Add a pet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewPet"
+      responses:
+        "201":
+          description: The new pet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+components:
+  schemas:
+    NewPet:
+      type: object
+      required: [name, kind]
+      properties:
+        name:
+          type: string
+          description: What the pet is called — a long description that does not fit on one line with its decorator
+        kind:
+          type: string
+          enum: [dog, cat]
+        tags:
+          type: array
+          items:
+            type: string
+        owner:
+          type: object
+          required: [email]
+          properties:
+            email:
+              type: string
+              format: email
+            phone:
+              type: string
+    Pet:
+      allOf:
+        - $ref: "#/components/schemas/NewPet"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+            nickname:
+              type: string
+              nullable: true
