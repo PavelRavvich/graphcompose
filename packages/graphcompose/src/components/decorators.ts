@@ -155,6 +155,8 @@ export interface ActionRuntime<TExec = unknown> {
   readonly getComponentClass?: (nodeName: string) => Class | undefined | Promise<Class | undefined>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly runCompensation?: (component: Class, state: any, nodeName?: string) => Promise<any>;
+  /** In a `batchParallel` step: this worker's item (its batch when `batchSize` > 1); else undefined. */
+  readonly item?: unknown;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

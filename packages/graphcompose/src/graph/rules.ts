@@ -3,6 +3,7 @@ import type { Class } from "../components/injection.js";
 import { labelOf, type Flow } from "./flow.js";
 import type { CollectedFlow, FlowNodeRef, Transition } from "./flow-nodes.js";
 import { violation, type RuleViolation } from "./rule-error.js";
+import { batchRules } from "./batch-rules.js";
 
 /** Every node's declared next steps (normally one). */
 export function nextStepsByNode(transitions: readonly Transition[]): Map<string, Transition[]> {
@@ -150,7 +151,7 @@ function deadEnds(flow: CollectedFlow): RuleViolation[] {
   });
 }
 
-/** Node-to-node rules: next steps, chains, workflow starts, reachability, dead ends. */
+/** Node-to-node rules: next steps, chains, workflow starts, reachability, dead ends, batches. */
 export function graphRules(raw: Flow, flow: CollectedFlow): RuleViolation[] {
   return [
     ...twoNextSteps(flow),
@@ -159,5 +160,6 @@ export function graphRules(raw: Flow, flow: CollectedFlow): RuleViolation[] {
     ...noWorkflowStart(flow),
     ...unreachable(flow),
     ...deadEnds(flow),
+    ...batchRules(flow),
   ];
 }

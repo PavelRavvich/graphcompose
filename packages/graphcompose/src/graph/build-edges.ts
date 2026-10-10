@@ -3,7 +3,15 @@ import type { FlowModel } from "./check-flow.js";
 import type { FlowNodeRef, NextDeclaration } from "./flow-nodes.js";
 import type { FlowStateType } from "./flow-state.js";
 import { predecessorsOf } from "./router-rules.js";
-import { graphNodeId, nodeKeyed, pathMap, type Builder } from "./build-shared.js";
+import {
+  batchFinishId,
+  batchLoopId,
+  graphNodeId,
+  isBatchTarget,
+  nodeKeyed,
+  pathMap,
+  type Builder,
+} from "./build-shared.js";
 
 export class UnknownWorkflowStartError extends Error {
   override name = "UnknownWorkflowStartError";
@@ -38,12 +46,9 @@ export function nodeEdges(builder: Builder, model: FlowModel, node: FlowNodeRef)
   const id = graphNodeId(node);
   wireEdgesForId(builder, model, node, next, id);
 
-  const isBatchTarget = model.collected.transitions.some(
-    (t) => t.next.kind === "batchParallel" && t.next.target === node.key,
-  );
-  if (isBatchTarget) {
-    wireEdgesForId(builder, model, node, next, `${id}_batch_finish`);
-  }
+  // A batch target also leaves by its own next step once the loop has no batch left.
+  if (isBatchTarget(model, node.key))
+    wireEdgesForId(builder, model, node, next, batchFinishId(node));
 }
 
 /** Every key a router's choice can lead to: its targets, `Self`, `Return` and `End`. */
@@ -116,7 +121,7 @@ function catchingHappyRoute(
     case "join":
       return `join-wrap.${graphNodeId(nodeKeyed(model, next.target))}.${node.key}`;
     case "batchParallel":
-      return graphNodeId(nodeKeyed(model, next.target));
+      return batchLoopId(node.key, next.target);
     case "catch":
       return END;
   }
@@ -194,7 +199,7 @@ function wirePlainEdges(
     const targetId = graphNodeId(nodeKeyed(model, next.target));
     builder.addEdge(id, `join-wrap.${targetId}.${node.key}`);
   } else if (next.kind === "batchParallel") {
-    builder.addEdge(id, `__mapeach_${node.key}_to_${next.target}`);
+    builder.addEdge(id, batchLoopId(node.key, next.target));
   }
 }
 

@@ -21,7 +21,7 @@ import type { GraphDeps } from "./deps.js";
 import { graphNodeId, type Builder } from "./build-shared.js";
 import { nodeEdges, startEdges } from "./build-edges.js";
 import { compileJoinBarriers } from "./build-joins.js";
-import { compileBatchParallelLoops } from "./build-batch.js";
+import { addBatchNodes, compileBatchParallelLoops } from "./build-batch.js";
 import { quorumContextOf, quorumRouterRunner } from "./build-quorum.js";
 
 export { graphNodeId } from "./build-shared.js";
@@ -130,15 +130,7 @@ function addFlowNode(
     builder.addNode(graphNodeId(node), visitNode(node, runner, visitDeps, quorumContext));
   }
 
-  const isBatchTarget = model.collected.transitions.some(
-    (t) => t.next.kind === "batchParallel" && t.next.target === node.key,
-  );
-  if (isBatchTarget) {
-    builder.addNode(
-      `${graphNodeId(node)}_batch_clone`,
-      visitNode(node, runner, visitDeps, quorumContext),
-    );
-  }
+  addBatchNodes(builder, model, node, visitNode(node, runner, visitDeps, quorumContext));
 }
 
 function compileFlow(
@@ -173,7 +165,7 @@ function compileFlow(
   startEdges(builder, model);
   for (const node of model.nodes.values()) nodeEdges(builder, model, node);
   compileJoinBarriers(builder, model);
-  compileBatchParallelLoops(builder, model, runtime.container);
+  compileBatchParallelLoops(builder, model, runtime.batchStrategies);
   const recursionLimit = (limits.steps + model.nodes.size) * RECURSION_SAFETY_FACTOR;
   const compiled = builder.compile(
     runtime.checkpointer === undefined ? {} : { checkpointer: runtime.checkpointer },

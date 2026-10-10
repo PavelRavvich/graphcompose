@@ -87,7 +87,7 @@ export interface GraphDeps<TName extends string> {
   >;
   /** A batch strategy by name; undefined when no provider declares it. */
   readonly batchStrategies?: (
-    name: string,
+    key: import("../components/injection.js").Class | string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ) => import("../concurrency/batch.decorator.js").BatchParallelStrategy<any, any> | undefined;
 }
