@@ -10,8 +10,10 @@ import {
   type DescribedEnvironment,
 } from "./resolve.js";
 
-/** The environment used when none is named (Angular's development default). */
-const DEFAULT_ENVIRONMENT = "dev";
+/** The environments tried in order when none is named (Angular's development default). */
+export const APP_DEFAULT_ENVIRONMENTS = ["dev"] as const;
+/** Tests prefer `test.environment.ts` and fall back to `dev`. */
+export const TEST_DEFAULT_ENVIRONMENTS = ["test", "dev"] as const;
 
 const FILE = /^(.+)\.environment\.(ts|mts|js|mjs)$/;
 
@@ -74,14 +76,21 @@ export interface EnvironmentSelection {
   readonly environment?: Environment | undefined;
 }
 
+/** Names tried in order when `env` is not given; the first with a file wins, else the first name. */
+type Defaults = readonly string[];
+
+const defaultName = (dir: string, defaults: Defaults): string =>
+  defaults.find((name) => fileOf(dir, name) !== undefined) ?? defaults[0] ?? "dev";
+
 /** The folder and name to load; none = the app has no environment (no name, no folder). */
 function selected(
   workflowFile: string | undefined,
   env: string | undefined,
+  defaults: Defaults = APP_DEFAULT_ENVIRONMENTS,
 ): { readonly dir: string; readonly name: string } | undefined {
   const dir = workflowFile === undefined ? undefined : environmentsDirOf(workflowFile);
   if (env === undefined && (dir === undefined || !existsSync(dir))) return undefined;
-  const name = env ?? DEFAULT_ENVIRONMENT;
+  const name = env ?? (dir === undefined ? (defaults[0] ?? "dev") : defaultName(dir, defaults));
   if (dir === undefined) {
     throw new EnvironmentError(
       "environment.not-found",
@@ -99,9 +108,10 @@ export async function environmentFor(
   workflowFile: string | undefined,
   selection: EnvironmentSelection,
   processEnv: NodeJS.ProcessEnv,
+  defaults: Defaults = APP_DEFAULT_ENVIRONMENTS,
 ): Promise<Environment | undefined> {
   if (selection.environment !== undefined) return selection.environment;
-  const target = selected(workflowFile, selection.env);
+  const target = selected(workflowFile, selection.env, defaults);
   if (target === undefined) return undefined;
   const definition = await loadEnvironmentDefinition(target.dir, target.name);
   return resolveEnvironment(target.name, definition, processEnv);

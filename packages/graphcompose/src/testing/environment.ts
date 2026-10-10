@@ -5,7 +5,12 @@ import { createMemoryPausedRunRepository } from "../app/paused-runs.js";
 import { flowNodesByKey } from "../app/result.js";
 import { workflowOf } from "../components/assemble.js";
 import type { Environment } from "../environments/define.js";
-import { environmentFor, workflowFileOf, type EnvironmentSelection } from "../environments/load.js";
+import {
+  environmentFor,
+  TEST_DEFAULT_ENVIRONMENTS,
+  workflowFileOf,
+  type EnvironmentSelection,
+} from "../environments/load.js";
 import type { Class } from "../components/injection.js";
 import type { McpServerClient, ServerTools } from "../components/mcp-client.js";
 import { createMemoryLedger } from "../finops/ledger.js";
@@ -125,7 +130,12 @@ export class TestEnvironment {
    */
   static async of(workflow: Class, options: TestWithOptions = {}): Promise<TestEnvironment> {
     const assembled = await workflowOf(workflow);
-    const environment = await environmentFor(workflowFileOf(workflow), options, testEnv());
+    const environment = await environmentFor(
+      workflowFileOf(workflow),
+      options,
+      testEnv(),
+      TEST_DEFAULT_ENVIRONMENTS,
+    );
     return new TestEnvironment(
       workflow,
       [...flowNodesByKey(assembled.flow).values()],
