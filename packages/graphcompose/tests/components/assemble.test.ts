@@ -214,7 +214,7 @@ describe("components — errors at assembly", () => {
     class TesterFlow extends TestSettings {}
 
     await expect(workflowOf(TesterFlow)).rejects.toThrow(
-      '@Agent "tester": unknown prompt variable {{unknown_var}}',
+      '[prompt.unknown-variable] @Agent "tester" prompt:1 {{unknown_var}} — known: item',
     );
   });
 

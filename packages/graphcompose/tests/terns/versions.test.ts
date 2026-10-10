@@ -139,7 +139,7 @@ describe("versions", () => {
       prompts: {
         ...deps.prompts,
         alpha: Object.assign(async () => "You are alpha, now terse.", {
-          options: { prompt: "You are alpha, now terse." },
+          text: "You are alpha, now terse.",
         }),
       },
     };

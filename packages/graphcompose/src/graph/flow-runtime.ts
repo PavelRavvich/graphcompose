@@ -19,6 +19,7 @@ export function flowRuntimeOf<TName extends string>(
   return {
     runnerFor: flowRunners(deps, run),
     routerFor: deps.routerFor,
+    routers: deps.routers,
     routerMemory: {
       summaries: defaultSummaries(deps.config),
       turns: deps.config.defaults.history.limit,

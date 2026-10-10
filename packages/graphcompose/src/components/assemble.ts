@@ -30,6 +30,7 @@ import {
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
 import { flowOf, settingsOf } from "./flow-parts.js";
 import { channelPartsOf } from "./channel-parts.js";
+import { PromptLoader } from "./prompt-render.js";
 
 /** An agent's settings as the config holds them (tools by name). */
 function agentSettings(
@@ -147,7 +148,8 @@ function configOf(
  */
 export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow> {
   const { meta: bundle } = requireComponent(bundleClass, "workflow", "workflowOf");
-  const graph = await flowOf(bundle);
+  const loader = new PromptLoader(bundle.promptVariables ?? {});
+  const graph = await flowOf(bundle, loader);
   const agents = graph.agents;
   const tools = toolsOf(bundle, agents);
   const mcp = mcpOf(bundle, tools.mcp);
@@ -160,7 +162,8 @@ export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow>
   );
   rememberServers(bundle, mcp.instances);
   const names = toolNames(tools, rags);
-  const prompts = promptsOf(bundle, agents);
+  const prompts = await promptsOf(agents, loader);
+  loader.throwIfAny();
   const config = configOf(bundle, agents, names, mcp);
   const settings = settingsOf(bundleClass, bundle);
 

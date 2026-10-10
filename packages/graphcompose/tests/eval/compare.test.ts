@@ -146,7 +146,7 @@ describe("compare — report", () => {
       },
       prompts: {
         ...a.prompts,
-        alpha: Object.assign(async () => "changed", { options: { prompt: "changed" } }),
+        alpha: Object.assign(async () => "changed", { text: "changed" }),
       },
     };
 
@@ -155,7 +155,7 @@ describe("compare — report", () => {
     console.log("DIFF:", diff);
 
     expect(diff).toContain('agents.alpha.thinking: — → "low"');
-    expect(diff).toContain("prompts.alpha.prompt: changed");
+    expect(diff).toContain("prompts.alpha: changed");
     expect(diff.some((line) => line.startsWith("version"))).toBe(false);
   });
 

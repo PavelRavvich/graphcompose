@@ -160,7 +160,7 @@ const price = { inputPerMTok: 1, outputPerMTok: 10 };
 
 @Agent({
   name: "support",
-  prompt: "./support.prompt.md",
+  promptUrls: ["./support.prompt.md"],
   description: "Answers questions about orders and keeps notes",
   model: "test/support",
   price,

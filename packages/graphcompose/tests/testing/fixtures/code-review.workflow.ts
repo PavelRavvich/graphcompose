@@ -15,7 +15,7 @@ const price = { inputPerMTok: 1, outputPerMTok: 2 };
 
 @Agent({
   name: "coder",
-  prompt: "./coder.prompt.md",
+  promptUrls: ["./coder.prompt.md"],
   description: "Writes the code",
   model: "test/coder",
   price,
@@ -24,7 +24,7 @@ export class Coder {}
 
 @Agent({
   name: "reviewer",
-  prompt: "./reviewer.prompt.md",
+  promptUrls: ["./reviewer.prompt.md"],
   description: "Reviews the code",
   model: "test/reviewer",
   price,

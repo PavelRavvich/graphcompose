@@ -1,7 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
 export const stripFunctions = (obj: any): any => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if (typeof obj === "function") return obj.options ? stripFunctions(obj.options) : "[Function]";
+  if (typeof obj === "function") return "[Function]";
   if (Array.isArray(obj)) return obj.map(stripFunctions);
   if (obj !== null && typeof obj === "object") {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

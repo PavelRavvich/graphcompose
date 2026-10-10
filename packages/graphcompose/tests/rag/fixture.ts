@@ -46,7 +46,7 @@ export function bundleWith(
     model: "test/alpha",
     price: testConfig.agents.alpha.price,
     rag: [{ use, mode }],
-    prompt: prompt,
+    promptUrls: [prompt],
     promptVariables: { language: "English" },
   })
   class Helper {}

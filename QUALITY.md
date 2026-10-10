@@ -84,6 +84,10 @@ chain / node / Self` (Wiki → Workflow); nodes are `@WorkflowStart`, `@Router`,
   (`toWireRequest`) — no provider-specific request code outside `src/models` / `src/llm`.
 - **Settings must fit their models**: checked against the provider's capabilities at startup and
   by `gc check --models` (in `make check`), all problems at once; nothing is silently substituted.
+- **Prompts are checked at assembly** (#199): every agent, router and route prompt is read
+  (`promptUrls` eagerly) and its `{{variables}}` checked against `promptVariables` plus the runtime
+  `{{item}}` — `[prompt.unknown-variable] file:line …`, `[prompt.missing-file]`, all at once, also by
+  `gc check --prompts`. `promptVersion` hashes the rendered texts, never file paths.
 - **Routers are isolated** (`src/routers`): input is plain text + options, output is a
   `RouteOutcome` union (`decided` | `failed`); they import only `config`, `finops`, `llm`, and the
   rest of the code imports them only via `src/routers/index.ts` — ESLint-enforced. Routers are

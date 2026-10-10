@@ -14,7 +14,7 @@ import type { FlowNodeRef } from "./flow-nodes.js";
 import { FlowState, type FlowStateType, type FlowStateUpdate } from "./flow-state.js";
 import { resolveLimits, type ResolvedLimits } from "./limits.js";
 import { makeFlowRouterNode, type MemoryLimits } from "./nodes/flow-router.js";
-import { loadRouters, type LoadedRouter } from "./router-texts.js";
+import { routersOf, type LoadedRouter } from "./router-texts.js";
 import type { WorkflowLimits } from "./settings.js";
 import { visitNode, type FlowNodeRunner, type SpentToday, type VisitDeps } from "./visit.js";
 import type { GraphDeps } from "./deps.js";
@@ -33,6 +33,8 @@ export interface FlowRuntime {
   readonly runnerFor: (node: FlowNodeRef) => FlowNodeRunner;
   /** The routing strategy of a router (its own model). */
   readonly routerFor: (router: LoadedRouter) => Router;
+  /** The routers as assembled (texts rendered with the workflow's variables); absent = load from the flow. */
+  readonly routers?: readonly LoadedRouter[];
   readonly routerMemory: MemoryLimits;
   readonly limits: WorkflowLimits;
   readonly spentToday: SpentToday;
@@ -225,7 +227,7 @@ export async function assembleFlowGraph(flow: Flow, runtime: FlowRuntime): Promi
   validateAcyclic(flow);
 
   const model = checkFlow(flow);
-  const routers = await loadRouters(model);
+  const routers = await routersOf(model, runtime.routers);
   const limits = resolveLimits(runtime.limits, model);
 
   // Recursively compile nested subgraphs

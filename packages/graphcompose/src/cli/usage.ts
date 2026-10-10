@@ -32,9 +32,10 @@ export const COMMANDS: Readonly<Record<string, CommandHelp>> = {
     options: [WORKFLOW, PROFILE],
   },
   check: {
-    summary: "every model setting against what its model supports (no API key needed)",
-    usage: "gc check --models --workflow <path> [--profile <name>]",
+    summary: "prompts and model settings, all problems at once (no API key needed)",
+    usage: "gc check [--prompts] [--models] --workflow <path> [--profile <name>]",
     options: [
+      ["--prompts", "check prompts: files exist, every {{variable}} is known — file:line"],
       ["--models", "check models: providers, reasoning, caching, prices — all problems at once"],
       WORKFLOW,
       PROFILE,
