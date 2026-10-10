@@ -32,6 +32,7 @@ import { flowOf, settingsOf } from "./flow-parts.js";
 import { channelPartsOf } from "./channel-parts.js";
 import { PromptLoader } from "./prompt-render.js";
 import { checkMemoryStrategies, memoryPartsOf } from "./memory-parts.js";
+import { moduleOf, workflowTreeOf } from "./nested-modules.js";
 
 /** An agent's settings as the config holds them (tools by name). */
 function agentSettings(
@@ -146,11 +147,13 @@ function configOf(
 /**
  * Assembles a `@Workflow` class into the workflow the core runs: its flow checked against every rule
  * (all violations at once), router texts loaded, limits from `settings()`, config, prompts, tools, MCP.
+ * Nested workflows (and compensating ones) bring their agents, actions, routers and module config
+ * (providers, MCP servers, channels, observers, policies) into the parent's (`moduleOf`).
  */
 export async function workflowOf(bundleClass: Class): Promise<AssembledWorkflow> {
-  const { meta: bundle } = requireComponent(bundleClass, "workflow", "workflowOf");
+  const bundle = moduleOf(bundleClass);
   const loader = new PromptLoader(bundle.promptVariables ?? {});
-  const graph = await flowOf(bundle, loader);
+  const graph = await flowOf(workflowTreeOf(bundleClass), loader);
   const agents = graph.agents;
   const tools = toolsOf(bundle, agents);
   const mcp = mcpOf(bundle, tools.mcp);

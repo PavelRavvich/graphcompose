@@ -12,7 +12,12 @@ import type { AssembledWorkflow } from "../workflow.js";
 import { createAppDeps, type AppDeps, type AppDepsOptions } from "./app-deps.js";
 import { createMemoryPausedRunRepository, type PausedRunRepository } from "./paused-runs.js";
 import { UnknownToolError } from "./parts.js";
-import { flowNodesByKey, runResultOf, type FlowNodesByKey } from "./result.js";
+import {
+  flowNodesByKey,
+  nestedFlowNodesByKey,
+  runResultOf,
+  type FlowNodesByKey,
+} from "./result.js";
 import type { App, ExecutionOutput } from "./types.js";
 
 export class NotAWorkflowStartError extends Error {
@@ -69,12 +74,13 @@ export async function buildApp(
   options: AppOptions = {},
 ): Promise<BuiltApp> {
   const nodes = flowNodesByKey(bundle.flow);
+  const pathNodes = nestedFlowNodesByKey(bundle.flow);
   const deps = await createAppDeps(bundle, options);
   const paused = options.pausedRuns ?? createMemoryPausedRunRepository();
   const settle = (run: AgentExecutionOutput): ExecutionOutput => {
     if (run.status === "paused") paused.set(run);
     else paused.delete(run.threadId);
-    return runResultOf(run, nodes);
+    return runResultOf(run, pathNodes);
   };
   let closed = false;
   const app: App = {

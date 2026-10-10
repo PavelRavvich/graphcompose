@@ -1,6 +1,7 @@
 import { totalCost, type UsageRecord } from "../finops/usage.js";
 import type { FlowModel } from "./check-flow.js";
-import type { FlowNodeRef } from "./flow-nodes.js";
+import { componentOf } from "../components/metadata.js";
+import { collectFlow, type FlowNodeRef } from "./flow-nodes.js";
 import type { FlowStateType } from "./flow-state.js";
 import { isWorkingKind } from "./node-kind.js";
 import type { WorkflowLimits } from "./settings.js";
@@ -64,11 +65,23 @@ export interface ResolvedLimits {
   readonly dayCostUsd?: number;
 }
 
-/** Steps per run by default: (agents + routers) × 3. */
+/** Steps per run by default: (agents + routers, nested workflows' included) × 3. */
 export const STEPS_PER_WORKING_NODE = 3;
 
+/** Agents and routers of the nodes, those of nested workflows included (not the workflow nodes). */
+function workingNodesOf(nodes: Iterable<FlowNodeRef>): number {
+  let working = 0;
+  for (const ref of nodes) {
+    const component = ref.kind === "workflow" ? componentOf(ref.use) : undefined;
+    if (component?.kind === "workflow") {
+      working += workingNodesOf(collectFlow(component.meta.flow).nodes.values());
+    } else if (isWorkingKind(ref.kind)) working += 1;
+  }
+  return working;
+}
+
 export function resolveLimits(limits: WorkflowLimits, model: FlowModel): ResolvedLimits {
-  const working = [...model.nodes.values()].filter((ref) => isWorkingKind(ref.kind)).length;
+  const working = workingNodesOf(model.nodes.values());
   const runCost = limits.perRun?.cost;
   const dayCost = limits.perDay?.cost;
   return {

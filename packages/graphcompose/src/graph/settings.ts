@@ -4,7 +4,7 @@ import type { ModelProviderType } from "../models/model-provider.decorator.js";
 
 /** Limits of one run: steps (agent and router visits) and spend. */
 export interface PerRunLimits {
-  /** Default: (agents + routers) × 3. */
+  /** Default: (agents + routers, those of nested workflows included) × 3. */
   readonly steps?: number;
   readonly cost?: Usd;
 }

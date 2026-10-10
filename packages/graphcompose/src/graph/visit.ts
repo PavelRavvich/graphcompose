@@ -170,9 +170,9 @@ export function visitNode(
 
       return {
         ...update,
-        ...visited,
+        // a nested workflow's runner reports its own node, path, visits and steps (`childDelta`)
+        ...(node.kind === "workflow" ? {} : { ...visited, steps: 1 }),
         ...mergeJoinUpdate(update, joinUpdate),
-        steps: 1,
         daySpentBeforeRunUsd: daySpent,
         ...(node.kind === "agent" ? { previousAgent: node.key } : {}),
       };

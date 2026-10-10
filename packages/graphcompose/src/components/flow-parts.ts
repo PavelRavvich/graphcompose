@@ -5,6 +5,7 @@ import type { Class } from "./injection.js";
 import type { PromptLoader } from "./prompt-render.js";
 import { ComponentError, requireComponent } from "./metadata.js";
 import type { AgentMeta, WorkflowMeta } from "./meta-types.js";
+import type { WorkflowModule } from "./nested-modules.js";
 
 /** What a workflow's flow gives assembly: its agents (named as their nodes) and its routers. */
 export interface FlowParts {
@@ -13,47 +14,55 @@ export interface FlowParts {
   readonly routers: readonly LoadedRouter[];
 }
 
+/** Nodes by name, each once; one name used for two different classes is an error. */
+class NodesByName<TValue> {
+  readonly #byName = new Map<string, { readonly cls: Class; readonly value: TValue }>();
+
+  add(name: string, cls: Class, value: () => TValue, workflow: string): void {
+    const taken = this.#byName.get(name);
+    if (taken === undefined) {
+      this.#byName.set(name, { cls, value: value() });
+      return;
+    }
+    if (taken.cls !== cls) {
+      throw new ComponentError(
+        `[workflow.duplicate-node] @Workflow "${workflow}": the node "${name}" is ${cls.name}, but a parent or nested workflow already uses "${name}" for ${taken.cls.name}`,
+      );
+    }
+  }
+
+  values(): TValue[] {
+    return [...this.#byName.values()].map((entry) => entry.value);
+  }
+}
+
 /**
- * Checks the flow (every rule, all violations at once — before any model call) and reads its parts:
- * each agent node's `@Agent` settings under the node's name, and every router with its texts loaded
- * (problems in them are kept in `loader`).
+ * Checks each flow of the workflow tree (every rule, all violations at once — before any model
+ * call) and reads its parts: each agent node's `@Agent` settings under the node's name, the
+ * actions, and every router with its texts loaded. A node shared by parent and child counts once.
  */
-export async function flowOf(bundle: WorkflowMeta, loader: PromptLoader): Promise<FlowParts> {
-  const actions: { name: string; cls: Class }[] = [];
-  const agents: AgentMeta[] = [];
-  const routers = new Map<string, LoadedRouter>();
-
-  const visited = new Set<string>();
-
-  const collect = async (meta: WorkflowMeta) => {
-    if (visited.has(meta.name)) return;
-    visited.add(meta.name);
-
+export async function flowOf(
+  tree: readonly WorkflowModule[],
+  loader: PromptLoader,
+): Promise<FlowParts> {
+  const actions = new NodesByName<{ name: string; cls: Class }>();
+  const agents = new NodesByName<AgentMeta>();
+  const routers = new NodesByName<LoadedRouter>();
+  for (const { meta } of tree) {
     const model = checkFlow(meta.flow);
-    const refs = [...model.nodes.values()];
-
-    for (const ref of refs) {
+    const loaded = await loadRouters(model, loader);
+    for (const ref of model.nodes.values()) {
+      const router = ref.kind === "router" ? loaded.get(ref.name) : undefined;
+      if (router !== undefined) routers.add(ref.name, ref.use, () => router, meta.name);
       if (ref.kind === "action") {
-        actions.push({ name: ref.name, cls: ref.use });
+        actions.add(ref.name, ref.use, () => ({ name: ref.name, cls: ref.use }), meta.name);
       } else if (ref.kind === "agent") {
-        agents.push({
-          ...requireComponent(ref.use, "agent", `@Workflow "${meta.name}"`).meta,
-          name: ref.name,
-        });
-      } else if (ref.kind === "workflow") {
-        const subMeta = requireComponent(ref.use, "workflow", "flowOf").meta;
-        await collect(subMeta);
+        const agent = requireComponent(ref.use, "agent", `@Workflow "${meta.name}"`).meta;
+        agents.add(ref.name, ref.use, () => ({ ...agent, name: ref.name }), meta.name);
       }
     }
-
-    const loadedRouters = await loadRouters(model, loader);
-    for (const [k, v] of loadedRouters) {
-      if (!routers.has(k)) routers.set(k, v);
-    }
-  };
-
-  await collect(bundle);
-  return { agents, actions, routers: [...routers.values()] };
+  }
+  return { agents: agents.values(), actions: actions.values(), routers: routers.values() };
 }
 
 const isDefinition = (value: unknown): value is WorkflowDefinition =>

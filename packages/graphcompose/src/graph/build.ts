@@ -1,14 +1,12 @@
 import { quorumRouterMetaOf } from "../concurrency/quorum.decorator.js";
-
 import type { BaseCheckpointSaver } from "@langchain/langgraph";
 import { StateGraph } from "@langchain/langgraph";
 
-import { componentOf } from "../components/metadata.js";
+import { requireComponent } from "../components/metadata.js";
 import type { Router } from "../routers/index.js";
 import { checkFlow, type FlowModel } from "./check-flow.js";
 
 import { WorkflowGraphValidator } from "./validator.js";
-
 import type { Flow } from "./flow.js";
 import type { FlowNodeRef } from "./flow-nodes.js";
 import { FlowState, type FlowStateType, type FlowStateUpdate } from "./flow-state.js";
@@ -23,6 +21,7 @@ import { nodeEdges, startEdges } from "./build-edges.js";
 import { compileJoinBarriers } from "./build-joins.js";
 import { addBatchNodes, compileBatchParallelLoops } from "./build-batch.js";
 import { quorumContextOf, quorumRouterRunner } from "./build-quorum.js";
+import { nestedRunner } from "./nested-workflow.js";
 
 export { graphNodeId } from "./build-shared.js";
 export { UnknownWorkflowStartError } from "./build-edges.js";
@@ -54,7 +53,9 @@ function runnerOf(
   model: FlowModel,
   runtime: FlowRuntime,
   routers: ReadonlyMap<string, LoadedRouter>,
+  subgraphs: ReadonlyMap<string, FlowGraph>,
 ): { readonly runner: FlowNodeRunner; readonly maxVisits?: number } {
+  if (node.kind === "workflow") return { runner: nestedRunner(node, subgraphs) };
   const loaded = routers.get(node.key);
   if (node.kind !== "router" || loaded === undefined) return { runner: runtime.runnerFor(node) };
 
@@ -113,24 +114,16 @@ function reportingSkippedBranches(
   };
 }
 
-/** Adds the graph node(s) of one flow node: a nested workflow's graph, or its visited runner. */
+/** Adds the graph node(s) of one flow node: its visited runner (and its batch clone). */
 function addFlowNode(
   builder: Builder,
   model: FlowModel,
   node: FlowNodeRef,
   runner: FlowNodeRunner,
   visitDeps: VisitDeps,
-  compiledSubgraphs: ReadonlyMap<string, FlowGraph>,
 ): void {
   const quorumContext = quorumContextOf(model, node);
-  if (node.kind === "workflow") {
-    const childGraph = compiledSubgraphs.get(node.key);
-    if (!childGraph) throw new Error("Missing compiled child graph for " + node.key);
-    // LangGraph supports nested compiled graphs: add it as the node.
-    builder.addNode(graphNodeId(node), childGraph.graph);
-  } else {
-    builder.addNode(graphNodeId(node), visitNode(node, runner, visitDeps, quorumContext));
-  }
+  builder.addNode(graphNodeId(node), visitNode(node, runner, visitDeps, quorumContext));
 
   addBatchNodes(builder, model, node, visitNode(node, runner, visitDeps, quorumContext));
 }
@@ -140,7 +133,7 @@ function compileFlow(
   runtime: FlowRuntime,
   routers: ReadonlyMap<string, LoadedRouter>,
   limits: ResolvedLimits,
-  compiledSubgraphs: Map<string, FlowGraph>,
+  compiledSubgraphs: ReadonlyMap<string, FlowGraph>,
 ) {
   const builder: Builder = new StateGraph<
     typeof FlowState.spec,
@@ -156,13 +149,13 @@ function compileFlow(
     keyOf: model.collected.keyOf,
   };
   for (const node of model.nodes.values()) {
-    const { runner, maxVisits } = runnerOf(node, model, runtime, routers);
+    const { runner, maxVisits } = runnerOf(node, model, runtime, routers, compiledSubgraphs);
     const visitDeps = {
       ...sharedDeps,
       ...(maxVisits === undefined ? {} : { maxVisits }),
       catchesErrors: (model.catches.get(node.key) ?? []).length > 0,
     };
-    addFlowNode(builder, model, node, runner, visitDeps, compiledSubgraphs);
+    addFlowNode(builder, model, node, runner, visitDeps);
   }
   startEdges(builder, model);
   for (const node of model.nodes.values()) nodeEdges(builder, model, node);
@@ -196,25 +189,22 @@ function validateAcyclic(flow: Flow): void {
   }
 }
 
-/** Every nested workflow of the model assembled into its own graph, by node key. */
+/**
+ * Every nested workflow of the model assembled into its own graph, by node key. It runs on the
+ * parent's counters, so it is held to the parent's limits.
+ */
 async function compileSubgraphs(
   model: FlowModel,
   runtime: FlowRuntime,
+  limits: ResolvedLimits,
 ): Promise<Map<string, FlowGraph>> {
-  const compiledSubgraphs = new Map<string, FlowGraph>();
+  const subgraphs = new Map<string, FlowGraph>();
   for (const node of model.nodes.values()) {
-    if (node.kind === "workflow") {
-      const childWorkflowClass = node.use;
-      const childComp = componentOf(childWorkflowClass);
-      const childMeta = childComp?.kind === "workflow" ? childComp.meta : undefined;
-      if (!childMeta)
-        throw new Error("Nested workflow missing @Workflow decorator: " + childWorkflowClass.name);
-      // Nested assembly!
-      const childGraph = await assembleFlowGraph(childMeta.flow, runtime);
-      compiledSubgraphs.set(node.key, childGraph);
-    }
+    if (node.kind !== "workflow") continue;
+    const { meta } = requireComponent(node.use, "workflow", "assembleFlowGraph");
+    subgraphs.set(node.key, await assembleFlowGraph(meta.flow, runtime, limits));
   }
-  return compiledSubgraphs;
+  return subgraphs;
 }
 
 /**
@@ -222,16 +212,16 @@ async function compileSubgraphs(
  * graph: one graph node per flow node; `to` → edges; `choose` → a conditional edge on the router's
  * decision; workflow starts from `START`, workflow finishes to `END`.
  */
-export async function assembleFlowGraph(flow: Flow, runtime: FlowRuntime): Promise<FlowGraph> {
-  // Check cycles first
+export async function assembleFlowGraph(
+  flow: Flow,
+  runtime: FlowRuntime,
+  inherited?: ResolvedLimits,
+): Promise<FlowGraph> {
   validateAcyclic(flow);
-
   const model = checkFlow(flow);
   const routers = await routersOf(model, runtime.routers);
-  const limits = resolveLimits(runtime.limits, model);
-
-  // Recursively compile nested subgraphs
-  const compiledSubgraphs = await compileSubgraphs(model, runtime);
+  const limits = inherited ?? resolveLimits(runtime.limits, model);
+  const compiledSubgraphs = await compileSubgraphs(model, runtime, limits);
 
   const { graph, recursionLimit } = compileFlow(model, runtime, routers, limits, compiledSubgraphs);
   return { graph, model, limits, recursionLimit };

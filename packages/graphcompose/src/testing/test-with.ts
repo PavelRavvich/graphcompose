@@ -29,8 +29,6 @@ export interface WorkflowFixtures {
   readonly mockCompaction: () => ModelScript;
   /** A typed mock injected instead of a component; the same instance the app uses. */
   readonly mockOf: <T>(component: Class<T>) => Mocked<T>;
-  /** Mocks a nested workflow to prevent it from executing its subgraph. */
-  readonly mockSubworkflow: (workflow: Class) => import("vitest").Mock;
   /** The stub of an MCP server: `mcpOf(ShortlistServer).thenReturn({ write_file: … })`. */
   readonly mcpOf: <TServer extends McpServerClient<ServerTools>>(
     server: new () => TServer,
@@ -89,9 +87,6 @@ export function testWith(
     },
     mockCompaction: async ({ environment }, use) => {
       await use(() => environment.book.scriptOf(COMPACTION_KEY));
-    },
-    mockSubworkflow: async ({ environment }, use) => {
-      await use((workflow) => environment.mockSubworkflow(workflow));
     },
     mockOf: async ({ environment }, use) => {
       await use((component) => environment.mockOf(component));
