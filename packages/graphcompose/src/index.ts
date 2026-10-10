@@ -72,6 +72,33 @@ export {
   type ChannelRequest,
   type ChannelDecision,
 } from "./components/decorators.js";
+export {
+  Judge,
+  type JudgeContext,
+  type JudgeHandler,
+  type JudgeMeta,
+  type JudgeModel,
+  type JudgeVerdict,
+} from "./components/judge-decorators.js";
+export {
+  Decision,
+  MAX_DECISION_QUESTIONS,
+  type AnswerOf,
+  type AnswersOf,
+  type ChoiceAnswer,
+  type ChoiceQuestion,
+  type DecisionAnswer,
+  type DecisionImage,
+  type DecisionQuestion,
+  type DecisionQuestions,
+  type DecisionRequest,
+  type DecisionState,
+  type ImageDetail,
+  type NoulAnswer,
+  type NoulQuestion,
+  type ScoreAnswer,
+  type ScoreQuestion,
+} from "./llm/decisions.js";
 export { TerminalUserChannel } from "./channels/terminal-channel.js";
 export { ENV } from "./components/runtime.js";
 export { Injectable } from "./components/decorators.js";

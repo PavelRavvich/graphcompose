@@ -5,7 +5,8 @@
 
 Typed agent workflows on LangGraph, in TypeScript. Agents, tools, MCP servers and knowledge bases
 are **Angular-style components** — annotated classes, wired by a `@Workflow` module, dependencies
-through the constructor, every link checked by the compiler. Routing by Jev (cheap, exact cost),
+through the constructor, every link checked by the compiler. Routing and judging by decision models
+(Jev, GPT-6 Luna Decisions, … — calibrated, exact cost),
 FinOps on every call, Terns and evaluation, profiles and comparisons, tracing.
 
 ## Use it
@@ -138,25 +139,57 @@ export class Api {
 
 `@Agent({ judges: [AnswerGrounded], maxRetries: 1 })` runs every judge on the agent's reply. A judge
 is a `@Judge({ name, model, deps })` class implementing `JudgeHandler`; the container creates it with
-its `deps`, and `ctx.model.invoke(...)` calls the judge's **own** model through the model gateway, so
-its spend is in the run's cost report (`judge:<name>`, category `review`). A rejected reply goes back
-to the agent with the feedback; once `maxRetries` retries are spent the run throws
-`QualityGateError` (`code: "step.agent.quality-gate"`, `feedback` per judge). A judge without a model
-fails at app start (`[judge.no-model]`). In tests, script the judge's model like an agent's:
-`mockLlm(AnswerGrounded).thenReturn(replyWith("PASS"))`.
+its `deps`, and its **own** model is called through the model gateway, so its spend is in the run's
+cost report (`judge:<name>`, category `review`). A rejected reply goes back to the agent with the
+feedback; once `maxRetries` retries are spent the run throws `QualityGateError`
+(`code: "step.agent.quality-gate"`, `feedback` per judge). A judge without a model fails at app start
+(`[judge.no-model]`).
+
+The judge's model is a chat model (`ctx.model.invoke(...)`) or a **decision model**
+(`ctx.model.decide({ state, questions })`) — every model of OpenRouter's Decisions API:
+`typesafe/jev-1.13`, `openai/gpt-6-luna-decisions`, `perplexity/pplx-decider-v1(.1)-27b`,
+`cloudflare/clef(-flash|-omni)`, `upstage/solar-decide`, `inception/mercury-decide`
+(`DECISION_MODELS`; `DecisionsModelProvider` serves them, `JevModelProvider` is its deprecated alias).
+Questions come from `Decision.noul` (yes/no → `noul` = P(yes)), `Decision.choice` (→ `choice`,
+`probabilities`, `confidence`) and `Decision.score` (levels lowest first → `score` = the level's index);
+the answers are typed by them. `state` is a text, a JSON object, or text and image parts
+(`Decision.image(dataUrl)` — png/jpeg/webp data URLs; Luna, pplx-decider and Clef read images). At
+most 200 questions per call; an answer that does not fit its question fails with
+`model.decision.invalid-response`. `decide` on a chat model or `invoke` on a decision model throws
+`ModelKindError` (`model.wrong-kind`).
 
 ```ts
-@Judge({ name: "answer-grounded", model: "openai/gpt-5-mini", deps: [JOB_SEARCH] })
+import { Decision, Judge, type JudgeContext, type JudgeHandler } from "graphcompose/core";
+
+@Judge({ name: "answer-grounded", model: "openai/gpt-6-luna-decisions", deps: [JOB_SEARCH] })
 export class AnswerGrounded implements JudgeHandler {
   constructor(private readonly search: JobSearch) {}
-  async judge(reply: string, ctx: JudgeContext): Promise<JudgeVerdict> {
-    const verdict = await ctx.model.invoke(
-      `Does this reply cite a real job? PASS or FAIL: why\n${reply}`,
-    );
-    return verdict.startsWith("PASS") ? { passed: true } : { passed: false, feedback: verdict };
+  async judge(reply: string, ctx: JudgeContext) {
+    const a = await ctx.model.decide({
+      state: { task: ctx.task, reply, results: this.search.lastResults() },
+      questions: {
+        grounded: Decision.noul("Every fact in the reply appears in the results"),
+        tone: Decision.choice("Tone of the reply", {
+          neutral: "Plain, factual",
+          pushy: "Sells or pressures",
+        }),
+        quality: Decision.score("Overall usefulness", ["useless", "partial", "complete"]),
+      },
+    });
+    // a.grounded.noul: number; a.tone.choice: "neutral" | "pushy"; a.quality.score: number
+    return a.grounded.noul > 0.7 && a.tone.choice === "neutral"
+      ? { passed: true }
+      : { passed: false, feedback: "Only state facts from the search results, neutrally." };
   }
 }
 ```
+
+In tests, script a chat judge like an agent — `mockLlm(Judge).thenReturn(replyWith("PASS"))` — and a
+decision judge with its answers by question id (an option, P(yes), a level's index or text):
+`mockLlm(AnswerGrounded).thenReturn(decideWith({ grounded: 0.9, tone: "neutral", quality: 2 }, { cost: usd(0.0002) }))`.
+
+Routers and guards work on any decision model too (`@Router({ model: "openai/gpt-6-luna-decisions" })`):
+one choice question over the routes, options sorted so declaration order never changes the request.
 
 ## Run Context & Observers
 

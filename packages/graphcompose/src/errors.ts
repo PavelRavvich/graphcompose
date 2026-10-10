@@ -24,3 +24,10 @@ export { ToolTimeoutError } from "./tools/index.js";
 export { DtoValidationError } from "./dto/errors.js";
 export { NotPausedError } from "./run/resume-agent.js";
 export { UnknownThreadError } from "./run/thread.js";
+export {
+  DecisionError,
+  DecisionRequestError,
+  DecisionResponseError,
+  ModelKindError,
+  type ModelKind,
+} from "./llm/decision-errors.js";

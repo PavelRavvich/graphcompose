@@ -1,7 +1,7 @@
 /**
  * `graphcompose/testing` — test a workflow without models and without the network: `testWith`
  * (Vitest fixtures `app`, `mockLlm`, `mockOf`, `mcpOf`, `recoverApp`), scripted model turns
- * (`replyWith`, `callTool`, `routeTo`, `failWith`) and the matchers (register them with
+ * (`replyWith`, `callTool`, `routeTo`, `decideWith`, `failWith`) and the matchers (register them with
  * `setupFiles: ["graphcompose/testing/setup"]`). Vitest is an optional peer dependency.
  * Wiki → Testing.
  */
@@ -16,11 +16,14 @@ export {
   replyWith,
   callTool,
   routeTo,
+  decideWith,
   failWith,
   ModelCallFailedError,
   ModelFailure,
   type AnswerDetails,
+  type DecideDetails,
   type DecisionDetails,
+  type ScriptedAnswer,
   type ScriptedTurn,
   type ToolClass,
 } from "./script.js";

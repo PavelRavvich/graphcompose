@@ -7,7 +7,7 @@ import {
 } from "./model-provider.decorator.js";
 import type { ModelProblem } from "./problems.js";
 
-/** What a model is used for: a chat model (agents, compaction, LLM routers) or a decision (Jev). */
+/** What a model is used for: a chat model (agents, compaction, LLM routers) or a decision (decision models). */
 export enum ModelPurpose {
   Chat = "chat",
   Decision = "decision",

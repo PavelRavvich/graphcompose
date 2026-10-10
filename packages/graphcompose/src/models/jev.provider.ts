@@ -1,8 +1,10 @@
 import { compareNames } from "../llm/canonical-order.js";
+import type { DecisionQuestion } from "../llm/decisions.js";
 import { createJevClient } from "../llm/jev-client.js";
 import { minutes, seconds } from "../units/index.js";
 import type { ModelCapabilities } from "./capabilities.js";
 import { ModelCost } from "./cost.js";
+import { DECISION_MODEL_PATTERN, DECISION_MODELS } from "./decision-models.js";
 import { EnvironmentVariable } from "./environment-variable.js";
 import type { DecideRequest, ModelProviderHandler } from "./handler.js";
 import { ModelProvider } from "./model-provider.decorator.js";
@@ -18,19 +20,28 @@ export const OPENROUTER_BASE_URL_SETTING = EnvironmentVariable.named("OPENROUTER
   defaultValue: OPENROUTER_BASE_URL,
 });
 
+/** A choice question's options sorted by name; yes/no and score questions as asked (a scale is ordered). */
+function sortedOptions(question: DecisionQuestion): DecisionQuestion {
+  if (question.type !== "choice") return question;
+  const criteria = Object.entries(question.criteria).sort(([a], [b]) => compareNames(a, b));
+  return { ...question, criteria: Object.fromEntries(criteria) };
+}
+
 export const OPENROUTER_API_KEY = EnvironmentVariable.named("OPENROUTER_API_KEY", { secret: true });
 
-/** Jev models the Decisions API serves; a subclass lists more (`override readonly knownModels`). */
+/** Jev's models (a subset of `DECISION_MODELS`, every model the Decisions API serves). */
 export const JEV_MODELS: readonly string[] = ["typesafe/jev-1.13", "typesafe/jev-router"];
 
 /**
- * Jev on OpenRouter's Decisions API: calibrated probabilities over fixed options, the exact cost in
- * every replyWith. Serves `typesafe/jev-*` for routers, guards and judges — decisions only, no chat.
+ * OpenRouter's Decisions API: every decision model (`DECISION_MODELS` — Jev, GPT-6 Luna Decisions,
+ * pplx-decider, Clef, Solar Decide, Mercury Decide) for routers, guards and judges — choice, yes/no
+ * and score questions, image parts, the exact cost in every answer. Decisions only, no chat. A
+ * subclass lists more models (`override readonly knownModels`).
  */
 @ModelProvider({
-  name: "jev",
-  description: "Jev decisions on OpenRouter's Decisions API",
-  serves: [/^typesafe\/jev-/],
+  name: "decisions",
+  description: "Decision models on OpenRouter's Decisions API",
+  serves: [DECISION_MODEL_PATTERN],
   baseUrl: OPENROUTER_BASE_URL_SETTING,
   apiKey: OPENROUTER_API_KEY,
   timeout: seconds(30),
@@ -46,21 +57,13 @@ export const JEV_MODELS: readonly string[] = ["typesafe/jev-1.13", "typesafe/jev
   }),
   circuitBreakerPolicy: { failureThreshold: 5, window: minutes(1), openFor: seconds(30) },
 })
-export class JevModelProvider implements ModelProviderHandler {
-  readonly knownModels: readonly string[] = JEV_MODELS;
+export class DecisionsModelProvider implements ModelProviderHandler {
+  readonly knownModels: readonly string[] = DECISION_MODELS;
 
-  /** Options sorted by name: declaration order changes neither the request nor its fingerprint. */
+  /** Choice options sorted by name: declaration order changes neither the request nor its fingerprint. */
   routeTo({ decision, connection }: DecideRequest): Promise<unknown> {
     const questions = Object.fromEntries(
-      Object.entries(decision.questions).map(([id, question]) => [
-        id,
-        {
-          ...question,
-          criteria: Object.fromEntries(
-            Object.entries(question.criteria).sort(([a], [b]) => compareNames(a, b)),
-          ),
-        },
-      ]),
+      Object.entries(decision.questions).map(([id, question]) => [id, sortedOptions(question)]),
     );
     const client = createJevClient(
       { apiKey: connection.apiKey ?? "", baseUrl: connection.baseUrl },

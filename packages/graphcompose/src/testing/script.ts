@@ -26,7 +26,16 @@ export interface DecisionDetails {
   readonly cost?: Usd;
 }
 
-/** One scripted model turn: a text, a tool call, a router decision, or a failure. */
+/** A scripted answer to one decision question: P(yes) (`noul`), an option (`choice`), a level's index or text (`score`). */
+export type ScriptedAnswer = number | string;
+
+/** Optional parts of a scripted decision (`decideWith`). */
+export interface DecideDetails {
+  /** What the decision cost (the Decisions API's `usage.cost`). */
+  readonly cost?: Usd;
+}
+
+/** One scripted model turn: a text, a tool call, a router decision, a decision's answers, or a failure. */
 export type ScriptedTurn =
   | { readonly kind: "replyWith"; readonly text: string; readonly details: AnswerDetails }
   | {
@@ -38,6 +47,11 @@ export type ScriptedTurn =
       readonly kind: "decision";
       readonly target: ChoiceTarget;
       readonly details: DecisionDetails;
+    }
+  | {
+      readonly kind: "decide";
+      readonly answers: Readonly<Record<string, ScriptedAnswer>>;
+      readonly details: DecideDetails;
     }
   | { readonly kind: "failure"; readonly failure: ModelFailure };
 
@@ -83,6 +97,15 @@ export const routeTo = (target: ChoiceTarget, details: DecisionDetails = {}): Sc
   target,
   details,
 });
+
+/**
+ * A decision model answers a judge's `ctx.model.decide`, by question id:
+ * `decideWith({ grounded: 0.9, tone: "neutral", quality: 2 }, { cost: usd(0.0002) })`.
+ */
+export const decideWith = (
+  answers: Readonly<Record<string, ScriptedAnswer>>,
+  details: DecideDetails = {},
+): ScriptedTurn => ({ kind: "decide", answers, details });
 
 /** The model call fails: `failWith(ModelFailure.Timeout)`. */
 export const failWith = (failure: ModelFailure): ScriptedTurn => ({ kind: "failure", failure });

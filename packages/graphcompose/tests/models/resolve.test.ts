@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  JevModelProvider,
+  DECISION_MODELS,
+  DecisionsModelProvider,
   ModelProvider,
   ModelProviderDirectory,
   ModelProviderError,
@@ -31,7 +32,7 @@ const providerOf = (directory: ModelProviderDirectory, query: ReturnType<typeof 
 describe("AC6: which provider serves a model (serves patterns)", () => {
   const directory = ModelProviderDirectory.of([
     TestOpenRouterProvider,
-    JevModelProvider,
+    DecisionsModelProvider,
     LocalModelProvider,
   ]);
 
@@ -40,7 +41,7 @@ describe("AC6: which provider serves a model (serves patterns)", () => {
     // OpenRouter serves /.*/ but has no decisions; Jev has no chat models
     expect(
       providerOf(directory, { ...chat("typesafe/jev-1.13"), purpose: ModelPurpose.Decision }),
-    ).toBe("jev");
+    ).toBe("decisions");
   });
 
   it("AC6: a component's override wins over serves", () => {
@@ -86,8 +87,15 @@ describe("AC6: which provider serves a model (serves patterns)", () => {
     expect(providerOf(defaults, chat("test/alpha"))).toBe("openrouter");
     expect(
       providerOf(defaults, { ...chat("typesafe/jev-1.13"), purpose: ModelPurpose.Decision }),
-    ).toBe("jev");
+    ).toBe("decisions");
     expect(providerOf(defaults, chat("typesafe/jev-1.13"))).toBe("model.no-provider");
+    // #226: every decision model, not only Jev, is the Decisions API's — none is a chat model
+    for (const model of DECISION_MODELS) {
+      expect(providerOf(defaults, { ...chat(model), purpose: ModelPurpose.Decision })).toBe(
+        "decisions",
+      );
+      expect(providerOf(defaults, chat(model))).toBe("model.no-provider");
+    }
   });
 
   it("AC6: a provider needs a serves pattern; a plain class is not a provider", () => {

@@ -1,5 +1,6 @@
 import { minutes, seconds } from "../units/index.js";
 import { ModelCost } from "./cost.js";
+import { NOT_A_DECISION_MODEL } from "./decision-models.js";
 import { OPENROUTER_API_KEY, OPENROUTER_BASE_URL_SETTING } from "./jev.provider.js";
 import { ModelProvider } from "./model-provider.decorator.js";
 import { OpenRouterProvider, type OpenRouterFields } from "./openrouter.provider.js";
@@ -8,13 +9,14 @@ import { Reasoning } from "./reasoning.js";
 import { RetryPolicy, TRANSIENT_FAILURES } from "./retry-policy.js";
 
 /**
- * The default chat provider of a workflow that registers none: every model but Jev's on OpenRouter,
+ * The default chat provider of a workflow that registers none: every model but the decision models
+ * (`DECISION_MODELS`) on OpenRouter,
  * the cost from its answers, reasoning left to the model, caching where the model supports it.
  */
 @ModelProvider({
   name: "openrouter",
   description: "OpenRouter — many models behind one OpenAI-compatible API",
-  serves: [/^(?!typesafe\/jev-)/],
+  serves: [NOT_A_DECISION_MODEL],
   baseUrl: OPENROUTER_BASE_URL_SETTING,
   apiKey: OPENROUTER_API_KEY,
   timeout: minutes(2),

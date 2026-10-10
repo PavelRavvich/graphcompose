@@ -23,7 +23,7 @@ export interface ChatRequest {
   readonly connection: ProviderConnection;
 }
 
-/** A decision request (Jev Decisions API). */
+/** A decision request (OpenRouter Decisions API: every decision model, choice / noul / score questions). */
 export interface DecideRequest {
   readonly decision: JevDecisionRequest;
   readonly connection: ProviderConnection;
@@ -31,7 +31,7 @@ export interface DecideRequest {
 
 /**
  * The contract of a model provider (`@ModelProvider` class): chat models, decisions, or both, and
- * what each model supports. `OpenAiCompatibleProvider` and `JevModelProvider` implement it.
+ * what each model supports. `OpenAiCompatibleProvider` and `DecisionsModelProvider` implement it.
  */
 export interface ModelProviderHandler {
   chat?(request: ChatRequest): BaseChatModel;

@@ -37,7 +37,7 @@ describe("createJevClient", () => {
     const client = createJevClient({ apiKey: "k", baseUrl: OPENROUTER_BASE_URL }, fetchImpl);
 
     await expect(client(request)).rejects.toThrow(
-      new JevApiError("Jev API 402: insufficient credits"),
+      new JevApiError("Decisions API 402: insufficient credits"),
     );
   });
 });

@@ -1,4 +1,5 @@
 import type { MessageContent } from "@langchain/core/messages";
+import type { DecisionQuestions, DecisionState } from "../llm/decisions.js";
 import { LiveCallBlockedError, TestFailure } from "./errors.js";
 import type { ScriptedTurn } from "./script.js";
 
@@ -8,7 +9,7 @@ export interface ChatLine {
   readonly text: MessageContent;
 }
 
-/** What a component sent its model: an agent's chat, or a router's decision request. */
+/** What a component sent its model: an agent's chat, a router's decision request, or a judge's decision. */
 export type ModelRequest =
   | {
       readonly kind: "chat";
@@ -23,6 +24,14 @@ export type ModelRequest =
       /** Each option's route text as the router's model got it. */
       readonly routes: Readonly<Record<string, string>>;
       readonly instructions: string;
+    }
+  | {
+      /** A judge's `ctx.model.decide`: the state and the questions, as sent. */
+      readonly kind: "decide";
+      /** The state as text (JSON unless it is a string). */
+      readonly input: MessageContent;
+      readonly state: DecisionState;
+      readonly questions: DecisionQuestions;
     };
 
 /** A component's script and what it was asked: `mockLlm(Scout).thenReturn(replyWith("…"))`. */

@@ -10,8 +10,12 @@ Multi-agent project on LangGraph + LangChain (TypeScript). Built with a three-ph
   (messages, prompts, tools, test fakes), `zod` (inside the framework only — workflows use DTO
   classes, `graphcompose/dto`)
 - LLM access: **OpenRouter** only. Env: `OPENROUTER_API_KEY` (+ optional `OPENROUTER_BASE_URL`).
-  - Routers: each `@Router` names its own `model` — **Jev** (`typesafe/jev-*`, Decisions API —
-    probabilities, exact cost) or any chat model. Guards use `defaults.router` (Jev).
+  - Routers: each `@Router` names its own `model` — a **decision model** (`DECISION_MODELS`: Jev,
+    `openai/gpt-6-luna-decisions`, pplx-decider, Clef, …; OpenRouter Decisions API via
+    `DecisionsModelProvider` — probabilities, exact cost) or any chat model. Guards use
+    `defaults.router` (Jev). Judges on a decision model call `ctx.model.decide` with
+    `Decision.noul` / `Decision.choice` / `Decision.score` / `Decision.image` (typed answers);
+    `invoke` or `decide` on the wrong kind of model → `ModelKindError`.
   - Agents: cheap chat models (default `moonshotai/kimi-k2.6`) via `@langchain/openai`, each with
     `maxTokens` (`MODEL_MAX` = model's maximum), `thinking`, `cache`.
   - Everything is set in the workflow's components (`@Workflow` with its `flow` and `settings()`,

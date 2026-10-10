@@ -4,7 +4,7 @@ import { checkModelUses, resolutionProblems } from "../../src/models/check.js";
 import {
   CachedPart,
   CacheRetention,
-  JevModelProvider,
+  DecisionsModelProvider,
   ModelProviderDirectory,
   PromptCaching,
   Reasoning,
@@ -17,7 +17,7 @@ import { CLAUDE_ENTRY, GPT5_ENTRY, KIMI_ENTRY, providerStub } from "./stub.js";
 /** A fresh directory: each provider instance fetches its model list once. */
 const directoryOf = () =>
   ModelProviderDirectory.of(
-    [TestOpenRouterProvider, JevModelProvider, LocalModelProvider],
+    [TestOpenRouterProvider, DecisionsModelProvider, LocalModelProvider],
     LocalModelProvider,
   );
 const models = [KIMI_ENTRY, CLAUDE_ENTRY, GPT5_ENTRY, { id: "local/qwen" }, { id: "local/llama" }];
@@ -129,7 +129,7 @@ describe("AC6: fail fast — settings must fit their models, all problems at onc
         key: "routers.main",
         value: "typesafe/jev-1.4",
         model: "typesafe/jev-1.4",
-        supported: "jev does not list it",
+        supported: "decisions does not list it",
       },
     ]);
   });

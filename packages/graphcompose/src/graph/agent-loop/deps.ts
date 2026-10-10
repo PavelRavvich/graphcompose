@@ -1,6 +1,6 @@
 import type { ObserverManager } from "../../core/observer-manager.js";
 import type { AIMessage } from "@langchain/core/messages";
-import type { ModelBinding } from "../../llm/registry.js";
+import type { JudgeBinding, ModelBinding } from "../../llm/registry.js";
 import type { BaseMemoryStrategy } from "../../memory/types.js";
 import type { KnowledgeSource } from "../../rag/types.js";
 import type { AnyTool } from "../../tools/index.js";
@@ -29,11 +29,11 @@ export interface AgentDefinition {
   readonly maxRetries?: number;
 }
 
-/** One `@Judge` of an agent: its name, its instance (from the container) and its model binding. */
+/** One `@Judge` of an agent: its name, its instance (from the container) and its model (chat or decisions). */
 export interface AgentJudge {
   readonly name: string;
   readonly handler: JudgeHandler;
-  readonly binding: ModelBinding;
+  readonly binding: JudgeBinding;
 }
 
 /** What an agent's loop is built from. */

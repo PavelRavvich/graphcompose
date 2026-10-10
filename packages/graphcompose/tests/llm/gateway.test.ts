@@ -87,7 +87,7 @@ describe("AC12: the default model gateway", () => {
       Object.keys(
         createProviderGateway(directoryOf(undefined), { env: { OPENROUTER_API_KEY: "k" } }),
       ),
-    ).toEqual(["chatModel", "routeTo"]);
+    ).toEqual(["chatModel", "routeTo", "decide"]);
   });
 });
 
