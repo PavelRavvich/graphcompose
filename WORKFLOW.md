@@ -14,7 +14,8 @@ How work moves from a requirement to accepted code.
 
 - Issue and PR bodies are passed to `gh` via stdin (`--body-file -`), never through files.
 - The Wiki is a separate git repo; its working copy is `../<repo>.wiki`, managed by
-  `scripts/wiki.sh` (`pull`, `publish`, `seed`).
+  `scripts/wiki.sh` (`pull`, `publish`, `seed`). Its ts blocks compile and its commands and links
+  exist — `node scripts/check-docs.mjs --wiki ../<repo>.wiki` before publishing; CI runs it too.
 - Board and stages are managed by `scripts/ticket.sh` (`setup`, `status`, `list`, `sub`).
 
 ## The conveyor
