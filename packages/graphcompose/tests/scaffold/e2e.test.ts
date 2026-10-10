@@ -3,47 +3,26 @@
  * its workflow assembles — right after `create` and after each `generate`. Generated inside the monorepo
  * (its installed dependencies); a real `npm install` is the manual check M1.
  */
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { specFromFlags } from "../../src/scaffold/flags.js";
+import { FINISH_ROUTE_TEXT } from "../../src/scaffold/flow-files.js";
 import { planGenerate } from "../../src/scaffold/generate.js";
 import type { WorkflowSpec } from "../../src/scaffold/plan.js";
 import { planProject } from "../../src/scaffold/project.js";
 import { applyChanges } from "../../src/scaffold/write.js";
+import { expectStaticChecks, gcIn, vitestOf } from "./project-checks.js";
 
-const repo = new URL("../../../..", import.meta.url).pathname;
-const bin = (path: string): string => join(repo, "node_modules", path);
 const tmp = new URL("../../.scaffold-tmp", import.meta.url).pathname;
 const project = join(tmp, `desk-${String(process.pid)}`);
 
-const run = (
-  command: string,
-  args: readonly string[],
-  cwd = project,
-): { ok: boolean; out: string } => {
-  const result = spawnSync(process.execPath, [command, ...args], {
-    cwd,
-    encoding: "utf8",
-    env: { ...process.env, NO_COLOR: "1" },
-  });
-  return { ok: result.status === 0, out: `${result.stdout}${result.stderr}` };
-};
-
-/** tsc, the project's own tests, the framework's ESLint rules, and `gc describe` on its workflow. */
+/** tsc, the framework's ESLint rules, prettier, the project's own tests, `gc describe` on its workflow. */
 function check(workflow: string): string {
-  const tsc = run(bin("typescript/bin/tsc"), ["-p", join(project, "tsconfig.json")]);
-  expect(tsc.out).toBe("");
-  const tests = run(bin("vitest/vitest.mjs"), ["run", "--root", project]);
+  expectStaticChecks(project, ["src"]);
+  const tests = vitestOf(project);
   expect(tests.ok, tests.out).toBe(true);
-  const lint = run(bin("eslint/bin/eslint.js"), ["--no-ignore", join(project, "src")], repo);
-  expect(lint.ok, lint.out).toBe(true);
-  const describeOut = run(join(repo, "packages/graphcompose/bin/graphcompose.js"), [
-    "describe",
-    "--workflow",
-    workflow,
-  ]);
+  const describeOut = gcIn(project, ["describe", "--workflow", workflow]);
   expect(describeOut.ok, describeOut.out).toBe(true);
   return describeOut.out;
 }
@@ -114,12 +93,11 @@ describe("gc create / gc generate end to end", () => {
     );
     expect(scripts().chat).toBe("graphcompose chat --workflow src/desk/desk.workflow.ts");
     // #135 AC12: the workflow test on testWith runs offline in the unit project; empty projects pass
-    const vitest = bin("vitest/vitest.mjs");
-    const unit = run(vitest, ["run", "--root", project, "--project", "unit"]);
+    const unit = vitestOf(project, ["--project", "unit"]);
     expect(unit.ok, unit.out).toBe(true);
     expect(unit.out).toContain("desk.workflow.test.ts");
-    expect(run(vitest, ["run", "--root", project, "--project", "integration"]).ok).toBe(true);
-    expect(run(vitest, ["run", "--root", project, "--project", "suites"]).ok).toBe(true);
+    expect(vitestOf(project, ["--project", "integration"]).ok).toBe(true);
+    expect(vitestOf(project, ["--project", "suites"]).ok).toBe(true);
     expect(scripts().test).toBe("vitest run --project unit --project integration");
   }, 240_000);
 
@@ -173,5 +151,25 @@ describe("gc create / gc generate end to end", () => {
     );
     expect(check("src/onboarding/onboarding.workflow.ts")).toContain("onboarding 0.1.0");
     expect(scripts()["chat:onboarding"]).toBeDefined();
+  }, 240_000);
+
+  it("AC2: rerunning generators with --force regenerates files and doubles no wiring", async () => {
+    const workflow = "src/desk/desk.workflow.ts";
+    const read = (path: string): string => readFileSync(join(project, path), "utf8");
+    const before = [workflow, "src/desk/routers/main.router.ts"].map(read);
+
+    for (const [kind, name, options] of [
+      ["agent", "billing", { workflow, description: "Handles invoices, again" }],
+      ["tool", "refund", { workflow, agent: "billing" }],
+      ["rag", "policies", { workflow, folder: "policies", agent: "billing" }],
+    ] as const) {
+      const plan = await planGenerate(kind, name, options, project);
+      await expect(applyChanges(project, plan)).rejects.toThrow("Nothing was written");
+      await applyChanges(project, plan, { force: true });
+    }
+
+    expect([workflow, "src/desk/routers/main.router.ts"].map(read)).toEqual(before);
+    expect(read("src/desk/routers/main.router.ts")).toContain(FINISH_ROUTE_TEXT);
+    check(workflow);
   }, 240_000);
 });

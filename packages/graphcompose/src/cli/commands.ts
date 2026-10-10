@@ -139,6 +139,10 @@ const SCAFFOLD_COMMANDS: Readonly<Record<string, CommandSpec>> = {
         "openapi: the OpenAPI 3 document — one tool per operation (with --agent)",
       ),
       text("operations", "<ids>", "openapi: only these operations (operationIds, comma-separated)"),
+      flag(
+        "force",
+        "regenerate files that exist; wiring already there is kept and reported, never doubled",
+      ),
       DRY_RUN,
     ],
   },

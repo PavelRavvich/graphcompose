@@ -60,7 +60,7 @@ async function askMcp(workflow: string): Promise<McpSpec> {
   return { kind: "none" };
 }
 
-/** The questionnaire (structure only) for whatever the flags did not replyWith. */
+/** The questionnaire (structure only) for whatever the flags did not answer. */
 export async function askMissing(
   partial: Partial<WorkflowSpec> & { name: string },
 ): Promise<WorkflowSpec> {

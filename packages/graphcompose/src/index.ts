@@ -102,6 +102,9 @@ export {
 export { TerminalUserChannel } from "./channels/terminal-channel.js";
 export { ENV } from "./components/runtime.js";
 export { Injectable } from "./components/decorators.js";
+// the authoring decorators `gc generate` writes, from the root entry (#197; MCP and RAG: their own entries)
+export { Agent, Tool, Workflow, type ToolHandler } from "./components/decorators.js";
+export type { ToolContext } from "./tools/index.js";
 export {
   defineEnvironment,
   fromEnv,

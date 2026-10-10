@@ -1,20 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ScaffoldError } from "../../src/scaffold/errors.js";
+import { FINISH_ROUTE_TEXT, MAIN_ROUTER } from "../../src/scaffold/flow-files.js";
 import { planGenerate } from "../../src/scaffold/generate.js";
 import { addAgentToFlow } from "../../src/scaffold/wire-flow.js";
 
 const workflow = (flow: string) => ({ path: "src/desk/desk.workflow.ts", content: flow });
 
 describe("#116: gc g agent joins the star; gc g router", () => {
-  it("adds the agent before the replyWith in choose(...) and to the agents going back to the router", () => {
+  it("adds the agent before the finish in routes(…) and to the agents going back to the router", () => {
     const file = workflow(
       "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routes(TriageAgent, TextWorkflowFinish),\n  from(TriageAgent).next(MainRouter),\n]",
     );
 
-    expect(addAgentToFlow(file, "BillingAgent", "MainRouter").content).toBe(
+    expect(addAgentToFlow(file, "BillingAgent", "MainRouter", ["TriageAgent"]).content).toBe(
       "flow: [\n  from(TextWorkflowStart).next(MainRouter),\n  from(MainRouter).routes(TriageAgent, BillingAgent, TextWorkflowFinish),\n  from(TriageAgent, BillingAgent).next(MainRouter),\n]",
     );
   });
@@ -24,7 +25,7 @@ describe("#116: gc g agent joins the star; gc g router", () => {
       "[from(MainRouter).routes(TextWorkflowFinish), from(TriageAgent).next(MainRouter)]",
     );
 
-    expect(addAgentToFlow(file, "BillingAgent", "MainRouter").content).toBe(
+    expect(addAgentToFlow(file, "BillingAgent", "MainRouter", ["TriageAgent"]).content).toBe(
       "[from(MainRouter).routes(BillingAgent, TextWorkflowFinish), from(TriageAgent, BillingAgent).next(MainRouter)]",
     );
   });
@@ -34,30 +35,75 @@ describe("#116: gc g agent joins the star; gc g router", () => {
       "[from(TextWorkflowStart).next(TriageAgent), from(TriageAgent).next(TextWorkflowFinish)]",
     );
 
-    expect(() => addAgentToFlow(file, "BillingAgent", "MainRouter")).toThrow(ScaffoldError);
-    expect(() => addAgentToFlow(file, "BillingAgent", "MainRouter")).toThrow(
+    expect(() => addAgentToFlow(file, "BillingAgent", "MainRouter", ["TriageAgent"])).toThrow(
+      ScaffoldError,
+    );
+    expect(() => addAgentToFlow(file, "BillingAgent", "MainRouter", ["TriageAgent"])).toThrow(
       "src/desk/desk.workflow.ts: no from(MainRouter).routes(…)",
     );
   });
 
-  it("gc g router needs the workflow's replyWith workflow finish, and creates the router with its replyWith route", async () => {
+  it("adding an agent that is already in the star doubles nothing: both places are reported as skipped", () => {
+    const file = workflow(
+      "[from(MainRouter).routes(TriageAgent, BillingAgent, TextWorkflowFinish), from(TriageAgent, BillingAgent).next(MainRouter)]",
+    );
+
+    const again = addAgentToFlow(file, "BillingAgent", "MainRouter", [
+      "TriageAgent",
+      "BillingAgent",
+    ]);
+
+    expect(again.content).toBe(file.content);
+    expect(again.skipped).toEqual([
+      "src/desk/desk.workflow.ts: BillingAgent already in from(MainRouter).routes(…)",
+      "src/desk/desk.workflow.ts: BillingAgent already in from(…).next(MainRouter)",
+    ]);
+  });
+
+  it("gc g router routes to the finish the workflow imports, whatever its file is called", async () => {
     const root = mkdtempSync(join(tmpdir(), "gc-router-"));
-    mkdirSync(join(root, "src/desk"), { recursive: true });
+    mkdirSync(join(root, "src/desk/ends"), { recursive: true });
     writeFileSync(join(root, "src/desk/desk.workflow.ts"), "");
     const options = { workflow: "src/desk/desk.workflow.ts" };
 
     await expect(planGenerate("router", "escalation", options, root)).rejects.toThrow(
-      "Not found: src/desk/workflow-finishes/text.workflow-finish.ts",
+      "src/desk/desk.workflow.ts: imports no @WorkflowFinish class",
     );
-    mkdirSync(join(root, "src/desk/workflow-finishes"));
-    writeFileSync(join(root, "src/desk/workflow-finishes/text.workflow-finish.ts"), "");
+    writeFileSync(
+      join(root, "src/desk/desk.workflow.ts"),
+      'import { DoneFinish } from "./ends/done.ts";\n',
+    );
+    writeFileSync(
+      join(root, "src/desk/ends/done.ts"),
+      '@WorkflowFinish({ name: "done", output: X })\nexport class DoneFinish {}\n',
+    );
     const [router] = (await planGenerate("router", "escalation", options, root)).create;
     expect(router?.path).toBe("src/desk/routers/escalation.router.ts");
     expect(router?.content).toContain("export class EscalationRouter {}");
+    expect(router?.content).toContain('import { DoneFinish } from "../ends/done.js";');
     expect(router?.content).toContain(
-      '{ prompt: "Stop and send the replyWith: the contributions so far replyWith',
+      '{ prompt: "Stop and send the answer: the contributions so far answer the message',
     );
     // #142 AC3: a new router is bounded on any cycle it is later put on
     expect(router?.content).toContain("  maxVisits: 1,\n");
+  });
+});
+
+describe("#197: the router prompts every scaffold writes", () => {
+  it("the finish route is the stop instruction CLAUDE.md prescribes, pinned word for word", () => {
+    const guide = readFileSync(new URL("../../../../CLAUDE.md", import.meta.url), "utf8");
+    const [, prefix] = /\("(Stop and send the answer:) …"\)/.exec(guide) ?? [];
+
+    expect(prefix).toBe("Stop and send the answer:");
+    expect(FINISH_ROUTE_TEXT.startsWith(`${prefix ?? "?"} `)).toBe(true);
+    expect(FINISH_ROUTE_TEXT).toBe(
+      "Stop and send the answer: the contributions so far answer the message, or the last agent asked a question and waits for the reply, or it cannot be done",
+    );
+    expect(MAIN_ROUTER).toEqual({
+      description: "Sends the message to the right agent, or sends the answer",
+      prompt:
+        "Pick who handles the message next. Send the answer when the contributions so far already cover the message.",
+      maxVisits: 3,
+    });
   });
 });

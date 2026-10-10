@@ -86,7 +86,7 @@ describe("writing", () => {
         ],
         modify: [],
       }),
-    ).rejects.toThrow("Already exists, nothing was written: b.ts");
+    ).rejects.toThrow("Already exists: b.ts. Nothing was written");
     expect(existsSync(join(root, "a.ts"))).toBe(false);
     expect(await readFile(join(root, "b.ts"), "utf8")).toBe("keep");
   });
@@ -104,15 +104,16 @@ describe("writing", () => {
       modify: [],
     });
 
-    // the clash is caught while planning — before anything is written
-    await expect(
-      planGenerate(
-        "tool",
-        "search orders",
-        { workflow: "src/desk/desk.workflow.ts", agent: "answerer" },
-        root,
-      ),
-    ).rejects.toThrow("src/desk/agents/answerer.agent.ts: SearchOrdersTool is already in tools");
+    // the clash is caught before anything is written: the files and the wiring are both there
+    const again = await planGenerate(
+      "tool",
+      "search orders",
+      { workflow: "src/desk/desk.workflow.ts", agent: "answerer" },
+      root,
+    );
+    await expect(applyChanges(root, again)).rejects.toThrow(
+      "Already exists: src/desk/tools/search-orders.tool.ts, src/desk/tools/search-orders.tool.test.ts. Already wired: src/desk/agents/answerer.agent.ts: SearchOrdersTool already in tools. Nothing was written — rerun with --force",
+    );
     await expect(
       planGenerate("tool", "x", { workflow: "src/desk/desk.workflow.ts" }, root),
     ).rejects.toThrow("gc generate tool needs --agent <name>");
