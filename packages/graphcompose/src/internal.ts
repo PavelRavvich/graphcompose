@@ -6,6 +6,7 @@
  * is the public entries only). Its API report (api/graphcompose-internal.api.md) shows the CLI's
  * contract in review. The CLI depends on the exact same `graphcompose` version: they ship together.
  */
+export { createStartComponents } from "./app/start-components.js";
 export { renderTemplate } from "./components/render-template.js";
 export { ProfileError } from "./config/profiles.js";
 export { describeServices, describeServicesWith } from "./describe/describe-workflow.js";

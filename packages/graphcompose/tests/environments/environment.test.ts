@@ -17,6 +17,7 @@ import {
   SettingsApp,
 } from "../fixtures/environments/app/settings.workflow.js";
 import { NoEnvironmentApp } from "../fixtures/environments/none/no-environment.workflow.js";
+import { ObservedApp } from "../fixtures/environments/observed/observed.workflow.js";
 import { toolResultsOf } from "../testing/fixtures/requests.js";
 
 /** Everything external given; `processEnv` is what `fromEnv` reads. */
@@ -87,6 +88,12 @@ describe("#182 AC6: ENV injected with no environment → [di.missing-environment
   it("the app does not start and names the service that injects ENV", async () => {
     await expect(createApp(NoEnvironmentApp, offline())).rejects.toThrow(
       /^\[di\.missing-environment\] ApiClient injects ENV, but the app has no environment/,
+    );
+  });
+
+  it("#239: an observer injecting ENV (no tool does) fails the start the same way", async () => {
+    await expect(createApp(ObservedApp, offline())).rejects.toThrow(
+      /^\[di\.missing-environment\] RunLog injects ENV, but the app has no environment/,
     );
   });
 

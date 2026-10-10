@@ -1,5 +1,6 @@
 import { Tool, type ToolHandler } from "graphcompose";
 import { Text } from "graphcompose/dto";
+{{serviceImport}}
 
 /** What the model asks {{snake}} for. */
 export class {{pascal}}Query {
@@ -19,10 +20,10 @@ export class {{pascal}}Result {
   description: "{{title}} (TODO: say what it does)",
   input: {{pascal}}Query,
   output: {{pascal}}Result,
-})
+{{deps}}})
 export class {{pascal}}Tool implements ToolHandler<{{pascal}}Query, {{pascal}}Result> {
-  run({ query }: {{pascal}}Query): Promise<{{pascal}}Result> {
+{{constructor}}  run({ query }: {{pascal}}Query): Promise<{{pascal}}Result> {
     // TODO: the real work — dependencies come through the constructor (and `deps`)
-    return Promise.resolve({ result: `TODO: {{snake}} is not implemented yet (query: ${query})` });
+    return Promise.resolve({ result: `TODO: {{snake}} is not implemented yet (query: ${query}{{serviceUse}})` });
   }
 }

@@ -18,7 +18,8 @@ npx gc g tool refund --workflow src/my-agents/my-agents.workflow.ts --agent assi
 # one tool per OpenAPI 3 operation (DTOs, a client in services/, tests), wired into the agent
 npx gc g openapi pets --url ./pets.yaml --workflow src/my-agents/my-agents.workflow.ts --agent assistant
 # any layout: targets come from the workflow module, tests go where vitest looks, files are
-# prettier-formatted; a rerun refuses — --force regenerates the files and keeps existing wiring
+# prettier-formatted; a rerun refuses — --force regenerates the files and keeps the wiring in them
+# (tools, rag, MCP, judges, routes, …); --force --reset starts them over without it
 ```
 
 Or add it to a project and write the components yourself:
@@ -183,7 +184,8 @@ export class Api {
   `staging.environment.ts` (every workflow command takes `--env`). An unknown name fails at once
   (exit 3) listing the available ones; a `fromEnv` variable without a value or default fails the
   start naming every missing variable. `gc check` validates the selected environment without
-  running anything; `gc describe` shows it with secrets masked.
+  running anything, creating every component the start creates (tools, observers, judges, …), so it
+  fails exactly when the start would; `gc describe` shows it with secrets masked.
 - From code: `createApp(Workflow, { env: "staging" })`. In tests: `testWith(Workflow, { env: "test" })`
   or `testWith(Workflow, { environment: { … } })` (typed by `Environment`).
 - A service injecting `ENV` in a workflow without `environments/` fails at start with

@@ -29,19 +29,9 @@ import {
   type McpConnections,
   type TransportFactory,
 } from "../tools/index.js";
-import {
-  evaluationFor,
-  flowFor,
-  guardsFor,
-  knowledgeFor,
-  memoryFor,
-  judgesFor,
-  pauseFor,
-  servicesFor,
-  toolLookup,
-  actionLookup,
-} from "./parts.js";
-import { approvalRequester, closeOf, containerDepsOf, policyDepsOf } from "./app-deps-parts.js";
+import { evaluationFor, flowFor, guardsFor, pauseFor, servicesFor, toolLookup } from "./parts.js";
+import { closeOf } from "./app-deps-parts.js";
+import { componentsAtStart } from "./start-components.js";
 
 /** Daily spend ledgers live outside the repo. */
 export const DEFAULT_LEDGER_DIR = join(homedir(), ".langgraph-agents", "spend");
@@ -191,19 +181,13 @@ export async function createAppDeps(
     prompts: bundle.prompts,
     guards: guardsFor(config, gateway),
     tools: toolLookup(tools),
-    actions: actionLookup(bundle, services),
     pause: pauseFor(bundle, checkpointer),
-    requestApproval: approvalRequester(bundle, services),
     compactionPrompt: bundle.compactionPrompt,
-    ...policyDepsOf(bundle, services),
-    ...knowledgeFor(bundle, services),
-    ...memoryFor(bundle, services),
-    ...judgesFor(bundle, services),
+    ...componentsAtStart(bundle, services, lifecycle.created),
     ledger,
     terns,
     evaluation: evaluationFor(bundle, { terns, ledger }, gateway),
     tracing,
-    ...containerDepsOf(bundle, services, lifecycle.created),
     ...(options.newRunId === undefined ? {} : { newRunId: options.newRunId }),
     close: closeOf(lifecycle.created, mcp, tracing, ownsTerns ? terns : undefined),
   };

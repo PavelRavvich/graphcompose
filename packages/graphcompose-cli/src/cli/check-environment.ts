@@ -1,10 +1,5 @@
-import {
-  ComponentError,
-  EnvironmentError,
-  resolveTools,
-  type AssembledWorkflow,
-} from "graphcompose";
-import { describeServices, environmentFor } from "graphcompose/internal";
+import { ComponentError, EnvironmentError, type AssembledWorkflow } from "graphcompose";
+import { createStartComponents, describeServices, environmentFor } from "graphcompose/internal";
 import { resolve } from "node:path";
 import type { CheckProblem } from "./check-problems.js";
 
@@ -16,17 +11,22 @@ export interface EnvironmentTarget {
   readonly env: NodeJS.ProcessEnv;
 }
 
+/** `[di.missing-environment] …` → its code; another component error is the app's start failing. */
+const componentCode = (error: ComponentError): string =>
+  /^\[([a-z][\w.-]*)\]/.exec(error.message)?.[1] ?? "workflow.start";
+
 const problemOf = (file: string, error: unknown): CheckProblem[] => {
   if (error instanceof EnvironmentError)
     return [{ file, code: error.code, message: error.message }];
-  if (error instanceof ComponentError && error.message.startsWith("[di.missing-environment]"))
-    return [{ file, code: "di.missing-environment", message: error.message }];
+  if (error instanceof ComponentError)
+    return [{ file, code: componentCode(error), message: error.message }];
   throw error;
 };
 
 /**
- * `gc check` without running anything: the selected environment is found and every `fromEnv` variable
- * it needs is set; with no environment, no tool injects `ENV`.
+ * `gc check` without running anything: the selected environment is found, every `fromEnv` variable it
+ * needs is set, and every component the app's start creates (tools, observers, judges, channels, …)
+ * gets its dependencies — with no environment, none of them injects `ENV` (#239).
  */
 export async function environmentProblems(target: EnvironmentTarget): Promise<CheckProblem[]> {
   try {
@@ -36,7 +36,10 @@ export async function environmentProblems(target: EnvironmentTarget): Promise<Ch
       target.env,
     );
     const { router } = describeServices;
-    resolveTools(target.bundle, { router, ...(environment === undefined ? {} : { environment }) });
+    createStartComponents(target.bundle, {
+      router,
+      ...(environment === undefined ? {} : { environment }),
+    });
     return [];
   } catch (error) {
     return problemOf(target.file, error);

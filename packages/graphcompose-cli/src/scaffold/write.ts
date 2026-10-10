@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { ScaffoldConflictError, ScaffoldError } from "./errors.js";
 import { formatFiles } from "./format.js";
+import { keepWiring } from "./keep-wiring.js";
 
 export interface FileToWrite {
   /** relative to the project root */
@@ -19,15 +20,21 @@ export interface Changes {
 }
 
 export interface ApplyOptions {
-  /** regenerate files that exist and keep the wiring already there (reported as skipped) */
+  /**
+   * Regenerate files that exist: the wiring already in them is kept (#237), wiring the plan would add
+   * again is left out (reported as skipped).
+   */
   readonly force?: boolean | undefined;
+  /** With `force`: overwrite existing files as generated, dropping the wiring in them. */
+  readonly reset?: boolean | undefined;
 }
 
-/** What was written; `skipped`: wirings already there (only with `force`). */
+/** What was written; `skipped`: wirings already there, `kept`: wiring kept in regenerated files. */
 export interface Applied {
   readonly created: string[];
   readonly modified: string[];
   readonly skipped: string[];
+  readonly kept: string[];
 }
 
 export const skippedOf = (changes: Changes): string[] =>
@@ -49,19 +56,36 @@ function conflicts(root: string, changes: Changes, force: boolean): void {
   throw new ScaffoldConflictError(`${parts.join(". ")}. Nothing was written${FORCE_HINT}`);
 }
 
+/** `--force` without `--reset`: a new file that exists keeps the wiring the old one has (#237). */
+function keepingWiring(root: string, changes: Changes, options: ApplyOptions) {
+  if (options.force !== true || options.reset === true) return { changes, kept: [] };
+  const results = changes.create.map((file) => {
+    const target = join(root, file.path);
+    return existsSync(target)
+      ? keepWiring(readFileSync(target, "utf8"), file)
+      : { file, kept: [] as readonly string[] };
+  });
+  return {
+    changes: { ...changes, create: results.map((r) => r.file) },
+    kept: results.flatMap((r) => r.kept),
+  };
+}
+
 const unchanged = (root: string, file: FileToWrite): boolean =>
   existsSync(join(root, file.path)) && readFileSync(join(root, file.path), "utf8") === file.content;
 
 /**
  * All or nothing: any new file that already exists, or any wiring already there, → an error and
- * nothing is written (AC3), unless `force`. Written files are formatted with the project's prettier.
+ * nothing is written (AC3), unless `force` — then existing files are regenerated keeping their wiring
+ * (or refused when it cannot be kept), unless `reset` too. Written files are formatted with prettier.
  */
 export async function apply(
   root: string,
-  changes: Changes,
+  planned: Changes,
   options: ApplyOptions = {},
 ): Promise<Applied> {
-  conflicts(root, changes, options.force === true);
+  conflicts(root, planned, options.force === true);
+  const { changes, kept } = keepingWiring(root, planned, options);
   const missing = changes.modify
     .filter((file) => !existsSync(join(root, file.path)))
     .map((file) => file.path);
@@ -79,6 +103,7 @@ export async function apply(
     created: created.map((file) => file.path),
     modified: modified.map((file) => file.path),
     skipped: skippedOf(changes),
+    kept,
   };
 }
 
