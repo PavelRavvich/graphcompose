@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { checkFlow } from "../graph/check-flow.js";
 
-import { isSelf, unwrapTarget, type Flow, type FlowNode, type FlowStep } from "../graph/flow.js";
+import { unwrapTarget, type Flow, type FlowNode, type FlowStep } from "../graph/flow.js";
 import type { AgentExecutionOutput } from "../run/types.js";
 import type { ExecutionOutput } from "./types.js";
 

@@ -1,5 +1,6 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
+import { testRules } from "./eslint.tests.js";
 
 /** What any framework module may not import (src/routers, tools and terns have their own rules). */
 const frameworkImportPatterns = [
@@ -173,22 +174,15 @@ export default tseslint.config(
       ],
     },
   },
+  testRules,
   {
-    files: ["packages/graphcompose/tests/**/*.ts", "examples/*/tests/**/*.ts"],
-    rules: {
-      "max-lines": "off",
-      "max-lines-per-function": "off",
-      "@typescript-eslint/no-unsafe-argument": "off",
-      "@typescript-eslint/no-unsafe-call": "off",
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unsafe-member-access": "off",
-      "@typescript-eslint/no-unsafe-assignment": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-    },
+    files: ["**/*.js", "**/*.cjs", "**/*.mjs"],
+    ...tseslint.configs.disableTypeChecked,
   },
   {
-    files: ["**/*.js", "**/*.cjs"],
-    ...tseslint.configs.disableTypeChecked,
+    files: ["scripts/**/*.mjs"],
+    languageOptions: { globals: { process: "readonly", console: "readonly", URL: "readonly" } },
+    rules: { "no-console": "off" },
   },
   {
     files: ["**/*.cjs"],

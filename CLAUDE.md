@@ -175,6 +175,12 @@ Quizzes: `.claude/skills/QUIZ.md`. Stages: `scripts/ticket.sh status <N> <Status
 - Every model call records usage; models come only from the registry.
 - Never lower coverage thresholds, disable lint rules, or add `eslint-disable` / `@ts-ignore`
   to get green. Fix the code or stop and report.
+- The gate enforces it (#180): `.suppressions.json` is a budget of every `eslint-disable`,
+  `@ts-ignore`, `as any` and `as unknown as` — `make check` fails when a count goes up, and when it
+  goes down until the budget is lowered (`node scripts/check-suppressions.mjs --write`). No
+  file-scope `/* eslint-disable */`, ever. Tests must assert (`requireAssertions`) and must not fake
+  framework failures (e.g. an interrupt by its name). The repo root is allow-listed
+  (`.root-allowlist`): notes and specs go to Issues / Wiki.
 - Tests never call a real LLM. A workflow is tested with `graphcompose/testing` (`testWith`: models
   by script, MCP servers stubbed, network blocked); units use fakes from `@langchain/core/utils/testing`.
 - Read existing code before planning — the spec may be stale, the code is not.

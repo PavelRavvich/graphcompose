@@ -1,8 +1,16 @@
-/* eslint-disable */
 import { WorkflowAction, type ActionRuntime } from "../../components/decorators.js";
+import type { Class } from "../../components/injection.js";
 import { componentOf } from "../../components/metadata.js";
 import { BaseSagaStrategy } from "./types.js";
 import type { AgentState } from "../../graph/state.js";
+
+/** The compensation declared on an agent or action class, if any. */
+function compensationOf(nodeClass: Class): Class | undefined {
+  const component = componentOf(nodeClass);
+  return component?.kind === "agent" || component?.kind === "action"
+    ? component.meta.compensate
+    : undefined;
+}
 
 /**
  * Default monolithic Saga implementation.
@@ -11,35 +19,25 @@ import type { AgentState } from "../../graph/state.js";
  */
 @WorkflowAction({ name: "LocalSagaStrategy" })
 export class LocalSagaStrategy extends BaseSagaStrategy {
-  async execute(state: AgentState<unknown>, context: ActionRuntime) {
+  async execute(
+    state: AgentState<unknown>,
+    context: ActionRuntime,
+  ): Promise<Record<string, never>> {
     if (!context.getComponentClass || !context.runCompensation) {
-      console.warn("LocalSagaStrategy requires framework support for compensations.");
+      process.emitWarning("LocalSagaStrategy requires framework support for compensations.");
       return {};
     }
 
-    const history = state.contributions || [];
-    // Extract unique node names in reverse order of their execution
-
+    // Unique node names in reverse order of their execution
     const executedNodes = Array.from(
-      new Set((history as any[]).map((h) => h.agent).reverse()),
-    ) as string[];
+      new Set(state.contributions.map((contribution) => contribution.agent).reverse()),
+    );
 
     for (const nodeName of executedNodes) {
       const nodeClass = await context.getComponentClass(nodeName);
       if (!nodeClass) continue;
-
-      const meta = componentOf(nodeClass);
-      if (!meta) continue;
-
-      if (meta.kind === "agent" || meta.kind === "action") {
-        if (meta.meta.compensate) {
-          await context.runCompensation(
-            meta.meta.compensate,
-            state,
-            typeof nodeName === "string" ? nodeName : undefined,
-          );
-        }
-      }
+      const compensate = compensationOf(nodeClass);
+      if (compensate) await context.runCompensation(compensate, state, nodeName);
     }
 
     return {};

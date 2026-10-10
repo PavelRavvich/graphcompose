@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { describe, it, expect } from "vitest";
 import { Workflow, Agent, Tool } from "../../../src/components/decorators.js";
 import { from } from "../../../src/router/index.js";
@@ -104,12 +103,7 @@ describe("QuorumRouter", () => {
       replyWith("{}"),
     );
 
-    try {
-      await app.execute(Start, { text: "hello" });
-    } catch (e) {
-      console.error("AGGREGATE ERRORS:", (e as any).errors);
-      throw e;
-    }
+    await app.execute(Start, { text: "hello" });
 
     expect(mockLlm(FastAgent).requests.length).toBe(1);
     expect(mockLlm(SlowAgent).requests.length).toBe(1); // It made the tool call, but was aborted before the second call

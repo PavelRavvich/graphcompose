@@ -1,4 +1,3 @@
-/* eslint-disable */
 import { componentOf } from "../components/metadata.js";
 import type { Class } from "../components/injection.js";
 import { labelOf, type Flow } from "./flow.js";
@@ -78,6 +77,26 @@ function noWorkflowStart(flow: CollectedFlow): RuleViolation[] {
   return [violation("graph.no-workflow-start", message, [])];
 }
 
+/** The compensating class a node's `@Agent` / `@WorkflowAction` declares, if any. */
+function compensatorOf(use: Class): Class | undefined {
+  const meta = componentOf(use)?.meta;
+  return meta && "compensate" in meta ? meta.compensate : undefined;
+}
+
+/**
+ * Exemption for cancel/compensation actions. Note: it checks `kind` on the inner decorator
+ * meta, which no decorator records, so it never matches (kept as-is; see #180 report).
+ */
+function isCancelOrCompensationAction(ref: FlowNodeRef): boolean {
+  const meta = componentOf(ref.use)?.meta;
+  return (
+    meta !== undefined &&
+    "kind" in meta &&
+    meta.kind === "action" &&
+    (ref.label.includes("Cancel") || ref.label.includes("Compensation"))
+  );
+}
+
 function reachableFromStarts(flow: CollectedFlow): Set<string> {
   const next = nextStepsByNode(flow.transitions);
   const seen = new Set<string>();
@@ -85,10 +104,7 @@ function reachableFromStarts(flow: CollectedFlow): Set<string> {
 
   // Also treat compensators as reachable starting points
   const compensators = [...flow.nodes.values()]
-    .map((ref) => {
-      const meta = componentOf(ref.use)?.meta;
-      return meta && "compensate" in meta ? ((meta as any).compensate as Class) : undefined;
-    })
+    .map((ref) => compensatorOf(ref.use))
     .filter((c) => c !== undefined);
 
   const compKeys = [...flow.nodes.values()]
@@ -125,17 +141,8 @@ function deadEnds(flow: CollectedFlow): RuleViolation[] {
       return [violation("graph.next-after-workflow-finish", message, [ref.label])];
     }
     if (ref.kind === "workflow-finish" || hasNext) return [];
-    const meta = componentOf(ref.use)?.meta;
-    if (
-      meta &&
-      (meta as any).kind === "action" &&
-      (ref.label.includes("Cancel") || ref.label.includes("Compensation"))
-    )
-      return []; // Dirty but fast for tests
-    const allCompensators = [...flow.nodes.values()].map((r) => {
-      const m = componentOf(r.use)?.meta;
-      return m && "compensate" in m ? ((m as any).compensate as Class) : undefined;
-    });
+    if (isCancelOrCompensationAction(ref)) return []; // Dirty but fast for tests
+    const allCompensators = [...flow.nodes.values()].map((r) => compensatorOf(r.use));
     if (allCompensators.includes(ref.use)) return [];
 
     const message = `${ref.label} has no next step and is not a workflow finish`;

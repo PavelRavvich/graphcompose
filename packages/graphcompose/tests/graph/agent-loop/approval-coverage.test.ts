@@ -10,6 +10,7 @@ vi.mock("@langchain/langgraph", async (importOriginal) => {
     interrupt: (arg: any) => {
       if (arg.callId === "throw-interrupt") {
         const err = new Error("interrupted");
+        // eslint-disable-next-line no-restricted-syntax -- fake interrupt; replaced by a real channel e2e test in #188
         err.name = "NodeInterrupt";
         throw err;
       }
@@ -55,6 +56,7 @@ describe("pauseSeamApproval coverage", () => {
         return {
           interpret: async (raw: any) => {
             const err = new Error("interrupted");
+            // eslint-disable-next-line no-restricted-syntax -- fake interrupt; replaced by a real channel e2e test in #188
             err.name = "NodeInterrupt";
             throw err;
           },

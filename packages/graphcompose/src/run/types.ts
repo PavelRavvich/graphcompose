@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
+import type { FinishOutput } from "../app/types.js";
 import type { SpendLedger } from "../finops/ledger.js";
 import type { CostReport } from "../finops/usage.js";
 import type { GraphDeps } from "../graph/deps.js";
@@ -54,7 +53,7 @@ export interface AgentExecutionOutput {
   readonly path: readonly string[];
   /** The workflow finish the run reached (absent when a guard stopped it or it is paused). */
   readonly finish?: string;
-  readonly finishes?: Record<string, any>;
+  readonly finishes?: Record<string, FinishOutput>;
   readonly stopReason: string;
   readonly budgetUsd: number;
   readonly cost: CostReport;

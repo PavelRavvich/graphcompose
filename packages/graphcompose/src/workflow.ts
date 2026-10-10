@@ -1,7 +1,15 @@
-/* eslint-disable */
 import type { AgentPrompts, AgentsConfigOf } from "./config/types.js";
 import type { KnowledgeSource, RagConnector } from "./rag/types.js";
-import type { IWorkflowAction } from "./components/decorators.js";
+import type {
+  ChannelHandler,
+  Guardrail,
+  InboundChannelAdapter,
+  IWorkflowAction,
+  PiiPolicy,
+} from "./components/decorators.js";
+import type { Class } from "./components/injection.js";
+import type { QuorumStrategy } from "./concurrency/quorum.decorator.js";
+import type { BatchParallelStrategy } from "./concurrency/batch.decorator.js";
 import type { AnyTool, McpFacade, McpServerHandle } from "./tools/index.js";
 import type { Router } from "./routers/index.js";
 import type { Flow } from "./graph/flow.js";
@@ -14,13 +22,22 @@ export interface WorkflowServices {
   /** A router on the workflow's default router model (Jev) — cheap decisions inside tools. */
   readonly router: (name: string) => Router;
   /** The process environment (tools reading settings); default process.env. */
-
-  readonly env?: any;
+  readonly env?: NodeJS.ProcessEnv;
   /** Framework wiring of the app's container: replacements (test mocks) and lifecycle. */
   readonly container?: ContainerOptions;
 }
 
 /** Tools as a list, or a factory when they need core services. */
+/** Per agent or tool: its policy instances, and whether they replace the workflow's own. */
+export interface ResolvedPolicies<TPolicy> {
+  override: boolean;
+  instances: readonly TPolicy[];
+  disable: readonly Class[];
+}
+
+/** Strategies by their name and by their class. */
+export type StrategiesByKey<TStrategy> = ReadonlyMap<Class | string, TStrategy>;
+
 export type WorkflowTools =
   readonly AnyTool[] | ((services: WorkflowServices) => readonly AnyTool[]);
 
@@ -29,12 +46,10 @@ export type WorkflowTools =
  * use, the MCP servers behind its facades and, optionally, which tools wait for an approval (pause seam).
  */
 export interface AssembledWorkflow<TName extends string = string> {
-  readonly quorumRouters?: (
-    services: WorkflowServices,
-  ) => ReadonlyMap<any, import("./concurrency/quorum.decorator.js").QuorumStrategy>;
+  readonly quorumRouters?: (services: WorkflowServices) => StrategiesByKey<QuorumStrategy>;
   readonly batchStrategies?: (
     services: WorkflowServices,
-  ) => ReadonlyMap<any, import("./concurrency/batch.decorator.js").BatchParallelStrategy<any, any>>;
+  ) => StrategiesByKey<BatchParallelStrategy<unknown, unknown>>;
   readonly config: AgentsConfigOf<TName>;
   /** The workflow's graph (checked at assembly). */
   readonly flow: Flow;
@@ -66,38 +81,25 @@ export interface AssembledWorkflow<TName extends string = string> {
   /** Set to turn the pause seam on; the app supplies an in-process checkpointer. */
   readonly needsApproval?: (tool: AnyTool) => boolean;
 
-  readonly channels?: (services: WorkflowServices) => ReadonlyMap<string, any>;
-  readonly observers?: (services: WorkflowServices) => readonly any[];
+  readonly channels?: (services: WorkflowServices) => ReadonlyMap<string, ChannelHandler>;
+  readonly observers?: (services: WorkflowServices) => readonly unknown[];
   readonly piiPolicies?: (
     services: WorkflowServices,
-  ) => ReadonlyMap<
-    string,
-    { override: boolean; instances: readonly any[]; disable: readonly any[] }
-  >;
+  ) => ReadonlyMap<string, ResolvedPolicies<PiiPolicy>>;
   readonly guardrails?: (
     services: WorkflowServices,
-  ) => ReadonlyMap<
-    string,
-    { override: boolean; instances: readonly any[]; disable: readonly any[] }
-  >;
+  ) => ReadonlyMap<string, ResolvedPolicies<Guardrail>>;
   readonly toolPiiPolicies?: (
     services: WorkflowServices,
-  ) => ReadonlyMap<
-    string,
-    { override: boolean; instances: readonly any[]; disable: readonly any[] }
-  >;
+  ) => ReadonlyMap<string, ResolvedPolicies<PiiPolicy>>;
   readonly toolGuardrails?: (
     services: WorkflowServices,
-  ) => ReadonlyMap<
-    string,
-    { override: boolean; instances: readonly any[]; disable: readonly any[] }
-  >;
-
-  readonly workflowPiiPolicies?: (services: WorkflowServices) => readonly any[];
-
-  readonly workflowGuardrails?: (services: WorkflowServices) => readonly any[];
-
-  readonly channelAdapters?: (services: WorkflowServices) => ReadonlyMap<string, any>;
+  ) => ReadonlyMap<string, ResolvedPolicies<Guardrail>>;
+  readonly workflowPiiPolicies?: (services: WorkflowServices) => readonly PiiPolicy[];
+  readonly workflowGuardrails?: (services: WorkflowServices) => readonly Guardrail[];
+  readonly channelAdapters?: (
+    services: WorkflowServices,
+  ) => ReadonlyMap<string, InboundChannelAdapter>;
 }
 
 export const resolveTools = (

@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
+import type { ContentBlock } from "@langchain/core/messages";
 import type { Class } from "../components/injection.js";
 import type { WorkflowFinishText, WorkflowStartText } from "../dto/standard/framework.js";
 import type { CostReport } from "../finops/usage.js";
@@ -21,7 +20,7 @@ export interface TextFinishOutput extends FinishOutput {
 export interface MultimodalFinishOutput extends FinishOutput {
   readonly kind: "multimodal";
   // Content blocks: mixed text, tool calls, images, etc.
-  readonly blocks: readonly any[];
+  readonly blocks: readonly ContentBlock[];
 }
 
 export interface JsonFinishOutput<T = unknown> extends FinishOutput {

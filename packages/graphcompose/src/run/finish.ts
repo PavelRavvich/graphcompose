@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
+import type { FinishOutput } from "../app/types.js";
 import { buildCostReport, totalCost } from "../finops/usage.js";
 import type { FlowStateType } from "../graph/flow-state.js";
 import type { AgentStateType } from "../graph/state.js";
@@ -14,7 +13,7 @@ import type { AgentExecutionOutput, RunDeps, RunStatus } from "./types.js";
 function finishOf<TName extends string>(
   ctx: RunContext<TName>,
   state: FlowStateType,
-): { finish?: string; finishes?: Record<string, any> } {
+): { finish?: string; finishes?: Record<string, FinishOutput> } {
   const last = state.path.at(-1);
   const ref = last === undefined ? undefined : ctx.flow.model.nodes.get(last);
   return {
