@@ -9,6 +9,8 @@ import type { FlowNodeRef } from "./flow-nodes.js";
 import { collectFlow } from "./flow-nodes.js";
 import type { RunLimits } from "./flow-runtime.js";
 import type { FlowStateType } from "./flow-state.js";
+import { childInputOf } from "./nested-workflow.js";
+import type { WorkflowMeta } from "../components/meta-types.js";
 import type { FlowNodeRunner } from "./visit.js";
 
 export class UnknownActionError extends Error {
@@ -24,6 +26,30 @@ type RunCompensation = (
   childState: FlowStateType,
   nodeName?: string,
 ) => Promise<unknown>;
+
+/** The config a compensating workflow runs with: the action's thread, in a namespace of its own. */
+const compensationConfig = (config: RunnableConfig | undefined, name: string): RunnableConfig => {
+  const ns = (config?.configurable?.checkpoint_ns ?? "") as string;
+  const own = `compensate.${name}`;
+  return {
+    ...config,
+    configurable: { ...config?.configurable, checkpoint_ns: ns === "" ? own : `${ns}|${own}` },
+  };
+};
+
+/** A compensating `@Workflow`: its OWN flow (not the parent's), run as a subgraph of the action. */
+async function runCompensatingWorkflow<TName extends string>(
+  deps: GraphDeps<TName>,
+  run: RunLimits,
+  workflow: WorkflowMeta,
+  state: FlowStateType,
+  config: RunnableConfig | undefined,
+): Promise<FlowStateType> {
+  // flowGraphOf is in flow-runtime.ts, which imports this file: imported inline (cycle).
+  const { flowGraphOf } = await import("./flow-runtime.js");
+  const own = await flowGraphOf({ ...deps, flow: workflow.flow }, run);
+  return own.graph.invoke(childInputOf(state), compensationConfig(config, workflow.name));
+}
 
 /** Runs a compensating component (an action, an agent or a workflow) for a SAGA rollback. */
 function compensationRunner<TName extends string>(
@@ -58,11 +84,7 @@ function compensationRunner<TName extends string>(
       return await agentRunner(loop, comp.meta.name)(childState, config);
     }
     if (comp.kind === "workflow") {
-      const { flowGraphOf } = await import("./flow-runtime.js");
-      const flowReal = await flowGraphOf(deps, run);
-      return await flowReal.graph.invoke(childState, {
-        configurable: { runId, thread_id: runId },
-      });
+      return runCompensatingWorkflow(deps, run, comp.meta, childState, config);
     }
     throw new Error(`Unsupported compensation kind: ${comp.kind}`);
   };

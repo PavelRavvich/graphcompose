@@ -1,4 +1,5 @@
 import { checkFlow } from "../graph/check-flow.js";
+import { componentOf } from "../components/metadata.js";
 
 import { unwrapTarget, type Flow, type FlowNode, type FlowStep } from "../graph/flow.js";
 import type { AgentExecutionOutput } from "../run/types.js";
@@ -41,6 +42,22 @@ export function flowNodesByKey(flow: Flow): FlowNodesByKey {
   for (const node of flow.flatMap(nodesOfStep)) {
     const key = collected.keyOf(node);
     if (key !== undefined && !byKey.has(key)) byKey.set(key, node);
+  }
+  return byKey;
+}
+
+/**
+ * Every node of a flow and of the workflows nested in it, by key (the parent's node first when a
+ * key repeats): a run's path goes through the nested workflows' nodes too.
+ */
+export function nestedFlowNodesByKey(flow: Flow): FlowNodesByKey {
+  const byKey = new Map(flowNodesByKey(flow));
+  for (const node of [...byKey.values()]) {
+    const component = typeof node === "function" ? componentOf(node) : undefined;
+    if (component?.kind !== "workflow") continue;
+    for (const [key, nested] of nestedFlowNodesByKey(component.meta.flow)) {
+      if (!byKey.has(key)) byKey.set(key, nested);
+    }
   }
   return byKey;
 }

@@ -14,10 +14,8 @@ import type { FlowNodeRef } from "./flow-nodes.js";
 import { lastAnswer } from "./nodes/finalize.js";
 import { makeGuardNode } from "./nodes/guards.js";
 import type { FlowNodeRunner } from "./visit.js";
-import type { FlowStateUpdate } from "./flow-state.js";
 import type { MultimodalFinishOutput } from "../app/types.js";
 
-import { componentOf } from "../components/metadata.js";
 import { actionRunner } from "./flow-action-runner.js";
 import type { RunLimits } from "./flow-runtime.js";
 
@@ -89,50 +87,6 @@ const isGraphInterrupt = (e: unknown): boolean =>
   "name" in e &&
   (e.name === "NodeInterrupt" || e.name === "GraphInterrupt");
 
-/** A nested `@Workflow` node: its own flow graph, run on a child state (or its test mock). */
-function workflowRunner<TName extends string>(
-  deps: GraphDeps<TName>,
-  run: RunLimits,
-  node: FlowNodeRef,
-): FlowNodeRunner {
-  const component = componentOf(node.use);
-
-  if (component?.kind !== "workflow") throw new Error(`Not a workflow: ${node.name}`);
-
-  return async (state, config) => {
-    if (state.cancelRequested) {
-      throw new WorkflowCancelledError();
-    }
-    const runId = state.runId;
-    const appState = { runId, activeNode: node.name, variables: {}, history: state.history };
-    await deps.observer?.onActionStart({ name: node.name, input: state, state: appState });
-
-    const mock = deps.mockedWorkflows?.get(node.use);
-    if (mock) {
-      const mockResult: unknown = await mock(state, config);
-      // A test mock returns the node's update (or nothing).
-      const update = (mockResult ?? {}) as FlowStateUpdate;
-      await deps.observer?.onActionEnd({ name: node.name, update, state: appState });
-      return update;
-    }
-
-    // Sub-dependencies inherit from the parent but run the nested flow. Ideally the workflow's
-    // own settings().limits would be merged here; for now we rely on the global ledger.
-    const subDeps: GraphDeps<TName> = { ...deps, flow: component.meta.flow };
-
-    // flowGraphOf is in flow-runtime.ts, which imports this file: imported inline (cycle).
-    const { flowGraphOf } = await import("./flow-runtime.js");
-    const flow = await flowGraphOf(subDeps, { limits: deps.limits, spentToday: run.spentToday });
-
-    const childState = { ...state, steps: 0, path: [], visits: {}, forks: {}, _batchCursor: {} };
-    const result = await flow.graph.invoke(childState, config);
-
-    await deps.observer?.onActionEnd({ name: node.name, update: result, state: appState });
-
-    return { payload: result.payload, contributions: result.contributions, steps: result.steps };
-  };
-}
-
 /** An agent node: its own loop; a failed optional branch is reported and skipped. */
 function agentNodeRunner<TName extends string>(
   loop: AgentLoopGraph,
@@ -189,7 +143,8 @@ export function flowRunners<TName extends string>(
       case "action":
         return actionRunner(deps, run, loops, node);
       case "workflow":
-        return workflowRunner(deps, run, node);
+        // the engine runs a nested workflow as its compiled subgraph (`nestedWorkflowRunner`)
+        throw new Error(`Nested workflow "${node.name}" has no runner of its own`);
       case "agent": {
         const loop = loops.get(node.name);
         if (loop === undefined) throw new UnknownAgentError(node.name);

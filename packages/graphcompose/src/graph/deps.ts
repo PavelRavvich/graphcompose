@@ -83,11 +83,6 @@ export interface GraphDeps<TName extends string> {
   readonly quorumRouters?: (
     name: string,
   ) => import("../concurrency/quorum.decorator.js").QuorumStrategy | undefined;
-  readonly mockedWorkflows?: ReadonlyMap<
-    import("../components/injection.js").Class,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (...args: any[]) => any
-  >;
   /** A batch strategy by name; undefined when no provider declares it. */
   readonly batchStrategies?: (
     key: import("../components/injection.js").Class | string,

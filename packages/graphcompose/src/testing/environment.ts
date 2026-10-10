@@ -3,6 +3,7 @@ import type { Mocked } from "vitest";
 import { buildApp, type AppOptions, type BuiltApp } from "../app/create-app.js";
 import { createMemoryPausedRunRepository } from "../app/paused-runs.js";
 import { flowNodesByKey } from "../app/result.js";
+import { workflowTreeOf } from "../components/nested-modules.js";
 import { workflowOf } from "../components/assemble.js";
 import type { Environment } from "../environments/define.js";
 import {
@@ -20,7 +21,6 @@ import { createSqliteTernStore } from "../terns/index.js";
 import { createTestClock } from "./clock.js";
 import { TestSetupError } from "./errors.js";
 import { nodeNameOf } from "./failure-facts.js";
-import { vi } from "vitest";
 import { McpStubs, stubbedMcpConnect, type McpStub } from "./mcp-stubs.js";
 import { mockInstanceOf } from "./mocks.js";
 import { ScriptBook, type ModelScript } from "./script-book.js";
@@ -76,7 +76,6 @@ export class TestEnvironment {
   readonly clock = createTestClock();
   readonly mcp = new McpStubs(this.book);
   readonly #mocks = new Map<Class, unknown>();
-  readonly #workflowMocks = new Map<Class, import("vitest").Mock>();
   readonly #apps: BuiltApp[] = [];
   readonly #nodes: ReadonlySet<FlowNode>;
   readonly #options: AppOptions;
@@ -138,7 +137,8 @@ export class TestEnvironment {
     );
     return new TestEnvironment(
       workflow,
-      [...flowNodesByKey(assembled.flow).values()],
+      // the nodes of the workflow and of every workflow it nests or compensates with
+      workflowTreeOf(workflow).flatMap(({ meta }) => [...flowNodesByKey(meta.flow).values()]),
       options,
       assembled,
       environment,
@@ -160,26 +160,6 @@ export class TestEnvironment {
       );
     }
     return this.book.scriptOf(key);
-  }
-
-  mockSubworkflow(cls: Class): import("vitest").Mock {
-    let mock = this.#workflowMocks.get(cls);
-    if (!mock) {
-      if (this.#apps.length > 0) {
-        throw new TestSetupError(
-          `mockSubworkflow(${cls.name}) after the app started: call it before the first app.execute(…)`,
-        );
-      }
-
-      mock = vi.fn();
-      this.#workflowMocks.set(cls, mock);
-    }
-    return mock;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-  getMockedWorkflows() {
-    return this.#workflowMocks;
   }
 
   mockOf<T>(cls: Class<T>): Mocked<T> {
