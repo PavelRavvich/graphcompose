@@ -549,7 +549,7 @@ packages/graphcompose-cli/    the `gc` / `graphcompose` command (#205; depends o
     migrate/        `gc migrate imports` (#195): rewrites the old entries' imports to the new ones
     chat.ts, cli.ts, check.ts, describe.ts, rag-index.ts, eval/   command handlers
   tests/            CLI tests; workflows come from the framework's tests/fixtures
-  bin/              gc launcher
+  bin/              the CLI launcher (bin names `gc` and `graphcompose`)
 examples/job-scout/          the example (package job-scout-example; depends on graphcompose)
   src/              job-scout.workflow.ts, studio.ts; workflow-starts/ (*.workflow-start.ts), routers/
                     (*.router.ts), agents/ (*.agent.ts + *.prompt.md), workflow-finishes/

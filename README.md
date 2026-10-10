@@ -25,7 +25,7 @@ Or add it to a project and write the components yourself:
 
 ```bash
 npm i graphcompose
-npm i -D graphcompose-cli   # the gc command
+npm i -D graphcompose-cli   # the CLI (`gc`)
 ```
 
 <!-- snippet-context
